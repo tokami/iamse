@@ -29,9 +29,9 @@ simpopR <- function(FM, dat, set){
         h <- dat$h * exp(eH[y])
         mat <- dat$mat * exp(eMat[y])
         Nage[,y] <- NAtmp
-        NAAmid <- Nage[,y] * exp(-M/2)
+##        NAAmid <- Nage[,y] * exp(-M/2)
         FAA[,y] <- dat$sel * FM * exp(eF[y])
-        CAA[,y] <- baranov(FAA[,y], M, NAAmid) ## FAA / Z * Nage[,y] * (1 - exp(-Z))
+        CAA[,y] <- baranov(FAA[,y], M, Nage[,y]) ## FAA / Z * Nage[,y] * (1 - exp(-Z))
         CW[y] <- sum(CAA[,y] * dat$weight)
         SSBPR0 <- getSSBPR0(M, mat, fecun = 1, amax=amax)
         SSB <- sum(NAtmp * mat * dat$weight)

@@ -244,7 +244,7 @@ advancePop <- function(specdat, hist, set, tacs){
         CAAtmp <- baranov(FAA[y,], M, NAA[y,])
 ##        CAA[y,] <- CAAtmp
         CWreq <- sum(CAAtmp * weightF)
-        CWpot <- sum(NAAmid * sel * weightF)
+        CWpot <- sum(NAA[y,] * sel * weightF)
         ## print(paste0("Req:",CWreq))
         ## print(paste0("Pot:",CWpot))
         if(CWreq > CWpot){
@@ -261,18 +261,18 @@ advancePop <- function(specdat, hist, set, tacs){
         tacs$TAC[nrow(tacs)] <- TAC
     }
 
-    if(FALSE){
-        ## CAA
-        NAAtmp <- NAA[yNAA-1,] * weightF ## * sel
-        CAAtmp <- TAC * (NAAtmp / sum(NAAtmp, na.rm=TRUE))## split TAC according to age distribution in pop
-        ##    if(any(is.na(CAAtmp > NAAmid))) browser()
-        CAAtmp[CAAtmp > NAAmid] <- NAAmid[CAAtmp > NAAmid]
-        CAA[y,] <- CAAtmp / weightF
+    ## if(FALSE){
+    ##     ## CAA
+    ##     NAAtmp <- NAA[yNAA-1,] * weightF ## * sel
+    ##     CAAtmp <- TAC * (NAAtmp / sum(NAAtmp, na.rm=TRUE))## split TAC according to age distribution in pop
+    ##     ##    if(any(is.na(CAAtmp > NAAmid))) browser()
+    ##     CAAtmp[CAAtmp > NAAmid] <- NAAmid[CAAtmp > NAAmid]
+    ##     CAA[y,] <- CAAtmp / weightF
 
-        ## FAA
-        FAA[y,] <- CAA[y,] / (NAA[yNAA-1,] * exp(-M/2))
-        FAA[y,] <- -log(1 - FAA[y,])
-    }
+    ##     ## FAA
+    ##     FAA[y,] <- CAA[y,] / (NAA[yNAA-1,] * exp(-M/2))
+    ##     FAA[y,] <- -log(1 - FAA[y,])
+    ## }
 
     ## Z
     Z <- M + FAA[y,]
