@@ -127,7 +127,7 @@ plotmse.b <- function(dat, set, resMSE, trendline=TRUE, hcrs=NA){
     }
     abline(v=dat$ny, col="grey60",lwd=2)
     abline(v=max(which(dat$Fvals==0)), col="grey60",lwd=2,lty=2)
-    legend("topleft", legend=set$mss,
+    legend("topleft", legend=set$hcr,
            col=cols, bty="n", lwd=2,lty=1)
     title("Biomass")
     box()
