@@ -94,8 +94,8 @@ initPop <- function(specdat, set, reflev = TRUE){
         M <- M * exp(eM[y])
         Z <- M + FAA[y,]
         ## CAA
-        NAAmid <- NAA[y,] * exp(-M/2)
-        CAA[y,] <- baranov(FAA[y,], M, NAAmid)
+        ## NAAmid <- NAA[y,] * exp(-M/2)
+        CAA[y,] <- baranov(FAA[y,], M, NAA[y,])
         ## CW
         CW[y] <- sum(weightF * CAA[y,])
         ## TSB
@@ -228,34 +228,34 @@ advancePop <- function(specdat, hist, set, tacs){
     ## project forward
     ## Available mid year biomass
     M <- M * exp(eM)
-    NAAmid <- NAA[yNAA-1,] * exp(-M/2)
+    ## NAAmid <- NAA[yNAA-1,] * exp(-M/2)
 
     ## catch in weight = TAC
     if(tacs$id[nrow(tacs)] != "refFmsy" || is.na(tacs$id[nrow(tacs)])){
         TAC <- as.numeric(as.character(tacs$TAC[nrow(tacs)]))
         TACs[y] <- TAC
-        FMtac <- min(set$maxF, getFM(TAC, NAA = NAAmid, M = M, weight = weightF, sel = sel))
+        FMtac <- min(set$maxF, getFM(TAC, NAA = NAA[y,], M = M, weight = weightF, sel = sel))
         FAA[y,] <- sel * FMtac ## * exp(eF) ## that would be implementation error right?
         ## CAA[y,] <- baranov(FAA[y,], M, NAAmid) ## new: "To prevent
         ## a control from removing all exploitable biomass from the
         ## population in a year, we set the achieved catch to 75% of
         ## the midyear exploitable biomass in that year in cases where
         ## TAC exceeded the exploitable biomass."
-        CAAtmp <- baranov(FAA[y,], M, NAAmid)
+        CAAtmp <- baranov(FAA[y,], M, NAA[y,])
 ##        CAA[y,] <- CAAtmp
         CWreq <- sum(CAAtmp * weightF)
         CWpot <- sum(NAAmid * sel * weightF)
         ## print(paste0("Req:",CWreq))
         ## print(paste0("Pot:",CWpot))
         if(CWreq > CWpot){
-            CAA[y,] <- 0.99 * NAAmid * sel
+            CAA[y,] <- 0.99 * NAA[y,] * sel
         }else{
             CAA[y,] <- CAAtmp
         }
     }else{
         FMtac <- hist$refs$Fmsy
         FAA[y,] <- sel * FMtac
-        CAA[y,] <- baranov(FAA[y,], M, NAAmid)
+        CAA[y,] <- baranov(FAA[y,], M, NAA[y,])
         TAC <- sum(CAA[y,] * weightF, na.rm = TRUE)
         TACs[y] <- TAC
         tacs$TAC[nrow(tacs)] <- TAC

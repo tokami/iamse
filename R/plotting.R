@@ -10,7 +10,7 @@ plotmse.cw <- function(dat, set, resMSE, trendline=TRUE, hcrs=NA){
             resMSEnew[[i]] <- resMSE[[hcri]]
         }
         resMSE <- resMSEnew
-        set$mss <- hcrs
+        set$hcr <- hcrs
     }
     ## summary (median, 95% CIs)
     res <- sumMSE(resMSE)
@@ -60,7 +60,7 @@ plotmse.cw <- function(dat, set, resMSE, trendline=TRUE, hcrs=NA){
     }
     abline(v=dat$ny, col="grey60",lwd=2)
     abline(v=max(which(dat$Fvals==0)), col="grey60",lwd=2,lty=2)
-    legend("topleft", legend=set$mss,
+    legend("topleft", legend=set$hcr,
            col=cols, bty="n", lwd=2,lty=1)
     title("Catch")
     box()
@@ -77,7 +77,7 @@ plotmse.b <- function(dat, set, resMSE, trendline=TRUE, hcrs=NA){
             resMSEnew[[i]] <- resMSE[[hcri]]
         }
         resMSE <- resMSEnew
-        set$mss <- hcrs
+        set$hcr <- hcrs
     }
     ## summary (median, 95% CIs)
     res <- sumMSE(resMSE)
@@ -195,7 +195,7 @@ plotmse.f <- function(dat, set, resMSE, trendline=TRUE, hcrs=NA, ylim=NULL){
     }
     abline(v=dat$ny, col="grey60",lwd=2)
     abline(v=max(which(dat$Fvals==0)), col="grey60",lwd=2,lty=2)
-    legend("topleft", legend=set$mss,
+    legend("topleft", legend=set$hcr,
            col=cols, bty="n", lwd=2,lty=1)
     title("Fishing mortality")
     box()
@@ -247,7 +247,7 @@ plotmse.tradeoff <- function(mets, metrics = c("avRelCatch","PBBlim"), hcrs=NA){
         segments(x0 = xs[2], y0 = ys[1], x1 = xs[2], y1 = ys[3], col=cols[i], lwd=1.5)
         points(xs[2],ys[2], col=cols[i], pch=16, cex=1.5)
     }
-    legend("topright", legend=set$mss,
+    legend("topright", legend=set$hcr,
            col=cols, bty="n", lwd=2,lty=1)
     box()
 }
@@ -284,13 +284,18 @@ plotmse.quant <- function(dat, set, resMSE, hcrs=NULL,
     plot(years, quant1[[1]], ty='n', ylim=range(unlist(quant1)))
     for(i in 1:nspict) lines(years, quant1[[i]], col = cols[i])
     title(quants[1])
+    box()
     ## FmFmsy
     plot(years, quant2[[1]], ty='n', ylim=range(unlist(quant2)))
     for(i in 1:nspict) lines(years, quant2[[i]], col = cols[i])
     title(quants[2])
+    box()
     ## Cp
     plot(years, quant3[[1]], ty='n', ylim=range(unlist(quant3)))
     for(i in 1:nspict) lines(years, quant3[[i]], col = cols[i])
     title(quants[3])
+    legend("topright", legend=set$hcr,
+           col=cols, bty="n", lwd=2,lty=1)
+    box()
 
 }

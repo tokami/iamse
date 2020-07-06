@@ -63,7 +63,7 @@ List simpop(double FM, List dat, List set) {
     Nage(a,0) = R0;
   }
   NumericVector Z (amax);
-  NumericVector NAAmid (amax);
+  //  NumericVector NAAmid (amax);
   double rec;
   double fecun = 1.0;
   NumericVector NnatM (amax);
@@ -110,10 +110,10 @@ List simpop(double FM, List dat, List set) {
     R0y = exp(logR0) * exp(eR0(y));
     for(int a=0; a<amax; a++){
       Nage(a,y) = NAtmp(a);
-      NAAmid(a) = Nage(a,y) * exp(-My(a)/2);
+      //      NAAmid(a) = Nage(a,y) * exp(-My(a)/2);
       FAA(a,y) = sel(a) * FM * exp(eF(y));
       Z(a) = FAA(a,y) + My(a);
-      CAA(a,y) = FAA(a,y)/Z(a) * NAAmid(a) * (1 - exp(-Z(a)));
+      CAA(a,y) = FAA(a,y)/Z(a) * Nage(a,y) * (1 - exp(-Z(a)));
       CW(y) += CAA(a,y) * weight(a); // weightF?
       SSB(y) += NAtmp(a) * maty(a) * weight(a);
     }
