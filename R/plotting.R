@@ -144,7 +144,7 @@ plotmse.f <- function(dat, set, resMSE, trendline=TRUE, hcrs=NA, ylim=NULL){
             resMSEnew[[i]] <- resMSE[[hcri]]
         }
         resMSE <- resMSEnew
-        set$mss <- hcrs
+        set$hcr <- hcrs
     }
     ## summary (median, 95% CIs)
     res <- sumMSE(resMSE)
@@ -250,4 +250,47 @@ plotmse.tradeoff <- function(mets, metrics = c("avRelCatch","PBBlim"), hcrs=NA){
     legend("topright", legend=set$mss,
            col=cols, bty="n", lwd=2,lty=1)
     box()
+}
+
+
+#' @name plotmse.quant
+#' @export
+plotmse.quant <- function(dat, set, resMSE, hcrs=NULL,
+                          quants = c("bpbmsy.sd","fmfmsy.sd","cp.sd")){
+
+    if(is.null(hcrs)){
+        hcr <- set$hcr
+        spicthcr <- which("spict" == unlist(lapply(strsplit(hcr,"-"), "[[", 1)))
+    }else spicthcr <- hcrs
+
+
+
+    nspict <- length(spicthcr)
+    quant1 <- list()
+    quant2 <- list()
+    quant3 <- list()
+    for(i in 1:nspict){
+        ind <- spicthcr[i]
+        quant1[[i]] <- apply(do.call(rbind,lapply(resMSE[[ind]], function(x) x$tacs[[quants[1]]])), 2, mean)
+        quant2[[i]] <- apply(do.call(rbind,lapply(resMSE[[ind]], function(x) x$tacs[[quants[2]]])), 2, mean)
+        quant3[[i]] <- apply(do.call(rbind,lapply(resMSE[[ind]], function(x) x$tacs[[quants[3]]])), 2, mean)
+    }
+
+    cols <- rainbow(nspict)
+    years <- 1:set$nysim
+
+    opar <- par(mfrow=c(length(quants),1))
+    ## BpBmsy
+    plot(years, quant1[[1]], ty='n', ylim=range(unlist(quant1)))
+    for(i in 1:nspict) lines(years, quant1[[i]], col = cols[i])
+    title(quants[1])
+    ## FmFmsy
+    plot(years, quant2[[1]], ty='n', ylim=range(unlist(quant2)))
+    for(i in 1:nspict) lines(years, quant2[[i]], col = cols[i])
+    title(quants[2])
+    ## Cp
+    plot(years, quant3[[1]], ty='n', ylim=range(unlist(quant3)))
+    for(i in 1:nspict) lines(years, quant3[[i]], col = cols[i])
+    title(quants[3])
+
 }
