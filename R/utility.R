@@ -211,7 +211,7 @@ estTAC <- function(inp, hcr, hist=NULL, stab=FALSE, tacs=NULL, tcv=NA){
                    cp <- round(get.par("logCp",rep, exp=TRUE)[,c(2,4,5)],2)
                    names(cp) <- paste0("cp-",names(cp))
                    tac <- try(spict:::get.TAC(rep=rep,
-                                              fractiles = list(catch=0.3, ffmsy=0.5, bbmsy=0.5),
+                                              fractiles = list(catch=0.5, ffmsy=0.5, bbmsy=0.5),
                                               breakpointB = 0, verbose = FALSE), silent = TRUE)
                    if(class(tac) == "try-error"){
                        tactmp <- conscat(inp, tacs=tacs)
