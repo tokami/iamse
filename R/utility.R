@@ -203,9 +203,6 @@ estTAC <- function(inp, hcr, hist=NULL, stab=FALSE, tacs=NULL, tcv=NA){
                rep <- try(fit.spict(inp), silent=TRUE)
                if(class(rep) == "try-error" || rep$opt$convergence != 0 || any(is.infinite(rep$sd))){
                    tactmp <- conscat(inp, tacs=tacs)
-                   fmfmsy <- c(NA,NA,NA)
-                   bpbmsy <- c(NA,NA,NA)
-                   cp <- c(NA,NA,NA)
                }else{
                    fmfmsy <- round(get.par("logFmFmsynotS",rep, exp=TRUE)[,c(2,4,5)],2)
                    names(fmfmsy) <- paste0("fmfmsy-",names(fmfmsy))
@@ -221,10 +218,9 @@ estTAC <- function(inp, hcr, hist=NULL, stab=FALSE, tacs=NULL, tcv=NA){
                    }else{
                        tactmp <- data.frame(TAC=tac, id="spict-msy", hitSC=NA,
                                             red=NA, barID=NA, sd=NA, conv = NA)
+                       tactmp <- as.data.frame(c(tactmp, fmfmsy, bpbmsy, cp))
                    }
-
                }
-               tactmp <- as.data.frame(c(tactmp, fmfmsy, bpbmsy, cp))
                if(is.null(tacs)){
                    tacs <- tactmp
                }else{
@@ -239,9 +235,6 @@ estTAC <- function(inp, hcr, hist=NULL, stab=FALSE, tacs=NULL, tcv=NA){
                rep <- try(fit.spict(inp), silent=TRUE)
                if(class(rep) == "try-error" || rep$opt$convergence != 0 || any(is.infinite(rep$sd))){
                    tactmp <- conscat(inp, tacs=tacs)
-                   fmfmsy <- c(NA,NA,NA)
-                   bpbmsy <- c(NA,NA,NA)
-                   cp <- c(NA,NA,NA)
                }else{
                    fmfmsy <- round(get.par("logFmFmsynotS",rep, exp=TRUE)[,c(2,4,5)],2)
                    names(fmfmsy) <- paste0("fmfmsy-",names(fmfmsy))
@@ -257,10 +250,9 @@ estTAC <- function(inp, hcr, hist=NULL, stab=FALSE, tacs=NULL, tcv=NA){
                    }else{
                        tactmp <- data.frame(TAC=tac, id="spict-hs50", hitSC=NA,
                                             red=NA, barID=NA, sd=NA, conv = NA)
+                       tactmp <- as.data.frame(c(tactmp, fmfmsy, bpbmsy, cp))
                    }
-
                }
-               tactmp <- as.data.frame(c(tactmp, fmfmsy, bpbmsy, cp))
                if(is.null(tacs)){
                    tacs <- tactmp
                }else{
@@ -275,9 +267,6 @@ estTAC <- function(inp, hcr, hist=NULL, stab=FALSE, tacs=NULL, tcv=NA){
                rep <- try(fit.spict(inp), silent=TRUE)
                if(class(rep) == "try-error" || rep$opt$convergence != 0 || any(is.infinite(rep$sd))){
                    tactmp <- conscat(inp, tacs=tacs)
-                   fmfmsy <- c(NA,NA,NA)
-                   bpbmsy <- c(NA,NA,NA)
-                   cp <- c(NA,NA,NA)
                }else{
                    fmfmsy <- round(get.par("logFmFmsynotS",rep, exp=TRUE)[,c(2,4,5)],2)
                    names(fmfmsy) <- paste0("fmfmsy-",names(fmfmsy))
@@ -293,10 +282,9 @@ estTAC <- function(inp, hcr, hist=NULL, stab=FALSE, tacs=NULL, tcv=NA){
                    }else{
                        tactmp <- data.frame(TAC=tac, id="spict-msy-a30", hitSC=NA,
                                             red=NA, barID=NA, sd=NA, conv = NA)
+                       tactmp <- as.data.frame(c(tactmp, fmfmsy, bpbmsy, cp))
                    }
-
                }
-               tactmp <- as.data.frame(c(tactmp, fmfmsy, bpbmsy, cp))
                if(is.null(tacs)){
                    tacs <- tactmp
                }else{
@@ -311,9 +299,6 @@ estTAC <- function(inp, hcr, hist=NULL, stab=FALSE, tacs=NULL, tcv=NA){
                rep <- try(fit.spict(inp), silent=TRUE)
                if(class(rep) == "try-error" || rep$opt$convergence != 0 || any(is.infinite(rep$sd))){
                    tactmp <- conscat(inp, tacs=tacs)
-                   fmfmsy <- c(NA,NA,NA)
-                   bpbmsy <- c(NA,NA,NA)
-                   cp <- c(NA,NA,NA)
                }else{
                    fmfmsy <- round(get.par("logFmFmsynotS",rep, exp=TRUE)[,c(2,4,5)],2)
                    names(fmfmsy) <- paste0("fmfmsy-",names(fmfmsy))
@@ -329,10 +314,9 @@ estTAC <- function(inp, hcr, hist=NULL, stab=FALSE, tacs=NULL, tcv=NA){
                    }else{
                        tactmp <- data.frame(TAC=tac, id="spict-msy-b30", hitSC=NA,
                                             red=NA, barID=NA, sd=NA, conv = NA)
+                       tactmp <- as.data.frame(c(tactmp, fmfmsy, bpbmsy, cp))
                    }
-
                }
-               tactmp <- as.data.frame(c(tactmp, fmfmsy, bpbmsy, cp))
                if(is.null(tacs)){
                    tacs <- tactmp
                }else{
@@ -347,9 +331,6 @@ estTAC <- function(inp, hcr, hist=NULL, stab=FALSE, tacs=NULL, tcv=NA){
                rep <- try(fit.spict(inp), silent=TRUE)
                if(class(rep) == "try-error" || rep$opt$convergence != 0 || any(is.infinite(rep$sd))){
                    tactmp <- conscat(inp, tacs=tacs)
-                   fmfmsy <- c(NA,NA,NA)
-                   bpbmsy <- c(NA,NA,NA)
-                   cp <- c(NA,NA,NA)
                }else{
                    fmfmsy <- round(get.par("logFmFmsynotS",rep, exp=TRUE)[,c(2,4,5)],2)
                    names(fmfmsy) <- paste0("fmfmsy-",names(fmfmsy))
@@ -365,10 +346,9 @@ estTAC <- function(inp, hcr, hist=NULL, stab=FALSE, tacs=NULL, tcv=NA){
                    }else{
                        tactmp <- data.frame(TAC=tac, id="spict-msy-f30", hitSC=NA,
                                             red=NA, barID=NA, sd=NA, conv = NA)
+                       tactmp <- as.data.frame(c(tactmp, fmfmsy, bpbmsy, cp))
                    }
-
                }
-               tactmp <- as.data.frame(c(tactmp, fmfmsy, bpbmsy, cp))
                if(is.null(tacs)){
                    tacs <- tactmp
                }else{
@@ -383,9 +363,6 @@ estTAC <- function(inp, hcr, hist=NULL, stab=FALSE, tacs=NULL, tcv=NA){
                rep <- try(fit.spict(inp), silent=TRUE)
                if(class(rep) == "try-error" || rep$opt$convergence != 0 || any(is.infinite(rep$sd))){
                    tactmp <- conscat(inp, tacs=tacs)
-                   fmfmsy <- c(NA,NA,NA)
-                   bpbmsy <- c(NA,NA,NA)
-                   cp <- c(NA,NA,NA)
                }else{
                    fmfmsy <- round(get.par("logFmFmsynotS",rep, exp=TRUE)[,c(2,4,5)],2)
                    names(fmfmsy) <- paste0("fmfmsy-",names(fmfmsy))
@@ -401,10 +378,9 @@ estTAC <- function(inp, hcr, hist=NULL, stab=FALSE, tacs=NULL, tcv=NA){
                    }else{
                        tactmp <- data.frame(TAC=tac, id="spict-msy-c30", hitSC=NA,
                                             red=NA, barID=NA, sd=NA, conv = NA)
+                       tactmp <- as.data.frame(c(tactmp, fmfmsy, bpbmsy, cp))
                    }
-
                }
-               tactmp <- as.data.frame(c(tactmp, fmfmsy, bpbmsy, cp))
                if(is.null(tacs)){
                    tacs <- tactmp
                }else{

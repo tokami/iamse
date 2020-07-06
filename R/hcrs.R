@@ -8,7 +8,10 @@
 #' @export
 conscat <- function(inpin, tacs=NULL){
     TAC <- sum(tail(inpin$obsC, 1))
-    tactmp <- data.frame(TAC=TAC, id="cc", hitSC=FALSE, red=FALSE, barID=FALSE, sd=NA, conv = FALSE)
+    tactmp <- data.frame(TAC=TAC, id="cc", hitSC=FALSE, red=FALSE,
+                         barID=FALSE, sd=NA, conv = FALSE,
+                         fmfmsy.est=NA,fmfmsy.sd=NA,fmfmsy.cv=NA,bpbmsy.est=NA,
+                         bpbmsy.sd=NA,bpbmsy.cv=NA,cp.est=NA,cp.sd=NA,cp.cv=NA)
     if(is.null(tacs)){
         tacs <- tactmp
     }else{
