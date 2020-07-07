@@ -73,7 +73,6 @@ List simpop(double FM, List dat, List set) {
 
   // errors
   double sdF = as<double>(set["sigmaF"]);
-  double sdR = as<double>(set["sigmaR"]);
   double sdM = as<double>(set["sigmaM"]);
   double sdH = as<double>(set["sigmaH"]);
   double sdR0 = as<double>(set["sigmaR0"]);
@@ -81,9 +80,22 @@ List simpop(double FM, List dat, List set) {
   NumericVector eF = rnorm(ny, 0, sdF);
   double sdF2 = pow(sdF,2);
   for(int y=0; y<ny; y++) eF(y) = eF(y) - sdF2/2;
-  NumericVector eR = rnorm(ny, 0, sdR);
+
+  // recruitment devs
+  double sdR = as<double>(set["sigmaR"]);
+  double rhoR = as<double>(set["rhoR"]);
   double sdR2 = pow(sdR,2);
-  for(int y=0; y<ny; y++) eR(y) = eR(y) - sdR2/2;
+  double rhoR2 = pow(rhoR,2);
+  NumericVector rnum = rnorm(ny, 0, sdR) - sdR2/2;
+  NumericVector eR(rnum.size());
+  eR(0) = rnum(0);
+  for(int i=1; i<rnum.size(); i++) eR(i) = rhoR * rnum(i-1) + sqrt(1-rhoR2) * rnum(i);
+  eR = exp(eR);
+  double eRmean;
+  for(int i=0; i<eR.size(); i++) eRmean += eR(i);
+  eRmean = eRmean / eR.size();
+  eR = eR / eRmean;
+
   NumericVector eM = rnorm(ny, 0, sdM);
   double sdM2 = pow(sdM,2);
   for(int y=0; y<ny; y++) eM(y) = eM(y) - sdM2/2;
@@ -134,7 +146,7 @@ List simpop(double FM, List dat, List set) {
       alpha = exp(beta * R0y)/SSBPR0(y);
       rec = alpha * SSB(y) * exp(-beta * SSB(y));
     }
-    NAtmp2(0) = rec * exp(eR(y));
+    NAtmp2(0) = rec * eR(y);
     // survivors
     for(int a=0; a<amax; a++){
       survivors(a) = NAtmp(a) * exp(-Z(a));

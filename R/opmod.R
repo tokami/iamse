@@ -40,15 +40,7 @@ initPop <- function(specdat, set, reflev = TRUE){
     eMat <- set$eMat
     if(is.null(eF)) eF <- rnorm(ny, 0, set$sigmaF) - set$sigmaF^2/2
     if(is.null(eR)) {
-        eR <- rnorm(ny, 0, set$sigmaR) - set$sigmaR^2/2
-        if(set$autocor){  ## autocorrelated recruitment deviations
-            eRar <- rep(NA,ny)
-            eRar[1] <- eR[1]
-            for (y in 2:ny){
-                eRar[y] <- eRar[y-1] * rho + sqrt(1 - rho ^ 2) * eR[y]
-            }
-            eR <- eRar
-        }
+        eR <- genDevs(ny, set$sigmaR, set$rhoR)
     }
     if(is.null(eM)) eM <- rnorm(ny, 0, set$sigmaM) - set$sigmaM^2/2
     if(is.null(eH)) eH <- rnorm(ny, 0, set$sigmaH) - set$sigmaH^2/2
@@ -118,7 +110,7 @@ initPop <- function(specdat, set, reflev = TRUE){
         SSBx <- c(SSB0,SSB)
         rec <- recfunc(h = h, SSBPR0 = SSBPR0, SSB = SSBx[y], R0 = R0, method = SR)
         rec[rec<0] <- 1e-10
-        NAA[y+1,1] <- rec * exp(eR[y])
+        NAA[y+1,1] <- rec * eR[y]
     }
 
     ## return
@@ -170,12 +162,11 @@ advancePop <- function(specdat, hist, set, tacs){
     eM <- set$eM[ysim]
     eH <- set$eH[ysim]
     eMat <- set$eMat[ysim]
+
     if(is.null(eR)) {
-        eR <- rnorm(1, 0, set$sigmaR) - set$sigmaR^2/2
-        if(set$autocor){  ## autocorrelated recruitment deviations
-            eR <- set$eR[ysim-1] * rho + sqrt(1 - rho ^ 2) * eR
-        }
+        eR <- genDevs(1, set$sigmaR, set$rhoR)
     }
+
     if(is.null(eF)) eF <- rnorm(1, 0, set$sigmaF) - set$sigmaF^2/2
     if(is.null(eM)) eM <- rnorm(1, 0, set$sigmaM) - set$sigmaM^2/2
     if(is.null(eH)) eH <- rnorm(1, 0, set$sigmaH) - set$sigmaH^2/2
@@ -288,7 +279,7 @@ advancePop <- function(specdat, hist, set, tacs){
     h <- h * exp(eH)
     rec <- recfunc(h = h, SSBPR0 = SSBPR0, SSB = SSB[y-1], R0 = R0, method = SR)
     rec[rec<0] <- 1e-10
-    NAA[yNAA,1] <- rec * exp(eR)
+    NAA[yNAA,1] <- rec * eR
 
     ## CW
     CW[y] <- sum(CAA[y,] * weightF, na.rm = TRUE)

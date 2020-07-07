@@ -8,7 +8,7 @@ simpopR <- function(FM, dat, set){
     years <- set$refYears
     ## errors
     eF <- rnorm(years, 0, set$sigmaF) - set$sigmaF^2/2
-    eR <- rnorm(years, 0, set$sigmaR) - set$sigmaR^2/2
+    eR <- genDevs(years, set$sigmaR, set$rhoR)
     eM <- rnorm(years, 0, set$sigmaM) - set$sigmaM^2/2
     eH <- rnorm(years, 0, set$sigmaH) - set$sigmaH^2/2
     eMat <- rnorm(years, 0, set$sigmaMat) - set$sigmaMat^2/2
@@ -35,9 +35,9 @@ simpopR <- function(FM, dat, set){
         CW[y] <- sum(CAA[,y] * dat$weight)
         SSBPR0 <- getSSBPR0(M, mat, fecun = 1, amax=amax)
         SSB <- sum(NAtmp * mat * dat$weight)
-        R0 <- exp(dat$logR0) * exp(eR[y])
+        R0 <- exp(dat$logR0) * exp(eR0[y])
         NAtmp2[1] <- recfunc(h = h, SSB = SSB,
-                             SSBPR0 = SSBPR0, R0 = R0, method = dat$SR) * exp(eR[y])
+                             SSBPR0 = SSBPR0, R0 = R0, method = dat$SR) * eR[y]
         Z <- M + FAA[,y]
         survival <- NAtmp * exp(-Z)
         NAtmp2[2:amax] <- survival[1:(amax-1)]

@@ -33,7 +33,7 @@ runMSE <- function(dat, set, ref, ncores=detectCores()-1, verbose=TRUE){
         setx$eC <- rnorm(nysim, 0, set$CVC) - set$CVC^2/2
         setx$eI <- rnorm(nysim, 0, set$CVI) - set$CVI^2/2
         setx$eF <- rnorm(nysim, 0, set$sigmaF) - set$sigmaF^2/2
-        setx$eR <- rnorm(nysim, 0, set$sigmaR) - set$sigmaR^2/2
+        setx$eR <- genDevs(nysim, set$sigmaR, set$rhoR)
         setx$eM <- rnorm(nysim, 0, set$sigmaM) - set$sigmaM^2/2
         setx$eH <- rnorm(nysim, 0, set$sigmaH) - set$sigmaH^2/2
         setx$eMat <- rnorm(nysim, 0, set$sigmaMat) - set$sigmaMat^2/2

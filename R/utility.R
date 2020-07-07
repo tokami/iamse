@@ -7,6 +7,23 @@
 #' @format Data are lists containing data
 NULL
 
+#' @name genDevs
+#' @export
+genDevs <- function(n, sd, rho=0){
+
+
+    rnoise <- rnorm(n, 0, sd) - sd^2/2
+
+    res <- numeric(n)
+    res[1] <- rnoise[1]
+    for(i in 2:n) res[i] <- rho * rnoise[i-1] + sqrt(1-rho^2) * rnoise[i]
+
+    res <- exp(res)
+    res <- res/mean(res)
+
+    return(res)
+
+}
 
 
 #' @name checkSet
@@ -22,8 +39,8 @@ checkSet <- function(set = NULL){
     if(is.null(set$sigmaR0)) set$sigmaR0 <- 0
     if(is.null(set$sigmaMat)) set$sigmaMat <- 0
 
-    ## auto-correlated recruitment devs (not yet implemented)
-    if(is.null(set$autocor)) set$autocor <- FALSE
+    ## auto-correlated recruitment devs
+    if(is.null(set$rhoR)) set$rhoR <- 0
 
     ## maximum F for baranov solution for F given TAC
     if(is.null(set$maxF)) set$maxF <- 5
