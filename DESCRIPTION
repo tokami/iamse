@@ -2,7 +2,7 @@ Package: mse
 Type: Package
 Title: Management strategy evaluation (MSE)
 Version: 0.0.1
-Date: 2019-09-27
+Date: 2020-07-07
 Author: T.K. Mildenberger
 Maintainer: T.K. Mildenberger <t.k.mildenberger@gmail.com>
 Description: Contains framework for age-based operating model for MSE.
@@ -12,7 +12,7 @@ Copyright: Tobias K. Mildenberger <t.k.mildenberger@gmail.com>
 Depends:
     R (>= 3.0)
 Imports: Rcpp (>= 1.0.2)
-LinkingTo: Rcpp    
+LinkingTo: Rcpp
 Suggests:
     parallel,
     mgcv,
