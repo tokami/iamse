@@ -234,7 +234,8 @@ estTAC <- function(inp, hcr, hist=NULL, stab=FALSE, tacs=NULL, tcv=NA){
                    names(bmsy) <- paste0("bmsy-",names(bmsy))
                    ##
                    tac <- try(spict:::get.TAC(rep=rep,
-                                              fractiles = list(catch=0.5, ffmsy=0.5, bbmsy=0.5),
+                                              fractiles = list(catch=0.5, ffmsy=0.5, bbmsy=0.5,
+                                                               bmsy = 0.5, fmsy = 0.5),
                                               breakpointB = 0, verbose = FALSE), silent = TRUE)
                    if(class(tac) == "try-error"){
                        tacs <- conscat(inp, tacs=tacs)
@@ -249,10 +250,6 @@ estTAC <- function(inp, hcr, hist=NULL, stab=FALSE, tacs=NULL, tcv=NA){
                        }
                    }
                }
-               print(tacs$id)
-               print(sapply(ls(), function(x) round(object.size(get(x))/1e6,2)))
-               rm(rep)
-               gc()
                return(tacs)
            },
            "spict-msy-fmsy30" = {
@@ -261,7 +258,7 @@ estTAC <- function(inp, hcr, hist=NULL, stab=FALSE, tacs=NULL, tcv=NA){
                inp <- check.inp(inp)
                rep <- try(fit.spict(inp), silent=TRUE)
                if(class(rep) == "try-error" || rep$opt$convergence != 0 || any(is.infinite(rep$sd))){
-                   tactmp <- conscat(inp, tacs=tacs)
+                   tacs <- conscat(inp, tacs=tacs)
                }else{
                    fmfmsy <- round(get.par("logFmFmsynotS",rep, exp=TRUE)[,c(2,4)],2)
                    names(fmfmsy) <- paste0("fmfmsy-",names(fmfmsy))
@@ -277,24 +274,21 @@ estTAC <- function(inp, hcr, hist=NULL, stab=FALSE, tacs=NULL, tcv=NA){
                    ##
                    tac <- try(spict:::get.TAC(rep=rep,
                                               fractiles = list(catch=0.5, ffmsy=0.5, bbmsy=0.5,
-                                                               fmsy=0.3, bmsy=0.5),
+                                                               bmsy = 0.5, fmsy = 0.3),
                                               breakpointB = 0, verbose = FALSE), silent = TRUE)
                    if(class(tac) == "try-error"){
-                       tactmp <- conscat(inp, tacs=tacs)
+                       tacs <- conscat(inp, tacs=tacs)
                    }else{
                        tactmp <- data.frame(TAC=tac, id="spict-msy-fmsy30", hitSC=NA,
                                             red=NA, barID=NA, sd=NA, conv = NA)
                        tactmp <- as.data.frame(c(tactmp, fmfmsy, bpbmsy, cp, fmsy, bmsy))
+                       if(is.null(tacs)){
+                           tacs <- tactmp
+                       }else{
+                           tacs <- rbind(tacs, tactmp)
+                       }
                    }
                }
-               if(is.null(tacs)){
-                   tacs <- tactmp
-               }else{
-                   tacs <- rbind(tacs, tactmp)
-               }
-               print(sapply(ls(), function(x) round(object.size(get(x))/1e6,2)))
-               rm(rep)
-               gc()
                return(tacs)
            },
            "spict-msy-bmsy30" = {
@@ -303,7 +297,7 @@ estTAC <- function(inp, hcr, hist=NULL, stab=FALSE, tacs=NULL, tcv=NA){
                inp <- check.inp(inp)
                rep <- try(fit.spict(inp), silent=TRUE)
                if(class(rep) == "try-error" || rep$opt$convergence != 0 || any(is.infinite(rep$sd))){
-                   tactmp <- conscat(inp, tacs=tacs)
+                   tacs <- conscat(inp, tacs=tacs)
                }else{
                    fmfmsy <- round(get.par("logFmFmsynotS",rep, exp=TRUE)[,c(2,4)],2)
                    names(fmfmsy) <- paste0("fmfmsy-",names(fmfmsy))
@@ -319,24 +313,21 @@ estTAC <- function(inp, hcr, hist=NULL, stab=FALSE, tacs=NULL, tcv=NA){
                    ##
                    tac <- try(spict:::get.TAC(rep=rep,
                                               fractiles = list(catch=0.5, ffmsy=0.5, bbmsy=0.5,
-                                                               fmsy=0.5, bmsy=0.3),
+                                                               bmsy = 0.3, fmsy = 0.5),
                                               breakpointB = 0, verbose = FALSE), silent = TRUE)
                    if(class(tac) == "try-error"){
-                       tactmp <- conscat(inp, tacs=tacs)
+                       tacs <- conscat(inp, tacs=tacs)
                    }else{
                        tactmp <- data.frame(TAC=tac, id="spict-msy-bmsy30", hitSC=NA,
                                             red=NA, barID=NA, sd=NA, conv = NA)
                        tactmp <- as.data.frame(c(tactmp, fmfmsy, bpbmsy, cp, fmsy, bmsy))
+                       if(is.null(tacs)){
+                           tacs <- tactmp
+                       }else{
+                           tacs <- rbind(tacs, tactmp)
+                       }
                    }
                }
-               if(is.null(tacs)){
-                   tacs <- tactmp
-               }else{
-                   tacs <- rbind(tacs, tactmp)
-               }
-               print(sapply(ls(), function(x) round(object.size(get(x))/1e6,2)))
-               rm(rep)
-               gc()
                return(tacs)
            },
            "spict-hs50" = {

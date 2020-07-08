@@ -66,10 +66,10 @@ runMSE <- function(dat, set, ref, ncores=detectCores()-1, verbose=TRUE){
                     poptmp <- obsmod(specdat = dat, hist = poptmp, set = setx)
                     if(verbose){setTxtProgressBar(pb, y); writeLines("\n")}
                 }
-                print(sapply(ls(), function(x) round(object.size(get(x))/1e6,2)))
             }
             if(verbose) close(pb)
             popListx[[i]] <- poptmp
+            gc()
         }
         repList[[x]] <- popListx
     }, mc.cores = ncores)
