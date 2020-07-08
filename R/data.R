@@ -83,6 +83,18 @@ checkDat <- function(dat){
         dat$Fvals <- seq(0.01, 1.5, length.out = dat$ny)
     }
 
+    ## Depletion level final year
+    ##------------------
+    if(!"depl" %in% names(dat)){
+        dat$depl <- 0.5
+    }
+
+    ## Depletion relative to:
+    ##------------------
+    if(!"depl.quant" %in% names(dat)){
+        dat$depl.quant <- "B0"
+    }
+
     ## initial pop size
     ##------------------
     if(!"initN" %in% names(dat)){

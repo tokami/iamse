@@ -10,7 +10,7 @@
 
 #' @name initPop
 #' @export
-initPop <- function(specdat, set, reflev = TRUE){
+initPop <- function(specdat, set = NULL, refs = NULL, out.opt = 1, depl.quant = "B0"){
     ## species data
     amax <- specdat$amax + 1  ## age 0
     M <- specdat$M
@@ -32,27 +32,35 @@ initPop <- function(specdat, set, reflev = TRUE){
     ## indices
     ny <- specdat$ny
     ## errors
-    eF <- set$eF
-    eR <- set$eR
-    eM <- set$eM
-    eH <- set$eH
-    eR0 <- set$eR0
-    eMat <- set$eMat
-    if(is.null(eF)) eF <- rnorm(ny, 0, set$sigmaF) - set$sigmaF^2/2
-    if(is.null(eR)) {
-        eR <- genDevs(ny, set$sigmaR, set$rhoR)
+    if(!is.null(set)){
+        eF <- set$eF
+        eR <- set$eR
+        eM <- set$eM
+        eH <- set$eH
+        eR0 <- set$eR0
+        eMat <- set$eMat
+        if(is.null(eF)) eF <- rnorm(ny, 0, set$sigmaF) - set$sigmaF^2/2
+        if(is.null(eR)) {
+            eR <- genDevs(ny, set$sigmaR, set$rhoR)
+        }
+        if(is.null(eM)) eM <- rnorm(ny, 0, set$sigmaM) - set$sigmaM^2/2
+        if(is.null(eH)) eH <- rnorm(ny, 0, set$sigmaH) - set$sigmaH^2/2
+        if(is.null(eR0)) eR0 <- rnorm(1, 0, set$sigmaR0) - set$sigmaR0^2/2
+        if(is.null(eMat)) eMat <- rnorm(ny, 0, set$sigmaMat) - set$sigmaMat^2/2
+    }else{
+        eF <- rnorm(ny, 0, 0)
+        eR <- genDevs(ny, 0, 0)
+        eM <- rnorm(ny, 0, 0)
+        eH <- rnorm(ny, 0, 0)
+        eR0 <- rnorm(1, 0, 0)
+        eMat <- rnorm(ny, 0, 0)
     }
-    if(is.null(eM)) eM <- rnorm(ny, 0, set$sigmaM) - set$sigmaM^2/2
-    if(is.null(eH)) eH <- rnorm(ny, 0, set$sigmaH) - set$sigmaH^2/2
-    if(is.null(eR0)) eR0 <- rnorm(1, 0, set$sigmaR0) - set$sigmaR0^2/2
-    if(is.null(eMat)) eMat <- rnorm(ny, 0, set$sigmaMat) - set$sigmaMat^2/2
     errs <- list(eF = eF,
                  eR = eR,
                  eM = eM,
                  eH = eH,
                  eR0 = eR0,
                  eMat = eMat)
-
     ## numbers-at-age
     NAA <- matrix(0, nrow=ny+1, ncol=amax)
     ## F-at-age
@@ -71,14 +79,31 @@ initPop <- function(specdat, set, reflev = TRUE){
     CW <- rep(0,ny)
     ## TAC (for later)
     TACs <- rep(NA,ny)
-
-    ## set up NAA
-    NAA[1,1] <- R0 * exp(eR0) * exp(initN[1])
-    for(a in 2:amax){
-        NAA[1,a] <- NAA[1,a-1] * exp(-(M[a-1] + initF)) * exp(initN[a])
+    ## burnin period
+    if(is.null(set)) burnin <- 20 else burnin <- set$burnin
+    if(is.numeric(burnin) && burnin > 0){
+        NAAbi <- matrix(0, nrow=burnin+1, ncol=amax)
+        NAAbi[1,1] <- R0 * exp(initN[1])
+        Zbi <- M + sel * Fvals[1]
+        for(a in 2:amax) NAAbi[1,a] <- NAAbi[1,a-1] * exp(-(Zbi[a-1])) * exp(initN[a])
+        for(y in 1:burnin){
+            Ntemp <- NAAbi[y,] * exp(-Zbi)
+            NAAbi[y+1,amax] <- Ntemp[amax] + Ntemp[amax-1]
+            for(a in 2:(amax-1)) NAAbi[y+1,a] <- Ntemp[a-1]
+            SSB <- sum(NAAbi[y,] * weight * mat * exp(-pzbm * Zbi))
+            rec <- recfunc(h = h, SSBPR0 = SSBPR0, SSB = SSB, R0 = R0, method = SR)
+            rec[rec<0] <- 1e-10
+            NAAbi[y+1,1] <- rec
+        }
+        NAA[1,] <- NAAbi[burnin+1,]
+    }else{
+        ## set up NAA
+        NAA[1,1] <- R0 * exp(eR0) * exp(initN[1])
+        for(a in 2:amax){
+            NAA[1,a] <- NAA[1,a-1] * exp(-(M[a-1] + initF)) * exp(initN[a])
+        }
     }
     SSB0 <- sum(weight * mat * exp(-pzbm * Z) * NAA[1,])
-
     ## project forward
     for(y in 1:ny){
         ## FAA and Z
@@ -115,16 +140,24 @@ initPop <- function(specdat, set, reflev = TRUE){
 
     ## return
     out <- NULL
-    out$NAA <- NAA
-    out$TSB <- TSB
-    out$SSB <- SSB
-    out$ESB <- ESB
-    out$CAA <- CAA
-    out$FAA <- FAA
-    out$FM <- apply(FAA, 1, function(x) mean(x / specdat$sel, na.rm=TRUE))
-    out$CW <- CW
-    out$TACs <- TACs
-    out$errs <- errs
+    if(out.opt == 1){
+        out$NAA <- NAA
+        out$TSB <- TSB
+        out$SSB <- SSB
+        out$ESB <- ESB
+        out$CAA <- CAA
+        out$FAA <- FAA
+        out$FM <- apply(FAA, 1, function(x) mean(x / specdat$sel, na.rm=TRUE))
+        out$CW <- CW
+        out$TACs <- TACs
+        out$errs <- errs
+    }else if(out.opt == 2){
+        if(is.null(refs)){
+            warning("The list with reference points is needed!")
+        }else{
+            out <- TSB[ny]/refs[[depl.quant]]
+        }
+    }
     return(out)
 }
 

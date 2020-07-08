@@ -52,9 +52,11 @@ plotmse.cw <- function(dat, set, resMSE, trendline=TRUE, hcrs=NA){
     for(i in 1:nms){
         llsim <- res[[i]]$CW[1,idxsim]
         ulsim <- res[[i]]$CW[3,idxsim]
-        medsim <- res[[i]]$CW[2,idxsim]
         polygon(x = c(xsim,rev(xsim)), y = c(llsim,rev(ulsim)),
                 border=NA, col=rgb(t(col2rgb(cols[i]))/255,alpha=0.2))
+    }
+    for(i in 1:nms){
+        medsim <- res[[i]]$CW[2,idxsim]
         lines(xsim, medsim, lwd=2, col=cols[i])
         if(trendline) lines(xsim, resMSE[[i]][[1]]$CW[idxsim], col=cols[i])
     }
@@ -119,9 +121,11 @@ plotmse.b <- function(dat, set, resMSE, trendline=TRUE, hcrs=NA){
     for(i in 1:nms){
         llsim <- res[[i]]$TSB[1,idxsim]
         ulsim <- res[[i]]$TSB[3,idxsim]
-        medsim <- res[[i]]$TSB[2,idxsim]
         polygon(x = c(xsim,rev(xsim)), y = c(llsim,rev(ulsim)),
                 border=NA, col=rgb(t(col2rgb(cols[i]))/255,alpha=0.2))
+    }
+    for(i in 1:nms){
+        medsim <- res[[i]]$TSB[2,idxsim]
         lines(xsim, medsim, lwd=2, col=cols[i])
         if(trendline) lines(xsim, resMSE[[i]][[1]]$TSB[idxsim], col=cols[i])
     }
@@ -185,13 +189,15 @@ plotmse.f <- function(dat, set, resMSE, trendline=TRUE, hcrs=NA, ylim=NULL){
     abline(h=0,lty=2)
     ## projection
     for(i in 1:nms){
-        llsim <- res[[i]]$FM[1,idxsim]
-        ulsim <- res[[i]]$FM[3,idxsim]
         medsim <- res[[i]]$FM[2,idxsim]
-        polygon(x = c(xsim,rev(xsim)), y = c(llsim,rev(ulsim)),
-                border=NA, col=rgb(t(col2rgb(cols[i]))/255,alpha=0.2))
         lines(xsim, medsim, lwd=2, col=cols[i])
         if(trendline) lines(xsim, resMSE[[i]][[1]]$FM[idxsim], col=cols[i])
+    }
+    for(i in 1:nms){
+        llsim <- res[[i]]$FM[1,idxsim]
+        ulsim <- res[[i]]$FM[3,idxsim]
+        polygon(x = c(xsim,rev(xsim)), y = c(llsim,rev(ulsim)),
+                border=NA, col=rgb(t(col2rgb(cols[i]))/255,alpha=0.2))
     }
     abline(v=dat$ny, col="grey60",lwd=2)
     abline(v=max(which(dat$Fvals==0)), col="grey60",lwd=2,lty=2)

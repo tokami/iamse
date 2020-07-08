@@ -25,10 +25,46 @@ genDevs <- function(n, sd, rho=0){
 
 }
 
+#' @name estDepl
+#' @export
+estDepl <- function(dat, refs, verbose = TRUE){
+
+    depl <- dat$depl
+    depl.quant <- dat$depl.quant
+
+    frel <- dat$Fvals/max(dat$Fvals)
+
+    fn <- function(fabs, frel, depl, opt=1){
+        fpat <- frel * fabs
+        dat$Fvals <- fpat
+        dreal <- initPop(dat, refs = ref$refs, out.opt = 2, depl.quant = depl.quant)
+        if(opt==1) return((depl - dreal)^2)
+        if(opt==2) return(dreal)
+    }
+
+    opt <- optimize(fn, c(0,10), frel = frel, depl = depl)
+    fabs <- opt$minimum
+    fvals <- frel * fabs
+
+    dreal <- round(fn(fabs, frel, depl, opt=2),3)
+
+    if(verbose){
+        print(paste0("Required depletion relative to ", depl.quant,
+                    ": ", depl, " -- Realised: ", dreal, " with abs F equal to ",round(fabs,3)))
+    }
+
+    dat$Fvals <- fvals
+    dat$depl <- dreal
+
+    return(dat)
+}
+
 
 #' @name checkSet
 #' @export
 checkSet <- function(set = NULL){
+
+    ## empty list
     if(is.null(set)) set <- list()
 
     ## lognormal SDs of noise
@@ -60,6 +96,15 @@ checkSet <- function(set = NULL){
     ## HCR
     if(is.null(set$hcr)) set$hcr <- c("refFmsy","noF")
     if(is.null(set$stab)) set$stab <- FALSE
+
+    ## Index timing:
+    ## North Sea - IBITS: the majority of countries have only carried
+    ## out a survey twice a year; a first quarter survey (January-February) and a
+    ## third quarter survey (August-September)
+    if(is.null(set$surveyTimes)) set$surveyTimes <- c(1/12,7/12)
+
+    ## burn in period
+    if(is.null(set$burnin)) set$burnin <- 10
 
     ## return
     return(set)
