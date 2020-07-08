@@ -25,7 +25,7 @@ obsmod <- function(specdat, hist, set, years = NULL){
     if(is.null(eI)) eI <- rnorm(ny, 0, set$CVI) - set$CVI^2/2
 
     nsurv <- length(set$surveyTimes)
-    if(length(q) < nsurv) q <- rep(q,nsurv)
+    if(length(q) < nsurv) q <- rep(q, nsurv)
 
     ## adding observation
     if("obsC" %in% names(hist$obs)){
@@ -37,17 +37,17 @@ obsmod <- function(specdat, hist, set, years = NULL){
             obsC <- c(hist$obs$obsC, exp(log(CW[y]) + eC[y-specdat$ny]))
             timeC <- c(hist$obs$timeC, tail(hist$obs$timeC,1)+1)
             ## add survey obs
-            Z <- hist$FAA[y,] + dat$M
+            Z <- hist$FAA[y,] + specdat$M
             obsI <- vector("list", nsurv)
             timeI <- vector("list", nsurv)
             for(i in 1:nsurv){
                 naa <- exp(log(hist$NAA[y,]) - Z * set$surveyTimes[i])
                 if(inherits(naa, "matrix")){
-                    tsb <- apply(naa, 1, function(x) sum(x * dat$weight))
+                    tsb <- apply(naa, 1, function(x) sum(x * specdat$weight))
                 }else{
-                    tsb <- sum(naa * dat$weight)
+                    tsb <- sum(naa * specdat$weight)
                 }
-                obsI[[i]] <- c(hist$obs$obsI[[i]], exp(log(q[i]) + log(tsb[idx]) + eI[y-specdat$ny]))
+                obsI[[i]] <- c(hist$obs$obsI[[i]], exp(log(q[i]) + log(tsb) + eI[y-specdat$ny]))
                 timeI[[i]] <- c(hist$obs$timeI[[i]], tail(hist$obs$timeI[[i]],1) + 1 + set$surveyTimes[i])
                 ## sdI[[1]] <- c(hist$obs$obsIsd[[i]], set$CVI)
             }
@@ -60,10 +60,10 @@ obsmod <- function(specdat, hist, set, years = NULL){
         ## survey indices
         obsI <- vector("list", nsurv)
         timeI <- vector("list", nsurv)
-        Z <- hist$FAA[idx,] + dat$M
+        Z <- hist$FAA[idx,] + specdat$M
         for(i in 1:nsurv){
             naa <- exp(log(hist$NAA[idx,]) - Z * set$surveyTimes[i])
-            tsb <- apply(naa, 1, function(x) sum(x * dat$weight))
+            tsb <- apply(naa, 1, function(x) sum(x * specdat$weight))
             obsI[[i]] <- exp(log(q[i]) + log(tsb) + eI)
             timeI[[i]] <- 1:ny + set$surveyTimes[i]
             ## sdI[[i]] <- rep(set$CVI, length(obsI1))

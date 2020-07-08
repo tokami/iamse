@@ -42,7 +42,7 @@ estDepl <- function(dat, refs, verbose = TRUE){
         if(opt==2) return(dreal)
     }
 
-    opt <- optimize(fn, c(0,10), frel = frel, depl = depl)
+    opt <- optimize(fn, c(0,20), frel = frel, depl = depl)
     fabs <- opt$minimum
     fvals <- frel * fabs
 
@@ -85,8 +85,9 @@ checkSet <- function(set = NULL){
     if(is.null(set$refN)) set$refN <- 1e4
     if(is.null(set$refYears)) set$refYears <- 150
 
-    if(is.null(set$nyhist)) set$nyhist <- 50
-    if(is.null(set$nysim)) set$nysim <- 50
+    ## number of years available to assessment method
+    if(is.null(set$nyhist)) set$nyhist <- 35
+    if(is.null(set$nysim)) set$nysim <- 35
     if(is.null(set$nrep)) set$nrep <- 50
 
     ## observation noise
@@ -104,7 +105,7 @@ checkSet <- function(set = NULL){
     if(is.null(set$surveyTimes)) set$surveyTimes <- c(1/12,7/12)
 
     ## burn in period
-    if(is.null(set$burnin)) set$burnin <- 10
+    if(is.null(set$burnin)) set$burnin <- 20
 
     ## return
     return(set)

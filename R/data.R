@@ -5,10 +5,16 @@
 #' @export
 checkDat <- function(dat){
 
+    ## Number of historic years
+    ##------------------
+    if(!any(names(dat) == "ny")){
+        dat$ny <- 35
+    }
+
     ## ages
     ##------------------
-    amax <- (dat$amax+1)
-    ages <- 1:amax
+    amax <- (dat$amax)
+    ages <- 0:amax
     dat$ages <- ages
 
     ## growth at age
@@ -74,13 +80,24 @@ checkDat <- function(dat){
     ## natural mortality
     ##------------------
     if(length(dat$M) == 1){
-        dat$M <- rep(dat$M, amax)
+        dat$M <- rep(dat$M, amax + 1)
     }
 
     ## historic fishing mortality
     ##------------------
+    ## timeseries <- c(seq(1985,2015,5),2019)
+    ## otter <- c(2400, 2500, 1900, 1600, 1000, 700, 500, 500)
+    ## beam <- c(200, 1200, 1500, 1300, 1200, 1300, 900, 900)
+    ## eff <- beam  + otter
+    timeseries <- c(seq(1970,2015,5),2019)
+    eff <- c(0.1, 0.2, 0.35, 0.55, 0.7, 0.8, 0.9, 0.97, 1.0, 1.0, 0.9)
+    effrel <- eff/max(eff)
+    mod <- smooth.spline(x=timeseries, y=effrel)
     if(!"Fvals" %in% names(dat)){
-        dat$Fvals <- seq(0.01, 1.5, length.out = dat$ny)
+        dat$Fvals <- predict(mod, x = seq(1970, 2019, length.out = dat$ny))$y
+    }else if(length(dat$Fvals) != dat$ny){
+        warning("Length of dat$Fvals not equal to dat$ny. Overwriting dat$Fvals.")
+        dat$Fvals <- predict(mod, x = seq(1970, 2019, length.out = dat$ny))$y
     }
 
     ## Depletion level final year
@@ -98,7 +115,7 @@ checkDat <- function(dat){
     ## initial pop size
     ##------------------
     if(!"initN" %in% names(dat)){
-        dat$initN <- rep(0, amax)
+        dat$initN <- rep(0, amax + 1)
     }
 
     ## Fishing
@@ -110,7 +127,7 @@ checkDat <- function(dat){
     ## spwaning potential ratio
     ##------------------
     if(!"SSBPR0" %in% names(dat)){
-        dat$SSBPR0 <- getSSBPR0(M = dat$M, mat = dat$mat, fecun = dat$fecun, amax = amax)
+        dat$SSBPR0 <- getSSBPR0(M = dat$M, mat = dat$mat, fecun = dat$fecun, amax = amax + 1)
     }
 
     ## recruitment
@@ -121,6 +138,16 @@ checkDat <- function(dat){
     if(!"h" %in% names(dat)){
         dat$h <- 0.71              ## median over all species Myers 1999
     }
+    if(!"logR0" %in% names(dat)){
+        dat$logR0 <- log(1e6)
+    }
+
+    ## pzbm
+    ##------------------
+    if(!"pzbm" %in% names(dat)){
+        dat$pzbm <- 0
+    }
+
 
     ## return
     return(dat)

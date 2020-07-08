@@ -5,6 +5,8 @@
 ##' @export
 runMSE <- function(dat, set, ref, ncores=detectCores()-1, verbose=TRUE){
 
+    if(ncores > 1) verbose <- FALSE
+
     ## Variables
     hcrs <- set$hcr
     nhcrs <- length(hcrs)
@@ -13,6 +15,8 @@ runMSE <- function(dat, set, ref, ncores=detectCores()-1, verbose=TRUE){
 
     ## parallel loop
     res <- parallel::mclapply(as.list(1:nrep), function(x){
+
+        if(verbose) writeLines(paste0("Running replicate: ", x))
 
         ## pop list with errors
         pop <- initPop(dat, set)
@@ -42,8 +46,6 @@ runMSE <- function(dat, set, ref, ncores=detectCores()-1, verbose=TRUE){
             hcri <- hcrs[i]
             poptmp <- popListx[[i]]
             poptmp$tacs <- NULL
-            if(verbose) writeLines(paste0("Running HCR: ",hcri, " -- rep: ",x))
-            if(verbose) pb <- txtProgressBar(min = 0, max = nysim, style = 3)
             if(hcri == "refFmsy"){
                 ## Reference rule Fmsy
                 for(y in 1:nysim){
@@ -52,7 +54,6 @@ runMSE <- function(dat, set, ref, ncores=detectCores()-1, verbose=TRUE){
                     poptmp <- advancePop(specdat = dat, hist = poptmp, set = setx,
                                          tacs = poptmp$tacs)
                     poptmp <- obsmod(specdat = dat, hist = poptmp, set = setx)
-                    if(verbose){setTxtProgressBar(pb, y); writeLines("\n")}
                 }
 
             }else{
@@ -64,10 +65,8 @@ runMSE <- function(dat, set, ref, ncores=detectCores()-1, verbose=TRUE){
                     poptmp <- advancePop(specdat = dat, hist = poptmp, set = setx,
                                          tacs = poptmp$tacs)
                     poptmp <- obsmod(specdat = dat, hist = poptmp, set = setx)
-                    if(verbose){setTxtProgressBar(pb, y); writeLines("\n")}
                 }
             }
-            if(verbose) close(pb)
             popListx[[i]] <- poptmp
             gc()
         }
