@@ -10,11 +10,11 @@ conscat <- function(inpin, tacs=NULL){
     TAC <- sum(tail(inpin$obsC, 1))
     tactmp <- data.frame(TAC=TAC, id="cc", hitSC=FALSE, red=FALSE,
                          barID=FALSE, sd=NA, conv = FALSE,
-                         fmfmsy.est=NA,fmfmsy.sd=NA,fmfmsy.cv=NA,
-                         bpbmsy.est=NA,bpbmsy.sd=NA,bpbmsy.cv=NA,
-                         cp.est=NA,cp.sd=NA,cp.cv=NA,
-                         fmsy.est=NA,fmsy.sd=NA,fmsy.cv=NA,
-                         bmsy.est=NA,bmsy.sd=NA,bmsy.cv=NA)
+                         fmfmsy.est=NA,fmfmsy.sd=NA,
+                         bpbmsy.est=NA,bpbmsy.sd=NA,
+                         cp.est=NA,cp.sd=NA,
+                         fmsy.est=NA,fmsy.sd=NA,
+                         bmsy.est=NA,bmsy.sd=NA)
     if(is.null(tacs)){
         tacs <- tactmp
     }else{

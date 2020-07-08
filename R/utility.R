@@ -219,36 +219,37 @@ estTAC <- function(inp, hcr, hist=NULL, stab=FALSE, tacs=NULL, tcv=NA){
                inp <- check.inp(inp)
                rep <- try(fit.spict(inp), silent=TRUE)
                if(class(rep) == "try-error" || rep$opt$convergence != 0 || any(is.infinite(rep$sd))){
-                   tactmp <- conscat(inp, tacs=tacs)
+                   tacs <- conscat(inp, tacs=tacs)
                }else{
-                   fmfmsy <- round(get.par("logFmFmsynotS",rep, exp=TRUE)[,c(2,4,5)],2)
+                   fmfmsy <- round(get.par("logFmFmsynotS",rep, exp=TRUE)[,c(2,4)],2)
                    names(fmfmsy) <- paste0("fmfmsy-",names(fmfmsy))
-                   bpbmsy <- round(get.par("logBpBmsy",rep, exp=TRUE)[,c(2,4,5)],2)
+                   bpbmsy <- round(get.par("logBpBmsy",rep, exp=TRUE)[,c(2,4)],2)
                    names(bpbmsy) <- paste0("bpbmsy-",names(bpbmsy))
-                   cp <- round(get.par("logCp",rep, exp=TRUE)[,c(2,4,5)],2)
+                   cp <- round(get.par("logCp",rep, exp=TRUE)[,c(2,4)],2)
                    names(cp) <- paste0("cp-",names(cp))
                    ##
-                   fmsy <- round(get.par("logFmsy",rep, exp=TRUE)[,c(2,4,5)],2)
+                   fmsy <- round(get.par("logFmsy",rep, exp=TRUE)[,c(2,4)],2)
                    names(fmsy) <- paste0("fmsy-",names(fmsy))
-                   bmsy <- round(get.par("logBmsy",rep, exp=TRUE)[,c(2,4,5)],2)
+                   bmsy <- round(get.par("logBmsy",rep, exp=TRUE)[,c(2,4)],2)
                    names(bmsy) <- paste0("bmsy-",names(bmsy))
                    ##
                    tac <- try(spict:::get.TAC(rep=rep,
                                               fractiles = list(catch=0.5, ffmsy=0.5, bbmsy=0.5),
                                               breakpointB = 0, verbose = FALSE), silent = TRUE)
                    if(class(tac) == "try-error"){
-                       tactmp <- conscat(inp, tacs=tacs)
+                       tacs <- conscat(inp, tacs=tacs)
                    }else{
                        tactmp <- data.frame(TAC=tac, id="spict-msy", hitSC=NA,
                                             red=NA, barID=NA, sd=NA, conv = NA)
                        tactmp <- as.data.frame(c(tactmp, fmfmsy, bpbmsy, cp, fmsy, bmsy))
+                       if(is.null(tacs)){
+                           tacs <- tactmp
+                       }else{
+                           tacs <- rbind(tacs, tactmp)
+                       }
                    }
                }
-               if(is.null(tacs)){
-                   tacs <- tactmp
-               }else{
-                   tacs <- rbind(tacs, tactmp)
-               }
+               print(tacs$id)
                print(sapply(ls(), function(x) round(object.size(get(x))/1e6,2)))
                rm(rep)
                gc()
@@ -262,16 +263,16 @@ estTAC <- function(inp, hcr, hist=NULL, stab=FALSE, tacs=NULL, tcv=NA){
                if(class(rep) == "try-error" || rep$opt$convergence != 0 || any(is.infinite(rep$sd))){
                    tactmp <- conscat(inp, tacs=tacs)
                }else{
-                   fmfmsy <- round(get.par("logFmFmsynotS",rep, exp=TRUE)[,c(2,4,5)],2)
+                   fmfmsy <- round(get.par("logFmFmsynotS",rep, exp=TRUE)[,c(2,4)],2)
                    names(fmfmsy) <- paste0("fmfmsy-",names(fmfmsy))
-                   bpbmsy <- round(get.par("logBpBmsy",rep, exp=TRUE)[,c(2,4,5)],2)
+                   bpbmsy <- round(get.par("logBpBmsy",rep, exp=TRUE)[,c(2,4)],2)
                    names(bpbmsy) <- paste0("bpbmsy-",names(bpbmsy))
-                   cp <- round(get.par("logCp",rep, exp=TRUE)[,c(2,4,5)],2)
+                   cp <- round(get.par("logCp",rep, exp=TRUE)[,c(2,4)],2)
                    names(cp) <- paste0("cp-",names(cp))
                    ##
-                   fmsy <- round(get.par("logFmsy",rep, exp=TRUE)[,c(2,4,5)],2)
+                   fmsy <- round(get.par("logFmsy",rep, exp=TRUE)[,c(2,4)],2)
                    names(fmsy) <- paste0("fmsy-",names(fmsy))
-                   bmsy <- round(get.par("logBmsy",rep, exp=TRUE)[,c(2,4,5)],2)
+                   bmsy <- round(get.par("logBmsy",rep, exp=TRUE)[,c(2,4)],2)
                    names(bmsy) <- paste0("bmsy-",names(bmsy))
                    ##
                    tac <- try(spict:::get.TAC(rep=rep,
@@ -304,16 +305,16 @@ estTAC <- function(inp, hcr, hist=NULL, stab=FALSE, tacs=NULL, tcv=NA){
                if(class(rep) == "try-error" || rep$opt$convergence != 0 || any(is.infinite(rep$sd))){
                    tactmp <- conscat(inp, tacs=tacs)
                }else{
-                   fmfmsy <- round(get.par("logFmFmsynotS",rep, exp=TRUE)[,c(2,4,5)],2)
+                   fmfmsy <- round(get.par("logFmFmsynotS",rep, exp=TRUE)[,c(2,4)],2)
                    names(fmfmsy) <- paste0("fmfmsy-",names(fmfmsy))
-                   bpbmsy <- round(get.par("logBpBmsy",rep, exp=TRUE)[,c(2,4,5)],2)
+                   bpbmsy <- round(get.par("logBpBmsy",rep, exp=TRUE)[,c(2,4)],2)
                    names(bpbmsy) <- paste0("bpbmsy-",names(bpbmsy))
-                   cp <- round(get.par("logCp",rep, exp=TRUE)[,c(2,4,5)],2)
+                   cp <- round(get.par("logCp",rep, exp=TRUE)[,c(2,4)],2)
                    names(cp) <- paste0("cp-",names(cp))
                    ##
-                   fmsy <- round(get.par("logFmsy",rep, exp=TRUE)[,c(2,4,5)],2)
+                   fmsy <- round(get.par("logFmsy",rep, exp=TRUE)[,c(2,4)],2)
                    names(fmsy) <- paste0("fmsy-",names(fmsy))
-                   bmsy <- round(get.par("logBmsy",rep, exp=TRUE)[,c(2,4,5)],2)
+                   bmsy <- round(get.par("logBmsy",rep, exp=TRUE)[,c(2,4)],2)
                    names(bmsy) <- paste0("bmsy-",names(bmsy))
                    ##
                    tac <- try(spict:::get.TAC(rep=rep,
