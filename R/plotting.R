@@ -256,7 +256,8 @@ plotmse.tradeoff <- function(mets, metrics = c("avRelCatch","PBBlim"), hcrs=NA){
 #' @name plotmse.quant
 #' @export
 plotmse.quant <- function(dat, set, resMSE, hcrs=NULL,
-                          quants = c("bpbmsy.sd","fmfmsy.sd","cp.sd")){
+                          quants = c("bpbmsy.sd","fmfmsy.sd","cp.sd"),
+                          hline=NULL){
 
     if(is.null(hcrs)){
         hcr <- set$hcr
@@ -266,36 +267,60 @@ plotmse.quant <- function(dat, set, resMSE, hcrs=NULL,
 
 
     nspict <- length(spicthcr)
-    quant1 <- list()
-    quant2 <- list()
-    quant3 <- list()
+    nquants <- length(quants)
+    quant1 <- quant2 <- quant3 <- quant4 <- list()
     for(i in 1:nspict){
         ind <- spicthcr[i]
-        quant1[[i]] <- apply(do.call(rbind,lapply(resMSE[[ind]], function(x) x$tacs[[quants[1]]])), 2, mean)
-        quant2[[i]] <- apply(do.call(rbind,lapply(resMSE[[ind]], function(x) x$tacs[[quants[2]]])), 2, mean)
-        quant3[[i]] <- apply(do.call(rbind,lapply(resMSE[[ind]], function(x) x$tacs[[quants[3]]])), 2, mean)
+        quant1[[i]] <- apply(do.call(rbind,lapply(resMSE[[ind]], function(x) x$tacs[[quants[1]]])), 2, mean, na.rm=TRUE)
+        if(nquants > 1) quant2[[i]] <- apply(do.call(rbind,lapply(resMSE[[ind]], function(x) x$tacs[[quants[2]]])), 2, mean, na.rm=TRUE)
+        if(nquants > 2) quant3[[i]] <- apply(do.call(rbind,lapply(resMSE[[ind]], function(x) x$tacs[[quants[3]]])), 2, mean, na.rm=TRUE)
+        if(nquants > 3) quant4[[i]] <- apply(do.call(rbind,lapply(resMSE[[ind]], function(x) x$tacs[[quants[4]]])), 2, mean, na.rm=TRUE)
     }
 
     cols <- rainbow(nspict)
     years <- 1:set$nysim
 
-    opar <- par(mfrow=c(length(quants),1))
+    opar <- par(mfrow=c(length(quants),1),mar=c(0,5,2,2), oma = c(5,0,0,0))
     ## BpBmsy
-    plot(years, quant1[[1]], ty='n', ylim=range(unlist(quant1)))
-    for(i in 1:nspict) lines(years, quant1[[i]], col = cols[i])
-    title(quants[1])
+    xaxt <- ifelse(nquants==1,"s","n")
+    xlab <- ifelse(nquants==1,"Time","")
+    plot(years, quant1[[1]], ty='n',
+         ylim=range(0,unlist(quant1)),
+         ylab="", xlab = xlab, xaxt=xaxt)
+    abline(h=0,lty=2)
+    if(!is.null(hline)) abline(h=hline)
+    for(i in 1:nspict) lines(years, quant1[[i]], col = cols[i], lwd=1.5)
+    mtext(quants[1],2,3)
+    ## legend
+    legend("topright", legend=set$hcr[spicthcr],
+           col=cols, bty="n", lwd=2,lty=1)
     box()
     ## FmFmsy
-    plot(years, quant2[[1]], ty='n', ylim=range(unlist(quant2)))
-    for(i in 1:nspict) lines(years, quant2[[i]], col = cols[i])
-    title(quants[2])
+    xaxt <- ifelse(nquants==2,"s","n")
+    xlab <- ifelse(nquants==2,"Time","")
+    if(nquants > 1){
+        plot(years, quant2[[1]], ty='n',
+             ylim=range(0,unlist(quant2)),
+             ylab="", xlab = xlab, xaxt=xaxt)
+    abline(h=0,lty=2)
+    if(!is.null(hline)) abline(h=hline)
+    for(i in 1:nspict) lines(years, quant2[[i]], col = cols[i], lwd=1.5)
+    mtext(quants[2],2,3)
     box()
+    }
     ## Cp
-    plot(years, quant3[[1]], ty='n', ylim=range(unlist(quant3)))
-    for(i in 1:nspict) lines(years, quant3[[i]], col = cols[i])
-    title(quants[3])
-    legend("topright", legend=set$hcr,
-           col=cols, bty="n", lwd=2,lty=1)
+    xaxt <- ifelse(nquants==3,"s","n")
+    xlab <- ifelse(nquants==3,"Time","")
+    if(nquants > 2){
+        plot(years, quant3[[1]], ty='n',
+             ylim=range(0,unlist(quant3)),
+             ylab="", xlab = xlab, xaxt=xaxt)
+    abline(h=0,lty=2)
+    if(!is.null(hline)) abline(h=hline)
+    for(i in 1:nspict) lines(years, quant3[[i]], col = cols[i], lwd=1.5)
+    mtext(quants[3],2,3)
+    }
+
     box()
 
 }

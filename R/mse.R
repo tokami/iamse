@@ -21,12 +21,12 @@ runMSE <- function(dat, set, ref, ncores=detectCores()-1, verbose=TRUE){
         ## add observation noise
         pop <- obsmod(specdat = dat, hist = pop, set = set,
                       years = (dat$ny-(set$nyhist-1)):dat$ny)
-        popList <- NULL
+        popList <- vector("list", nhcrs)
         for(i in 1:nhcrs){
             popList[[i]] <- pop
         }
 
-        repList <- NULL
+        repList <- vector("list", nhcrs)
         popListx <- popList
         setx <- set
         ## errors
@@ -53,6 +53,7 @@ runMSE <- function(dat, set, ref, ncores=detectCores()-1, verbose=TRUE){
                                          tacs = poptmp$tacs)
                     poptmp <- obsmod(specdat = dat, hist = poptmp, set = setx)
                     if(verbose){setTxtProgressBar(pb, y); writeLines("\n")}
+                    gc()
                 }
 
             }else{
@@ -65,6 +66,7 @@ runMSE <- function(dat, set, ref, ncores=detectCores()-1, verbose=TRUE){
                                          tacs = poptmp$tacs)
                     poptmp <- obsmod(specdat = dat, hist = poptmp, set = setx)
                     if(verbose){setTxtProgressBar(pb, y); writeLines("\n")}
+                    gc()
                 }
             }
             if(verbose) close(pb)
