@@ -249,6 +249,7 @@ estTAC <- function(inp, hcr, hist=NULL, stab=FALSE, tacs=NULL, tcv=NA){
                }else{
                    tacs <- rbind(tacs, tactmp)
                }
+               print(sapply(ls(), function(x) round(object.size(get(x))/1e6,2)))
                rm(rep)
                gc()
                return(tacs)
@@ -290,7 +291,7 @@ estTAC <- function(inp, hcr, hist=NULL, stab=FALSE, tacs=NULL, tcv=NA){
                }else{
                    tacs <- rbind(tacs, tactmp)
                }
-               ##               print(sapply(ls(), function(x) round(object.size(get(x))/1e6,2)))
+               print(sapply(ls(), function(x) round(object.size(get(x))/1e6,2)))
                rm(rep)
                gc()
                return(tacs)
@@ -332,6 +333,7 @@ estTAC <- function(inp, hcr, hist=NULL, stab=FALSE, tacs=NULL, tcv=NA){
                }else{
                    tacs <- rbind(tacs, tactmp)
                }
+               print(sapply(ls(), function(x) round(object.size(get(x))/1e6,2)))
                rm(rep)
                gc()
                return(tacs)
