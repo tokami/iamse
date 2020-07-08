@@ -53,7 +53,6 @@ runMSE <- function(dat, set, ref, ncores=detectCores()-1, verbose=TRUE){
                                          tacs = poptmp$tacs)
                     poptmp <- obsmod(specdat = dat, hist = poptmp, set = setx)
                     if(verbose){setTxtProgressBar(pb, y); writeLines("\n")}
-                    gc()
                 }
 
             }else{
@@ -66,7 +65,6 @@ runMSE <- function(dat, set, ref, ncores=detectCores()-1, verbose=TRUE){
                                          tacs = poptmp$tacs)
                     poptmp <- obsmod(specdat = dat, hist = poptmp, set = setx)
                     if(verbose){setTxtProgressBar(pb, y); writeLines("\n")}
-                    gc()
                 }
             }
             if(verbose) close(pb)

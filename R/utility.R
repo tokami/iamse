@@ -249,6 +249,8 @@ estTAC <- function(inp, hcr, hist=NULL, stab=FALSE, tacs=NULL, tcv=NA){
                }else{
                    tacs <- rbind(tacs, tactmp)
                }
+               rm(rep)
+               gc()
                return(tacs)
            },
            "spict-msy-fmsy30" = {
@@ -288,6 +290,9 @@ estTAC <- function(inp, hcr, hist=NULL, stab=FALSE, tacs=NULL, tcv=NA){
                }else{
                    tacs <- rbind(tacs, tactmp)
                }
+               ##               print(sapply(ls(), function(x) round(object.size(get(x))/1e6,2)))
+               rm(rep)
+               gc()
                return(tacs)
            },
            "spict-msy-bmsy30" = {
@@ -327,6 +332,8 @@ estTAC <- function(inp, hcr, hist=NULL, stab=FALSE, tacs=NULL, tcv=NA){
                }else{
                    tacs <- rbind(tacs, tactmp)
                }
+               rm(rep)
+               gc()
                return(tacs)
            },
            "spict-hs50" = {
@@ -359,6 +366,7 @@ estTAC <- function(inp, hcr, hist=NULL, stab=FALSE, tacs=NULL, tcv=NA){
                }else{
                    tacs <- rbind(tacs, tactmp)
                }
+               rm(rep)
                return(tacs)
            },
            "spict-msy-a30" = {
