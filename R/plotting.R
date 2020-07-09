@@ -2,7 +2,9 @@
 
 #' @name plotmse.cw
 #' @export
-plotmse.cw <- function(dat, set, resMSE, trendline=TRUE, hcrs=NA){
+plotmse.cw <- function(dat, set, resMSE,
+                       trendline=TRUE, uncert = TRUE, med = TRUE,
+                       hcrs=NA, ylim = NULL){
     if(any(!is.na(hcrs))){
         resMSEnew <- vector("list",length(hcrs))
         for(i in 1:length(hcrs)){
@@ -21,7 +23,7 @@ plotmse.cw <- function(dat, set, resMSE, trendline=TRUE, hcrs=NA){
     idxsim <- (dat$ny):(dat$ny+set$nysim)
     idxhist <- 1:dat$ny
     xall <- 1:(dat$ny+set$nysim)
-    ylim <- c(0.8,1.2) * range(lapply(res,function(x) x$CW))
+    if(is.null(ylim)) ylim <- c(0.8,1.2) * range(lapply(res,function(x) x$CW))
     cols <- rainbow(nms)
     ## historic
     i <- 1 ## historic pattern the same between mss
@@ -49,16 +51,22 @@ plotmse.cw <- function(dat, set, resMSE, trendline=TRUE, hcrs=NA){
     abline(h=msy,lty=2)
     abline(h=0,lty=2)
     ## projection
-    for(i in 1:nms){
-        llsim <- res[[i]]$CW[1,idxsim]
-        ulsim <- res[[i]]$CW[3,idxsim]
-        polygon(x = c(xsim,rev(xsim)), y = c(llsim,rev(ulsim)),
-                border=NA, col=rgb(t(col2rgb(cols[i]))/255,alpha=0.2))
+    if(uncert){
+        for(i in 1:nms){
+            llsim <- res[[i]]$CW[1,idxsim]
+            ulsim <- res[[i]]$CW[3,idxsim]
+            polygon(x = c(xsim,rev(xsim)), y = c(llsim,rev(ulsim)),
+                    border=NA, col=rgb(t(col2rgb(cols[i]))/255,alpha=0.2))
+        }
     }
     for(i in 1:nms){
         medsim <- res[[i]]$CW[2,idxsim]
-        lines(xsim, medsim, lwd=2, col=cols[i])
-        if(trendline) lines(xsim, resMSE[[i]][[1]]$CW[idxsim], col=cols[i])
+        if(med) lines(xsim, medsim, lwd=2, col=cols[i])
+        if(is.numeric(trendline)){
+            for(j in 1:length(trendline))
+                lines(xsim, resMSE[[i]][[trendline[j]]]$CW[idxsim], col=cols[i])
+        }else if(trendline)
+            lines(xsim, resMSE[[i]][[1]]$CW[idxsim], col=cols[i])
     }
     abline(v=dat$ny, col="grey60",lwd=2)
     abline(v=max(which(dat$Fvals==0)), col="grey60",lwd=2,lty=2)
@@ -71,7 +79,9 @@ plotmse.cw <- function(dat, set, resMSE, trendline=TRUE, hcrs=NA){
 
 #' @name plotmse.b
 #' @export
-plotmse.b <- function(dat, set, resMSE, trendline=TRUE, hcrs=NA){
+plotmse.b <- function(dat, set, resMSE,
+                      trendline=TRUE, uncert = TRUE, med = TRUE,
+                      hcrs=NA, ylim = NULL){
     if(any(!is.na(hcrs))){
         resMSEnew <- vector("list",length(hcrs))
         for(i in 1:length(hcrs)){
@@ -90,7 +100,7 @@ plotmse.b <- function(dat, set, resMSE, trendline=TRUE, hcrs=NA){
     idxsim <- (dat$ny):(dat$ny+set$nysim)
     idxhist <- 1:dat$ny
     xall <- 1:(dat$ny+set$nysim)
-    ylim <- c(0.8,1.2) * range(lapply(res,function(x) x$TSB))
+    if(is.null(ylim)) ylim <- c(0.8,1.2) * range(lapply(res,function(x) x$TSB))
     cols <- rainbow(nms)
     ## historic
     i <- 1 ## historic pattern the same between mss
@@ -118,16 +128,22 @@ plotmse.b <- function(dat, set, resMSE, trendline=TRUE, hcrs=NA){
     abline(h=bmsy,lty=2)
     abline(h=resMSE[[1]][[1]]$refs$B0,lty=2)
     ## projection
-    for(i in 1:nms){
-        llsim <- res[[i]]$TSB[1,idxsim]
-        ulsim <- res[[i]]$TSB[3,idxsim]
-        polygon(x = c(xsim,rev(xsim)), y = c(llsim,rev(ulsim)),
-                border=NA, col=rgb(t(col2rgb(cols[i]))/255,alpha=0.2))
+    if(uncert){
+        for(i in 1:nms){
+            llsim <- res[[i]]$TSB[1,idxsim]
+            ulsim <- res[[i]]$TSB[3,idxsim]
+            polygon(x = c(xsim,rev(xsim)), y = c(llsim,rev(ulsim)),
+                    border=NA, col=rgb(t(col2rgb(cols[i]))/255,alpha=0.2))
+        }
     }
     for(i in 1:nms){
         medsim <- res[[i]]$TSB[2,idxsim]
-        lines(xsim, medsim, lwd=2, col=cols[i])
-        if(trendline) lines(xsim, resMSE[[i]][[1]]$TSB[idxsim], col=cols[i])
+        if(med) lines(xsim, medsim, lwd=2, col=cols[i])
+        if(is.numeric(trendline)){
+            for(j in 1:length(trendline))
+                lines(xsim, resMSE[[i]][[trendline[j]]]$TSB[idxsim], col=cols[i])
+        }else if(trendline)
+            lines(xsim, resMSE[[i]][[1]]$TSB[idxsim], col=cols[i])
     }
     abline(v=dat$ny, col="grey60",lwd=2)
     abline(v=max(which(dat$Fvals==0)), col="grey60",lwd=2,lty=2)
@@ -140,7 +156,9 @@ plotmse.b <- function(dat, set, resMSE, trendline=TRUE, hcrs=NA){
 
 #' @name plotmse.f
 #' @export
-plotmse.f <- function(dat, set, resMSE, trendline=TRUE, hcrs=NA, ylim=NULL){
+plotmse.f <- function(dat, set, resMSE,
+                      trendline=TRUE, uncert = TRUE, med = TRUE,
+                      hcrs=NA, ylim=NULL){
     if(any(!is.na(hcrs))){
         resMSEnew <- vector("list",length(hcrs))
         for(i in 1:length(hcrs)){
@@ -188,16 +206,22 @@ plotmse.f <- function(dat, set, resMSE, trendline=TRUE, hcrs=NA, ylim=NULL){
     abline(h=fmsy,lty=2)
     abline(h=0,lty=2)
     ## projection
-    for(i in 1:nms){
-        medsim <- res[[i]]$FM[2,idxsim]
-        lines(xsim, medsim, lwd=2, col=cols[i])
-        if(trendline) lines(xsim, resMSE[[i]][[1]]$FM[idxsim], col=cols[i])
+    if(uncert){
+        for(i in 1:nms){
+            llsim <- res[[i]]$FM[1,idxsim]
+            ulsim <- res[[i]]$FM[3,idxsim]
+            polygon(x = c(xsim,rev(xsim)), y = c(llsim,rev(ulsim)),
+                    border=NA, col=rgb(t(col2rgb(cols[i]))/255,alpha=0.2))
+        }
     }
     for(i in 1:nms){
-        llsim <- res[[i]]$FM[1,idxsim]
-        ulsim <- res[[i]]$FM[3,idxsim]
-        polygon(x = c(xsim,rev(xsim)), y = c(llsim,rev(ulsim)),
-                border=NA, col=rgb(t(col2rgb(cols[i]))/255,alpha=0.2))
+        medsim <- res[[i]]$FM[2,idxsim]
+        if(med) lines(xsim, medsim, lwd=2, col=cols[i])
+        if(is.numeric(trendline)){
+            for(j in 1:length(trendline))
+                lines(xsim, resMSE[[i]][[trendline[j]]]$FM[idxsim], col=cols[i])
+        }else if(trendline)
+            lines(xsim, resMSE[[i]][[1]]$FM[idxsim], col=cols[i])
     }
     abline(v=dat$ny, col="grey60",lwd=2)
     abline(v=max(which(dat$Fvals==0)), col="grey60",lwd=2,lty=2)
