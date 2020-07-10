@@ -11,7 +11,7 @@ conscat <- function(inpin, tacs=NULL){
     if(is.null(tacs)){
         indBpBx <- inpin$indBpBx
     }else{
-        indBpBx <- tacs$indBpBx
+        indBpBx <- tacs$indBpBx[nrow(tacs)]
     }
     TAC <- sum(tail(inpin$obsC, 1))
     tactmp <- data.frame(TAC=TAC, id="cc", hitSC=FALSE, red=FALSE,
