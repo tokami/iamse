@@ -7,6 +7,12 @@
 #' @name conscat
 #' @export
 conscat <- function(inpin, tacs=NULL){
+    inpin <- check.inp(inpin)
+    if(is.null(tacs)){
+        indBpBx <- inp$indBpBx
+    }else{
+        indBpBx <- tacs$indBpBx
+    }
     TAC <- sum(tail(inpin$obsC, 1))
     tactmp <- data.frame(TAC=TAC, id="cc", hitSC=FALSE, red=FALSE,
                          barID=FALSE, sd=NA, conv = FALSE,
@@ -14,7 +20,8 @@ conscat <- function(inpin, tacs=NULL){
                          bpbmsy.est=NA,bpbmsy.sd=NA,
                          cp.est=NA,cp.sd=NA,
                          fmsy.est=NA,fmsy.sd=NA,
-                         bmsy.est=NA,bmsy.sd=NA)
+                         bmsy.est=NA,bmsy.sd=NA,
+                         indBpBx=indBpBx)
     if(is.null(tacs)){
         tacs <- tactmp
     }else{

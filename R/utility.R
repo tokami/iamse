@@ -316,6 +316,12 @@ estTAC <- function(inp, hcr, hist=NULL, stab=FALSE, tacs=NULL, tcv=NA){
                inp$priors$logalpha <- c(0,0,0)
                inp$priors$logbeta <- c(0,0,0)
                inp <- check.inp(inp)
+               if(is.null(tacs)){
+                   indBpBx <- inp$indBpBx
+               }else{
+                   indBpBx <- tacs$indBpBx
+               }
+               inp$indBpBx <- indBpBx
                inp$phases$logn <- -1
                inp$ini$logn <- log(2)
                rep <- try(fit.spict(inp), silent=TRUE)
@@ -338,7 +344,8 @@ estTAC <- function(inp, hcr, hist=NULL, stab=FALSE, tacs=NULL, tcv=NA){
                                                  bpbmsy.est=NA,bpbmsy.sd=NA,
                                                  cp.est=NA,cp.sd=NA,
                                                  fmsy.est=NA,fmsy.sd=NA,
-                                                 bmsy.est=NA,bmsy.sd=NA))
+                                                 bmsy.est=NA,bmsy.sd=NA,
+                                                 indBpBx = indBpBx))
                        if(is.null(tacs)){
                            tacs <- tactmp
                        }else{
@@ -818,7 +825,8 @@ estTAC <- function(inp, hcr, hist=NULL, stab=FALSE, tacs=NULL, tcv=NA){
                                         bpbmsy.est=NA,bpbmsy.sd=NA,
                                         cp.est=NA,cp.sd=NA,
                                         fmsy.est=NA,fmsy.sd=NA,
-                                        bmsy.est=NA,bmsy.sd=NA)
+                                        bmsy.est=NA,bmsy.sd=NA,
+                                        indBpBx = NA)
                    if(is.null(tacs)){
                        tacs <- tactmp
                    }else{
