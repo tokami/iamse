@@ -16,7 +16,7 @@ genDevs <- function(n, sd, rho=0){
 
     res <- numeric(n)
     res[1] <- rnoise[1]
-    for(i in 2:n) res[i] <- rho * rnoise[i-1] + sqrt(1-rho^2) * rnoise[i]
+    for(i in 2:n) res[i] <- rho * res[i-1] + (1 - rho) * rnoise[i] ## sqrt(1-rho^2) * rnoise[i]
 
     res <- exp(res)
     res <- res/mean(res)
@@ -311,6 +311,10 @@ estTAC <- function(inp, hcr, hist=NULL, stab=FALSE, tacs=NULL, tcv=NA){
            "spict-bfac" = {
                inp$reportmode <- 3
                inp$dteuler <- 1/4
+               inp$stabilise <- 0
+               inp$priors$logn <- c(0,0,0)
+               inp$priors$logalpha <- c(0,0,0)
+               inp$priors$logbeta <- c(0,0,0)
                inp <- check.inp(inp)
                inp$phases$logn <- -1
                inp$ini$logn <- log(2)
@@ -628,7 +632,7 @@ estTAC <- function(inp, hcr, hist=NULL, stab=FALSE, tacs=NULL, tcv=NA){
                if(is.na(tacs$TAC[nrow(tacs)])){
                    tactmp <- data.frame(TAC=inp$obsC[length(inp$obsC)], id="23", hitSC=NA,
                                       red=NA, barID=NA, sd=NA, conv=NA)
-                   if(nrow(tacs) == 1){
+                   if(is.null(tacs)){
                        tacs <- tactmp
                    }else{
                        tacs <- rbind(tacs, tactmp)
@@ -642,7 +646,7 @@ estTAC <- function(inp, hcr, hist=NULL, stab=FALSE, tacs=NULL, tcv=NA){
                if(is.na(tacs$TAC[nrow(tacs)])){
                    tactmp <- data.frame(TAC=inp$obsC[length(inp$obsC)], id="23", hitSC=NA,
                                       red=NA, barID=NA, sd=NA, conv=NA)
-                   if(nrow(tacs) == 1){
+                   if(is.null(tacs)){
                        tacs <- tactmp
                    }else{
                        tacs <- rbind(tacs, tactmp)
@@ -656,7 +660,7 @@ estTAC <- function(inp, hcr, hist=NULL, stab=FALSE, tacs=NULL, tcv=NA){
                if(is.na(tacs$TAC[nrow(tacs)])){
                    tactmp <- data.frame(TAC=inp$obsC[length(inp$obsC)], id="23", hitSC=NA,
                                       red=NA, barID=NA, sd=NA, conv=NA)
-                   if(nrow(tacs) == 1){
+                   if(is.null(tacs)){
                        tacs <- tactmp
                    }else{
                        tacs <- rbind(tacs, tactmp)
@@ -670,7 +674,7 @@ estTAC <- function(inp, hcr, hist=NULL, stab=FALSE, tacs=NULL, tcv=NA){
                if(is.na(tacs$TAC[nrow(tacs)])){
                    tactmp <- data.frame(TAC=inp$obsC[length(inp$obsC)], id="23", hitSC=NA,
                                       red=NA, barID=NA, sd=NA, conv=NA)
-                   if(nrow(tacs) == 1){
+                   if(is.null(tacs)){
                        tacs <- tactmp
                    }else{
                        tacs <- rbind(tacs, tactmp)
@@ -684,7 +688,7 @@ estTAC <- function(inp, hcr, hist=NULL, stab=FALSE, tacs=NULL, tcv=NA){
                if(is.na(tacs$TAC[nrow(tacs)])){
                    tactmp <- data.frame(TAC=inp$obsC[length(inp$obsC)], id="23", hitSC=NA,
                                       red=NA, barID=NA, sd=NA, conv=NA)
-                   if(nrow(tacs) == 1){
+                   if(is.null(tacs)){
                        tacs <- tactmp
                    }else{
                        tacs <- rbind(tacs, tactmp)
@@ -698,7 +702,7 @@ estTAC <- function(inp, hcr, hist=NULL, stab=FALSE, tacs=NULL, tcv=NA){
                if(is.na(tacs$TAC[nrow(tacs)])){
                    tactmp <- data.frame(TAC=inp$obsC[length(inp$obsC)], id="12", hitSC=NA,
                                       red=NA, barID=NA, sd=NA, conv=NA)
-                   if(nrow(tacs) == 1){
+                   if(is.null(tacs)){
                        tacs <- tactmp
                    }else{
                        tacs <- rbind(tacs, tactmp)
@@ -712,7 +716,7 @@ estTAC <- function(inp, hcr, hist=NULL, stab=FALSE, tacs=NULL, tcv=NA){
                if(is.na(tacs$TAC[nrow(tacs)])){
                    tactmp <- data.frame(TAC=inp$obsC[length(inp$obsC)], id="12", hitSC=NA,
                                       red=NA, barID=NA, sd=NA, conv=NA)
-                   if(nrow(tacs) == 1){
+                   if(is.null(tacs)){
                        tacs <- tactmp
                    }else{
                        tacs <- rbind(tacs, tactmp)
@@ -726,7 +730,7 @@ estTAC <- function(inp, hcr, hist=NULL, stab=FALSE, tacs=NULL, tcv=NA){
                if(is.na(tacs$TAC[nrow(tacs)])){
                    tactmp <- data.frame(TAC=inp$obsC[length(inp$obsC)], id="35", hitSC=NA,
                                       red=NA, barID=NA, sd=NA, conv=NA)
-                   if(nrow(tacs) == 1){
+                   if(is.null(tacs)){
                        tacs <- tactmp
                    }else{
                        tacs <- rbind(tacs, tactmp)
@@ -740,7 +744,7 @@ estTAC <- function(inp, hcr, hist=NULL, stab=FALSE, tacs=NULL, tcv=NA){
                if(is.na(tacs$TAC[nrow(tacs)])){
                    tactmp <- data.frame(TAC=inp$obsC[length(inp$obsC)], id="35", hitSC=NA,
                                       red=NA, barID=NA, sd=NA, conv=NA)
-                   if(nrow(tacs) == 1){
+                   if(is.null(tacs)){
                        tacs <- tactmp
                    }else{
                        tacs <- rbind(tacs, tactmp)
@@ -754,7 +758,7 @@ estTAC <- function(inp, hcr, hist=NULL, stab=FALSE, tacs=NULL, tcv=NA){
                if(is.na(tacs$TAC[nrow(tacs)])){
                    tactmp <- data.frame(TAC=inp$obsC[length(inp$obsC)], id="23", hitSC=NA,
                                       red=NA, barID=NA, sd=NA, conv=NA)
-                   if(nrow(tacs) == 1){
+                   if(is.null(tacs)){
                        tacs <- tactmp
                    }else{
                        tacs <- rbind(tacs, tactmp)
@@ -768,7 +772,7 @@ estTAC <- function(inp, hcr, hist=NULL, stab=FALSE, tacs=NULL, tcv=NA){
                if(is.na(tacs$TAC[nrow(tacs)])){
                    tactmp <- data.frame(TAC=inp$obsC[length(inp$obsC)], id="23", hitSC=NA,
                                       red=NA, barID=NA, sd=NA, conv=NA)
-                   if(nrow(tacs) == 1){
+                   if(is.null(tacs)){
                        tacs <- tactmp
                    }else{
                        tacs <- rbind(tacs, tactmp)
@@ -782,7 +786,7 @@ estTAC <- function(inp, hcr, hist=NULL, stab=FALSE, tacs=NULL, tcv=NA){
                if(is.na(tacs$TAC[nrow(tacs)])){
                    tactmp <- data.frame(TAC=inp$obsC[length(inp$obsC)], id="23", hitSC=NA,
                                       red=NA, barID=NA, sd=NA, conv=NA)
-                   if(nrow(tacs) == 1){
+                   if(is.null(tacs)){
                        tacs <- tactmp
                    }else{
                        tacs <- rbind(tacs, tactmp)
@@ -796,7 +800,7 @@ estTAC <- function(inp, hcr, hist=NULL, stab=FALSE, tacs=NULL, tcv=NA){
                if(is.na(tacs$TAC[nrow(tacs)])){
                    tactmp <- data.frame(TAC=inp$obsC[length(inp$obsC)], id="23", hitSC=NA,
                                       red=NA, barID=NA, sd=NA, conv=NA)
-                   if(nrow(tacs) == 1){
+                   if(is.null(tacs)){
                        tacs <- tactmp
                    }else{
                        tacs <- rbind(tacs, tactmp)
@@ -815,7 +819,7 @@ estTAC <- function(inp, hcr, hist=NULL, stab=FALSE, tacs=NULL, tcv=NA){
                                         cp.est=NA,cp.sd=NA,
                                         fmsy.est=NA,fmsy.sd=NA,
                                         bmsy.est=NA,bmsy.sd=NA)
-                   if(nrow(tacs) == 1){
+                   if(is.null(tacs)){
                        tacs <- tactmp
                    }else{
                        tacs <- rbind(tacs, tactmp)

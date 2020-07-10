@@ -6,7 +6,6 @@
 #' @export
 obsmod <- function(specdat, hist, set, years = NULL){
     ## parameters
-    TSB <- hist$TSB
     ESB <- hist$ESB
     CW <- hist$CW
     q <- specdat$q
@@ -29,7 +28,7 @@ obsmod <- function(specdat, hist, set, years = NULL){
 
     ## adding observation
     if("obsC" %in% names(hist$obs)){
-        y <- length(hist$TSB)
+        y <- length(hist$ESB)
         tmp1 <- length(hist$obs$obsC)
         tmp <- y - tmp1
         if(tmp > 0){
@@ -43,11 +42,11 @@ obsmod <- function(specdat, hist, set, years = NULL){
             for(i in 1:nsurv){
                 naa <- exp(log(hist$NAA[y,]) - Z * set$surveyTimes[i])
                 if(inherits(naa, "matrix")){
-                    tsb <- apply(naa, 1, function(x) sum(x * specdat$weight))
+                    esb <- apply(naa, 1, function(x) sum(x * specdat$weightF * specdat$sel))
                 }else{
-                    tsb <- sum(naa * specdat$weight)
+                    esb <- sum(naa * specdat$weightF * specdat$sel)
                 }
-                obsI[[i]] <- c(hist$obs$obsI[[i]], exp(log(q[i]) + log(tsb) + eI[y-specdat$ny]))
+                obsI[[i]] <- c(hist$obs$obsI[[i]], exp(log(q[i]) + log(esb) + eI[y-specdat$ny]))
                 timeI[[i]] <- c(hist$obs$timeI[[i]], tail(hist$obs$timeI[[i]],1) + 1 + set$surveyTimes[i])
                 ## sdI[[1]] <- c(hist$obs$obsIsd[[i]], set$CVI)
             }
@@ -63,8 +62,8 @@ obsmod <- function(specdat, hist, set, years = NULL){
         Z <- hist$FAA[idx,] + specdat$M
         for(i in 1:nsurv){
             naa <- exp(log(hist$NAA[idx,]) - Z * set$surveyTimes[i])
-            tsb <- apply(naa, 1, function(x) sum(x * specdat$weight))
-            obsI[[i]] <- exp(log(q[i]) + log(tsb) + eI)
+            esb <- apply(naa, 1, function(x) sum(x * specdat$weightF * specdat$sel))
+            obsI[[i]] <- exp(log(q[i]) + log(esb) + eI)
             timeI[[i]] <- 1:ny + set$surveyTimes[i]
             ## sdI[[i]] <- rep(set$CVI, length(obsI1))
         }
