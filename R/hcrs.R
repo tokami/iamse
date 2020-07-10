@@ -9,7 +9,7 @@
 conscat <- function(inpin, tacs=NULL){
     inpin <- check.inp(inpin)
     if(is.null(tacs)){
-        indBpBx <- inp$indBpBx
+        indBpBx <- inpin$indBpBx
     }else{
         indBpBx <- tacs$indBpBx
     }
