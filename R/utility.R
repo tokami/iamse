@@ -319,7 +319,7 @@ estTAC <- function(inp, hcr, hist=NULL, stab=FALSE, tacs=NULL, tcv=NA){
                if(is.null(tacs)){
                    indBpBx <- inp$indBpBx
                }else{
-                   indBpBx <- tacs$indBpBx[nrow(tacs$indBpBx)]
+                   indBpBx <- tacs$indBpBx[nrow(tacs)]
                }
                inp$indBpBx <- indBpBx
                inp$phases$logn <- -1
