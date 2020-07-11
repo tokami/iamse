@@ -47,7 +47,7 @@ obsmod <- function(specdat, hist, set, years = NULL){
                     esb <- sum(naa * specdat$weightF * specdat$sel)
                 }
                 obsI[[i]] <- c(hist$obs$obsI[[i]], exp(log(q[i]) + log(esb) + eI[y-specdat$ny]))
-                timeI[[i]] <- c(hist$obs$timeI[[i]], tail(hist$obs$timeI[[i]],1) + 1 + set$surveyTimes[i])
+                timeI[[i]] <- c(hist$obs$timeI[[i]], floor(tail(hist$obs$timeI[[i]],1)) + 1 + set$surveyTimes[i])
                 ## sdI[[1]] <- c(hist$obs$obsIsd[[i]], set$CVI)
             }
         }else return(hist)
