@@ -77,6 +77,7 @@ runMSE <- function(dat, set, ref, ncores=detectCores()-1, verbose=TRUE){
     ## sort res of reps for each ms together
     resList <- vector("list", nhcrs)
 
+    ## TODO: this returns error if one of the threads in mclapply gives error - some way of catching errors here?
     res2 <- lapply(1:nhcrs, function(x){
         tmp <- vector("list",nrep)
         for(i in 1:nrep){

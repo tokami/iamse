@@ -147,6 +147,7 @@ checkSet <- function(set = NULL){
     if(is.null(set$sigmaH)) set$sigmaH <- 0
     if(is.null(set$sigmaR0)) set$sigmaR0 <- 0
     if(is.null(set$sigmaMat)) set$sigmaMat <- 0
+    if(is.null(set$sigmaImp)) set$sigmaImp <- 0
 
     ## auto-correlated recruitment devs
     if(is.null(set$rhoR)) set$rhoR <- 0

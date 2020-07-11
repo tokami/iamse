@@ -195,6 +195,7 @@ advancePop <- function(specdat, hist, set, tacs){
     eM <- set$eM[ysim]
     eH <- set$eH[ysim]
     eMat <- set$eMat[ysim]
+    eImp <- set$eImp[ysim]
 
     if(is.null(eR)) {
         eR <- genDevs(1, set$sigmaR, set$rhoR)
@@ -204,19 +205,22 @@ advancePop <- function(specdat, hist, set, tacs){
     if(is.null(eM)) eM <- rnorm(1, 0, set$sigmaM) - set$sigmaM^2/2
     if(is.null(eH)) eH <- rnorm(1, 0, set$sigmaH) - set$sigmaH^2/2
     if(is.null(eMat)) eMat <- rnorm(1, 0, set$sigmaMat) - set$sigmaMat^2/2
+    if(is.null(eImp)) eImp <- rnorm(1, 0, set$sigmaImp) - set$sigmaImp^2/2
     if("errs" %in% names(hist)){
         errs <- list(eF = c(hist$errs$eF, eF),
                      eR = c(hist$errs$eR, eR),
                      eM = c(hist$errs$eM, eM),
                      eH = c(hist$errs$eH, eH),
                      eR0 = hist$errs$eR0,
-                     eMat = c(hist$errs$eMat, eMat))
+                     eMat = c(hist$errs$eMat, eMat),
+                     eMat = c(hist$errs$eImp, eImp))
     }else{
         errs <- list(eF = eF,
                      eR = eR,
                      eM = eM,
                      eH = eH,
-                     eMat = eMat)
+                     eMat = eMat,
+                     eImp = eImp)
     }
 
     ## numbers-at-age
@@ -259,7 +263,7 @@ advancePop <- function(specdat, hist, set, tacs){
         TAC <- as.numeric(as.character(tacs$TAC[nrow(tacs)]))
         TACs[y] <- TAC
         FMtac <- min(set$maxF, getFM(TAC, NAA = NAA[y,], M = M, weight = weightF, sel = sel))
-        FAA[y,] <- sel * FMtac ## * exp(eF) ## that would be implementation error right?
+        FAA[y,] <- sel * FMtac * exp(eImp)
         ## CAA[y,] <- baranov(FAA[y,], M, NAAmid) ## new: "To prevent
         ## a control from removing all exploitable biomass from the
         ## population in a year, we set the achieved catch to 75% of
@@ -278,7 +282,7 @@ advancePop <- function(specdat, hist, set, tacs){
         }
     }else{
         FMtac <- hist$refs$Fmsy
-        FAA[y,] <- sel * FMtac
+        FAA[y,] <- sel * FMtac * exp(eImp)
         CAA[y,] <- baranov(FAA[y,], M, NAA[y,])
         TAC <- sum(CAA[y,] * weightF, na.rm = TRUE)
         TACs[y] <- TAC
