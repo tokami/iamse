@@ -389,8 +389,8 @@ estTAC <- function(inp, hcr, hist=NULL, stab=FALSE, tacs=NULL, tcv=NA){
                    }else{
                        tactmp <- data.frame(TAC=tac, id="spict-msy", hitSC=NA,
                                             red=NA, barID=NA, sd=NA, conv = NA)
-                       tactmp <- data.frame(tactmp, c(fmfmsy, bpbmsy, cp,
-                                            fmsy, bmsy), indBpBx = NA)
+                       tactmp <- data.frame(c(tactmp, fmfmsy, bpbmsy, cp,
+                                            fmsy, bmsy, indBpBx = NA))
                        if(is.null(tacs)){
                            tacs <- tactmp
                        }else{
@@ -433,8 +433,8 @@ estTAC <- function(inp, hcr, hist=NULL, stab=FALSE, tacs=NULL, tcv=NA){
                    }else{
                        tactmp <- data.frame(TAC=tac, id="spict-msy", hitSC=NA,
                                             red=NA, barID=NA, sd=NA, conv = NA)
-                       tactmp <- data.frame(tactmp, c(fmfmsy, bpbmsy, cp,
-                                            fmsy, bmsy), indBpBx = NA)
+                       tactmp <- data.frame(c(tactmp, fmfmsy, bpbmsy, cp,
+                                            fmsy, bmsy, indBpBx = NA))
                        if(is.null(tacs)){
                            tacs <- tactmp
                        }else{
@@ -477,8 +477,8 @@ estTAC <- function(inp, hcr, hist=NULL, stab=FALSE, tacs=NULL, tcv=NA){
                    }else{
                        tactmp <- data.frame(TAC=tac, id="spict-msy", hitSC=NA,
                                             red=NA, barID=NA, sd=NA, conv = NA)
-                       tactmp <- data.frame(tactmp, c(fmfmsy, bpbmsy, cp,
-                                            fmsy, bmsy), indBpBx = NA)
+                       tactmp <- data.frame(c(tactmp, fmfmsy, bpbmsy, cp,
+                                            fmsy, bmsy, indBpBx = NA))
                        if(is.null(tacs)){
                            tacs <- tactmp
                        }else{
@@ -521,8 +521,8 @@ estTAC <- function(inp, hcr, hist=NULL, stab=FALSE, tacs=NULL, tcv=NA){
                    }else{
                        tactmp <- data.frame(TAC=tac, id="spict-msy", hitSC=NA,
                                             red=NA, barID=NA, sd=NA, conv = NA)
-                       tactmp <- data.frame(tactmp, c(fmfmsy, bpbmsy, cp,
-                                            fmsy, bmsy), indBpBx = NA)
+                       tactmp <- data.frame(c(tactmp, fmfmsy, bpbmsy, cp,
+                                            fmsy, bmsy, indBpBx = NA))
                        if(is.null(tacs)){
                            tacs <- tactmp
                        }else{
@@ -565,8 +565,8 @@ estTAC <- function(inp, hcr, hist=NULL, stab=FALSE, tacs=NULL, tcv=NA){
                    }else{
                        tactmp <- data.frame(TAC=tac, id="spict-msy", hitSC=NA,
                                             red=NA, barID=NA, sd=NA, conv = NA)
-                       tactmp <- data.frame(tactmp, c(fmfmsy, bpbmsy, cp,
-                                            fmsy, bmsy), indBpBx = NA)
+                       tactmp <- data.frame(c(tactmp, fmfmsy, bpbmsy, cp,
+                                            fmsy, bmsy, indBpBx = NA))
                        if(is.null(tacs)){
                            tacs <- tactmp
                        }else{
@@ -609,8 +609,8 @@ estTAC <- function(inp, hcr, hist=NULL, stab=FALSE, tacs=NULL, tcv=NA){
                    }else{
                        tactmp <- data.frame(TAC=tac, id="spict-msy", hitSC=NA,
                                             red=NA, barID=NA, sd=NA, conv = NA)
-                       tactmp <- data.frame(tactmp, c(fmfmsy, bpbmsy, cp,
-                                            fmsy, bmsy), indBpBx = NA)
+                       tactmp <- data.frame(c(tactmp, fmfmsy, bpbmsy, cp,
+                                            fmsy, bmsy, indBpBx = NA))
                        if(is.null(tacs)){
                            tacs <- tactmp
                        }else{
@@ -653,8 +653,8 @@ estTAC <- function(inp, hcr, hist=NULL, stab=FALSE, tacs=NULL, tcv=NA){
                    }else{
                        tactmp <- data.frame(TAC=tac, id="spict-msy", hitSC=NA,
                                             red=NA, barID=NA, sd=NA, conv = NA)
-                       tactmp <- data.frame(tactmp, c(fmfmsy, bpbmsy, cp,
-                                            fmsy, bmsy), indBpBx = NA)
+                       tactmp <- data.frame(c(tactmp, fmfmsy, bpbmsy, cp,
+                                            fmsy, bmsy, indBpBx = NA))
                        if(is.null(tacs)){
                            tacs <- tactmp
                        }else{
@@ -697,8 +697,8 @@ estTAC <- function(inp, hcr, hist=NULL, stab=FALSE, tacs=NULL, tcv=NA){
                    }else{
                        tactmp <- data.frame(TAC=tac, id="spict-msy", hitSC=NA,
                                             red=NA, barID=NA, sd=NA, conv = NA)
-                       tactmp <- data.frame(tactmp, c(fmfmsy, bpbmsy, cp,
-                                            fmsy, bmsy), indBpBx = NA)
+                       tactmp <- data.frame(c(tactmp, fmfmsy, bpbmsy, cp,
+                                            fmsy, bmsy, indBpBx = NA))
                        if(is.null(tacs)){
                            tacs <- tactmp
                        }else{

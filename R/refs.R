@@ -67,16 +67,15 @@ simpopR <- function(FM, dat, set){
 #' @export
 estRL <- function(dat, set, fvec = seq(0,5,0.1)){
 
-    ## Variables
-    years <- set$refYears
-
     ## Remove variability
     set$sigmaF <- 0
     set$sigmaR <- 0
+    set$rhoR <- 0
     set$sigmaM <- 0
     set$sigmaH <- 0
     set$sigmaMat <- 0
     set$sigmaR0 <- 0
+    set$sigmaImp <- 0
 
     ## run over Fvec
     res <- sapply(fvec, function(x){
