@@ -309,6 +309,9 @@ recfunc <- function(h, SSBPR0, SSB,  R0 = 1000, method = "bevholt"){
 estTAC <- function(inp, hcr, hist=NULL, stab=FALSE, tacs=NULL, tcv=NA){
 
     switch(hcr,
+
+           ## Bfacs
+           ## --------------------------------------
            "spict-bfac" = {
                inp$reportmode <- 3
                inp$dteuler <- 1/4
@@ -356,6 +359,245 @@ estTAC <- function(inp, hcr, hist=NULL, stab=FALSE, tacs=NULL, tcv=NA){
                }
                return(tacs)
            },
+           "spict-bfac60" = {
+               inp$reportmode <- 3
+               inp$dteuler <- 1/4
+               inp$stabilise <- 0
+               inp$priors$logn <- c(0,0,0)
+               inp$priors$logalpha <- c(0,0,0)
+               inp$priors$logbeta <- c(0,0,0)
+               inp <- check.inp(inp)
+               if(is.null(tacs)){
+                   indBpBx <- inp$indBpBx
+               }else{
+                   indBpBx <- tacs$indBpBx[nrow(tacs)]
+               }
+               inp$indBpBx <- indBpBx
+               inp$phases$logn <- -1
+               inp$ini$logn <- log(2)
+               rep <- try(fit.spict(inp), silent=TRUE)
+               if(class(rep) == "try-error" || rep$opt$convergence != 0 || any(is.infinite(rep$sd))){
+                   tacs <- conscat(inp, tacs=tacs)
+               }else{
+                   tac <- try(spict:::get.TAC(rep = rep,
+                                              bfac = 1,
+                                              safeguardB = list(prob = 0.6),
+                                              fractiles = list(catch=0.5, ffmsy=0.5, bbmsy=0.5,
+                                                               bmsy = 0.5, fmsy = 0.5),
+                                              breakpointB = 0, verbose = FALSE), silent = TRUE)
+                   if(class(tac) == "try-error"){
+                       tacs <- conscat(inp, tacs=tacs)
+                   }else{
+                       tactmp <- data.frame(TAC=tac, id="spict-bfac60", hitSC=NA,
+                                            red=NA, barID=NA, sd=NA, conv = NA)
+                       tactmp <- as.data.frame(c(tactmp,
+                                                 fmfmsy.est=NA,fmfmsy.sd=NA,
+                                                 bpbmsy.est=NA,bpbmsy.sd=NA,
+                                                 cp.est=NA,cp.sd=NA,
+                                                 fmsy.est=NA,fmsy.sd=NA,
+                                                 bmsy.est=NA,bmsy.sd=NA,
+                                                 indBpBx = indBpBx))
+                       if(is.null(tacs)){
+                           tacs <- tactmp
+                       }else{
+                           tacs <- rbind(tacs, tactmp)
+                       }
+                   }
+               }
+               return(tacs)
+           },
+           "spict-bfac70" = {
+               inp$reportmode <- 3
+               inp$dteuler <- 1/4
+               inp$stabilise <- 0
+               inp$priors$logn <- c(0,0,0)
+               inp$priors$logalpha <- c(0,0,0)
+               inp$priors$logbeta <- c(0,0,0)
+               inp <- check.inp(inp)
+               if(is.null(tacs)){
+                   indBpBx <- inp$indBpBx
+               }else{
+                   indBpBx <- tacs$indBpBx[nrow(tacs)]
+               }
+               inp$indBpBx <- indBpBx
+               inp$phases$logn <- -1
+               inp$ini$logn <- log(2)
+               rep <- try(fit.spict(inp), silent=TRUE)
+               if(class(rep) == "try-error" || rep$opt$convergence != 0 || any(is.infinite(rep$sd))){
+                   tacs <- conscat(inp, tacs=tacs)
+               }else{
+                   tac <- try(spict:::get.TAC(rep = rep,
+                                              bfac = 1,
+                                              safeguardB = list(prob = 0.7),
+                                              fractiles = list(catch=0.5, ffmsy=0.5, bbmsy=0.5,
+                                                               bmsy = 0.5, fmsy = 0.5),
+                                              breakpointB = 0, verbose = FALSE), silent = TRUE)
+                   if(class(tac) == "try-error"){
+                       tacs <- conscat(inp, tacs=tacs)
+                   }else{
+                       tactmp <- data.frame(TAC=tac, id="spict-bfac70", hitSC=NA,
+                                            red=NA, barID=NA, sd=NA, conv = NA)
+                       tactmp <- as.data.frame(c(tactmp,
+                                                 fmfmsy.est=NA,fmfmsy.sd=NA,
+                                                 bpbmsy.est=NA,bpbmsy.sd=NA,
+                                                 cp.est=NA,cp.sd=NA,
+                                                 fmsy.est=NA,fmsy.sd=NA,
+                                                 bmsy.est=NA,bmsy.sd=NA,
+                                                 indBpBx = indBpBx))
+                       if(is.null(tacs)){
+                           tacs <- tactmp
+                       }else{
+                           tacs <- rbind(tacs, tactmp)
+                       }
+                   }
+               }
+               return(tacs)
+           },
+           "spict-bfac80" = {
+               inp$reportmode <- 3
+               inp$dteuler <- 1/4
+               inp$stabilise <- 0
+               inp$priors$logn <- c(0,0,0)
+               inp$priors$logalpha <- c(0,0,0)
+               inp$priors$logbeta <- c(0,0,0)
+               inp <- check.inp(inp)
+               if(is.null(tacs)){
+                   indBpBx <- inp$indBpBx
+               }else{
+                   indBpBx <- tacs$indBpBx[nrow(tacs)]
+               }
+               inp$indBpBx <- indBpBx
+               inp$phases$logn <- -1
+               inp$ini$logn <- log(2)
+               rep <- try(fit.spict(inp), silent=TRUE)
+               if(class(rep) == "try-error" || rep$opt$convergence != 0 || any(is.infinite(rep$sd))){
+                   tacs <- conscat(inp, tacs=tacs)
+               }else{
+                   tac <- try(spict:::get.TAC(rep = rep,
+                                              bfac = 1,
+                                              safeguardB = list(prob = 0.8),
+                                              fractiles = list(catch=0.5, ffmsy=0.5, bbmsy=0.5,
+                                                               bmsy = 0.5, fmsy = 0.5),
+                                              breakpointB = 0, verbose = FALSE), silent = TRUE)
+                   if(class(tac) == "try-error"){
+                       tacs <- conscat(inp, tacs=tacs)
+                   }else{
+                       tactmp <- data.frame(TAC=tac, id="spict-bfac80", hitSC=NA,
+                                            red=NA, barID=NA, sd=NA, conv = NA)
+                       tactmp <- as.data.frame(c(tactmp,
+                                                 fmfmsy.est=NA,fmfmsy.sd=NA,
+                                                 bpbmsy.est=NA,bpbmsy.sd=NA,
+                                                 cp.est=NA,cp.sd=NA,
+                                                 fmsy.est=NA,fmsy.sd=NA,
+                                                 bmsy.est=NA,bmsy.sd=NA,
+                                                 indBpBx = indBpBx))
+                       if(is.null(tacs)){
+                           tacs <- tactmp
+                       }else{
+                           tacs <- rbind(tacs, tactmp)
+                       }
+                   }
+               }
+               return(tacs)
+           },
+           "spict-bfac90" = {
+               inp$reportmode <- 3
+               inp$dteuler <- 1/4
+               inp$stabilise <- 0
+               inp$priors$logn <- c(0,0,0)
+               inp$priors$logalpha <- c(0,0,0)
+               inp$priors$logbeta <- c(0,0,0)
+               inp <- check.inp(inp)
+               if(is.null(tacs)){
+                   indBpBx <- inp$indBpBx
+               }else{
+                   indBpBx <- tacs$indBpBx[nrow(tacs)]
+               }
+               inp$indBpBx <- indBpBx
+               inp$phases$logn <- -1
+               inp$ini$logn <- log(2)
+               rep <- try(fit.spict(inp), silent=TRUE)
+               if(class(rep) == "try-error" || rep$opt$convergence != 0 || any(is.infinite(rep$sd))){
+                   tacs <- conscat(inp, tacs=tacs)
+               }else{
+                   tac <- try(spict:::get.TAC(rep = rep,
+                                              bfac = 1,
+                                              safeguardB = list(prob = 0.9),
+                                              fractiles = list(catch=0.5, ffmsy=0.5, bbmsy=0.5,
+                                                               bmsy = 0.5, fmsy = 0.5),
+                                              breakpointB = 0, verbose = FALSE), silent = TRUE)
+                   if(class(tac) == "try-error"){
+                       tacs <- conscat(inp, tacs=tacs)
+                   }else{
+                       tactmp <- data.frame(TAC=tac, id="spict-bfac90", hitSC=NA,
+                                            red=NA, barID=NA, sd=NA, conv = NA)
+                       tactmp <- as.data.frame(c(tactmp,
+                                                 fmfmsy.est=NA,fmfmsy.sd=NA,
+                                                 bpbmsy.est=NA,bpbmsy.sd=NA,
+                                                 cp.est=NA,cp.sd=NA,
+                                                 fmsy.est=NA,fmsy.sd=NA,
+                                                 bmsy.est=NA,bmsy.sd=NA,
+                                                 indBpBx = indBpBx))
+                       if(is.null(tacs)){
+                           tacs <- tactmp
+                       }else{
+                           tacs <- rbind(tacs, tactmp)
+                       }
+                   }
+               }
+               return(tacs)
+           },
+           "spict-bfac99" = {
+               inp$reportmode <- 3
+               inp$dteuler <- 1/4
+               inp$stabilise <- 0
+               inp$priors$logn <- c(0,0,0)
+               inp$priors$logalpha <- c(0,0,0)
+               inp$priors$logbeta <- c(0,0,0)
+               inp <- check.inp(inp)
+               if(is.null(tacs)){
+                   indBpBx <- inp$indBpBx
+               }else{
+                   indBpBx <- tacs$indBpBx[nrow(tacs)]
+               }
+               inp$indBpBx <- indBpBx
+               inp$phases$logn <- -1
+               inp$ini$logn <- log(2)
+               rep <- try(fit.spict(inp), silent=TRUE)
+               if(class(rep) == "try-error" || rep$opt$convergence != 0 || any(is.infinite(rep$sd))){
+                   tacs <- conscat(inp, tacs=tacs)
+               }else{
+                   tac <- try(spict:::get.TAC(rep = rep,
+                                              bfac = 1,
+                                              safeguardB = list(prob = 0.99),
+                                              fractiles = list(catch=0.5, ffmsy=0.5, bbmsy=0.5,
+                                                               bmsy = 0.5, fmsy = 0.5),
+                                              breakpointB = 0, verbose = FALSE), silent = TRUE)
+                   if(class(tac) == "try-error"){
+                       tacs <- conscat(inp, tacs=tacs)
+                   }else{
+                       tactmp <- data.frame(TAC=tac, id="spict-bfac99", hitSC=NA,
+                                            red=NA, barID=NA, sd=NA, conv = NA)
+                       tactmp <- as.data.frame(c(tactmp,
+                                                 fmfmsy.est=NA,fmfmsy.sd=NA,
+                                                 bpbmsy.est=NA,bpbmsy.sd=NA,
+                                                 cp.est=NA,cp.sd=NA,
+                                                 fmsy.est=NA,fmsy.sd=NA,
+                                                 bmsy.est=NA,bmsy.sd=NA,
+                                                 indBpBx = indBpBx))
+                       if(is.null(tacs)){
+                           tacs <- tactmp
+                       }else{
+                           tacs <- rbind(tacs, tactmp)
+                       }
+                   }
+               }
+               return(tacs)
+           },
+
+
+
+           ## spict MSY
            "spict-msy" = {
                inp$reportmode <- 1
                inp$dteuler <- 1/4
