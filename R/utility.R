@@ -27,26 +27,26 @@ genDevs <- function(n, sd, rho=0){
 
 #' @name estDepl
 #' @export
-estDepl <- function(dat, refs, verbose = TRUE){
+estDepl <- function(dat, refs, fmax = 10, verbose = TRUE){
 
     depl <- dat$depl
     depl.quant <- dat$depl.quant
 
     frel <- dat$Fvals/max(dat$Fvals)
 
-    fn <- function(fabs, frel, depl, opt=1){
-        fpat <- frel * fabs
-        dat$Fvals <- fpat
-        dreal <- initPop(dat, refs = ref$refs, out.opt = 2, depl.quant = depl.quant)
+    fn <- function(logfabs, frel, depl, dat, opt=1){
+        datx <- dat
+        fpat <- frel * exp(logfabs)
+        datx$Fvals <- fpat
+        dreal <- initPop(datx, refs = ref$refs, out.opt = 2, depl.quant = depl.quant)
         if(opt==1) return((depl - dreal)^2)
         if(opt==2) return(dreal)
     }
 
-    opt <- optimize(fn, c(0,20), frel = frel, depl = depl)
-    fabs <- opt$minimum
+    opt <- optimize(fn, c(log(0.0001),log(fmax)), frel = frel, depl = depl, dat = dat)
+    fabs <- exp(opt$minimum)
     fvals <- frel * fabs
-
-    dreal <- round(fn(fabs, frel, depl, opt=2),3)
+    dreal <- round(fn(log(fabs), frel, depl, dat, opt=2),3)
 
     if(verbose){
         print(paste0("Required depletion relative to ", depl.quant,
@@ -67,10 +67,12 @@ estProd <- function(dat, set, refs, ny = 100, plot = TRUE){
     dat$ny <- ny
     set$sigmaF <- 0
     set$sigmaR <- 0
+    set$rhoR <- 0
     set$sigmaR0 <- 0
     set$sigmaH <- 0
     set$sigmaM <- 0
     set$sigmaMat <- 0
+    set$sigmaImp <- 0
 
     ## increasing effort
     dat$Fvals <- c(rep(0,ny/4),
@@ -157,7 +159,7 @@ checkSet <- function(set = NULL){
 
     ## for estimation of ref levels
     if(is.null(set$refN)) set$refN <- 1e4
-    if(is.null(set$refYears)) set$refYears <- 150
+    if(is.null(set$refYears)) set$refYears <- 300
 
     ## number of years available to assessment method
     if(is.null(set$nyhist)) set$nyhist <- 35
@@ -304,9 +306,27 @@ recfunc <- function(h, SSBPR0, SSB,  R0 = 1000, method = "bevholt"){
 }
 
 
+
 #' @name estTAC
 #' @export
-estTAC <- function(inp, hcr, hist=NULL, stab=FALSE, tacs=NULL, tcv=NA){
+estTAC <- function(inp, hcr, tacs=NULL){
+    func <- get(hcr)
+    tacs <- func(inp, tacs)
+    return(tacs)
+}
+
+
+
+
+
+
+
+
+## REMOVE:
+
+#' @name estTACOLD
+#' @export
+estTACOLD <- function(inp, hcr, hist=NULL, stab=FALSE, tacs=NULL, tcv=NA){
 
     switch(hcr,
 

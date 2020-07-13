@@ -111,15 +111,15 @@ initPop <- function(specdat, set = NULL, refs = NULL, out.opt = 1, depl.quant = 
         M <- M * exp(eM[y])
         Z <- M + FAA[y,]
         ## CAA
-        ## NAAmid <- NAA[y,] * exp(-M/2)
-        CAA[y,] <- baranov(FAA[y,], M, NAA[y,])
+        NAAmid <- NAA[y,] * exp(-M/2)
+        CAA[y,] <- baranov(FAA[y,], M, NAAmid)
         ## CW
         CW[y] <- sum(weightF * CAA[y,])
         ## TSB
-        TSB[y] <- sum(weight * NAA[y,])
+        TSB[y] <- sum(weight * NAAmid)
         ## SSB
         maty <- mat * exp(eMat[y])
-        SSB[y] <- sum(NAA[y,] * weight * maty * exp(-pzbm * Z))
+        SSB[y] <- sum(NAAmid * weight * maty * exp(-pzbm * Z))
         ## ESB
         ESB[y] <- sum(NAA[y,] * weightF * sel)
         ## remove Z

@@ -49,8 +49,7 @@ runMSE <- function(dat, set, ref, ncores=detectCores()-1, verbose=TRUE){
             if(hcri == "refFmsy"){
                 ## Reference rule Fmsy
                 for(y in 1:nysim){
-                    poptmp$tacs <- estTAC(inp = NA, hcr = hcri, stab = setx$stab,
-                                          tacs = poptmp$tacs, hist = poptmp)
+                    poptmp$tacs <- gettacs(tacs = poptmp$tacs, id = "refFmsy", TAC=NA)
                     poptmp <- advancePop(specdat = dat, hist = poptmp, set = setx,
                                          tacs = poptmp$tacs)
                     poptmp <- obsmod(specdat = dat, hist = poptmp, set = setx)
@@ -59,9 +58,7 @@ runMSE <- function(dat, set, ref, ncores=detectCores()-1, verbose=TRUE){
             }else{
                 ## Any other HCR
                 for(y in 1:nysim){
-                    inp <- poptmp$obs
-                    poptmp$tacs <- estTAC(inp = inp, hcr = hcri, stab = setx$stab,
-                                          tacs = poptmp$tacs, hist = poptmp)
+                    poptmp$tacs <- estTAC(inp = poptmp$obs, hcr = hcri, tacs = poptmp$tacs)
                     poptmp <- advancePop(specdat = dat, hist = poptmp, set = setx,
                                          tacs = poptmp$tacs)
                     poptmp <- obsmod(specdat = dat, hist = poptmp, set = setx)

@@ -1,27 +1,17 @@
-## management procedures
+## Harvest control rules (HCRs)
 ##-----------------------------
 
 
-## constant catch
-##-----------------------------
-#' @name conscat
-#' @export
-conscat <- function(inpin, tacs=NULL){
-    inpin <- check.inp(inpin)
-    if(is.null(tacs)){
-        indBpBx <- inpin$indBpBx
-    }else{
-        indBpBx <- tacs$indBpBx[nrow(tacs)]
-    }
-    TAC <- sum(tail(inpin$obsC, 1))
-    tactmp <- data.frame(TAC=TAC, id="cc", hitSC=FALSE, red=FALSE,
+#' @name gettacs
+gettacs <- function(tacs=NULL, id="", TAC=NA){
+    tactmp <- data.frame(TAC=TAC, id=id, hitSC=NA, red=NA,
                          barID=FALSE, sd=NA, conv = FALSE,
                          fmfmsy.est=NA,fmfmsy.sd=NA,
                          bpbmsy.est=NA,bpbmsy.sd=NA,
                          cp.est=NA,cp.sd=NA,
                          fmsy.est=NA,fmsy.sd=NA,
                          bmsy.est=NA,bmsy.sd=NA,
-                         indBpBx=indBpBx)
+                         indBpBx = NA)
     if(is.null(tacs)){
         tacs <- tactmp
     }else{
@@ -29,7 +19,294 @@ conscat <- function(inpin, tacs=NULL){
     }
     return(tacs)
 }
-##-----------------------------
+
+
+
+#' @name conscat
+#' @export
+conscat <- structure(
+    function(inp, tacs=NULL){
+        inp <- check.inp(inp)
+        if(is.null(tacs)){
+            indBpBx <- inp$indBpBx
+        }else{
+            indBpBx <- tacs$indBpBx[nrow(tacs)]
+        }
+        tactmp <- gettacs(tacs, id="cc",
+                          TAC=sum(tail(inp$obsC, 1)))
+        if(is.null(tacs)){
+            tacs <- tactmp
+        }else{
+            tacs <- rbind(tacs, tactmp)
+        }
+        return(tacs)
+    },
+    class="hcr"
+)
+
+
+
+#' @name noF
+#' @export
+noF <- structure(
+    function(inp, tacs=NULL){
+        tactmp <- gettacs(tacs, id="noF", TAC=0)
+        if(is.null(tacs)){
+            tacs <- tactmp
+        }else{
+            tacs <- rbind(tacs, tactmp)
+        }
+        return(tacs)
+    },
+    class="hcr"
+)
+
+
+
+#' @name defHCRindex
+#' @title Define harvest control rule
+#' @details This function allows to define harvest control rules (HCRs) which can be incorporated into a
+#' management strategy evaluation framework (DLMtool package). HCRs are saved with a
+#' generic name to the global environment and the names of the HCRs are returned if results of the
+#' function are assigned to an object. HCR runs a SPiCT assessment using catch and
+#' relative biomass index observations. Stock status estimates are used to set the TAC
+#' for the next year. TAC can be based on the distribution of predicted catches (percentileC)
+#' and/or the distribution of the Fmsy reference level (percentileFmsy).
+#' Additionally, a cap can be applied to account for low biomass levels (below Bmsy).
+#' Arguments of returned function are 'x' - the position in a data-limited mehods data object,
+#' 'Data' - the data-limited methods data object (see DLMtool), and 'reps' - the number of
+#' stochastic samples of the TAC recommendation (not used for this HCR).
+#' One or several arguments of the function can be provided as vectors to generate several
+#' HCRs at once (several vectors have to have same length).
+#'
+#' @export
+#'
+defHCRindex <- function(id = "2/3",
+                        x = 2,
+                        y = 3,
+                        stab = FALSE,
+                        lower = 0.8,
+                        upper = 1.2,
+                        clyears = 1,
+                        red = NA,
+                        redyears = 2,
+                        env = globalenv()
+                        ){
+
+    template  <- expression(paste0(
+        'structure(
+    function(inp, tacs = NULL){
+        x <- ',x,'
+        y <- ',y,'
+        stab <- ',stab,'
+        lower <- ',lower,'
+        upper <- ',upper,'
+        clyears <- ',clyears,'
+        red <- ',red,'
+        redyears <- ',redyears,'
+
+        inp <- check.inp(inp)
+        if(is.null(tacs)){
+            indBpBx <- inp$indBpBx
+        }else{
+            indBpBx <- tacs$indBpBx[nrow(tacs)]
+        }
+        inp$indBpBx <- indBpBx
+
+        inds <- inp$obsI
+        if(length(inds) > 1){
+            ## WHAT TO DO IF SEVERAL INDICES AVAILABLE? ## for now: mean
+            indtab <- do.call(rbind, inds)
+            ind <- apply(indtab, 2, mean)
+        }else{
+            ind <- unlist(inds)
+        }
+        ninds <- length(ind)
+        inum <- ind[(ninds-(x-1)):ninds]
+        iden <- ind[(ninds-(x+y-1)):(ninds-x)]
+        r <- mean(inum, na.rm = TRUE)/mean(iden, na.rm = TRUE)
+        ## uncertainty cap
+        if(stab){
+            r[r<lower] <- lower
+            r[r>upper] <- upper
+            if(any(r < lower) || any(r > upper)) hitSC <- TRUE else hitSC <- FALSE
+        }else hitSC <- FALSE
+        ## account for seasonal and annual catches
+        ## Cl <- sum(tail(inpin$obsC, tail(1/inpin$dtc,1))) ## CHECK: dtc required?
+        Cl <- mean(tail(inp$obsC, clyears))
+        TAC <- Cl * r * 1 * 1 ## Clast * r * f * b
+        ## bianunal reduction (usually 0.2)
+        if(is.numeric(red)){
+            if(is.null(tacs)){
+                TAC <- TAC * (1-red)
+                barID <- TRUE
+            }else{
+                idx1 <- ifelse(nrow(tacs) > (redyears-1), (nrow(tacs)-(redyears-2)), 1)
+                idx <- idx1:nrow(tacs)
+                if(all(as.logical(tacs$barID[idx]) == FALSE)){
+                    TAC <- TAC * (1-red)
+                    barID <- TRUE
+                }else{
+                    barID <- FALSE
+                }
+            }
+        }else barID <- FALSE
+
+        tactmp <- gettacs(tacs, id = id, TAC = TAC)
+        tactmp$hitSC <- hitSC
+        tactmp$barID <- barID
+        tactmp$red <- red
+
+        if(is.null(tacs)){
+            tacs <- tactmp
+        }else{
+            tacs <- rbind(tacs, tactmp)
+        }
+        return(tacs)
+    },
+class="hcr"
+)'))
+
+    ## create HCR as functions
+    templati <- eval(parse(text=paste(parse(text = eval(template)),collapse=" ")))
+    assign(value=templati, x=id, envir=env)
+
+    ## allow for assigning names
+    invisible(id)
+}
+
+
+
+
+#' @name defHCRspict
+#' @title Define harvest control rule
+#' @details This function allows to define harvest control rules (HCRs) which can be incorporated into a
+#' management strategy evaluation framework (DLMtool package). HCRs are saved with a
+#' generic name to the global environment and the names of the HCRs are returned if results of the
+#' function are assigned to an object. HCR runs a SPiCT assessment using catch and
+#' relative biomass index observations. Stock status estimates are used to set the TAC
+#' for the next year. TAC can be based on the distribution of predicted catches (percentileC)
+#' and/or the distribution of the Fmsy reference level (percentileFmsy).
+#' Additionally, a cap can be applied to account for low biomass levels (below Bmsy).
+#' Arguments of returned function are 'x' - the position in a data-limited mehods data object,
+#' 'Data' - the data-limited methods data object (see DLMtool), and 'reps' - the number of
+#' stochastic samples of the TAC recommendation (not used for this HCR).
+#' One or several arguments of the function can be provided as vectors to generate several
+#' HCRs at once (several vectors have to have same length).
+#'
+#' @export
+#'
+defHCRspict <- function(id = "spict-msy",
+                        fractiles = list(catch=0.5,
+                                         ffmsy=0.5,
+                                         bbmsy=0.5,
+                                         bmsy = 0.5,
+                                         fmsy = 0.5),
+                        breakpointB = 0.0,
+                        dteuler = 1/4,
+                        reportmode = 1,
+                        stabilise = 0,
+                        priorlogn = c(log(2),2,1),
+                        priorlogalpha = c(log(1),2,1),
+                        priorlogbeta = c(log(1),2,1),
+                        schaefer = 0,
+                        bfac = NA,
+                        env = globalenv()
+                        ){
+
+    frc <- fractiles$catch
+    frff <- fractiles$ffmsy
+    frbb <- fractiles$bbmsy
+    frb <- fractiles$bmsy
+    frf <- fractiles$fmsy
+
+    template  <- expression(paste0(
+        'structure(
+        function(inp, tacs = NULL){
+            inp$reportmode <- ',reportmode,'
+            inp$dteuler <- ',dteuler,'
+            inp$stabilise <- ',stabilise,'
+            inp <- check.inp(inp)
+            inp$priors$logn <- c(',priorlogn[1],',',priorlogn[2],',',priorlogn[3],')
+            inp$priors$logalpha <- c(',priorlogalpha[1],',',priorlogalpha[2],',',priorlogalpha[3],')
+            inp$priors$logbeta <- c(',priorlogbeta[1],',',priorlogbeta[2],',',priorlogbeta[3],')
+            if(is.null(tacs)){
+                indBpBx <- inp$indBpBx
+            }else{
+                indBpBx <- tacs$indBpBx[nrow(tacs)]
+            }
+            inp$indBpBx <- indBpBx
+            if(',schaefer,'){
+               inp$phases$logn <- -1
+               inp$ini$logn <- log(2)
+            }
+            rep <- try(fit.spict(inp), silent=TRUE)
+            if(class(rep) == "try-error" || rep$opt$convergence != 0 || any(is.infinite(rep$sd))){
+                tacs <- conscat(inp, tacs=tacs)
+            }else{
+                fmfmsy <- round(get.par("logFmFmsynotS",rep, exp=TRUE)[,c(2,4)],2)
+                names(fmfmsy) <- paste0("fmfmsy-",names(fmfmsy))
+                bpbmsy <- round(get.par("logBpBmsy",rep, exp=TRUE)[,c(2,4)],2)
+                names(bpbmsy) <- paste0("bpbmsy-",names(bpbmsy))
+                cp <- round(get.par("logCp",rep, exp=TRUE)[,c(2,4)],2)
+                names(cp) <- paste0("cp-",names(cp))
+                ##
+                fmsy <- round(get.par("logFmsy",rep, exp=TRUE)[,c(2,4)],2)
+                names(fmsy) <- paste0("fmsy-",names(fmsy))
+                bmsy <- round(get.par("logBmsy",rep, exp=TRUE)[,c(2,4)],2)
+                names(bmsy) <- paste0("bmsy-",names(bmsy))
+                ##
+                tac <- try(spict:::get.TAC(rep = rep,
+                                           bfac = ',bfac,',
+                                           fractiles = list(catch = ',frc,',
+                                                            ffmsy = ',frff,',
+                                                            bbmsy = ',frbb,',
+                                                            bmsy  = ',frb,',
+                                                            fmsy  = ',frf,'),
+                                           breakpointB = ',breakpointB,',
+                                           verbose = FALSE),
+                           silent = TRUE)
+                if(inherits(tac, "try-error")){
+                    tacs <- conscat(inp, tacs=tacs)
+                }else{
+                    tactmp <- data.frame(TAC=tac, id="',id,'", hitSC=NA,
+                                         red=NA, barID=NA, sd=NA, conv = NA)
+                    tactmp <- data.frame(c(tactmp, fmfmsy, bpbmsy, cp,
+                                           fmsy, bmsy, indBpBx = indBpBx))
+                    if(is.null(tacs)){
+                        tacs <- tactmp
+                    }else{
+                        tacs <- rbind(tacs, tactmp)
+                    }
+                }
+            }
+            return(tacs)
+        },
+        class="hcr")'))
+
+    ## create HCR as functions
+    templati <- eval(parse(text=paste(parse(text = eval(template)),collapse=" ")))
+    assign(value=templati, x=id, envir=env)
+
+    ## allow for assigning names
+    invisible(id)
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 ## 2/3
