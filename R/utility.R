@@ -38,7 +38,7 @@ estDepl <- function(dat, refs, fmax = 10, verbose = TRUE){
         datx <- dat
         fpat <- frel * exp(logfabs)
         datx$Fvals <- fpat
-        dreal <- initPop(datx, refs = ref$refs, out.opt = 2, depl.quant = depl.quant)
+        dreal <- initPop(datx, refs = refs, out.opt = 2, depl.quant = depl.quant)
         if(opt==1) return((depl - dreal)^2)
         if(opt==2) return(dreal)
     }
@@ -65,6 +65,8 @@ estDepl <- function(dat, refs, fmax = 10, verbose = TRUE){
 estProd <- function(dat, set, refs, ny = 100, plot = TRUE){
 
     dat$ny <- ny
+    ns <- dat$nseasons
+    nt <- ny * ns
     set$sigmaF <- 0
     set$sigmaR <- 0
     set$rhoR <- 0
@@ -74,25 +76,29 @@ estProd <- function(dat, set, refs, ny = 100, plot = TRUE){
     set$sigmaMat <- 0
     set$sigmaImp <- 0
 
+    ##
+    len1 <- len3 <- floor(ny/8)
+    len2 <- ny - len1 - len3
+
     ## increasing effort
-    dat$Fvals <- c(rep(0,ny/4),
-                   seq(0, 100*refs$Fmsy, length.out = ny/2),
-                   rep(100*refs$Fmsy,ny/4))
+    dat$Fvals <- c(rep(0,len1),
+                   seq(0, 100*refs$Fmsy, length.out = len2),
+                   rep(100*refs$Fmsy,len3))
     pop1 <- initPop(dat, set)
-    tsb1 <- pop1$TSB
-    cw1 <- pop1$CW
+    tsb1 <- apply(pop1$TSB,1,mean)
+    cw1 <- apply(pop1$CW,1,sum)
     prod1 <- rep(NA, ny)
     for(i in 1:(ny-1)){
         prod1[i] <- tsb1[i+1] - tsb1[i] + cw1[i]
     }
 
     ## decreasing effort
-    dat$Fvals <- c(rep(100*refs$Fmsy, ny/4),
-                   seq(100*refs$Fmsy, 0, length.out = ny/2),
-                   rep(0, ny/4))
+    dat$Fvals <- c(rep(100*refs$Fmsy, len1),
+                   seq(100*refs$Fmsy, 0, length.out = len2),
+                   rep(0, len3))
     pop2 <- initPop(dat, set)
-    tsb2 <- pop2$TSB
-    cw2 <- pop2$CW
+    tsb2 <- apply(pop2$TSB,1,mean)
+    cw2 <- apply(pop2$CW,1,sum)
     prod2 <- rep(NA, ny)
     for(i in 1:(ny-1)){
         prod2[i] <- tsb2[i+1] - tsb2[i] + cw2[i]

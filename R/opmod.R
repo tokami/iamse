@@ -11,9 +11,14 @@
 #' @name initPop
 #' @export
 initPop <- function(specdat, set = NULL, refs = NULL, out.opt = 1, depl.quant = "B0"){
+    ## indices
+    ny <- specdat$ny
+    ns <- specdat$nseason
+    nt <- ny * ns
     ## species data
     amax <- specdat$amax + 1  ## age 0
     M <- specdat$M
+    Ms <- M/ns
     weight <- specdat$weight
     weightF <- specdat$weightF
     mat <- specdat$mat
@@ -29,8 +34,6 @@ initPop <- function(specdat, set = NULL, refs = NULL, out.opt = 1, depl.quant = 
     Fvals <- specdat$Fvals
     sel <- specdat$sel
     initF <- specdat$initF
-    ## indices
-    ny <- specdat$ny
     ## errors
     if(!is.null(set)){
         eF <- set$eF
@@ -39,21 +42,21 @@ initPop <- function(specdat, set = NULL, refs = NULL, out.opt = 1, depl.quant = 
         eH <- set$eH
         eR0 <- set$eR0
         eMat <- set$eMat
-        if(is.null(eF)) eF <- rnorm(ny, 0, set$sigmaF) - set$sigmaF^2/2
+        if(is.null(eF)) eF <- exp(rnorm(ny, 0, set$sigmaF) - set$sigmaF^2/2)
         if(is.null(eR)) {
             eR <- genDevs(ny, set$sigmaR, set$rhoR)
         }
-        if(is.null(eM)) eM <- rnorm(ny, 0, set$sigmaM) - set$sigmaM^2/2
-        if(is.null(eH)) eH <- rnorm(ny, 0, set$sigmaH) - set$sigmaH^2/2
-        if(is.null(eR0)) eR0 <- rnorm(1, 0, set$sigmaR0) - set$sigmaR0^2/2
-        if(is.null(eMat)) eMat <- rnorm(ny, 0, set$sigmaMat) - set$sigmaMat^2/2
+        if(is.null(eM)) eM <- exp(rnorm(ny, 0, set$sigmaM) - set$sigmaM^2/2)
+        if(is.null(eH)) eH <- exp(rnorm(ny, 0, set$sigmaH) - set$sigmaH^2/2)
+        if(is.null(eR0)) eR0 <- exp(rnorm(1, 0, set$sigmaR0) - set$sigmaR0^2/2)
+        if(is.null(eMat)) eMat <- exp(rnorm(ny, 0, set$sigmaMat) - set$sigmaMat^2/2)
     }else{
-        eF <- rnorm(ny, 0, 0)
+        eF <- exp(rnorm(ny, 0, 0))
         eR <- genDevs(ny, 0, 0)
-        eM <- rnorm(ny, 0, 0)
-        eH <- rnorm(ny, 0, 0)
-        eR0 <- rnorm(1, 0, 0)
-        eMat <- rnorm(ny, 0, 0)
+        eM <- exp(rnorm(ny, 0, 0))
+        eH <- exp(rnorm(ny, 0, 0))
+        eR0 <- exp(rnorm(1, 0, 0))
+        eMat <- exp(rnorm(ny, 0, 0))
     }
     errs <- list(eF = eF,
                  eR = eR,
@@ -62,80 +65,117 @@ initPop <- function(specdat, set = NULL, refs = NULL, out.opt = 1, depl.quant = 
                  eR0 = eR0,
                  eMat = eMat)
     ## numbers-at-age
-    NAA <- matrix(0, nrow=ny+1, ncol=amax)
+    NAA <- array(0, c(amax, ny+1, ns),
+                 dimnames = list(age = 0:(amax-1),
+                                 years = 0:ny,
+                                 seasons = 1:ns))
     ## F-at-age
-    FAA <- matrix(0, nrow=ny, ncol=amax)
-    ## TSB
-    TSB <- rep(0,ny)
-    ## SSB
-    SSB <- rep(0,ny)
-    ## ESB
-    ESB <- rep(0,ny)
-    ## Z
-    Z <- rep(0,amax)
+    FAA <- array(0, c(amax, ny, ns),
+                 dimnames = list(age = 0:(amax-1),
+                                 years = 1:ny,
+                                 seasons = 1:ns))
     ## Predicted catch-at-age
-    CAA <- matrix(0, nrow=ny, ncol=amax)
-    ## Catch in weight
-    CW <- rep(0,ny)
+    CAA <- array(0, c(amax, ny, ns),
+                 dimnames = list(age = 0:(amax-1),
+                                 years = 1:ny,
+                                 seasons = 1:ns))
+    ## containers
+    TSB <- SSB <- ESB <- CW <- matrix(0, nrow=ny, ncol=ns)
     ## TAC (for later)
-    TACs <- rep(NA,ny)
+    TACs <- rep(NA, ny)
     ## burnin period
     if(is.null(set)) burnin <- 20 else burnin <- set$burnin
     if(is.numeric(burnin) && burnin > 0){
-        NAAbi <- matrix(0, nrow=burnin+1, ncol=amax)
-        NAAbi[1,1] <- R0 * exp(initN[1])
-        Zbi <- M + sel * Fvals[1]
-        for(a in 2:amax) NAAbi[1,a] <- NAAbi[1,a-1] * exp(-(Zbi[a-1])) * exp(initN[a])
+        NAAbi <- array(0, c(amax, burnin, ns),
+                       dimnames = list(age = 0:(amax-1),
+                                       years = 1:burnin,
+                                       seasons = 1:ns))
+        CWbi <- matrix(0, nrow=ny, ncol=ns)
+        NAAbi[1,1,1] <- R0 * exp(initN[1])
+        Fbi <- (sel * Fvals[1]) / ns
+        Zbi <- Ms + Fbi
+        for(a in 2:amax) NAAbi[a,1,1] <- NAAbi[a-1,1,1] * exp(-(Zbi[a-1])) * exp(initN[a])
         for(y in 1:burnin){
-            Ntemp <- NAAbi[y,] * exp(-Zbi)
-            NAAbi[y+1,amax] <- Ntemp[amax] + Ntemp[amax-1]
-            for(a in 2:(amax-1)) NAAbi[y+1,a] <- Ntemp[a-1]
-            SSB <- sum(NAAbi[y,] * weight * mat * exp(-pzbm * Zbi))
-            rec <- recfunc(h = h, SSBPR0 = SSBPR0, SSB = SSB, R0 = R0, method = SR)
+            ## recruitment
+            SSBtemp <- sum(NAAbi[,y,1] * weight * mat * exp(-pzbm * Zbi)) ## pre-recruitment mort
+            rec <- recfunc(h = h, SSBPR0 = SSBPR0, SSB = SSBtemp,
+                           R0 = R0, method = SR)
             rec[rec<0] <- 1e-10
-            NAAbi[y+1,1] <- rec
+            NAAbi[1,y,1] <- rec
+            for(s in 1:ns){
+                ## can't take more than what's there
+                Btemp <- sum(NAAbi[,y,s] * weight * sel * exp(-M/2))
+                CWbi[y,s] <- sum(baranov(Fbi, Ms, NAAbi[,y,s]))
+                if(CWbi[y,s] > 0.99 * Btemp){
+                    CWbi[y,s] <- 0.75 * Btemp
+                    Fbi <- sel * min(set$maxF/ns,
+                                     getFM(CWbi[y,s], NAA = NAAbi[,y,s],
+                                           M = Ms, weight = weightF, sel = sel))
+                    Zbi <- Ms + Fbi
+                }
+                Ntemp <- NAAbi[,y,s] * exp(-Zbi)
+                if(s < ns){
+                    NAAbi[,y,s+1] <- Ntemp
+                }else if(y < burnin){
+                    NAAbi[amax, y+1, 1] <- Ntemp[amax] + Ntemp[amax-1]
+                    for(a in 2:(amax-1)) NAAbi[a,y+1,1] <- Ntemp[a-1]
+                }
+            }
         }
-        NAA[1,] <- NAAbi[burnin+1,]
+        NAA[,1,] <- NAAbi[,burnin,]
     }else{
         ## set up NAA
-        NAA[1,1] <- R0 * exp(eR0) * exp(initN[1])
+        NAA[1,1,1] <- R0 * exp(eR0) * exp(initN[1])
         for(a in 2:amax){
-            NAA[1,a] <- NAA[1,a-1] * exp(-(M[a-1] + initF)) * exp(initN[a])
-        }
+            NAA[a,1,1] <- NAA[a-1,1,1] * exp(-(Ms[a-1] + initF*sel[a-1])/ns) * exp(initN[a])
+        } ## HERE: other seasons
     }
-    SSB0 <- sum(weight * mat * exp(-pzbm * Z) * NAA[1,])
-    ## project forward
+    ## main loop
     for(y in 1:ny){
-        ## FAA and Z
-        FAA[y,] <- sel * Fvals[y] * exp(eF[y])
-        M <- M * exp(eM[y])
-        Z <- M + FAA[y,]
-        ## CAA
-        NAAmid <- NAA[y,] * exp(-M/2)
-        CAA[y,] <- baranov(FAA[y,], M, NAAmid)
-        ## CW
-        CW[y] <- sum(weightF * CAA[y,])
-        ## TSB
-        TSB[y] <- sum(weight * NAAmid)
-        ## SSB
-        maty <- mat * exp(eMat[y])
-        SSB[y] <- sum(NAAmid * weight * maty * exp(-pzbm * Z))
-        ## ESB
-        ESB[y] <- sum(NAA[y,] * weightF * sel)
-        ## remove Z
-        Ntemp <- NAA[y,] * exp(-Z)
-        ## update dynamics
-        ##-----------------
-        ## plus group
-        NAA[y+1,amax] <- Ntemp[amax] + Ntemp[amax-1]
-        ## other ages
-        for(a in 2:(amax-1)) NAA[y+1,a] <- Ntemp[a-1]
+        Msy <- Ms * eM[y]
+        maty <- mat * eMat[y]
+        hy <- h * eH[y]
+        R0y <- R0 * eR0[y]
         ## recruitment
-        h <- h * exp(eH[y])
-        SSBx <- c(SSB0,SSB)
-        rec <- recfunc(h = h, SSBPR0 = SSBPR0, SSB = SSBx[y], R0 = R0, method = SR)
+        SSB[y,1] <- sum(NAA[,y,1] * weight * maty * exp(-pzbm * (Msy + Fvals[y] * sel / ns))) ## pre-recruitment mort
+        rec <- recfunc(h = hy, SSBPR0 = SSBPR0, SSB = SSB[y,1],
+                       R0 = R0y, method = SR)
         rec[rec<0] <- 1e-10
-        NAA[y+1,1] <- rec * eR[y]
+        NAA[1,y,1] <- rec * eR[y]
+        ## seasons
+        for(s in 1:ns){
+            ## FAA and Z
+            FAA[,y,s] <- sel * Fvals[y] * eF[y] / ns
+            Z <- Msy + FAA[,y,s]
+            ## can't take more than what's there
+            Btemp <- sum(NAA[,y,s] * weight * sel * exp(-Msy/2))
+            Ctemp <- sum(baranov(FAA[,y,s], Msy, NAA[,y,s]))
+            if(Ctemp > 0.99 * Btemp){
+                Ctemp <- 0.75 * Btemp
+                FAA[,y,s] <- sel * min(set$maxF/ns,
+                                       getFM(Ctemp, NAA = NAA[,y,s],
+                                             M = Msy, weight = weightF, sel = sel))
+                Z <- Msy + FAA[,y,s]
+            }
+            ## CAA
+            CAA[,y,s] <- baranov(FAA[,y,s], Msy, NAA[,y,s])
+            ## CW
+            CW[y,s] <- sum(weightF * CAA[,y,s])
+            ## TSB
+            NAAmid <- NAA[,y,s] * exp(-Msy/2)
+            TSB[y,s] <- sum(weight * NAAmid)
+            ## SSB
+            SSB[y,s] <- sum(NAAmid * weight * maty * exp(-pzbm * Z))
+            ## ESB
+            ESB[y,s] <- sum(NAAmid * weightF * sel)
+            Ntemp <- NAA[,y,s] * exp(-Z)
+            if(s < ns){
+                NAA[,y,s+1] <- Ntemp
+            }else if(y < ny)){
+                NAA[amax, y+1, 1] <- Ntemp[amax] + Ntemp[amax-1]
+                for(a in 2:(amax-1)) NAA[a,y+1,1] <- Ntemp[a-1]
+            }
+        }
     }
 
     ## return
@@ -147,7 +187,7 @@ initPop <- function(specdat, set = NULL, refs = NULL, out.opt = 1, depl.quant = 
         out$ESB <- ESB
         out$CAA <- CAA
         out$FAA <- FAA
-        out$FM <- apply(FAA, 1, function(x) mean(x / specdat$sel, na.rm=TRUE))
+        out$FM <- apply(FAA, c(2,3), function(x) mean(x / specdat$sel, na.rm=TRUE))
         out$CW <- CW
         out$TACs <- TACs
         out$errs <- errs
