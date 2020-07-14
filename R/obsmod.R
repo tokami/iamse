@@ -6,7 +6,6 @@
 #' @export
 obsmod <- function(specdat, hist, set, years = NULL){
     ## parameters
-    ESB <- hist$ESB
     CW <- hist$CW
     q <- specdat$q
     ## indices
@@ -16,56 +15,96 @@ obsmod <- function(specdat, hist, set, years = NULL){
         idx <- years
     }
     ny <- length(idx)
+    ns <- specdat$nseasons
+    nt <- ny * ns
+    nsC <- set$catchSeasons
+    seasonStart <- seq(0,1-1/ns,1/ns)
     if("obsC" %in% names(hist$obs)) ny <- 1
+    Ms <- specdat$M / ns
     ## errors
     eC <- set$eC
     eI <- set$eI
-    if(is.null(eC)) eC <- rnorm(ny, 0, set$CVC) - set$CVC^2/2
-    if(is.null(eI)) eI <- rnorm(ny, 0, set$CVI) - set$CVI^2/2
+    if(is.null(eC)) eC <- exp(rnorm(ny, 0, set$CVC) - set$CVC^2/2)
+    if(is.null(eI)) eI <- exp(rnorm(ny, 0, set$CVI) - set$CVI^2/2)
 
     nsurv <- length(set$surveyTimes)
     if(length(q) < nsurv) q <- rep(q, nsurv)
 
-    ## adding observation
     if("obsC" %in% names(hist$obs)){
-        y <- length(hist$ESB)
-        tmp1 <- length(hist$obs$obsC)
-        tmp <- y - tmp1
-        if(tmp > 0){
-            ## add catch obs
-            obsC <- c(hist$obs$obsC, exp(log(CW[y]) + eC[y-specdat$ny]))
-            timeC <- c(hist$obs$timeC, tail(hist$obs$timeC,1)+1)
-            ## add survey obs
-            Z <- hist$FAA[y,] + specdat$M
-            obsI <- vector("list", nsurv)
-            timeI <- vector("list", nsurv)
-            for(i in 1:nsurv){
-                naa <- exp(log(hist$NAA[y,]) - Z * set$surveyTimes[i])
-                if(inherits(naa, "matrix")){
-                    esb <- apply(naa, 1, function(x) sum(x * specdat$weightF * specdat$sel))
-                }else{
-                    esb <- sum(naa * specdat$weightF * specdat$sel)
-                }
-                obsI[[i]] <- c(hist$obs$obsI[[i]], exp(log(q[i]) + log(esb) + eI[y-specdat$ny]))
-                timeI[[i]] <- c(hist$obs$timeI[[i]], floor(tail(hist$obs$timeI[[i]],1)) + 1 + set$surveyTimes[i])
-                ## sdI[[1]] <- c(hist$obs$obsIsd[[i]], set$CVI)
-            }
-        }else return(hist)
-    ## initalizing observations
-    }else{
+        ## adding observations
+        ## -----------------------
+        y <- nrow(hist$TSB)
         ## catch
-        obsC <- exp(log(CW[idx]) + eC)
-        timeC <- 1:ny
+        if(ns > 1){
+            if(nsC == 1){
+                if(inherits(CW[y,],"matrix")) ctemp <- apply(CW[y,], 1, sum) else ctemp <- sum(CW[y,])
+                obsC <- c(hist$obs$obsC, ctemp * eC[y-specdat$ny])
+                timeC <- c(hist$obs$timeC, tail(hist$obs$timeC,1)+1)
+            }else if(nsC == ns){
+                obsC <- c(hist$obs$obsC, as.numeric(t(CW[y,] * eC[y-specdat$ny])))
+                timeC <- c(hist$obs$timeC, tail(hist$obs$timeC, nsC) + 1)
+            }else{
+                stop("Seasons of catch observations and operating model do not match. This aggregation is not yet implemented!")
+            }
+        }else{
+            if(nsC > 1) writeLines("Set dat$nseasons to > 1 for seasonal catches. Generating annual catches!")
+            obsC <- c(hist$obs$obsC, CW[y,] * eC[y-specdat$ny])
+            timeC <- c(hist$obs$timeC, tail(hist$obs$timeC,1)+1)
+        }
+
         ## survey indices
         obsI <- vector("list", nsurv)
         timeI <- vector("list", nsurv)
-        Z <- hist$FAA[idx,] + specdat$M
         for(i in 1:nsurv){
-            naa <- exp(log(hist$NAA[idx,]) - Z * set$surveyTimes[i])
-            esb <- apply(naa, 1, function(x) sum(x * specdat$weightF * specdat$sel))
-            obsI[[i]] <- exp(log(q[i]) + log(esb) + eI)
+            ## closest season
+            tmp <- seasonStart[seasonStart < set$surveyTimes[i]]
+            idxS <- which.min((tmp - set$surveyTimes[i])^2)
+            ## correct NAA for survey timing dependent on seasons in opmod
+            Z <- hist$FAA[,y,idxS] + Ms
+            surveyTime <- set$surveyTimes[i] - seasonStart[idxS]
+            naa <- exp(log(hist$NAA[,y,idxS]) - Z * surveyTime)
+            if(inherits(naa, "matrix")){
+                esb <- apply(naa, 2, function(x) sum(x * specdat$weightF * specdat$sel))
+            }else{
+                esb <- sum(naa * specdat$weightF * specdat$sel)
+            }
+            obsI[[i]] <- c(hist$obs$obsI[[i]], q[i] * esb * eI[y-specdat$ny])
+            timeI[[i]] <- c(hist$obs$timeI[[i]], floor(tail(hist$obs$timeI[[i]],1)) + 1 + set$surveyTimes[i])
+        }
+
+     }else{
+        ## initalizing observations
+        ## -----------------------
+        ## catch
+        if(ns > 1){
+            if(nsC == 1){
+                obsC <- apply(CW[idx,], 1, sum) * eC
+                timeC <- 1:ny
+            }else if(nsC == ns){
+                obsC <- as.numeric(t(CW[idx,] * eC))
+                timeC <- rep(1:ny, each = ns) + rep(seasonStart, ny)
+            }else{
+                stop("Catch observation seasons and operating model seasons do not match. Not yet implemented!")
+            }
+        }else{
+            if(nsC > 1) writeLines("Set dat$nseasons to > 1 for seasonal catches. Generating annual catches!")
+            obsC <- CW[idx,] * eC
+            timeC <- 1:ny
+        }
+        ## survey indices
+        obsI <- vector("list", nsurv)
+        timeI <- vector("list", nsurv)
+        for(i in 1:nsurv){
+            ## closest season
+            tmp <- seasonStart[seasonStart < set$surveyTimes[i]]
+            idxS <- which.min((tmp - set$surveyTimes[i])^2)
+            ## correct NAA for survey timing dependent on seasons in opmod
+            Z <- hist$FAA[,idx,idxS] + Ms
+            surveyTime <- set$surveyTimes[i] - seasonStart[idxS]
+            naa <- exp(log(hist$NAA[,idx,idxS]) - Z * surveyTime)
+            esb <- apply(naa, 2, function(x) sum(x * specdat$weightF * specdat$sel))
+            obsI[[i]] <- q[i] * esb * eI
             timeI[[i]] <- 1:ny + set$surveyTimes[i]
-            ## sdI[[i]] <- rep(set$CVI, length(obsI1))
         }
     }
 

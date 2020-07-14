@@ -10,7 +10,7 @@ defHCRindex(
   y = 3,
   stab = FALSE,
   lower = 0.8,
-  upperr = 1.2,
+  upper = 1.2,
   clyears = 1,
   red = NA,
   redyears = 2,

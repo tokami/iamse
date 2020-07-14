@@ -11,12 +11,13 @@ NULL
 #' @export
 genDevs <- function(n, sd, rho=0){
 
-
     rnoise <- rnorm(n, 0, sd) - sd^2/2
 
     res <- numeric(n)
     res[1] <- rnoise[1]
-    for(i in 2:n) res[i] <- rho * res[i-1] + (1 - rho) * rnoise[i] ## sqrt(1-rho^2) * rnoise[i]
+    if(n > 1){
+        for(i in 2:n) res[i] <- rho * res[i-1] + (1 - rho) * rnoise[i] ## sqrt(1-rho^2) * rnoise[i]
+    }
 
     res <- exp(res)
     res <- res/mean(res)
@@ -185,6 +186,9 @@ checkSet <- function(set = NULL){
     ## out a survey twice a year; a first quarter survey (January-February) and a
     ## third quarter survey (August-September)
     if(is.null(set$surveyTimes)) set$surveyTimes <- c(1/12,7/12)
+
+    ## Seasonal catch observations
+    if(is.null(set$catchSeasons)) set$catchSeasons <- 1
 
     ## burn in period
     if(is.null(set$burnin)) set$burnin <- 20

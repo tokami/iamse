@@ -50,12 +50,7 @@ conscat <- structure(
 #' @export
 noF <- structure(
     function(inp, tacs=NULL){
-        tactmp <- gettacs(tacs, id="noF", TAC=0)
-        if(is.null(tacs)){
-            tacs <- tactmp
-        }else{
-            tacs <- rbind(tacs, tactmp)
-        }
+        tacs <- gettacs(tacs, id="noF", TAC=0)
         return(tacs)
     },
     class="hcr"
