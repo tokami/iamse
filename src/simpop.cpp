@@ -118,7 +118,7 @@ List simpop(double FM, List dat, List set) {
     hy = h * exp(eH(y));
     My = M * exp(eM(y));
     maty = mat * exp(eMat(y));
-    R0y = exp(logR0) * exp(eR0(y));
+    R0y = R0 * exp(eR0(y));
     for(int a=0; a<amax; a++){
       Nage(a,y) = NAtmp(a);
       //      NAAmid(a) = Nage(a,y) * exp(-My(a)/2);

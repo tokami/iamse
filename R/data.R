@@ -11,6 +11,12 @@ checkDat <- function(dat){
         dat$ny <- 35
     }
 
+    ## Number of seasons
+    ##------------------
+    if(!any(names(dat) == "nseaosons")){
+        dat$nseasons <- 1
+    }
+
     ## ages
     ##------------------
     amax <- (dat$amax)
