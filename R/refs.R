@@ -21,7 +21,7 @@ simpopR <- function(FM, dat, set){
     amax <- dat$amax + 1
     weight <- dat$weight
     weightF <- dat$weightF
-    R0 <- exp(dat$logR0)
+    R0 <- dat$R0
     pzbm <- dat$pzbm
     sel <- dat$sel
     mat <- dat$mat
@@ -100,9 +100,9 @@ simpopR <- function(FM, dat, set){
 }
 
 
-#' @name estRL
+#' @name estRef
 #' @export
-estRL <- function(dat, set, fvec = seq(0,5,0.1), ncores=detectCores()-1){
+estRef <- function(dat, set, fvec = seq(0,5,0.1), ncores=detectCores()-1){
 
     ny <- dat$ny
     ns <- dat$nseasons

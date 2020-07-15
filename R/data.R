@@ -138,8 +138,8 @@ checkDat <- function(dat){
     if(!"h" %in% names(dat)){
         dat$h <- 0.71              ## median over all species Myers 1999
     }
-    if(!"logR0" %in% names(dat)){
-        dat$logR0 <- log(1e6)
+    if(!"R0" %in% names(dat)){
+        dat$R0 <- 1e6
     }
 
     ## pzbm

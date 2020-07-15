@@ -63,7 +63,10 @@ estDepl <- function(dat, refs, fmax = 10, verbose = TRUE){
 
 #' @name estProd
 #' @export
-estProd <- function(dat, set, refs, ny = 100, plot = TRUE){
+estProd <- function(dat, set, refs, ny = 100,
+                    fmsyFacMax = 100,
+                    tsSplit = 3,
+                    plot = TRUE){
 
     dat$ny <- ny
     ns <- dat$nseasons
@@ -78,13 +81,13 @@ estProd <- function(dat, set, refs, ny = 100, plot = TRUE){
     set$sigmaImp <- 0
 
     ##
-    len1 <- len3 <- floor(ny/8)
+    len1 <- len3 <- floor(ny/tsSplit)
     len2 <- ny - len1 - len3
 
     ## increasing effort
     dat$Fvals <- c(rep(0,len1),
-                   seq(0, 100*refs$Fmsy, length.out = len2),
-                   rep(100*refs$Fmsy,len3))
+                   seq(0, fmsyFacMax*refs$Fmsy, length.out = len2),
+                   rep(fmsyFacMax*refs$Fmsy,len3))
     pop1 <- initPop(dat, set)
     tsb1 <- apply(pop1$TSB,1,mean)
     cw1 <- apply(pop1$CW,1,sum)
@@ -94,8 +97,8 @@ estProd <- function(dat, set, refs, ny = 100, plot = TRUE){
     }
 
     ## decreasing effort
-    dat$Fvals <- c(rep(100*refs$Fmsy, len1),
-                   seq(100*refs$Fmsy, 0, length.out = len2),
+    dat$Fvals <- c(rep(fmsyFacMax*refs$Fmsy, len1),
+                   seq(fmsyFacMax*refs$Fmsy, 0, length.out = len2),
                    rep(0, len3))
     pop2 <- initPop(dat, set)
     tsb2 <- apply(pop2$TSB,1,mean)
@@ -105,7 +108,6 @@ estProd <- function(dat, set, refs, ny = 100, plot = TRUE){
         prod2[i] <- tsb2[i+1] - tsb2[i] + cw2[i]
     }
 
-
     if(plot){
 
         plot(tsb1/refs$B0, prod1/refs$MSY, ty='n',
@@ -114,6 +116,10 @@ estProd <- function(dat, set, refs, ny = 100, plot = TRUE){
               col = "dodgerblue2")
         lines(tsb2/refs$B0, prod2/refs$MSY, ty='b',
               col = "darkgreen")
+        legend("topright",
+               title = "Effort",
+               legend = c("increasing","decreasing"),
+               lty=1, col = c("dodgerblue2","darkgreen"))
 
         ## abs plot
         ## plot(tsb1/refs$B0, prod1, ty='n',
@@ -165,7 +171,7 @@ checkSet <- function(set = NULL){
     if(is.null(set$maxF)) set$maxF <- 5
 
     ## for estimation of ref levels
-    if(is.null(set$refN)) set$refN <- 1e4
+    if(is.null(set$refN)) set$refN <- 1e6
     if(is.null(set$refYears)) set$refYears <- 300
 
     ## number of years available to assessment method
@@ -311,6 +317,8 @@ recfunc <- function(h, SSBPR0, SSB,  R0 = 1000, method = "bevholt"){
         beta <- log(5 * h) / (0.8 * R0)
         alpha <- exp(beta * R0)/SSBPR0
         rec <- alpha * SSB * exp(-beta * SSB)
+    }else if(method == "average"){
+        rec <- R0
     }else print("method not known!")
     return (rec)
 }

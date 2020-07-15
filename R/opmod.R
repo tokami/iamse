@@ -46,8 +46,7 @@ initPop <- function(specdat, set = NULL, refs = NULL, out.opt = 1, depl.quant = 
     initN <- specdat$initN
     recdev <- specdat$recdev
     SR <- specdat$SR
-    logR0 <- specdat$logR0
-    R0 <- exp(logR0)
+    R0 <- specdat$R0
     h <- specdat$h
     SSBPR0 <- specdat$SSBPR0
     rho <- specdat$rho
@@ -282,7 +281,7 @@ advancePop <- function(specdat, hist, set, tacs){
     amax <- specdat$amax + 1  ## age 0
     pzbm <- specdat$pzbm
     SR <- specdat$SR
-    logR0 <- specdat$logR0
+    R0 <- specdat$R0
     h <- specdat$h
     SSBPR0 <- specdat$SSBPR0
     q <- dat$q
@@ -354,7 +353,7 @@ advancePop <- function(specdat, hist, set, tacs){
 
     ## project forward
     Msy <- Ms * eM
-    R0y <- exp(logR0) * eR0
+    R0y <- R0 * eR0
     hy <- h * eH
     maty <- mat * eMat
 

@@ -29,8 +29,7 @@ List simpop(double FM, List dat, List set) {
   NumericVector M = as<NumericVector>(dat["M"]);
   NumericVector mat = as<NumericVector>(dat["mat"]);
   NumericVector sel = as<NumericVector>(dat["sel"]);
-  double logR0 = as<double>(dat["logR0"]);
-  double R0 = exp(logR0);
+  double R0 = as<double>(dat["R0"]);
   double h = as<double>(dat["h"]);
   std::string SR = as<std::string>(dat["SR"]);
   NumericMatrix Nage (amax, ny+1);
