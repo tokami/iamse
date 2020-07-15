@@ -190,7 +190,7 @@ initPop <- function(specdat, set = NULL, refs = NULL, out.opt = 1, depl.quant = 
             if(s %in% idxS){
                 idxi <- which(idxS == s)
                 for(i in 1:length(idxi)){
-                    surveyTime <- set$surveyTimes[idxi[i]] - seasonStart[idxi[i]]
+                    surveyTime <- set$surveyTimes[idxi[i]] - seasonStart[idxS[i]]
                     NAAsurv <- exp(log(NAA) - Z * surveyTime)
                     ESBsurv <- sum(NAAsurv * specdat$weightF * specdat$sel)
                     obsI[[idxi[i]]] <- c(obsI[[idxi[i]]], q[idxi[i]] * ESBsurv * eI[y])
@@ -428,7 +428,7 @@ advancePop <- function(specdat, hist, set, tacs){
         if(s %in% idxS){
             idxi <- which(idxS == s)
             for(i in 1:length(idxi)){
-                surveyTime <- set$surveyTimes[idxi[i]] - seasonStart[idxi[i]]
+                surveyTime <- set$surveyTimes[idxi[i]] - seasonStart[idxS[i]]
                 NAAsurv <- exp(log(NAA) - Z * surveyTime)
                 ESBsurv <- sum(NAAsurv * specdat$weightF * specdat$sel)
                 obsI[[idxi[i]]] <- c(obsI[[idxi[i]]], q[idxi[i]] * ESBsurv * eI)
