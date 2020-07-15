@@ -58,7 +58,7 @@ runMSE <- function(dat, set, refs, ncores=detectCores()-1, verbose=TRUE){
             }else{
                 ## Any other HCR
                 for(y in 1:nysim){
-                    poptmp$tacs <- estTAC(inp = poptmp$obs, hcr = hcri, tacs = poptmp$tacs)
+                    poptmp$tacs <- estTAC(inp = poptmp$inp, hcr = hcri, tacs = poptmp$tacs)
                     poptmp <- advancePop(specdat = dat, hist = poptmp, set = setx,
                                          tacs = poptmp$tacs)
                 }

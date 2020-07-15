@@ -462,13 +462,13 @@ advancePop <- function(specdat, hist, set, tacs){
         timeC <- tail(hist$inp$timeC,1) + 1
     }
 
-    inp <- list(obsC = c(hist$obsC, obsC),
-                timeC = c(hist$timeC, timeC),
+    inp <- list(obsC = c(hist$inp$obsC, obsC),
+                timeC = c(hist$inp$timeC, timeC),
                 obsI = list(),
                 timeI = list())
     for(i in 1:nsurv){
-        inp$obsI[[i]] <- c(hist$obsI[[i]], obsI[[i]])
-        inp$timeI[[i]] <- c(hist$timeI[[i]], timeI[[i]])
+        inp$obsI[[i]] <- c(hist$inp$obsI[[i]], obsI[[i]])
+        inp$timeI[[i]] <- c(hist$inp$timeI[[i]], timeI[[i]])
     }
 
 
