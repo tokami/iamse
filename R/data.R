@@ -13,7 +13,7 @@ checkDat <- function(dat){
 
     ## Number of seasons
     ##------------------
-    if(!any(names(dat) == "nseaosons")){
+    if(!any(names(dat) == "nseasons")){
         dat$nseasons <- 1
     }
 
