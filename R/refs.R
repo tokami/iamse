@@ -106,7 +106,7 @@ simpopR <- function(FM, dat, set){
 #' @importFrom parallel mclapply
 #'
 #' @export
-estRef <- function(dat, set, fvec = seq(0,5,0.1), ncores=parallel:detectCores()-1){
+estRef <- function(dat, set, fvec = seq(0,5,0.1), ncores=parallel::detectCores()-1){
 
     ny <- dat$ny
     ns <- dat$nseasons

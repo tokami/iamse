@@ -1,9 +1,10 @@
 ##' @name runMSE
 ##'
 ##' @importFrom parallel mclapply
+##' @importFrom parallel detectCores
 ##'
 ##' @export
-runMSE <- function(dat, set, refs, ncores=detectCores()-1, verbose=TRUE){
+runMSE <- function(dat, set, refs = NULL, ncores=parallel::detectCores()-1, verbose=TRUE){
 
     if(ncores > 1) verbose <- FALSE
 

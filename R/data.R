@@ -23,9 +23,10 @@ checkDat <- function(dat){
     ages <- 0:amax
     dat$ages <- ages
 
+
     ## growth at age
     ##------------------
-    if(!"sel" %in% names(dat) | !"mat" %in% names(dat)){
+    if(!"LA" %in% names(dat)){
         if("a0" %in% names(dat)){
             a0 <- dat$a0
         }else{

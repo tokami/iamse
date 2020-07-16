@@ -76,8 +76,8 @@ initPop <- function(specdat, set = NULL, refs = NULL, out.opt = 1, depl.quant = 
         if(is.null(eR0)) eR0 <- exp(rnorm(ny, 0, set$sigmaR0) - set$sigmaR0^2/2)
         if(is.null(eMat)) eMat <- exp(rnorm(ny, 0, set$sigmaMat) - set$sigmaMat^2/2)
         if(is.null(eImp)) eImp <- exp(rnorm(ny, 0, set$sigmaImp) - set$sigmaImp^2/2)
-        if(is.null(eC)) eC <- exp(rnorm(nyhist, 0, set$CVC) - set$CVC^2/2)
-        if(is.null(eI)) eI <- exp(rnorm(nyhist, 0, set$CVI) - set$CVI^2/2)
+        if(is.null(eC)) eC <- exp(rnorm(ny, 0, set$CVC) - set$CVC^2/2)
+        if(is.null(eI)) eI <- exp(rnorm(ny, 0, set$CVI) - set$CVI^2/2)
     }else{
         eF <- exp(rnorm(ny, 0, 0))
         eR <- genDevs(ny, 0, 0)
@@ -86,8 +86,8 @@ initPop <- function(specdat, set = NULL, refs = NULL, out.opt = 1, depl.quant = 
         eR0 <- exp(rnorm(ny, 0, 0))
         eMat <- exp(rnorm(ny, 0, 0))
         eImp <- exp(rnorm(ny, 0, 0))
-        eC <- exp(rnorm(nyhist, 0, 0))
-        eI <- exp(rnorm(nyhist, 0, 0))
+        eC <- exp(rnorm(ny, 0, 0))
+        eI <- exp(rnorm(ny, 0, 0))
     }
     errs <- list(eF = eF,
                  eR = eR,
@@ -194,7 +194,8 @@ initPop <- function(specdat, set = NULL, refs = NULL, out.opt = 1, depl.quant = 
                     NAAsurv <- exp(log(NAA) - Z * surveyTime)
                     ESBsurv <- sum(NAAsurv * specdat$weightF * specdat$sel)
                     obsI[[idxi[i]]] <- c(obsI[[idxi[i]]], q[idxi[i]] * ESBsurv * eI[y])
-                    if(is.null(timeI[[idxi[i]]])) timeIi <- 0 else timeIi <- floor(tail(timeI[[idxi[i]]],1))
+                    if(is.null(timeI[[idxi[i]]]))
+                        timeIi <- 0 else timeIi <- floor(tail(timeI[[idxi[i]]],1))
                     timeI[[idxi[i]]] <- c(timeI[[idxi[i]]], timeIi + 1 + set$surveyTimes[idxi[i]])
                 }
             }
@@ -209,21 +210,27 @@ initPop <- function(specdat, set = NULL, refs = NULL, out.opt = 1, depl.quant = 
     }
 
 
+    ## account for nyhist
+    for(i in 1:nsurv){
+        timeI[[i]] <- timeI[[i]][(ny-nyhist+1):ny]
+        obsI[[i]] <- obsI[[i]][(ny-nyhist+1):ny]
+    }
+
     ## catch observations
     if(ns > 1){
         if(nsC == 1){
-            obsC <- apply(CW[idx,], 1, sum) * eC
-            timeC <- 1:ny
+            obsC <- apply(CW[idx,], 1, sum) * eC[idx]
+            timeC <- idx
         }else if(nsC == ns){
-            obsC <- as.numeric(t(CW[idx,] * eC))
-            timeC <- rep(1:ny, each = ns) + rep(seasonStart, ny)
+            obsC <- as.numeric(t(CW[idx,] * eC[idx]))
+            timeC <- rep(idx, each = ns) + rep(seasonStart, nyhist)
         }else{
             stop("Catch observation seasons and operating model seasons do not match. Not yet implemented!")
         }
     }else{
         if(nsC > 1) writeLines("Set dat$nseasons to > 1 for seasonal catches. Generating annual catches!")
-        obsC <- CW[idx,] * eC
-        timeC <- 1:ny
+        obsC <- CW[idx,] * eC[idx]
+        timeC <- idx
     }
 
     inp <- list(obsC = obsC,
@@ -449,7 +456,7 @@ advancePop <- function(specdat, hist, set, tacs){
                 ESBsurv <- sum(NAAsurv * specdat$weightF * specdat$sel)
                 obsI[[idxi[i]]] <- c(obsI[[idxi[i]]], q[idxi[i]] * ESBsurv * eI)
                 if(is.null(timeI[[idxi[i]]]))
-                    timeIi <- 0 else timeIi <- floor(tail(timeI[[idxi[i]]],1))
+                    timeIi <- ny-nyhist+1 else timeIi <- floor(tail(timeI[[idxi[i]]],1))
                 timeI[[idxi[i]]] <- c(timeI[[idxi[i]]], timeIi + 1 + set$surveyTimes[idxi[i]])
             }
         }
@@ -468,11 +475,11 @@ advancePop <- function(specdat, hist, set, tacs){
     if(ns > 1){
         if(nsC == 1){
             obsC <- c(obsC, sum(CW[y,]) * eC)
-            if(!is.null(timeC)) timeCi <- tail(timeC,1) else timeCi <- 0
+            if(!is.null(timeC)) timeCi <- tail(timeC,1) else timeCi <- ny-nyhist+1
             timeC <- c(timeC, timeCi + 1)
         }else if(nsC == ns){
             obsC <- c(obsC, CW[y,] * eC)
-            if(!is.null(timeC)) timeCi <- floor(tail(timeC,1)) else timeCi <- 0
+            if(!is.null(timeC)) timeCi <- floor(tail(timeC,1)) else timeCi <- ny-nyhist+1
             timeC <- c(timeC, timeCi + 1 + rep(seasonStart, ny))
         }else{
             stop("Catch observation seasons and operating model seasons do not match. Not yet implemented!")
@@ -480,7 +487,7 @@ advancePop <- function(specdat, hist, set, tacs){
     }else{
         if(nsC > 1) writeLines("Set dat$nseasons to > 1 for seasonal catches. Generating annual catches!")
         obsC <- c(obsC, sum(CW[y,]) * eC)
-        if(!is.null(timeC)) timeCi <- tail(timeC,1) else timeCi <- 0
+        if(!is.null(timeC)) timeCi <- tail(timeC,1) else timeCi <- ny-nyhist+1
         timeC <- c(timeC, timeCi + 1)
     }
 

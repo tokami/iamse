@@ -30,7 +30,7 @@ plotmse.cw <- function(dat, set, resMSE,
     llhist <- res[[i]]$CW[1,idxhist]
     ulhist <- res[[i]]$CW[3,idxhist]
     medhist <- res[[i]]$CW[2,idxhist]
-    msy <- resMSE[[1]][[1]]$refs$MSY ## median(resMSE[[1]][[1]]$refdist$MSY) ##
+    if(!is.null(resMSE[[1]][[1]]$refs$MSY)) msy <- resMSE[[1]][[1]]$refs$MSY ## median(resMSE[[1]][[1]]$refdist$MSY) ##
 ##    tmp <- quantile(resMSE[[1]][[1]]$refdist$MSY,probs = c(0.025,0.975))
     llmsy <- NA##tmp[1]
     ulmsy <- NA##tmp[2]
@@ -107,7 +107,7 @@ plotmse.b <- function(dat, set, resMSE,
     llhist <- res[[i]]$TSB[1,idxhist]
     ulhist <- res[[i]]$TSB[3,idxhist]
     medhist <- res[[i]]$TSB[2,idxhist]
-    bmsy <- resMSE[[1]][[1]]$refs$Bmsy ##median(resMSE[[1]][[1]]$refdist$Bmsy) ##
+    if(!is.null(resMSE[[1]][[1]]$refs$Bmsy)) bmsy <- resMSE[[1]][[1]]$refs$Bmsy ##median(resMSE[[1]][[1]]$refdist$Bmsy) ##
 ##    tmp <- quantile(resMSE[[1]][[1]]$refdist$Bmsy,probs = c(0.025,0.975))
     llbmsy <- NA ##tmp[1]
     ulbmsy <- NA ##tmp[2]
@@ -126,7 +126,7 @@ plotmse.b <- function(dat, set, resMSE,
     polygon(x = c(-2,rep(1.2*max(xall),2),-2), y = c(rep(llbmsy,2),rep(ulbmsy,2)),
             border=NA, col=rgb(t(col2rgb("grey40"))/255,alpha=0.2))
     abline(h=bmsy,lty=2)
-    abline(h=resMSE[[1]][[1]]$refs$B0,lty=2)
+    if(!is.null(resMSE[[1]][[1]]$refs$B0)) abline(h=resMSE[[1]][[1]]$refs$B0,lty=2)
     ## projection
     if(uncert){
         for(i in 1:nms){
@@ -185,7 +185,7 @@ plotmse.f <- function(dat, set, resMSE,
     llhist <- res[[i]]$FM[1,idxhist]
     ulhist <- res[[i]]$FM[3,idxhist]
     medhist <- res[[i]]$FM[2,idxhist]
-    fmsy <- resMSE[[1]][[1]]$refs$Fmsy ## median(resMSE[[1]][[1]]$refdist$Fmsy) ##
+    if(!is.null(resMSE[[1]][[1]]$refs$Fmsy)) fmsy <- resMSE[[1]][[1]]$refs$Fmsy ## median(resMSE[[1]][[1]]$refdist$Fmsy) ##
 ##    tmp <- quantile(resMSE[[1]][[1]]$refdist$Fmsy,probs = c(0.025,0.975))
     llfmsy <- NA ## tmp[1]
     ulfmsy <- NA ##tmp[2]

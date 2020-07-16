@@ -32,13 +32,9 @@ conscat <- structure(
         }else{
             indBpBx <- tacs$indBpBx[nrow(tacs)]
         }
-        tactmp <- gettacs(tacs, id="cc",
-                          TAC=sum(tail(inp$obsC, 1)))
-        if(is.null(tacs)){
-            tacs <- tactmp
-        }else{
-            tacs <- rbind(tacs, tactmp)
-        }
+        tacs <- gettacs(tacs, id="cc",
+                        TAC=sum(tail(inp$obsC, 1)))
+        tacs$indBpBx[nrow(tacs)] <- indBpBx
         return(tacs)
     },
     class="hcr"
@@ -76,7 +72,7 @@ noF <- structure(
 #'
 #' @export
 #'
-defHCRindex <- function(id = "2/3",
+defHCRindex <- function(id = "r2_3",
                         x = 2,
                         y = 3,
                         stab = FALSE,
@@ -147,16 +143,10 @@ defHCRindex <- function(id = "2/3",
             }
         }else barID <- FALSE
 
-        tactmp <- gettacs(tacs, id = id, TAC = TAC)
-        tactmp$hitSC <- hitSC
-        tactmp$barID <- barID
-        tactmp$red <- red
-
-        if(is.null(tacs)){
-            tacs <- tactmp
-        }else{
-            tacs <- rbind(tacs, tactmp)
-        }
+        tacs <- gettacs(tacs, id = id, TAC = TAC)
+        tacs$hitSC <- hitSC
+        tacs$barID <- barID
+        tacs$red <- red
         return(tacs)
     },
 class="hcr"
