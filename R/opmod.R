@@ -226,6 +226,11 @@ initPop <- function(specdat, set = NULL, refs = NULL, out.opt = 1, depl.quant = 
         timeC <- 1:ny
     }
 
+    inp <- list(obsC = obsC,
+                timeC = timeC,
+                obsI = obsI,
+                timeI = timeI)
+
     ## return
     out <- NULL
     if(out.opt == 1){
@@ -238,11 +243,7 @@ initPop <- function(specdat, set = NULL, refs = NULL, out.opt = 1, depl.quant = 
         out$CW <- CW
         out$TACs <- TACs
         out$errs <- errs
-        out$inp <- list()
-        out$inp$obsC <- obsC
-        out$inp$timeC <- timeC
-        out$inp$obsI <- obsI
-        out$inp$timeI <- timeI
+        out$inp <- inp
     }else if(out.opt == 2){
         if(is.null(refs)){
             warning("The list with reference points is needed!")
@@ -348,8 +349,23 @@ advancePop <- function(specdat, hist, set, tacs){
     FM  <- rbind(hist$FM,tmp)
     TACs <- c(hist$TACs, NA)
     TACreal <- rep(NA, ns)
-    obsI <- vector("list", nsurv)
-    timeI <- vector("list", nsurv)
+    ## for observations
+    if(!is.null(hist$inp$obsC)){
+        obsC <- hist$inp$obsC
+    }
+    if(!is.null(hist$inp$timeC)){
+        timeC <- hist$inp$timeC
+    }
+    if(is.null(hist$inp$timeI)){
+        timeI <- vector("list", nsurv)
+    }else{
+        timeI <- hist$inp$timeI
+    }
+    if(is.null(hist$inp$obsI)){
+        obsI <- vector("list", nsurv)
+    }else{
+        obsI <- hist$inp$obsI
+    }
 
     ## project forward
     Msy <- Ms * eM
@@ -432,7 +448,8 @@ advancePop <- function(specdat, hist, set, tacs){
                 NAAsurv <- exp(log(NAA) - Z * surveyTime)
                 ESBsurv <- sum(NAAsurv * specdat$weightF * specdat$sel)
                 obsI[[idxi[i]]] <- c(obsI[[idxi[i]]], q[idxi[i]] * ESBsurv * eI)
-                if(is.null(timeI[[idxi[i]]])) timeIi <- 0 else timeIi <- floor(tail(timeI[[idxi[i]]],1))
+                if(is.null(timeI[[idxi[i]]]))
+                    timeIi <- 0 else timeIi <- floor(tail(timeI[[idxi[i]]],1))
                 timeI[[idxi[i]]] <- c(timeI[[idxi[i]]], timeIi + 1 + set$surveyTimes[idxi[i]])
             }
         }
@@ -445,32 +462,32 @@ advancePop <- function(specdat, hist, set, tacs){
         }
     }
 
+
+
     ## catch observations
     if(ns > 1){
         if(nsC == 1){
-            obsC <- sum(CW[y,]) * eC
-            timeC <- tail(hist$inp$timeC,1) + 1
+            obsC <- c(obsC, sum(CW[y,]) * eC)
+            if(!is.null(timeC)) timeCi <- tail(timeC,1) else timeCi <- 0
+            timeC <- c(timeC, timeCi + 1)
         }else if(nsC == ns){
-            obsC <- CW[y,] * eC
-            timeC <- floor(tail(hist$inp$timeC,1)) + 1 + rep(seasonStart, ny)
+            obsC <- c(obsC, CW[y,] * eC)
+            if(!is.null(timeC)) timeCi <- floor(tail(timeC,1)) else timeCi <- 0
+            timeC <- c(timeC, timeCi + 1 + rep(seasonStart, ny))
         }else{
             stop("Catch observation seasons and operating model seasons do not match. Not yet implemented!")
         }
     }else{
         if(nsC > 1) writeLines("Set dat$nseasons to > 1 for seasonal catches. Generating annual catches!")
-        obsC <- sum(CW[y,]) * eC
-        timeC <- tail(hist$inp$timeC,1) + 1
+        obsC <- c(obsC, sum(CW[y,]) * eC)
+        if(!is.null(timeC)) timeCi <- tail(timeC,1) else timeCi <- 0
+        timeC <- c(timeC, timeCi + 1)
     }
 
-    inp <- list(obsC = c(hist$inp$obsC, obsC),
-                timeC = c(hist$inp$timeC, timeC),
-                obsI = list(),
-                timeI = list())
-    for(i in 1:nsurv){
-        inp$obsI[[i]] <- c(hist$inp$obsI[[i]], obsI[[i]])
-        inp$timeI[[i]] <- c(hist$inp$timeI[[i]], timeI[[i]])
-    }
-
+    inp <- list(obsC = obsC,
+                timeC = timeC,
+                obsI = obsI,
+                timeI = timeI)
 
     ## return
     out <- NULL
