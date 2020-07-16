@@ -188,6 +188,7 @@ defHCRspict <- function(id = "spict-msy",
                                          bmsy = 0.5,
                                          fmsy = 0.5),
                         breakpointB = 0.0,
+                        safeguard = list(limitB = 0, prob = 0.95),
                         dteuler = 1/4,
                         reportmode = 1,
                         stabilise = 0,
@@ -200,10 +201,19 @@ defHCRspict <- function(id = "spict-msy",
                         ){
 
     frc <- fractiles$catch
+    if(is.null(frc)) frc <- 0.5
     frff <- fractiles$ffmsy
+    if(is.null(frff)) frff <- 0.5
     frbb <- fractiles$bbmsy
+    if(is.null(frbb)) frbb <- 0.5
     frb <- fractiles$bmsy
+    if(is.null(frb)) frb <- 0.5
     frf <- fractiles$fmsy
+    if(is.null(frf)) frf <- 0.5
+    limitB <- safeguard$limitB
+    if(is.null(limitB)) limitB <- 0
+    prob <- safeguard$prob
+    if(is.null(prob)) prob <- 0.95
 
     template  <- expression(paste0(
         'structure(
@@ -249,6 +259,7 @@ defHCRspict <- function(id = "spict-msy",
                                                             bmsy  = ',frb,',
                                                             fmsy  = ',frf,'),
                                            breakpointB = ',breakpointB,',
+                                           safeguardB = list(limitB = ',limitB,',prob = ',prob,'),
                                            verbose = FALSE),
                            silent = TRUE)
                 if(inherits(tac, "try-error")){
