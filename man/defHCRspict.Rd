@@ -8,6 +8,7 @@ defHCRspict(
   id = "spict-msy",
   fractiles = list(catch = 0.5, ffmsy = 0.5, bbmsy = 0.5, bmsy = 0.5, fmsy = 0.5),
   breakpointB = 0,
+  safeguard = list(limitB = 0, prob = 0.95),
   dteuler = 1/4,
   reportmode = 1,
   stabilise = 0,

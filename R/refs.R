@@ -106,7 +106,10 @@ simpopR <- function(FM, dat, set){
 #' @importFrom parallel mclapply
 #'
 #' @export
-estRef <- function(dat, set, fvec = seq(0,5,0.1), ncores=parallel::detectCores()-1){
+estRef <- function(dat, set, fvec = seq(0,5,0.1),
+                   ncores=parallel::detectCores()-1,
+                   ref = c("Fmsy","Bmsy","MSY","Binf","B0"),
+                   plot = FALSE){
 
     ny <- dat$ny
     ns <- dat$nseasons
@@ -123,35 +126,42 @@ estRef <- function(dat, set, fvec = seq(0,5,0.1), ncores=parallel::detectCores()
     set$sigmaImp <- 0
 
 
-    res0 <- parallel::mclapply(as.list(fvec),
-                              function(x){
-        with(simpopR(x, dat, set),
-             c(x,
-               tail(TSB,1),
-               head(tail(SP,2),1),
-               tail(CW,1)))
-                              },
-        mc.cores = ncores)
+    if(any(ref %in% c("Fmsy","Bmsy","MSY","Binf"))){
+        res0 <- parallel::mclapply(as.list(fvec),
+                                   function(x){
+                                       with(simpopR(x, dat, set),
+                                            c(x,
+                                              tail(TSB,1),
+                                              head(tail(SP,2),1),
+                                              tail(CW,1)))
+                                   },
+                                   mc.cores = ncores)
 
-    ## refs
-    res <- do.call(cbind, res0)
-    msy <- res[4, which.max(res[3,])]
-    fmsy <- res[1, which.max(res[3,])]
-    bmsy <- res[2, which.max(res[3,])]
-    binf <- res[2, which.max(res[2,])]
+        ## refs
+        res <- do.call(cbind, res0)
+        msy <- res[4, which.max(res[3,])]
+        fmsy <- res[1, which.max(res[3,])]
+        bmsy <- res[2, which.max(res[3,])]
+        binf <- res[2, which.max(res[2,])]
+
+        if(plot){
+            plot(fvec, res[3,], ty='b')
+        }
+    }
 
     ## B0
-    unfished <- simpopR(0, dat, set)
-    b0 <- tail(unfished$TSB1plus,1) ## CHECK: why?
+    if(any(ref == "B0")){
+        unfished <- simpopR(0, dat, set)
+        b0 <- tail(unfished$TSB1plus,1) ## CHECK: why?
+    }
+
+    refs <- list()
+    if(any(ref == "Fmsy")) refs$Fmsy = fmsy
+    if(any(ref == "Bmsy")) refs$Bmsy = bmsy
+    if(any(ref == "MSY")) refs$MSY = msy
+    if(any(ref == "Binf")) refs$Binf = binf
+    if(any(ref == "B0")) refs$B0 = b0
 
     ## return
-    return(list(refs = list(
-                    Fmsy = fmsy,
-                    Bmsy = bmsy,
-                    MSY = msy,
-                    Binf = binf,
-                    B0 = b0),
-        xvec = fvec,
-        yvec = res[3,]
-    ))
+    return(refs)
 }

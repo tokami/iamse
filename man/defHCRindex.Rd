@@ -5,7 +5,7 @@
 \title{Define harvest control rule}
 \usage{
 defHCRindex(
-  id = "2/3",
+  id = "r2_3",
   x = 2,
   y = 3,
   stab = FALSE,

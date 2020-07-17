@@ -42,15 +42,147 @@ conscat <- structure(
 
 
 
-#' @name noF
+
+#' @name defHCRref
+#'
+#' @param consF either numeric indicating constant F level or "fmsy" for fishing at fmsy
+#'
 #' @export
-noF <- structure(
+#'
+defHCRref <- function(consF = 0,
+                      env = globalenv()
+                      ){
+
+    id <- NULL
+
+    if(!is.numeric(consF) && !(consF %in% c("fmsy","Fmsy","FMSY","refFmsy","refFMSY","reffmsy")))
+        stop("'consF' has to be either the absolute F (numeric) or 'fmsy'.")
+
+    if(is.numeric(consF)){
+        id <- paste0("consF",consF)
+        template  <- expression(paste0(
+            '
+structure(
     function(inp, tacs=NULL){
-        tacs <- gettacs(tacs, id="noF", TAC=0)
+        tacs <- gettacs(tacs, id="',id,'", TAC=NA)
         return(tacs)
     },
     class="hcr"
 )
+'))
+    }
+
+    if(consF == "fmsy" || consF == "Fmsy" || consF == "FMSY"){
+        id <- "refFmsy"
+        template  <- expression(paste0(
+            '
+structure(
+    function(inp, tacs=NULL){
+        tacs <- gettacs(tacs, id="',id,'", TAC=NA)
+        return(tacs)
+    },
+    class="hcr"
+)
+'))
+    }
+
+    if(consF == 0){
+        id <- "noF"
+        template  <- expression(paste0(
+            '
+structure(
+    function(inp, tacs=NULL){
+        tacs <- gettacs(tacs, id="',id,'", TAC=0)
+        return(tacs)
+    },
+    class="hcr"
+)
+'))
+    }
+
+
+
+    ## create HCR as functions
+    templati <- eval(parse(text=paste(parse(text = eval(template)),collapse=" ")))
+    assign(value=templati, x=id, envir=env)
+
+    ## allow for assigning names
+    invisible(id)
+}
+
+
+
+#' @name defHCRconscat
+#' @title Define harvest control rule
+#'
+#' @export
+#'
+defHCRconscat <- function(id = "conscat",
+                          constantC = NULL,
+                           stab = FALSE,
+                           lower = 0.8,
+                           upper = 1.2,
+                           clyears = 1,
+                           red = NA,
+                           redyears = 2,
+                           env = globalenv()
+                          ){
+
+    if(is.null(constantC)) constantC = NA
+
+    template  <- expression(paste0(
+        '
+structure(
+    function(inp, tacs = NULL){
+
+        inp <- check.inp(inp)
+        if(is.null(tacs)){
+            indBpBx <- inp$indBpBx
+        }else{
+            indBpBx <- tacs$indBpBx[nrow(tacs)]
+        }
+        inp$indBpBx <- indBpBx
+
+        TAC <- ',constantC,'
+        if(is.na(TAC)) TAC <- sum(tail(inp$obsC, 1))
+## TODO: account for seasonal catches sum(tail(inp$obsC, seasons)) ## where get seasons from?
+
+        ## bianunal reduction (usually 0.2)
+        if(is.numeric(red)){
+            if(is.null(tacs)){
+                TAC <- TAC * (1-red)
+                barID <- TRUE
+            }else{
+                idx1 <- ifelse(nrow(tacs) > (redyears-1), (nrow(tacs)-(redyears-2)), 1)
+                idx <- idx1:nrow(tacs)
+                if(all(as.logical(tacs$barID[idx]) == FALSE)){
+                    TAC <- TAC * (1-red)
+                    barID <- TRUE
+                }else{
+                    barID <- FALSE
+                }
+            }
+        }else barID <- FALSE
+
+        tacs <- gettacs(tacs, id = "',id,'", TAC = TAC)
+        tacs$hitSC <- hitSC
+        tacs$barID <- barID
+        tacs$red <- red
+        tacs$indBpBx <- indBpBx
+        return(tacs)
+    },
+class="hcr"
+)
+'))
+
+    ## create HCR as functions
+    templati <- eval(parse(text=paste(parse(text = eval(template)),collapse=" ")))
+    assign(value=templati, x=id, envir=env)
+
+    ## allow for assigning names
+    invisible(id)
+}
+
 
 
 
@@ -143,10 +275,11 @@ defHCRindex <- function(id = "r2_3",
             }
         }else barID <- FALSE
 
-        tacs <- gettacs(tacs, id = id, TAC = TAC)
+        tacs <- gettacs(tacs, id = "',id,'", TAC = TAC)
         tacs$hitSC <- hitSC
         tacs$barID <- barID
         tacs$red <- red
+        tacs$indBpBx <- indBpBx
         return(tacs)
     },
 class="hcr"
