@@ -184,7 +184,9 @@ checkSet <- function(set = NULL){
     if(is.null(set$CVI)) set$CVI <- 0
 
     ## HCR
-    if(is.null(set$hcr)) set$hcr <- c("refFmsy","noF")
+    if(is.null(set$hcr)) set$hcr <- c(defHCRref(),defHCRref(consF = "fmsy"))
+    ## define constant catch rule
+    defHCRconscat()
     if(is.null(set$stab)) set$stab <- FALSE
 
     ## Index timing:
