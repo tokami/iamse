@@ -371,6 +371,7 @@ defHCRspict <- function(id = "spict-msy",
             rep <- try(fit.spict(inp), silent=TRUE)
             if(class(rep) == "try-error" || rep$opt$convergence != 0 || any(is.infinite(rep$sd))){
                 tacs <- conscat(inp, tacs=tacs)
+                tacs[nrow(tacs)]$conv <- FALSE
             }else{
                 fmfmsy <- round(get.par("logFmFmsynotS",rep, exp=TRUE)[,c(2,4)],2)
                 names(fmfmsy) <- paste0("fmfmsy-",names(fmfmsy))
@@ -397,9 +398,10 @@ defHCRspict <- function(id = "spict-msy",
                            silent = TRUE)
                 if(inherits(tac, "try-error")){
                     tacs <- conscat(inp, tacs=tacs)
+                    tacs[nrow(tacs)]$conv <- FALSE
                 }else{
                     tactmp <- data.frame(TAC=tac, id="',id,'", hitSC=NA,
-                                         red=NA, barID=NA, sd=NA, conv = NA)
+                                         red=NA, barID=NA, sd=NA, conv = TRUE)
                     tactmp <- data.frame(c(tactmp, fmfmsy, bpbmsy, cp,
                                            fmsy, bmsy, indBpBx = indBpBx))
                     if(is.null(tacs)){

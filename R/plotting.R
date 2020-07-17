@@ -48,7 +48,7 @@ plotmse.cw <- function(dat, set, resMSE,
     lines(xhist, medhist, lwd=2)
     polygon(x = c(-2,rep(1.2*max(xall),2),-2), y = c(rep(llmsy,2),rep(ulmsy,2)),
             border=NA, col=rgb(t(col2rgb("grey40"))/255,alpha=0.2))
-    abline(h=msy,lty=2)
+    if(!is.null(resMSE[[1]][[1]]$refs$MSY)) abline(h=msy,lty=2)
     abline(h=0,lty=2)
     ## projection
     if(uncert){
@@ -125,7 +125,7 @@ plotmse.b <- function(dat, set, resMSE,
     lines(xhist, medhist, lwd=2)
     polygon(x = c(-2,rep(1.2*max(xall),2),-2), y = c(rep(llbmsy,2),rep(ulbmsy,2)),
             border=NA, col=rgb(t(col2rgb("grey40"))/255,alpha=0.2))
-    abline(h=bmsy,lty=2)
+    if(!is.null(resMSE[[1]][[1]]$refs$Bmsy)) abline(h=bmsy,lty=2)
     if(!is.null(resMSE[[1]][[1]]$refs$B0)) abline(h=resMSE[[1]][[1]]$refs$B0,lty=2)
     ## projection
     if(uncert){
@@ -203,7 +203,7 @@ plotmse.f <- function(dat, set, resMSE,
     lines(xhist, medhist, lwd=2)
     polygon(x = c(-2,rep(1.2*max(xall),2),-2), y = c(rep(llfmsy,2),rep(ulfmsy,2)),
             border=NA, col=rgb(t(col2rgb("grey40"))/255,alpha=0.2))
-    abline(h=fmsy,lty=2)
+    if(!is.null(resMSE[[1]][[1]]$refs$Fmsy)) abline(h=fmsy,lty=2)
     abline(h=0,lty=2)
     ## projection
     if(uncert){

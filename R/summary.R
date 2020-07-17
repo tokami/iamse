@@ -1,5 +1,9 @@
+
+
 #' @name sumMSE
+#'
 #' @export
+#'
 sumMSE <- function(mse){
     ##
     quants <- c("TSB","SSB","ESB","CW","TACs","FM")
