@@ -144,6 +144,7 @@ initPop <- function(dat, set = NULL, out.opt = 1, depl.quant = "B0"){
             NAA[a] <- NAA[a-1] * exp(-(M[a-1] + initF*sel[a-1])) * exp(initN[a])
     }
 
+
     ## main loop
     for(y in 1:ny){
         ## Adding noise

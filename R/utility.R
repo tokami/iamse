@@ -22,6 +22,8 @@ genDevs <- function(n, sd, rho=0){
 #' @export
 estDepl <- function(dat, fmax = 10, verbose = TRUE){
 
+    if(!any(names(dat) == "ref")) stop("Reference points are missing in dat. Use estRef to estimate reference points.")
+
     depl <- dat$depl
     depl.quant <- dat$depl.quant
 
