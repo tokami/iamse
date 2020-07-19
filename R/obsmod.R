@@ -4,10 +4,10 @@
 ## make observations with given CV for catch and index (only one index time series so far)
 #' @name obsmod
 #' @export
-obsmod <- function(specdat, hist, set, years = NULL){
+obsmod <- function(dat, hist, set, years = NULL){
     ## parameters
     CW <- hist$CW
-    q <- specdat$q
+    q <- dat$q
     ## indices
     if(is.null(years)){
         idx <- 1:length(CW)
@@ -15,12 +15,12 @@ obsmod <- function(specdat, hist, set, years = NULL){
         idx <- years
     }
     ny <- length(idx)
-    ns <- specdat$nseasons
+    ns <- dat$nseasons
     nt <- ny * ns
     nsC <- set$catchSeasons
     seasonStart <- seq(0,1-1/ns,1/ns)
     if("obsC" %in% names(hist$obs)) ny <- 1
-    Ms <- specdat$M / ns
+    Ms <- dat$M / ns
     ## errors
     eC <- set$eC
     eI <- set$eI
@@ -38,17 +38,17 @@ obsmod <- function(specdat, hist, set, years = NULL){
         if(ns > 1){
             if(nsC == 1){
                 if(inherits(CW[y,],"matrix")) ctemp <- apply(CW[y,], 1, sum) else ctemp <- sum(CW[y,])
-                obsC <- c(hist$obs$obsC, ctemp * eC[y-specdat$ny])
+                obsC <- c(hist$obs$obsC, ctemp * eC[y-dat$ny])
                 timeC <- c(hist$obs$timeC, tail(hist$obs$timeC,1)+1)
             }else if(nsC == ns){
-                obsC <- c(hist$obs$obsC, as.numeric(t(CW[y,] * eC[y-specdat$ny])))
+                obsC <- c(hist$obs$obsC, as.numeric(t(CW[y,] * eC[y-dat$ny])))
                 timeC <- c(hist$obs$timeC, tail(hist$obs$timeC, nsC) + 1)
             }else{
                 stop("Seasons of catch observations and operating model do not match. This aggregation is not yet implemented!")
             }
         }else{
             if(nsC > 1) writeLines("Set dat$nseasons to > 1 for seasonal catches. Generating annual catches!")
-            obsC <- c(hist$obs$obsC, CW[y,] * eC[y-specdat$ny])
+            obsC <- c(hist$obs$obsC, CW[y,] * eC[y-dat$ny])
             timeC <- c(hist$obs$timeC, tail(hist$obs$timeC,1)+1)
         }
 
@@ -64,11 +64,11 @@ obsmod <- function(specdat, hist, set, years = NULL){
             surveyTime <- set$surveyTimes[i] - seasonStart[idxS]
             naa <- exp(log(hist$NAA[,y,idxS]) - Z * surveyTime)
             if(inherits(naa, "matrix")){
-                esb <- apply(naa, 2, function(x) sum(x * specdat$weightF * specdat$sel))
+                esb <- apply(naa, 2, function(x) sum(x * dat$weightF * dat$sel))
             }else{
-                esb <- sum(naa * specdat$weightF * specdat$sel)
+                esb <- sum(naa * dat$weightF * dat$sel)
             }
-            obsI[[i]] <- c(hist$obs$obsI[[i]], q[i] * esb * eI[y-specdat$ny])
+            obsI[[i]] <- c(hist$obs$obsI[[i]], q[i] * esb * eI[y-dat$ny])
             timeI[[i]] <- c(hist$obs$timeI[[i]], floor(tail(hist$obs$timeI[[i]],1)) + 1 + set$surveyTimes[i])
         }
 
@@ -102,7 +102,7 @@ obsmod <- function(specdat, hist, set, years = NULL){
             Z <- hist$FAA[,idx,idxS] + Ms
             surveyTime <- set$surveyTimes[i] - seasonStart[idxS]
             naa <- exp(log(hist$NAA[,idx,idxS]) - Z * surveyTime)
-            esb <- apply(naa, 2, function(x) sum(x * specdat$weightF * specdat$sel))
+            esb <- apply(naa, 2, function(x) sum(x * dat$weightF * dat$sel))
             obsI[[i]] <- q[i] * esb * eI
             timeI[[i]] <- 1:ny + set$surveyTimes[i]
         }
