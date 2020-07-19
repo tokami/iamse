@@ -4,7 +4,7 @@
 ##' @importFrom parallel detectCores
 ##'
 ##' @export
-runMSE <- function(dat, set, refs = NULL, ncores=parallel::detectCores()-1, verbose=TRUE){
+runMSE <- function(dat, set, ncores=parallel::detectCores()-1, verbose=TRUE){
 
     if(ncores > 1) verbose <- FALSE
 
@@ -13,6 +13,9 @@ runMSE <- function(dat, set, refs = NULL, ncores=parallel::detectCores()-1, verb
     nhcrs <- length(hcrs)
     nysim <- set$nysim
     nrep <- set$nrep
+
+    if(!any(names(dat) == "ref")) stop("Reference levels have to be part of dat. Use estRef to estimate them.")
+    refs <- dat$ref
 
     ## parallel loop
     res <- parallel::mclapply(as.list(1:nrep), function(x){
@@ -53,14 +56,14 @@ runMSE <- function(dat, set, refs = NULL, ncores=parallel::detectCores()-1, verb
                 ## Reference rule Fmsy
                 for(y in 1:nysim){
                     poptmp$tacs <- gettacs(tacs = poptmp$tacs, id = "refFmsy", TAC=NA)
-                    poptmp <- advancePop(specdat = dat, hist = poptmp, set = setx,
+                    poptmp <- advancePop(dat = dat, hist = poptmp, set = setx,
                                          tacs = poptmp$tacs)
                 }
             }else{
                 ## Any other HCR
                 for(y in 1:nysim){
                     poptmp$tacs <- estTAC(inp = poptmp$inp, hcr = hcri, tacs = poptmp$tacs)
-                    poptmp <- advancePop(specdat = dat, hist = poptmp, set = setx,
+                    poptmp <- advancePop(dat = dat, hist = poptmp, set = setx,
                                          tacs = poptmp$tacs)
                 }
             }

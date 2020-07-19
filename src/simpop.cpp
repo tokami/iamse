@@ -21,54 +21,66 @@ using namespace Rcpp;
 // [[Rcpp::export]]
 List simpop(double FM, List dat, List set) {
 
-  // import
+  // Import
   int ny = as<int>(set["refYears"]);
+  int ns = as<int>(dat["nseasons"]);
   int amax = as<int>(dat["amax"]);
   amax = amax + 1;
-  NumericVector weight = as<NumericVector>(dat["weight"]);
-  NumericVector M = as<NumericVector>(dat["M"]);
-  NumericVector mat = as<NumericVector>(dat["mat"]);
-  NumericVector sel = as<NumericVector>(dat["sel"]);
   double R0 = as<double>(dat["R0"]);
   double h = as<double>(dat["h"]);
   std::string SR = as<std::string>(dat["SR"]);
-  NumericMatrix Nage (amax, ny+1);
-  NumericMatrix Bage (amax, ny+1);
-  NumericMatrix SSBage (amax, ny+1);
-  NumericMatrix ESBage (amax, ny+1);
-  NumericMatrix CAA (amax, ny+1);
-  NumericMatrix FAA (amax, ny+1);
+  double pzbm = as<double>(dat["pzbm"]);
+  NumericMatrix weights = as<NumericMatrix>(dat["weights"]);
+  NumericMatrix weightFs = as<NumericMatrix>(dat["weightFs"]);
+  NumericMatrix Ms = as<NumericMatrix>(dat["Ms"]);
+  NumericMatrix mats = as<NumericMatrix>(dat["mats"]);
+  NumericVector mat = as<NumericVector>(dat["mat"]);
+  NumericMatrix sels = as<NumericMatrix>(dat["sels"]);
+  NumericVector sel = as<NumericVector>(dat["sel"]);
+  NumericVector M = as<NumericVector>(dat["M"]);
+  NumericVector initN = as<NumericVector>(dat["initN"]);
+
+  // Containers
+  NumericVector Bage (amax);
+  NumericVector SSBage (amax);
+  NumericVector ESBage (amax);
+  NumericVector CAA (amax);
+  NumericVector NAA (amax);
+  NumericMatrix FAA (amax, ns);
+  NumericMatrix MAA (amax, ns);
+  NumericMatrix ZAA (amax, ns);
   NumericVector CW (ny);
-  std::fill( CW.begin(), CW.end(), 0);
   NumericVector SP (ny);
-  std::fill( SP.begin(), SP.end(), 0);
   NumericVector SSB (ny);
-  std::fill( SSB.begin(), SSB.end(), 0);
   NumericVector SSB2 (ny);
-  std::fill( SSB2.begin(), SSB2.end(), 0);
   NumericVector TSB (ny);
-  std::fill( TSB.begin(), TSB.end(), 0);
   NumericVector TSB1plus (ny);
-  std::fill( TSB1plus.begin(), TSB1plus.end(), 0);
   NumericVector ESB (ny);
-  std::fill( ESB.begin(), ESB.end(), 0);
   NumericVector SSBPR0 (ny);
-  std::fill( SSBPR0.begin(), SSBPR0.end(), 0);
-  NumericVector NAtmp (amax);
-  NumericVector NAtmp2 (amax);
-  for(int a=0; a<amax; a++){
-    NAtmp(a) = R0;
-    NAtmp2(a) = R0;
-    Nage(a,0) = R0;
-  }
-  NumericVector Z (amax);
-  //  NumericVector NAAmid (amax);
-  double rec;
-  double fecun = 1.0;
+  NumericVector Ntemp (amax);
+  NumericMatrix maty(amax, ns);
   NumericVector NnatM (amax);
-  NumericVector survivors (amax);
-  double alpha;
-  double beta;
+  NumericVector Myear(amax);
+  NumericVector matyear(amax);
+  double rec = 0.0;
+  double fecun = 1.0;
+  double alpha = 0.0;
+  double beta = 0.0;
+  double hy = 0.0;
+  double R0y = 0.0;
+
+  // Initialise
+  std::fill( CW.begin(), CW.end(), 0);
+  std::fill( SP.begin(), SP.end(), 0);
+  std::fill( SSB.begin(), SSB.end(), 0);
+  std::fill( SSB2.begin(), SSB2.end(), 0);
+  std::fill( TSB.begin(), TSB.end(), 0);
+  std::fill( TSB1plus.begin(), TSB1plus.end(), 0);
+  std::fill( ESB.begin(), ESB.end(), 0);
+  std::fill( SSBPR0.begin(), SSBPR0.end(), 0);
+  for(int a=0; a<amax; a++) ZAA(a,0) = M(a) + FM * sel(a);
+  NAA(0) = exp(initN(0)) * R0;
+  for(int a=1; a<amax; a++) NAA(a) = NAA(a-1) * exp(-ZAA(a-1,0)) * exp(initN(a));
 
   // errors
   double sdF = as<double>(set["sigmaF"]);
@@ -78,7 +90,19 @@ List simpop(double FM, List dat, List set) {
   double sdMat = as<double>(set["sigmaMat"]);
   NumericVector eF = rnorm(ny, 0, sdF);
   double sdF2 = pow(sdF,2);
-  for(int y=0; y<ny; y++) eF(y) = eF(y) - sdF2/2;
+  for(int y=0; y<ny; y++) eF(y) = exp(eF(y) - sdF2/2);
+  NumericVector eM = rnorm(ny, 0, sdM);
+  double sdM2 = pow(sdM,2);
+  for(int y=0; y<ny; y++) eM(y) = exp(eM(y) - sdM2/2);
+  NumericVector eH = rnorm(ny, 0, sdH);
+  double sdH2 = pow(sdH,2);
+  for(int y=0; y<ny; y++) eH(y) = exp(eH(y) - sdH2/2);
+  NumericVector eR0 = rnorm(ny, 0, sdR0);
+  double sdR02 = pow(sdR0,2);
+  for(int y=0; y<ny; y++) eR0(y) = exp(eR0(y) - sdR02/2);
+  NumericVector eMat = rnorm(ny, 0, sdMat);
+  double sdMat2 = pow(sdMat,2);
+  for(int y=0; y<ny; y++) eMat(y) = exp(eMat(y) - sdMat2/2);
 
   // recruitment devs
   double sdR = as<double>(set["sigmaR"]);
@@ -95,47 +119,30 @@ List simpop(double FM, List dat, List set) {
   eRmean = eRmean / eR.size();
   eR = eR / eRmean;
 
-  NumericVector eM = rnorm(ny, 0, sdM);
-  double sdM2 = pow(sdM,2);
-  for(int y=0; y<ny; y++) eM(y) = eM(y) - sdM2/2;
-  NumericVector eH = rnorm(ny, 0, sdH);
-  double sdH2 = pow(sdH,2);
-  for(int y=0; y<ny; y++) eH(y) = eH(y) - sdH2/2;
-  NumericVector eR0 = rnorm(ny, 0, sdR0);
-  double sdR02 = pow(sdR0,2);
-  for(int y=0; y<ny; y++) eR0(y) = eR0(y) - sdR02/2;
-  NumericVector eMat = rnorm(ny, 0, sdMat);
-  double sdMat2 = pow(sdMat,2);
-  for(int y=0; y<ny; y++) eMat(y) = eMat(y) - sdMat2/2;
-
-  double hy;
-  NumericVector My(M.size());
-  NumericVector maty(mat.size());
-  double R0y;
-
-  // loop through years
+  // years
   for(int y=0; y<ny; y++){
-    hy = h * exp(eH(y));
-    My = M * exp(eM(y));
-    maty = mat * exp(eMat(y));
-    R0y = R0 * exp(eR0(y));
-    for(int a=0; a<amax; a++){
-      Nage(a,y) = NAtmp(a);
-      //      NAAmid(a) = Nage(a,y) * exp(-My(a)/2);
-      FAA(a,y) = sel(a) * FM * exp(eF(y));
-      Z(a) = FAA(a,y) + My(a);
-      CAA(a,y) = FAA(a,y)/Z(a) * Nage(a,y) * (1 - exp(-Z(a)));
-      CW(y) += CAA(a,y) * weight(a); // weightF?
-      SSB(y) += NAtmp(a) * maty(a) * weight(a);
-    }
+    // Adding noise
+    hy = h * eH(y);
+    MAA = Ms * eM(y);
+    maty = mats * eMat(y);
+    R0y = R0 * eR0(y);
+    Myear = M * eM(y);
+    matyear = mat * eMat(y);
+
     // SSB per R0
     NnatM(0) = 1;
     for(int a=1; a<amax; a++){
-      NnatM(a) = NnatM(a-1) * exp(-My(a-1));
+      NnatM(a) = NnatM(a-1) * exp(-Myear(a-1));
     }
-    NnatM(amax-1) = NnatM(amax-1) / (1 - exp(-My(amax-2)));
-    for(int a=0; a<amax; a++) SSBPR0(y) += NnatM(a) * maty(a) * fecun;
-    // recruitment
+    NnatM(amax-1) = NnatM(amax-1) / (1 - exp(-Myear(amax-2)));
+    for(int a=0; a<amax; a++) SSBPR0(y) += NnatM(a) * matyear(a) * fecun;
+    // SSB
+    for(int a=0; a<amax; a++){
+      FAA(a,0) = sels(a,0) * FM * eF(y) / ns;
+      ZAA(a,0) = FAA(a,0) + MAA(a,0);
+      SSB(y) += NAA(a) * maty(a,0) * weights(a,0) * exp(-pzbm * ZAA(a,0));
+    }
+    // Recruitment
     if(SR == "bevholt"){
       alpha = SSBPR0(y) * ((1-hy)/(4*hy));
       beta = (5*hy-1)/(4*hy*R0y);
@@ -145,31 +152,43 @@ List simpop(double FM, List dat, List set) {
       alpha = exp(beta * R0y)/SSBPR0(y);
       rec = alpha * SSB(y) * exp(-beta * SSB(y));
     }
-    NAtmp2(0) = rec * eR(y);
-    // survivors
-    for(int a=0; a<amax; a++){
-      survivors(a) = NAtmp(a) * exp(-Z(a));
-    }
-    for(int a=1; a<amax; a++){
-      NAtmp2(a) = survivors(a-1);
-    }
-    // plus group
-    NAtmp2(amax-1) = NAtmp2(amax-1) + survivors(amax-1);
-    // next years numbers
-    NAtmp = NAtmp2;
-  }
+    NAA(0) = rec * eR(y);
+    //    std::cout << "NAA(0)" << NAA(0) << std::endl;
 
-  // return
-  for(int y=0; y<ny; y++){
-    maty = mat * exp(eMat(y));
-    for(int a=0; a<amax; a++){
-      Bage(a,y) = Nage(a,y) * weight(a);
-      SSBage(a,y) = Nage(a,y) * weight(a) * maty(a);
-      ESBage(a,y) = Nage(a,y) * weight(a) * sel(a);
-      TSB(y) += Bage(a,y);
-      if(a > 0) TSB1plus(y) += Bage(a,y);
-      SSB2(y) += SSBage(a,y);
-      ESB(y) += ESBage(a,y);
+    // Seasons
+    for(int s=0; s<ns; s++){
+
+      for(int a=0; a<amax; a++){
+        // catch
+        FAA(a,s) = sels(a,s) * FM * eF(y) / ns;
+        ZAA(a,s) = FAA(a,s) + MAA(a,s);
+        CAA(a) = FAA(a,s)/ZAA(a,s) * NAA(a) * (1 - exp(-ZAA(a,s)));
+        CW(y) += CAA(a) * weightFs(a,s);
+      }
+
+      if(s == 0){
+        for(int a=0; a<amax; a++){
+          // biomasses
+          Bage(a) = NAA(a) * weights(a,s);
+          SSBage(a) = Bage(a) * maty(a,s) * exp(-pzbm * ZAA(a,s));
+          ESBage(a) = Bage(a) * sels(a,s);
+          TSB(y) += Bage(a);
+          if(a > 0) TSB1plus(y) += Bage(a);
+          SSB2(y) += SSBage(a);
+          ESB(y) += ESBage(a);
+        }
+      }
+
+      for(int a=0; a<amax; a++){
+        Ntemp(a) = NAA(a) * exp(-ZAA(a,s));
+        NAA(a) = Ntemp(a);
+      }
+      if(s == (ns-1)){
+        NAA(amax-1) = Ntemp(amax-1) + Ntemp(amax-2);
+        for(int a=1; a<(amax-1); a++){
+          NAA(a) = Ntemp(a-1);
+        }
+      }
     }
   }
 

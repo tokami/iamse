@@ -1,11 +1,3 @@
-#' @name stocklist
-#' @title Fisheries data included in Polacheck et al. (1993).
-#' @details Fisheries data for south Atlantic albacore, northern Namibian hake, and New Zealand rock lobster.
-#' @docType data
-#' @keywords datasets
-#' @usage data(stocklist)
-#' @format Data are lists containing data
-NULL
 
 #' @name genDevs
 #' @export
@@ -28,18 +20,19 @@ genDevs <- function(n, sd, rho=0){
 
 #' @name estDepl
 #' @export
-estDepl <- function(dat, refs, fmax = 10, verbose = TRUE){
+estDepl <- function(dat, fmax = 10, verbose = TRUE){
 
     depl <- dat$depl
     depl.quant <- dat$depl.quant
 
-    frel <- dat$Fvals/max(dat$Fvals)
+    frel <- dat$FM/max(dat$FM)
 
     fn <- function(logfabs, frel, depl, dat, opt=1){
         datx <- dat
         fpat <- frel * exp(logfabs)
-        datx$Fvals <- fpat
-        dreal <- initPop(datx, refs = refs, out.opt = 2, depl.quant = depl.quant)
+        datx$FM <- fpat
+        datx$Fs <- fpat / datx$nseasons
+        dreal <- initPop(datx, out.opt = 2, depl.quant = depl.quant)
         if(opt==1) return((depl - dreal)^2)
         if(opt==2) return(dreal)
     }
@@ -54,7 +47,8 @@ estDepl <- function(dat, refs, fmax = 10, verbose = TRUE){
                     ": ", depl, " -- Realised: ", dreal, " with abs F equal to ",round(fabs,3)))
     }
 
-    dat$Fvals <- fvals
+    dat$FM <- fvals
+    dat$Fs <- fvals / dat$nseasons
     dat$depl <- dreal
 
     return(dat)
@@ -63,14 +57,18 @@ estDepl <- function(dat, refs, fmax = 10, verbose = TRUE){
 
 #' @name estProd
 #' @export
-estProd <- function(dat, set, refs, ny = 100,
-                    fmsyFacMax = 100,
+estProd <- function(dat, set= NULL,
+                    ny = 100,
+                    fmax = 100,
                     tsSplit = 3,
                     plot = TRUE){
 
     dat$ny <- ny
     ns <- dat$nseasons
     nt <- ny * ns
+
+    ## noise
+    if(is.null(set)) set <- checkSet()
     set$sigmaF <- 0
     set$sigmaR <- 0
     set$rhoR <- 0
@@ -85,11 +83,12 @@ estProd <- function(dat, set, refs, ny = 100,
     len2 <- ny - len1 - len3
 
     ## increasing effort
-    dat$Fvals <- c(rep(0,len1),
-                   seq(0, fmsyFacMax*refs$Fmsy, length.out = len2),
-                   rep(fmsyFacMax*refs$Fmsy,len3))
+    dat$FM <- c(rep(0,len1),
+                   seq(0, fmax, length.out = len2),
+                rep(fmax,len3))
+    dat$Fs <- dat$FM / ns
     pop1 <- initPop(dat, set)
-    tsb1 <- apply(pop1$TSB,1,mean)
+    tsb1 <- pop1$TSB[,1]
     cw1 <- apply(pop1$CW,1,sum)
     prod1 <- rep(NA, ny)
     for(i in 1:(ny-1)){
@@ -97,11 +96,12 @@ estProd <- function(dat, set, refs, ny = 100,
     }
 
     ## decreasing effort
-    dat$Fvals <- c(rep(fmsyFacMax*refs$Fmsy, len1),
-                   seq(fmsyFacMax*refs$Fmsy, 0, length.out = len2),
+    dat$FM <- c(rep(fmax, len1),
+                   seq(fmax, 0, length.out = len2),
                    rep(0, len3))
     pop2 <- initPop(dat, set)
-    tsb2 <- apply(pop2$TSB,1,mean)
+    dat$Fs <- dat$FM / ns
+    tsb2 <- pop2$TSB[,1]
     cw2 <- apply(pop2$CW,1,sum)
     prod2 <- rep(NA, ny)
     for(i in 1:(ny-1)){
@@ -110,6 +110,19 @@ estProd <- function(dat, set, refs, ny = 100,
 
     if(plot){
 
+        plot(tsb1, prod1, ty='n',
+             xlim = range(0,tsb1,tsb2),
+             ylim = range(0,prod1,prod2,na.rm=TRUE))
+        lines(tsb1, prod1, ty='b',
+              col = "dodgerblue2")
+        lines(tsb2, prod2, ty='b',
+              col = "darkgreen")
+        legend("topright",
+               title = "Effort",
+               legend = c("increasing","decreasing"),
+               lty=1, col = c("dodgerblue2","darkgreen"))
+
+        if(FALSE){
         plot(tsb1/refs$B0, prod1/refs$MSY, ty='n',
              xlim = c(0,1.05), ylim = c(0,1.5))
         lines(tsb1/refs$B0, prod1/refs$MSY, ty='b',
@@ -120,6 +133,7 @@ estProd <- function(dat, set, refs, ny = 100,
                title = "Effort",
                legend = c("increasing","decreasing"),
                lty=1, col = c("dodgerblue2","darkgreen"))
+        }
 
         ## abs plot
         ## plot(tsb1/refs$B0, prod1, ty='n',
@@ -262,8 +276,13 @@ getFM <- function(TAC, NAA, M, weight, sel){
 #' @param plba - probability of being in mids given age
 getSel <- function(L50, L95, mids, plba){
     selL <- (1 /(1 + exp(-log(19)*(mids - L50)/(L95 - L50))))
-    selA <- apply(t(plba) * selL, 2, sum)
-    selA[1] <- 1e-9 # it should be zero for age 0
+    dims <- dim(plba)
+    selA <- matrix(NA, ncol = dims[3], nrow = dims[1])
+    for(i in 1:dim(plba)[3]){
+        selA[,i] <- apply(t(plba[,,i]) * selL, 2, sum)
+    }
+##    selA <- apply(t(plba) * selL, 2, sum)
+##    selA[1] <- 1e-9 # it should be zero for age 0
     return(selA)
 }
 
@@ -278,8 +297,13 @@ getMat <- function(Lm50, Lm95, mids, plba){
     ## maturity at length
     matL <- (1 /(1 + exp(-log(19)*(mids - Lm50)/(Lm95 - Lm50))))
     ## maturity at age
-    matA <- apply(t(plba) * matL, 2, sum)
-    matA <- c(1e-9,matA[-1])
+    dims <- dim(plba)
+    matA <- matrix(NA, ncol = dims[3], nrow = dims[1])
+    for(i in 1:dim(plba)[3]){
+        matA[,i] <- apply(t(plba[,,i]) * matL, 2, sum)
+    }
+##    matA <- apply(t(plba) * matL, 2, sum)
+##    matA <- c(1e-9,matA[-1])
     return(matA)
 }
 
