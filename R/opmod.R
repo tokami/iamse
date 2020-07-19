@@ -98,7 +98,7 @@ initPop <- function(dat, set = NULL, out.opt = 1, depl.quant = "B0"){
 
     ## containers
     TSB <- ESB <- SSB <- CW <- FM <- matrix(0, nrow=ny, ncol=ns)
-    TACs <- rep(NA, ny)
+    TACs <- TSBfinal <- rep(NA, ny)
     obsI <- vector("list", nsurv)
     timeI <- vector("list", nsurv)
     ## burnin period
@@ -198,9 +198,12 @@ initPop <- function(dat, set = NULL, out.opt = 1, depl.quant = "B0"){
                 }
             }
 
-            ## ageing by season or year
+            ## ageing by season
             NAA <- Ntemp <- NAA * exp(-ZAA[,s])
             if(s == ns){
+                ## end of year biomass for risk P(B/Blim)
+                TSBfinal[y] <- sum(NAA * weights[,ns])
+                ## Ageing by year
                 NAA[amax] <- Ntemp[amax] + Ntemp[amax-1]
                 for(a in 2:(amax-1)) NAA[a] <- Ntemp[a-1]
             }
@@ -241,6 +244,7 @@ initPop <- function(dat, set = NULL, out.opt = 1, depl.quant = "B0"){
     if(out.opt == 1){
         out$lastNAA <- NAA
         out$lastFAA <- FAA[,ns]
+        out$TSBfinal <- TSBfinal
         out$TSB <- TSB
         out$ESB <- ESB
         out$SSB <- SSB
@@ -360,6 +364,7 @@ advancePop <- function(dat, hist, set, tacs){
     NAA <- rep(0, amax)
     FAA <- ZAA <- MAA <- matrix(NA, amax, ns)
     TACs <- c(hist$TACs, NA)
+    TSBfinal <- c(hist$TSBfinal, NA)
     TACreal <- rep(NA, ns)
     ## for observations
     if(!is.null(hist$inp$obsC)){
@@ -462,9 +467,12 @@ advancePop <- function(dat, hist, set, tacs){
             }
         }
 
-        ## ageing by season or year
+        ## ageing by season
         NAA <- Ntemp <- NAA * exp(-ZAA[,s])
         if(s == ns){
+            ## end of year biomass for risk P(B/Blim)
+            TSBfinal[y] <- sum(NAA * weights[,ns])
+            ## Ageing by year
             NAA[amax] <- Ntemp[amax] + Ntemp[amax-1]
             for(a in 2:(amax-1)) NAA[a] <- Ntemp[a-1]
         }
@@ -502,6 +510,7 @@ advancePop <- function(dat, hist, set, tacs){
     out$lastNAA <- NAA
     out$lastFAA <- FAA[,ns]
     out$TSB <- TSB
+    out$TSBfinal <- TSBfinal
     out$ESB <- ESB
     out$SSB <- SSB
     out$FM <- FM

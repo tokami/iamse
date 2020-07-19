@@ -1,6 +1,8 @@
 #' @name estMets
 #' @export
-estMets <- function(mse){
+estMets <- function(mse, dat){
+
+    refs <- dat$ref
     ##
     mets <- c("BBmsyFL","avCatch","avCatchLast5y","BBmsyLowest",
               "PBBlim","PBBlimFirst5y","PBBlimLast5y","CatchCV", "avRelCatch",
@@ -28,7 +30,7 @@ estMets <- function(mse){
         msei <- mse[[i]]
         res <- matrix(NA, nrow=nmets, ncol=3)
         ## "BBmsyFL"
-        tmp <- unlist(lapply(msei, function(x) apply(x$TSB,1,mean)[finalYear]/x$refs$Bmsy))
+        tmp <- unlist(lapply(msei, function(x) apply(x$TSB,1,mean)[finalYear]/refs$Bmsy))
         res[1,] <- quantile(tmp, probs = c(0.025, 0.5, 0.975), na.rm=TRUE)
         ## "avCatch"   ### also implement that for rel catch (to ref hcr)
         tmp <- unlist(lapply(msei, function(x) apply(x$CW,1,mean)[simYears]))
@@ -37,17 +39,17 @@ estMets <- function(mse){
         tmp <- unlist(lapply(msei, function(x) apply(x$CW,1,mean)[last5Years]))
         res[3,] <- quantile(tmp, probs = c(0.025, 0.5, 0.975), na.rm=TRUE)
         ## "BBmsyLowest"
-        tmp <- unlist(lapply(lapply(msei, function(x) apply(x$TSB,1,mean)[simYears]/x$refs$Bmsy),
+        tmp <- unlist(lapply(lapply(msei, function(x) apply(x$TSB,1,mean)[simYears]/refs$Bmsy),
                              function(y) min(y, na.rm=TRUE)))
         res[4,] <- quantile(tmp, probs = c(0.025, 0.5, 0.975), na.rm=TRUE)
         ## "PBBlim"
-        tmp <- unlist(lapply(msei, function(x) mean(apply(x$TSB,1,mean)[simYears]/(0.3*x$refs$Bmsy) < 1)))
+        tmp <- unlist(lapply(msei, function(x) mean(apply(x$TSB,1,mean)[simYears]/(0.15*refs$B0) < 1)))
         res[5,] <- quantile(tmp, probs = c(0.025, 0.5, 0.975), na.rm=TRUE)
         ## "PBBlimFirst5y"
-        tmp <- unlist(lapply(msei, function(x) mean(apply(x$TSB,1,mean)[first5Years]/(0.5*x$refs$Bmsy) < 1))) ## HERE:
+        tmp <- unlist(lapply(msei, function(x) mean(apply(x$TSB,1,mean)[first5Years]/(0.15*refs$B0) < 1)))
         res[6,] <- quantile(tmp, probs = c(0.025, 0.5, 0.975), na.rm=TRUE)
         ## "PBBlimLast5y"
-        tmp <- unlist(lapply(msei, function(x) mean(apply(x$TSB,1,mean)[last5Years]/(0.3*x$refs$Bmsy) < 1)))
+        tmp <- unlist(lapply(msei, function(x) mean(apply(x$TSB,1,mean)[last5Years]/(0.15*refs$B0) < 1)))
         res[7,] <- quantile(tmp, probs = c(0.025, 0.5, 0.975), na.rm=TRUE)
         ## "CatchCV"
         tmp <- unlist(lapply(msei, function(x) sd(apply(x$CW,1,mean)[simYears])/mean(x$CW[simYears])))
@@ -89,10 +91,10 @@ estMets <- function(mse){
             res[13,] <- rep(NA,3)
         }
         ## "BBmsy5y"
-        tmp <- unlist(lapply(msei, function(x) apply(x$TSB,1,mean)[fifthYear]/x$refs$Bmsy))
+        tmp <- unlist(lapply(msei, function(x) apply(x$TSB,1,mean)[fifthYear]/refs$Bmsy))
         res[14,] <- quantile(tmp, probs = c(0.025, 0.5, 0.975), na.rm=TRUE)
         ## "TimeRecov"
-        tmp <- unlist(lapply(lapply(msei, function(x) apply(x$TSB,1,mean)[simYears]/x$refs$Bmsy),
+        tmp <- unlist(lapply(lapply(msei, function(x) apply(x$TSB,1,mean)[simYears]/refs$Bmsy),
                              function(y) min(which(y > 1),na.rm=TRUE)))
         tmp[is.infinite(tmp)] <- NA  ## some sims might never recover...
         res[15,] <- quantile(tmp, probs = c(0.025, 0.5, 0.975),na.rm=TRUE)
