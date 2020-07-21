@@ -20,21 +20,70 @@ genDevs <- function(n, sd, rho=0){
 
 #' @name estDepl
 #' @export
-estDepl <- function(dat, fmax = 10, verbose = TRUE){
+estDepl <- function(dat, set=NULL, fmax = 10, nrep = 100, verbose = TRUE){
 
     if(!any(names(dat) == "ref")) stop("Reference points are missing in dat. Use estRef to estimate reference points.")
+
+    if(is.null(set)){
+        set <- checkSet()
+        nrep <- 1
+    }
+
+    depl <- dat$depl
+    depl.quant <- dat$depl.quant
+    depl.prob <- dat$depl.prob
+
+    frel <- dat$FM/max(dat$FM)
+
+    fn <- function(logfabs, frel, depl, depl.prob, nrep, dat, set, opt=1){
+        datx <- dat
+        fpat <- frel * exp(logfabs)
+        datx$FM <- fpat
+        datx$Fs <- fpat / datx$nseasons
+        dreal <- sapply(1:nrep, function(x) initPop(datx, set, out.opt = 2, depl.quant = depl.quant))
+        drealQ <- quantile(dreal, probs = depl.prob)
+        if(opt==1) return((depl - drealQ)^2)
+        if(opt==2) return(drealQ)
+    }
+
+    opt <- optimize(fn, c(log(0.0001),log(fmax)), frel = frel, depl = depl, depl.prob = depl.prob,
+                    nrep = nrep, dat = dat, set=set)
+    fabs <- exp(opt$minimum)
+    fvals <- frel * fabs
+    dreal <- round(fn(log(fabs), frel, depl, depl.prob, nrep, dat, set, opt=2),3)
+
+    if(verbose){
+        print(paste0("Target depletion level as ",depl.prob * 100, "% quantile of ", depl, " ", depl.quant,
+                     " -- Realised depletion level at ", dreal, " ", depl.quant,
+                     " with absolute F equal to ",round(fabs,3)))
+    }
+
+    dat$FM <- fvals
+    dat$Fs <- fvals / dat$nseasons
+
+    return(dat)
+}
+
+
+estDeplOLD <- function(dat, set=NULL, fmax = 10, verbose = TRUE){
+
+    if(!any(names(dat) == "ref")) stop("Reference points are missing in dat. Use estRef to estimate reference points.")
+
+    browser()
+
+    if(is.null(set)) set <- checkSet()
 
     depl <- dat$depl
     depl.quant <- dat$depl.quant
 
     frel <- dat$FM/max(dat$FM)
 
-    fn <- function(logfabs, frel, depl, dat, opt=1){
+    fn <- function(logfabs, frel, depl, dat, set, opt=1){
         datx <- dat
         fpat <- frel * exp(logfabs)
         datx$FM <- fpat
         datx$Fs <- fpat / datx$nseasons
-        dreal <- initPop(datx, out.opt = 2, depl.quant = depl.quant)
+        dreal <- initPop(datx, set, out.opt = 2, depl.quant = depl.quant)
         if(opt==1) return((depl - dreal)^2)
         if(opt==2) return(dreal)
     }

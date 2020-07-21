@@ -153,6 +153,12 @@ checkDat <- function(dat){
         dat$depl.quant <- "B0"
     }
 
+    ## Depletion level with probability
+    ##------------------
+    if(!"depl.quant" %in% names(dat)){
+        dat$depl.prob <- 0.5
+    }
+
     ## initial pop size
     ##------------------
     if(!"initN" %in% names(dat)){
