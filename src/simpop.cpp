@@ -209,7 +209,7 @@ List simpop(double logFM, List dat, List set, int out) {
       // }else{
       //   CW(y) += Ctmp;
       // }
-      CW(y) = Ctmp;
+      CW(y) += Ctmp;
 
       if(s == 0){
         for(int a=0; a<amax; a++){
