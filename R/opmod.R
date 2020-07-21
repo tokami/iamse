@@ -46,7 +46,6 @@ initPop <- function(dat, set = NULL, out.opt = 1, depl.quant = "B0"){
     sels <- dat$sels
     sel <- dat$sel
     pzbm <- dat$pzbm
-    SR <- dat$SR
     R0 <- dat$R0
     h <- dat$h
     initN <- dat$initN
@@ -97,8 +96,8 @@ initPop <- function(dat, set = NULL, out.opt = 1, depl.quant = "B0"){
                  eI = eI)
 
     ## containers
-    TSB <- ESB <- SSB <- CW <- FM <- matrix(0, nrow=ny, ncol=ns)
-    TACs <- TSBfinal <- rep(NA, ny)
+    TSB <- TSB1plus <- ESB <- SSB <- CW <- FM <- matrix(0, nrow=ny, ncol=ns)
+    TACs <- TSBfinal <- rec <- rep(NA, ny)
     obsI <- vector("list", nsurv)
     timeI <- vector("list", nsurv)
     ## burnin period
@@ -112,11 +111,12 @@ initPop <- function(dat, set = NULL, out.opt = 1, depl.quant = "B0"){
             Fbi <- sels * Fs[1]
             Zbi <- Ms + Fbi
             SSBtemp <- sum(NAAbi * weights[,1] * mats[,1] * exp(-pzbm * Zbi[,1])) ## pre-recruitment mort
-            SSBPR0 <- getSSBPR0(M, mats[,1], 1, amax) ## annual M
-            rec <- recfunc(h = h, SSBPR0 = SSBPR0, SSB = SSBtemp,
-                           R0 = R0, method = SR)
-            rec[rec<0] <- 1e-10
-            NAAbi[1] <- rec
+            SSBPR0 <- getSSBPR(dat$M, dat$mat, dat$weight, 1, amax, dat$R0) ## annual M
+            recbi <- recfunc(h = h, SSBPR0 = SSBPR0, SSB = SSBtemp,
+                           R0 = R0, method = dat$SR, bp = dat$bp,
+                           beta = dat$recBeta, gamma = dat$recGamma)
+            recbi[recbi<0] <- 1e-10
+            NAAbi[1] <- recbi
             for(s in 1:ns){
                 ## can't take more than what's there
                 Btemp <- sum(NAAbi * weights[,s] * sels[,s] * exp(-Ms[,s]/2))
@@ -139,9 +139,9 @@ initPop <- function(dat, set = NULL, out.opt = 1, depl.quant = "B0"){
     }else{
         ## set up NAA
         NAA <- rep(NA, amax)
-        NAA[1] <- exp(initN[1]) * R0  * eR0[1]
+        NAA[1] <- exp(initN[1]) * R0
         for(a in 2:amax)
-            NAA[a] <- NAA[a-1] * exp(-(M[a-1] + initF*sel[a-1])) * exp(initN[a])
+            NAA[a] <- NAA[a-1] * exp(-(M[a-1] + Fy[1]*sel[a-1])) * exp(initN[a])
     }
 
 
@@ -157,11 +157,12 @@ initPop <- function(dat, set = NULL, out.opt = 1, depl.quant = "B0"){
         R0y <- R0 * eR0[y]
         ## recruitment
         SSB[y,1] <- sum(NAA * weights[,1] * maty[,1] * exp(-pzbm * ZAA[,1])) ## pre-recruitment mort
-        SSBPR0 <- getSSBPR0(dat$M * eM[y], dat$mat * eMat[y], 1, amax) ## annual M  ## CHECK: without error?
-        rec <- recfunc(h = hy, SSBPR0 = SSBPR0, SSB = SSB[y,1],
-                       R0 = R0y, method = SR)
-        rec[rec<0] <- 1e-10
-        NAA[1] <- rec * eR[y]
+        SSBPR0 <- getSSBPR(dat$M * eM[y], dat$mat * eMat[y], dat$weight, 1, amax, dat$R0) ## annual M
+        rec[y] <- recfunc(h = hy, SSBPR0 = SSBPR0, SSB = SSB[y,1],
+                       R0 = R0y, method = dat$SR, bp = dat$bp,
+                       beta = dat$recBeta, gamma = dat$recGamma)
+        rec[y]  <- ifelse(rec[y] < 0, 1e-10, rec[y])
+        NAA[1] <- rec[y] * eR[y]
         ## seasons
         for(s in 1:ns){
             ## can't take more than what's there
@@ -179,6 +180,7 @@ initPop <- function(dat, set = NULL, out.opt = 1, depl.quant = "B0"){
             }
             ## TSB
             TSB[y,s] <- sum(NAA * weights[,s])
+            TSB1plus[y,s] <- sum(NAA[-1] * weights[-1,s])
             ## ESB
             ESB[y,s] <- sum(NAA * weights[,s] * sels[,s])
             ## SSB
@@ -245,7 +247,9 @@ initPop <- function(dat, set = NULL, out.opt = 1, depl.quant = "B0"){
         out$lastNAA <- NAA
         out$lastFAA <- FAA[,ns]
         out$TSBfinal <- TSBfinal
+        out$rec <- rec
         out$TSB <- TSB
+        out$TSB1plus <- TSB1plus
         out$ESB <- ESB
         out$SSB <- SSB
         out$FM <- FM
@@ -292,7 +296,6 @@ advancePop <- function(dat, hist, set, tacs){
     ## parameters
     amax <- dat$amax + 1  ## age 0
     pzbm <- dat$pzbm
-    SR <- dat$SR
     R0 <- dat$R0
     h <- dat$h
     q <- dat$q
@@ -396,8 +399,10 @@ advancePop <- function(dat, hist, set, tacs){
 
     ## recruitment
     SSBtemp <- sum(NAA * weights[,1] * maty[,1] * exp(-pzbm * Ztemp)) ## pre-recruitment mort
-    SSBPR0 <- getSSBPR0(dat$M * eM, dat$mat * eMat, 1, amax) ## annual M
-    rec <- recfunc(h = hy, SSBPR0 = SSBPR0, SSB = SSBtemp, R0 = R0y, method = SR)
+    SSBPR0 <- getSSBPR(dat$M * eM, dat$mat * eMat, dat$weight, 1, amax, dat$R0) ## annual M
+    rec <- recfunc(h = hy, SSBPR0 = SSBPR0, SSB = SSBtemp, R0 = R0y,
+                   method = dat$SR, bp = dat$bp,
+                   beta = dat$recBeta, gamma = dat$recGamma)
     rec[rec<0] <- 1e-10
     NAA[1] <- rec * eR
 

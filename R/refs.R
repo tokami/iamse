@@ -46,7 +46,7 @@ simpopR <- function(FM, dat, set){
         SSBtemp <- sum(NAA * weights[,1] * maty[,1] * exp(-pzbm * ZAA[,1])) ## pre-recruitment mort
         SSBPR0 <- getSSBPR0(dat$M * eM[y], dat$mat * eMat[y], 1, amax)
         rec <- recfunc(h = hy, SSBPR0 = SSBPR0, SSB = SSBtemp,
-                       R0 = R0y, method = dat$SR)
+                       R0 = R0y, method = dat$SR, bp = dat$bp)
         rec[rec<0] <- 1e-10
         NAA[1] <- rec * eR[y]
         ## seasons
@@ -91,35 +91,35 @@ simpopR <- function(FM, dat, set){
 #' @importFrom parallel mclapply
 #'
 #' @export
+#'
 estRef <- function(dat, set=NULL, fvec = seq(0,5,0.1),
                    ncores=parallel::detectCores()-1,
-                   ref = c("Fmsy","Bmsy","MSY","Binf","B0"),
+                   ref = c("Fmsy","Bmsy","MSY","B0"),
                    plot = FALSE){
 
     ny <- dat$ny
     ns <- dat$nseasons
     nt <- ny * ns
 
-    ## Remove variability
     if(is.null(set)) set <- checkSet()
-    set$sigmaF <- 0
-    set$sigmaR <- 0
-    set$rhoR <- 0
-    set$sigmaM <- 0
-    set$sigmaH <- 0
-    set$sigmaMat <- 0
-    set$sigmaR0 <- 0
+        ## Remove variability
+        set$sigmaF <- 0
+        set$sigmaR <- 0
+        set$rhoR <- 0
+        set$sigmaM <- 0
+        set$sigmaH <- 0
+        set$sigmaMat <- 0
+        set$sigmaR0 <- 0
     set$sigmaImp <- 0
 
-
-    if(any(ref %in% c("Fmsy","Bmsy","MSY","Binf"))){
+    if(any(ref %in% c("Fmsy","Bmsy","MSY"))){
         res0 <- parallel::mclapply(as.list(fvec),
                                    function(x){
-                                       with(simpop(x, dat, set),
+                                       with(simpop(log(x), dat, set, out = 0),
                                             c(x,
-                                              tail(TSB,1),
+                                              head(tail(TSB,2),1),
                                               head(tail(SP,2),1),
-                                              tail(CW,1)))
+                                              head(tail(CW,2),1)))
                                    },
                                    mc.cores = ncores)
 
@@ -135,21 +135,211 @@ estRef <- function(dat, set=NULL, fvec = seq(0,5,0.1),
         }
     }
 
+
     ## B0
     if(any(ref == "B0")){
-        unfished <- simpop(0, dat, set)
-        b0 <- tail(unfished$TSB1plus,1) ## CHECK: why?
+        unfished <- simpop(log(1e-20), dat, set, out = 0)
+        b0 <- tail(unfished$TSB,1) ## CHECK: why TSB1plus?
     }
+
 
     refs <- list()
     if(any(ref == "Fmsy")) refs$Fmsy = fmsy
-    if(any(ref == "Bmsy")) refs$Bmsy = bmsy
     if(any(ref == "MSY")) refs$MSY = msy
-    if(any(ref == "Binf")) refs$Binf = binf
+    if(any(ref == "Bmsy")) refs$Bmsy = bmsy
     if(any(ref == "B0")) refs$B0 = b0
 
     dat$ref <- refs
 
     ## return
     return(dat)
+}
+
+
+#' @name estRefStoch
+#'
+#' @importFrom parallel detectCores
+#' @importFrom parallel mclapply
+#'
+#' @export
+#'
+estRefStoch <- function(dat, set=NULL, fvec = seq(0,5,0.1),
+                   ncores=parallel::detectCores()-1,
+                   ref = c("Fmsy","Bmsy","MSY","B0"),
+                   plot = FALSE){
+
+    ny <- dat$ny
+    ns <- dat$nseasons
+    nt <- ny * ns
+    nyref <- set$refYears
+    nrep <- set$refN
+
+    if(is.null(set)) set <- checkSet()
+    dist <- NULL
+
+    ## errors (have to be re-used for estimation of Bmsy)
+    errs <- vector("list", nrep)
+    for(i in 1:nrep){
+        errs[[i]]$eR <- genDevs(nyref, set$sigmaR, set$rhoR)
+        errs[[i]]$eF <- exp(rnorm(nyref, 0, set$sigmaF) - set$sigmaF^2/2)
+        errs[[i]]$eM <- exp(rnorm(nyref, 0, set$sigmaM) - set$sigmaM^2/2)
+        errs[[i]]$eR0 <- exp(rnorm(nyref, 0, set$sigmaR0) - set$sigmaR0^2/2)
+        errs[[i]]$eH <- exp(rnorm(nyref, 0, set$sigmaH) - set$sigmaH^2/2)
+        errs[[i]]$eMat <- exp(rnorm(nyref, 0, set$sigmaMat) - set$sigmaMat^2/2)
+        errs[[i]]$eImp <- exp(rnorm(nyref, 0, set$sigmaImp) - set$sigmaImp^2/2)
+    }
+
+
+    if(any(ref %in% c("Fmsy","Bmsy","MSY"))){
+
+        ## Fmsy & MSY
+        res <- parallel::mclapply(as.list(1:nrep), function(x){
+            setx <- c(set, errs[[x]])
+            opt <- optimise(function(x) unlist(simpop(x, dat, setx, out=1)),
+                            log(c(0.001,10)), maximum = TRUE)
+            c(exp(opt$maximum), opt$objective)
+        }, mc.cores = ncores)
+        dist <- do.call(rbind, res)
+
+        ## Bmsy
+        bmsy <- sapply(1:nrep, function(x){
+            setx <- c(set, errs[[x]])
+            tail(simpop(log(dist[x,1]), dat, setx, out = 0)$TSB, 1)
+            })
+        dist <- cbind(dist, bmsy)
+
+        colnames(dist) <- c("Fmsy","MSY","Bmsy")
+    }
+
+    ## B0
+    if(any(ref == "B0")){
+        b0 <- sapply(1:nrep, function(x){
+            setx <- c(set, errs[[x]])
+            tail(simpop(log(1e-20), dat, setx, out = 0)$TSB, 1)
+            })
+        dist <- cbind(dist, b0)
+        colnames(dist) <- c(colnames(dist)[-ncol(dist)], "B0")
+    }
+
+    ## remove runs where long-term SP is smaller or equal to 0
+    nami <- colnames(dist)
+    if("MSY" %in% nami){
+        dist2 <- dist[dist[,2] > 0,]
+    }else
+        dist2 <- dist
+    meds <- apply(dist2,2, mean)
+
+
+    refs <- list()
+    refs$dist <- dist
+    if(any(ref == "Fmsy")) refs$Fmsy = as.numeric(meds[which(nami == "Fmsy")])
+    if(any(ref == "MSY")) refs$MSY = as.numeric(meds[which(nami == "MSY")])
+    if(any(ref == "Bmsy")) refs$Bmsy = as.numeric(meds[which(nami == "Bmsy")])
+    if(any(ref == "B0")) refs$B0 = as.numeric(meds[which(nami == "B0")])
+
+    dat$ref <- refs
+
+    ## return
+    return(dat)
+}
+
+
+
+
+#' @name estRefBent
+#'
+#' @importFrom parallel detectCores
+#' @importFrom parallel mclapply
+#'
+#' @export
+#'
+estRefBent <- function(dat, set=NULL, fvec = seq(0,5,0.1),
+                   ncores=parallel::detectCores()-1,
+                   ref = c("Fmsy","Bmsy","MSY","B0"),
+                   plot = FALSE){
+    ny <- dat$ny
+    ns <- dat$nseasons
+    nt <- ny * ns
+    nyref <- set$refYears
+    nrep <- set$refN
+
+    if(is.null(set)) set <- checkSet()
+    ## Remove variability
+    set$sigmaF <- 0
+    set$sigmaR <- 0
+    set$rhoR <- 0
+    set$sigmaM <- 0
+    set$sigmaH <- 0
+    set$sigmaMat <- 0
+    set$sigmaR0 <- 0
+    set$sigmaImp <- 0
+
+    browser()
+
+    fvec <- seq(0,1,0.001)
+
+
+    ssbprs <- sapply(fvec, sbr, dat = dat, out=0)
+    yprs <- sapply(fvec, sbr, dat = dat, out=1)
+
+    bp <- dat$bp
+    beta <- dat$recBeta
+    gamma <- dat$recGamma
+    K <- sqrt(bp^2 + gamma^2/4)
+    ssbe <- (2*K/(ssbprs*beta) - 2*bp - 2*K) / ((1/(ssbprs^2*beta^2)) - 2/(ssbprs*beta))
+
+    ssbe <- (2*K - 2 *bp - 2*K) / ((beta * ssbprs)^(-2) - 2 * (beta*ssbprs)^-1)
+
+
+    ye <- yprs * ssbe / ssbprs
+
+    plot(ye)
+
+    plot(ye, ty='l')
+
+    2 * beta
+    1/ssbprs
+
+    ye
+
+    ssbprs
+
+
+    ## B0
+    if(any(ref == "B0")){
+        unfished <- simpop(log(1e-20), dat, set, out = 0)
+        b0 <- tail(unfished$TSB,1) ## CHECK: why TSB1plus?
+    }
+
+
+    refs <- list()
+    if(any(ref == "Fmsy")) refs$Fmsy = fmsy
+    if(any(ref == "MSY")) refs$MSY = msy
+    if(any(ref == "Bmsy")) refs$Bmsy = bmsy
+    if(any(ref == "B0")) refs$B0 = b0
+
+    dat$ref <- refs
+
+    ## return
+    return(dat)
+}
+
+
+#' @name sbr
+#' @export
+sbr <- function(FM, dat, out=0){
+    ## some variables
+    amax <- dat$amax + 1
+    ## initialize starting values
+    NAA <- rep(0, amax)
+    NAA[1] <- 1
+    for(a in 2:amax)
+        NAA[a] <- NAA[a-1] * exp(-(dat$M[a-1] + FM * dat$sel[a-1]))
+
+    SSBPR <- sum(NAA * dat$weight * dat$mat * dat$fecun)
+    YPR <- sum(baranov(FM*dat$sel, dat$M, NAA) * dat$weightFs)
+
+    if(out == 0) res <- SSBPR else  res <- YPR
+
+    return(res)
 }

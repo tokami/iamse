@@ -176,6 +176,15 @@ checkDat <- function(dat){
     if(!"R0" %in% names(dat)){
         dat$R0 <- 1e6
     }
+    if(!"bp" %in% names(dat)){
+        dat$bp <- 0
+    }
+    if(!"recBeta" %in% names(dat)){
+        dat$recBeta <- 0
+    }
+    if(!"recGamma" %in% names(dat)){
+        dat$recGamma <- 0  ## measure of the radius of curvature near the breakpoint (as gamma -> 0 = sharp bent like hockey-stick)
+    }
 
     ## pzbm
     ##------------------

@@ -8,7 +8,7 @@ genDevs <- function(n, sd, rho=0){
     res <- numeric(n)
     res[1] <- rnoise[1]
     if(n > 1){
-        for(i in 2:n) res[i] <- rho * res[i-1] + (1 - rho) * rnoise[i] ## sqrt(1-rho^2) * rnoise[i]
+        for(i in 2:n) res[i] <- rho * res[i-1] + sqrt(1 - rho^2) * rnoise[i]
     }
 
     res <- exp(res)
@@ -61,8 +61,8 @@ estDepl <- function(dat, fmax = 10, verbose = TRUE){
 #' @export
 estProd <- function(dat, set= NULL,
                     ny = 100,
-                    fmax = 100,
-                    tsSplit = 3,
+                    fmax = 10,
+                    tsSplit = 8,
                     plot = TRUE){
 
     dat$ny <- ny
@@ -187,7 +187,7 @@ checkSet <- function(set = NULL){
     if(is.null(set$maxF)) set$maxF <- 5
 
     ## for estimation of ref levels
-    if(is.null(set$refN)) set$refN <- 1e6
+    if(is.null(set$refN)) set$refN <- 1e4
     if(is.null(set$refYears)) set$refYears <- 300
 
     ## number of years available to assessment method
@@ -310,21 +310,22 @@ getMat <- function(Lm50, Lm95, mids, plba){
 }
 
 
-#' @name getSSBPR0
+#' @name getSSBPR
 #' @description Function to calculate spawners per recruit
-#' @param M - natural mortality
+#' @param Z - total mortality
 #' @param mat - maturity ogive
 #' @param fecun - fecundity matrix
 #' @param amax - number of age classes
 #' @return spawning biomass per recruit
 #' @export
-getSSBPR0 <- function(M, mat, fecun=1, amax){
+getSSBPR <- function(M, mat, weight, fecun=1, amax, R0 = 1, FM = NULL){
     N <- rep(NA, amax)
-    N[1] <- 1
-    for(age in 2:amax)
-        N[age] <- N[age-1] * exp(-M[age-1])
-    N[amax] <- N[amax] / (1 - exp(-M[amax-1]))
-    SBPR <- sum(N * mat * fecun)
+    N[1] <- R0
+    M <- cumsum(M)
+    if(!is.null(FM)) Z = M + FM else Z = M
+    N[2:(amax-1)] <- R0 * exp(-Z[1:(amax-2)])
+    N[amax] <- R0 * exp(-Z[amax-1]) / (1-exp(-Z[amax]))
+    SBPR <- sum(N * mat * weight * fecun)
     return(SBPR)
 }
 
@@ -335,19 +336,32 @@ getSSBPR0 <- function(M, mat, fecun=1, amax){
 #' @param R0 - recruitment in unfished population
 #' @param SSBPR0 - spawning biomass produced by one recrut in its lifetime
 #' @param SSB - spawning biomass
+#' @param bp - breakpoint for hockey-stick SR
+#' @param method - SR type
+#'
 #' @export
-recfunc <- function(h, SSBPR0, SSB,  R0 = 1000, method = "bevholt"){
+recfunc <- function(h, SSBPR0, SSB,  R0 = 1e6, method = "bevholt", bp = 0,
+                    beta = 0, gamma = 0){
+
     if(method == "bevholt"){
-        alpha <- SSBPR0 * ((1-h)/(4*h))
-        beta <- (5*h-1)/(4*h*R0)
-        rec <- SSB / (alpha + beta * SSB)
+        ## alpha <- SSBPR0 * ((1-h)/(4*h))
+        ## beta <- (5*h-1)/(4*h*R0)
+        ## rec <- SSB / (alpha + beta * SSB)
+
+        rec <- (4 * h * R0 * SSB / (SSBPR0 * (1-h) + SSB * (5*h-1)))
+
     }else if(method == "ricker"){
         beta <- log(5 * h) / (0.8 * R0)
         alpha <- exp(beta * R0)/SSBPR0
         rec <- alpha * SSB * exp(-beta * SSB)
     }else if(method == "average"){
         rec <- R0
-    }else print("method not known!")
+    }else if(method == "hockey-stick"){
+        rec <- ifelse(SSB > bp, R0, SSB * R0/bp)
+    }else if(method == "bent-hyperbola"){  ## Watts-Bacon bent hyperbola
+        rec <- beta * (SSB + sqrt(bp^2 + (gamma^2)/4) - sqrt((SSB-bp)^2 + (gamma^2)/4))
+    }else print("Stock-recruitment method not known! Implemented methods: 'bevholt', 'ricker', 'average', and 'hockey-stick'.")
+
     return (rec)
 }
 
