@@ -11,7 +11,7 @@
 #' @name initPop
 #'
 #' @export
-initPop <- function(dat, set = NULL, out.opt = 1, depl.quant = "B0"){
+initPop <- function(dat, set = NULL, out.opt = 1){
 
     ## indices
     if(is.null(set)) set <- checkSet()
@@ -262,8 +262,7 @@ initPop <- function(dat, set = NULL, out.opt = 1, depl.quant = "B0"){
         if(is.null(refs)){
             warning("The reference points are not part of dat! Use estRef to estimate them")
         }else{
-            TSBend <- sum(Ntemp * weights[,ns])
-            out <- TSBend/refs[[depl.quant]]
+            out <- TSBfinal[ny]/refs[[dat$depl.quant]]
         }
     }
     return(out)

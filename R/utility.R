@@ -40,7 +40,7 @@ estDepl <- function(dat, set=NULL, fmax = 10, nrep = 100, verbose = TRUE){
         fpat <- frel * exp(logfabs)
         datx$FM <- fpat
         datx$Fs <- fpat / datx$nseasons
-        dreal <- sapply(1:nrep, function(x) initPop(datx, set, out.opt = 2, depl.quant = depl.quant))
+        dreal <- sapply(1:nrep, function(x) initPop(datx, set, out.opt = 2))
         drealQ <- quantile(dreal, probs = depl.prob)
         if(opt==1) return((depl - drealQ)^2)
         if(opt==2) return(drealQ)
