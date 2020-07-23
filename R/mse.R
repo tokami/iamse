@@ -72,7 +72,6 @@ runMSE <- function(dat, set, ncores=parallel::detectCores()-1, verbose=TRUE){
                 }
             }
             popListx[[i]] <- poptmp
-            if(i == 2) error()
             gc()
         }
         repList[[x]] <- popListx
