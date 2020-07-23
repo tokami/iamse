@@ -119,9 +119,6 @@ structure(
 #'
 defHCRconscat <- function(id = "conscat",
                           constantC = NULL,
-                           stab = FALSE,
-                           lower = 0.8,
-                           upper = 1.2,
                            clyears = 1,
                            red = NA,
                            redyears = 2,
@@ -143,8 +140,10 @@ structure(
         inp$indBpBx <- indBpBx
 
         TAC <- ',constantC,'
-        if(is.na(TAC)) TAC <- sum(tail(inp$obsC, 1))
-## TODO: account for seasonal catches sum(tail(inp$obsC, seasons)) ## where get seasons from?
+        if(!is.numeric(TAC)){
+            annualcatch <- spict:::annual(inp$timeC, inp$obsC/inp$dtc, type = "mean") ## CHECK: why not sum?
+            TAC <- mean(tail(annualcatch, clyears))
+        }
 
         ## bianunal reduction (usually 0.2)
         if(is.numeric(red)){
@@ -164,7 +163,7 @@ structure(
         }else barID <- FALSE
 
         tacs <- gettacs(tacs, id = "',id,'", TAC = TAC)
-        tacs$hitSC <- hitSC
+        tacs$hitSC <- NA
         tacs$barID <- barID
         tacs$red <- red
         tacs$indBpBx <- indBpBx
