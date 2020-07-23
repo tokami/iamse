@@ -347,71 +347,89 @@ defHCRspict <- function(id = "spict-msy",
     if(is.null(prob)) prob <- 0.95
 
     template  <- expression(paste0(
-        'structure(
-        function(inp, tacs = NULL){
-            inp$reportmode <- ',reportmode,'
-            inp$dteuler <- ',dteuler,'
-            inp$stabilise <- ',stabilise,'
-            inp <- check.inp(inp)
-            inp$priors$logn <- c(',priorlogn[1],',',priorlogn[2],',',priorlogn[3],')
-            inp$priors$logalpha <- c(',priorlogalpha[1],',',priorlogalpha[2],',',priorlogalpha[3],')
-            inp$priors$logbeta <- c(',priorlogbeta[1],',',priorlogbeta[2],',',priorlogbeta[3],')
-            if(is.null(tacs)){
-                indBpBx <- inp$indBpBx
-            }else{
-                indBpBx <- tacs$indBpBx[nrow(tacs)]
-            }
-            inp$indBpBx <- indBpBx
-            if(',schaefer,'){
-               inp$phases$logn <- -1
-               inp$ini$logn <- log(2)
-            }
-            rep <- try(fit.spict(inp), silent=TRUE)
-            if(class(rep) == "try-error" || rep$opt$convergence != 0 || any(is.infinite(rep$sd))){
+        '
+structure(
+    function(inp, tacs = NULL){
+        inp$reportmode <- ',reportmode,'
+        inp$dteuler <- ',dteuler,'
+        inp$stabilise <- ',stabilise,'
+        inp <- check.inp(inp)
+        inp$priors$logn <- c(',priorlogn[1],',',priorlogn[2],',',priorlogn[3],')
+        inp$priors$logalpha <- c(',priorlogalpha[1],',',priorlogalpha[2],',',priorlogalpha[3],')
+        inp$priors$logbeta <- c(',priorlogbeta[1],',',priorlogbeta[2],',',priorlogbeta[3],')
+        if(is.null(tacs)){
+            indBpBx <- inp$indBpBx
+        }else{
+            indBpBx <- tacs$indBpBx[nrow(tacs)]
+        }
+        inp$indBpBx <- indBpBx
+        if(',schaefer,'){
+            inp$phases$logn <- -1
+            inp$ini$logn <- log(2)
+        }
+        rep <- try(fit.spict(inp), silent=TRUE)
+        if(class(rep) == "try-error" || rep$opt$convergence != 0 || any(is.infinite(rep$sd))){
+            tacs <- conscat(inp, tacs=tacs)
+            tacs$conv[nrow(tacs)] <- FALSE
+        }else{
+            fmfmsy <- try(get.par("logFmFmsynotS",rep, exp=TRUE)[,c(2,4)],silent=TRUE)
+            if(!is.numeric(fmfmsy)) print(fmfmsy)
+            if(all(is.numeric(fmfmsy))){
+                fmfmsy <- round(fmfmsy,2)
+            }else fmfmsy <- c(NA, NA)
+            names(fmfmsy) <- c("fmfmsy.est","fmfmsy.sd")
+            bpbmsy <- try(get.par("logBpBmsy",rep, exp=TRUE)[,c(2,4)],silent=TRUE)
+            if(all(is.numeric(bpbmsy))){
+                bpbmsy <- round(bpbmsy,2)
+            }else bpbmsy <- c(NA,NA)
+            names(bpbmsy) <- c("bpbmsy.est","bpbmsy.sd")
+            cp <- try(get.par("logCp",rep, exp=TRUE)[,c(2,4)],silent=TRUE)
+            if(all(is.numeric(cp))){
+                cp <- round(cp,2)
+            }else cp <- c(NA,NA)
+            names(cp) <- c("cp.est","cp.sd")
+            ##
+            fmsy <- try(get.par("logFmsy",rep, exp=TRUE)[,c(2,4)],silent=TRUE)
+            if(all(is.numeric(fmsy))){
+                fmsy <- round(fmsy,2)
+            }else fmsy <- c(NA,NA)
+            names(fmsy) <- c("fmsy.est","fmsy.sd")
+            bmsy <- try(get.par("logBmsy",rep, exp=TRUE)[,c(2,4)],silent=TRUE)
+            if(all(is.numeric(bmsy))){
+                bmsy <- round(bmsy,2)
+            }else bmsy <- c(NA,NA)
+            names(bmsy) <- c("bmsy.est","bmsy.sd")
+            ##
+            tac <- try(spict:::get.TAC(rep = rep,
+                                       bfac = ',bfac,',
+                                       fractiles = list(catch = ',frc,',
+                                                        ffmsy = ',frff,',
+                                                        bbmsy = ',frbb,',
+                                                        bmsy  = ',frb,',
+                                                        fmsy  = ',frf,'),
+                                       breakpointB = ',breakpointB,',
+                                       safeguardB = list(limitB = ',limitB,',prob = ',prob,'),
+                                       verbose = FALSE),
+                       silent = TRUE)
+            if(inherits(tac, "try-error") || !is.numeric(tac)){
                 tacs <- conscat(inp, tacs=tacs)
                 tacs$conv[nrow(tacs)] <- FALSE
             }else{
-                fmfmsy <- round(get.par("logFmFmsynotS",rep, exp=TRUE)[,c(2,4)],2)
-                names(fmfmsy) <- paste0("fmfmsy-",names(fmfmsy))
-                bpbmsy <- round(get.par("logBpBmsy",rep, exp=TRUE)[,c(2,4)],2)
-                names(bpbmsy) <- paste0("bpbmsy-",names(bpbmsy))
-                cp <- round(get.par("logCp",rep, exp=TRUE)[,c(2,4)],2)
-                names(cp) <- paste0("cp-",names(cp))
-                ##
-                fmsy <- round(get.par("logFmsy",rep, exp=TRUE)[,c(2,4)],2)
-                names(fmsy) <- paste0("fmsy-",names(fmsy))
-                bmsy <- round(get.par("logBmsy",rep, exp=TRUE)[,c(2,4)],2)
-                names(bmsy) <- paste0("bmsy-",names(bmsy))
-                ##
-                tac <- try(spict:::get.TAC(rep = rep,
-                                           bfac = ',bfac,',
-                                           fractiles = list(catch = ',frc,',
-                                                            ffmsy = ',frff,',
-                                                            bbmsy = ',frbb,',
-                                                            bmsy  = ',frb,',
-                                                            fmsy  = ',frf,'),
-                                           breakpointB = ',breakpointB,',
-                                           safeguardB = list(limitB = ',limitB,',prob = ',prob,'),
-                                           verbose = FALSE),
-                           silent = TRUE)
-                if(inherits(tac, "try-error")){
-                    tacs <- conscat(inp, tacs=tacs)
-                    tacs$conv[nrow(tacs)] <- FALSE
+                tactmp <- data.frame(TAC=tac, id="',id,'", hitSC=NA,
+                                     red=NA, barID=NA, sd=NA, conv = TRUE)
+                tactmp <- data.frame(c(tactmp, fmfmsy, bpbmsy, cp,
+                                       fmsy, bmsy, indBpBx = indBpBx))
+                if(is.null(tacs)){
+                    tacs <- tactmp
                 }else{
-                    tactmp <- data.frame(TAC=tac, id="',id,'", hitSC=NA,
-                                         red=NA, barID=NA, sd=NA, conv = TRUE)
-                    tactmp <- data.frame(c(tactmp, fmfmsy, bpbmsy, cp,
-                                           fmsy, bmsy, indBpBx = indBpBx))
-                    if(is.null(tacs)){
-                        tacs <- tactmp
-                    }else{
-                        tacs <- rbind(tacs, tactmp)
-                    }
+                    tacs <- rbind(tacs, tactmp)
                 }
             }
-            return(tacs)
-        },
-        class="hcr")'))
+        }
+        return(tacs)
+    },
+    class="hcr")
+'))
 
     ## create HCR as functions
     templati <- eval(parse(text=paste(parse(text = eval(template)),collapse=" ")))
