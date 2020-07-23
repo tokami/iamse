@@ -22,23 +22,23 @@ gettacs <- function(tacs=NULL, id="", TAC=NA){
 
 
 
-#' @name conscat
-#' @export
-conscat <- structure(
-    function(inp, tacs=NULL){
-        inp <- check.inp(inp)
-        if(is.null(tacs)){
-            indBpBx <- inp$indBpBx
-        }else{
-            indBpBx <- tacs$indBpBx[nrow(tacs)]
-        }
-        tacs <- gettacs(tacs, id="cc",
-                        TAC=sum(tail(inp$obsC, 1)))
-        tacs$indBpBx[nrow(tacs)] <- indBpBx
-        return(tacs)
-    },
-    class="hcr"
-)
+## #' @name conscat
+## #' @export
+## conscat <- structure(
+##     function(inp, tacs=NULL){
+##         inp <- check.inp(inp)
+##         if(is.null(tacs)){
+##             indBpBx <- inp$indBpBx
+##         }else{
+##             indBpBx <- tacs$indBpBx[nrow(tacs)]
+##         }
+##         tacs <- gettacs(tacs, id="cc",
+##                         TAC=sum(tail(inp$obsC, 1)))
+##         tacs$indBpBx[nrow(tacs)] <- indBpBx
+##         return(tacs)
+##     },
+##     class="hcr"
+## )
 
 
 
@@ -134,7 +134,6 @@ defHCRconscat <- function(id = "conscat",
         '
 structure(
     function(inp, tacs = NULL){
-
         inp <- check.inp(inp)
         if(is.null(tacs)){
             indBpBx <- inp$indBpBx

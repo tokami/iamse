@@ -8,6 +8,9 @@ runMSE <- function(dat, set, ncores=parallel::detectCores()-1, verbose=TRUE){
 
     if(ncores > 1) verbose <- FALSE
 
+    ## define constant catch (resort HCR if something not converging)
+    defHCRconscat()
+
     ## Variables
     hcrs <- set$hcr
     nhcrs <- length(hcrs)
@@ -47,6 +50,7 @@ runMSE <- function(dat, set, ncores=parallel::detectCores()-1, verbose=TRUE){
         setx$eC <- exp(rnorm(nysim, 0, set$CVC) - set$CVC^2/2)
         setx$eI <- exp(rnorm(nysim, 0, set$CVI) - set$CVI^2/2)
 
+
         ## loop
         for(i in 1:nhcrs){
             hcri <- hcrs[i]
@@ -68,16 +72,24 @@ runMSE <- function(dat, set, ncores=parallel::detectCores()-1, verbose=TRUE){
                 }
             }
             popListx[[i]] <- poptmp
+            if(i == 2) error()
             gc()
         }
         repList[[x]] <- popListx
     }, mc.cores = ncores)
 
 
+    ## Debugging printing
+    if(any(sapply(res, length) != nhcrs)){
+        ind <- which(sapply(res, length) != nhcrs)[1]
+        print(res[[ind]])
+        stop("Some error in res loop.")
+    }
+
+
     ## sort res of reps for each ms together
     resList <- vector("list", nhcrs)
 
-    ## TODO: this returns error if one of the threads in mclapply gives error - some way of catching errors here?
     res2 <- lapply(1:nhcrs, function(x){
         tmp <- vector("list",nrep)
         for(i in 1:nrep){
