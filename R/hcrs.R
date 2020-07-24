@@ -373,7 +373,7 @@ structure(
             tacs$conv[nrow(tacs)] <- FALSE
         }else{
             fmfmsy <- try(get.par("logFmFmsynotS",rep, exp=TRUE)[,c(2,4)],silent=TRUE)
-            if(!is.numeric(fmfmsy)) print(fmfmsy)
+            if(!is.numeric(fmfmsy)) print(paste0("fmfmsy not numeric. fmfmsy: ", fmfmsy))
             if(all(is.numeric(fmfmsy))){
                 fmfmsy <- round(fmfmsy,2)
             }else fmfmsy <- c(NA, NA)

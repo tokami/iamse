@@ -7,9 +7,6 @@
 defHCRconscat(
   id = "conscat",
   constantC = NULL,
-  stab = FALSE,
-  lower = 0.8,
-  upper = 1.2,
   clyears = 1,
   red = NA,
   redyears = 2,

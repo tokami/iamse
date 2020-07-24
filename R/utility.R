@@ -1,4 +1,90 @@
 
+
+#' @name genConvs
+#' @description Get converged simulates from a resMSE object
+#' @export
+getConvs <- function(mse, convyears = "all", convhcrs = "all",
+                     convscens = "all", convspecs = "all", verbose = FALSE){
+
+    msein <- mse
+
+    ## if mse is not spec-scen list
+    if(inherits(msein, "mse")){
+        mse <- list(list(mse))
+    }else if(inherits(msein[[1]], "mse")){
+        mse <- list(mse)
+    }
+
+    nspec <- length(mse)
+    nscen <- length(mse[[1]])
+    nhcr <- length(mse[[1]][[1]])
+    nrep <- length(mse[[1]][[1]][[1]])
+    nysim <- nrow(mse[[1]][[1]][[1]][[1]]$tacs)
+    dims <- dim(mse[[1]][[1]][[1]][[1]]$TSB)
+    ny <- dims[1] - nysim
+    ns <- dims[2]
+
+    if(convyears[1] == "all") convyears <- 1:ny
+    if(convhcrs[1] == "all") convhcrs <- 1:nhcr
+    if(convscens[1] == "all") convscens <- 1:nscen
+    if(convspecs[1] == "all") convscens <- 1:nspec
+
+    indlist <- vector("list", nspec)
+    for(spec in 1:nspec){
+        indlist[[spec]] <- vector("list", nscen)
+        for(scen in 1:nscen){
+            indlist[[spec]][[scen]] <- vector("list",nhcr)
+            for(hcr in 1:nhcr){
+                tmp <- do.call(rbind,lapply(mse[[spec]][[scen]][[hcr]], function(x) x[[10]]$conv))
+                indlist[[spec]][[scen]][[hcr]] <- apply(tmp[,convyears], 1, all)
+            }
+        }
+    }
+
+
+    ## across hcrs only
+    indlist2 <- vector("list", nspec)
+    for(spec in 1:nspec){
+        indlist2[[spec]] <- vector("list", nscen)
+        for(scen in 1:nscen){
+            indlist2[[spec]][[scen]] <- do.call(cbind,indlist[[spec]][[scen]][convhcrs])
+        }
+    }
+
+    ## ## across hcrs and scens
+    ## tmp <- lapply(indlist, function(x) do.call(cbind,x[convhcrs]))
+    ## tmp2 <- do.call(cbind, tmp)
+    ## print(5*length(which(apply(tmp2, 1, all))))
+
+    res <- vector("list", nspec)
+    for(spec in 1:nspec){
+        res[[spec]] <- vector("list", nscen)
+        for(scen in 1:nscen){
+            inds <- which(apply(indlist2[[spec]][[scen]],1,all))
+            if(verbose)
+                writeLines(paste0("Converged reps for spec ",spec, " - scen ",
+                                  scen, ": ",length(inds), " of ",nrep, " reps = ",round(length(inds)/nrep*100),"%"))
+            res[[spec]][[scen]] <- vector("list",nhcr)
+            for(hcr in 1:nhcr){
+                res[[spec]][[scen]][[hcr]] <- mse[[spec]][[scen]][[hcr]][inds]
+            }
+        }
+    }
+
+    ## if mse is not spec-scen list
+    if(inherits(msein, "mse")){
+        res <- res[[1]][[1]]
+    }else if(inherits(msein[[1]], "mse")){
+        res <- res[[1]]
+    }
+
+    ## return
+    return(res)
+
+}
+
+
+
 #' @name genDevs
 #' @export
 genDevs <- function(n, sd, rho=0){

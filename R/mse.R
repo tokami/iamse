@@ -81,8 +81,13 @@ runMSE <- function(dat, set, ncores=parallel::detectCores()-1, verbose=TRUE){
     ## Debugging printing
     if(any(sapply(res, length) != nhcrs)){
         ind <- which(sapply(res, length) != nhcrs)[1]
-        print(res[[ind]])
-        stop("Some error in res loop.")
+        writeLines(paste0("Info about failed replicate ",ind,": length = ",
+                          length(res[[ind]]), " value = ", res[[ind]], " names = ",
+                          names(res[[ind]]),
+                          " length(res) = ", length(res), ))
+        writeLines("Warning messages: ")
+        warnings()
+        stop(paste0("Replicate ",ind," does not have the correct length."))
     }
 
 
@@ -97,6 +102,8 @@ runMSE <- function(dat, set, ncores=parallel::detectCores()-1, verbose=TRUE){
         resList[[x]] <- tmp
     })
     names(res2) <- hcrs
+
+    class(res2) <- "mse"
 
     return(res2)
 }
