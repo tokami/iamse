@@ -142,7 +142,7 @@ structure(
         TAC <- ',constantC,'
         if(!is.numeric(TAC)){
             annualcatch <- spict:::annual(inp$timeC, inp$obsC/inp$dtc, type = "mean") ## CHECK: why not sum?
-            TAC <- mean(tail(annualcatch, clyears))
+            TAC <- mean(tail(annualcatch$annvec, ',clyears,'))
         }
 
         ## bianunal reduction (usually 0.2)
