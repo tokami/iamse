@@ -3,7 +3,9 @@
 
 
 #' @name gettacs
-gettacs <- function(tacs=NULL, id="", TAC=NA){
+gettacs <- function(tacs=NULL, id="", TAC=NA, inp=NULL){
+    if(!is.null(inp) && is.list(inp$obsI))
+        nis <- length(inp$obsI) else nis <- 1
     tactmp <- data.frame(TAC=TAC, id=id, hitSC=NA, red=NA,
                          barID=FALSE, sd=NA, conv = FALSE,
                          fmfmsy.est=NA,fmfmsy.sd=NA,
@@ -11,11 +13,14 @@ gettacs <- function(tacs=NULL, id="", TAC=NA){
                          cp.est=NA,cp.sd=NA,
                          fmsy.est=NA,fmsy.sd=NA,
                          bmsy.est=NA,bmsy.sd=NA,
-                         sdb.est=NA,sdb.sd=NA,
-                         sdi.est=NA,sdi.sd=NA,
-                         sdf.est=NA,sdf.sd=NA,
-                         sdc.est=NA,sdc.sd=NA,
-                         indBpBx = NA)
+                         sdb.est=NA,sdb.sd=NA)
+    sdi <- rep(c(NA,NA),nis)
+    names(sdi) <- paste0(rep(c("sdi.est","sdi.sd"),nis),rep(1:nis,each=nis))
+    tactmp <- data.frame(c(tactmp,
+                           sdi,
+                           sdf.est=NA,sdf.sd=NA,
+                           sdc.est=NA,sdc.sd=NA,
+                           indBpBx = NA))
     if(is.null(tacs)){
         tacs <- tactmp
     }else{
@@ -23,26 +28,6 @@ gettacs <- function(tacs=NULL, id="", TAC=NA){
     }
     return(tacs)
 }
-
-
-
-## #' @name conscat
-## #' @export
-## conscat <- structure(
-##     function(inp, tacs=NULL){
-##         inp <- check.inp(inp)
-##         if(is.null(tacs)){
-##             indBpBx <- inp$indBpBx
-##         }else{
-##             indBpBx <- tacs$indBpBx[nrow(tacs)]
-##         }
-##         tacs <- gettacs(tacs, id="cc",
-##                         TAC=sum(tail(inp$obsC, 1)))
-##         tacs$indBpBx[nrow(tacs)] <- indBpBx
-##         return(tacs)
-##     },
-##     class="hcr"
-## )
 
 
 
@@ -166,7 +151,7 @@ structure(
             }
         }else barID <- FALSE
 
-        tacs <- gettacs(tacs, id = "',id,'", TAC = TAC)
+        tacs <- gettacs(tacs, id = "',id,'", TAC = TAC, inp=inp)
         tacs$hitSC <- NA
         tacs$barID <- barID
         tacs$red <- red
@@ -277,7 +262,7 @@ defHCRindex <- function(id = "r2_3",
             }
         }else barID <- FALSE
 
-        tacs <- gettacs(tacs, id = "',id,'", TAC = TAC)
+        tacs <- gettacs(tacs, id = "',id,'", TAC = TAC, inp = inp)
         tacs$hitSC <- hitSC
         tacs$barID <- barID
         tacs$red <- red
@@ -371,6 +356,7 @@ structure(
             inp$phases$logn <- -1
             inp$ini$logn <- log(2)
         }
+        if(is.list(inp$obsI)) nis <- length(inp$obsI)
         rep <- try(fit.spict(inp), silent=TRUE)
         if(class(rep) == "try-error" || rep$opt$convergence != 0 || any(is.infinite(rep$sd))){
             tacs <- conscat(inp, tacs=tacs)
@@ -411,8 +397,11 @@ structure(
             sdi <- try(get.par("logsdi",rep, exp=TRUE)[,c(2,4)],silent=TRUE)
             if(all(is.numeric(sdi))){
                 sdi <- round(sdi,2)
-            }else sdi <- c(NA,NA)
-            names(sdi) <- c("sdi.est","sdi.sd")
+                sdi <- as.numeric(t(sdi))
+            }else{
+                sdi <- rep(c(NA,NA),nis)
+            }
+            names(sdi) <- paste0(rep(c("sdi.est","sdi.sd"),nis),rep(1:nis,each=nis))
             sdf <- try(get.par("logsdf",rep, exp=TRUE)[,c(2,4)],silent=TRUE)
             if(all(is.numeric(sdf))){
                 sdf <- round(sdf,2)
@@ -440,6 +429,8 @@ structure(
                 tacs$conv[nrow(tacs)] <- FALSE
             }else{
                 tactmp <- data.frame(TAC=tac, id="',id,'", hitSC=NA,
+                                     red=NA, barID=NA, sd=NA, conv = TRUE)
+                tactmp <- data.frame(TAC=tac, id="spict", hitSC=NA,
                                      red=NA, barID=NA, sd=NA, conv = TRUE)
                 tactmp <- data.frame(c(tactmp, fmfmsy, bpbmsy, cp,
                                        fmsy, bmsy, sdb, sdi, sdf, sdc,
