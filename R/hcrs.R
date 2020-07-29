@@ -11,6 +11,10 @@ gettacs <- function(tacs=NULL, id="", TAC=NA){
                          cp.est=NA,cp.sd=NA,
                          fmsy.est=NA,fmsy.sd=NA,
                          bmsy.est=NA,bmsy.sd=NA,
+                         sdb.est=NA,sdb.sd=NA,
+                         sdi.est=NA,sdi.sd=NA,
+                         sdf.est=NA,sdf.sd=NA,
+                         sdc.est=NA,sdc.sd=NA,
                          indBpBx = NA)
     if(is.null(tacs)){
         tacs <- tactmp
@@ -399,6 +403,26 @@ structure(
                 bmsy <- round(bmsy,2)
             }else bmsy <- c(NA,NA)
             names(bmsy) <- c("bmsy.est","bmsy.sd")
+            sdb <- try(get.par("logsdb",rep, exp=TRUE)[,c(2,4)],silent=TRUE)
+            if(all(is.numeric(sdb))){
+                sdb <- round(sdb,2)
+            }else sdb <- c(NA,NA)
+            names(sdb) <- c("sdb.est","sdb.sd")
+            sdi <- try(get.par("logsdi",rep, exp=TRUE)[,c(2,4)],silent=TRUE)
+            if(all(is.numeric(sdi))){
+                sdi <- round(sdi,2)
+            }else sdi <- c(NA,NA)
+            names(sdi) <- c("sdi.est","sdi.sd")
+            sdf <- try(get.par("logsdf",rep, exp=TRUE)[,c(2,4)],silent=TRUE)
+            if(all(is.numeric(sdf))){
+                sdf <- round(sdf,2)
+            }else sdf <- c(NA,NA)
+            names(sdf) <- c("sdf.est","sdf.sd")
+            sdc <- try(get.par("logsdc",rep, exp=TRUE)[,c(2,4)],silent=TRUE)
+            if(all(is.numeric(sdc))){
+                sdc <- round(sdc,2)
+            }else sdc <- c(NA,NA)
+            names(sdc) <- c("sdc.est","sdc.sd")
             ##
             tac <- try(spict:::get.TAC(rep = rep,
                                        bfac = ',bfac,',
@@ -418,7 +442,8 @@ structure(
                 tactmp <- data.frame(TAC=tac, id="',id,'", hitSC=NA,
                                      red=NA, barID=NA, sd=NA, conv = TRUE)
                 tactmp <- data.frame(c(tactmp, fmfmsy, bpbmsy, cp,
-                                       fmsy, bmsy, indBpBx = indBpBx))
+                                       fmsy, bmsy, sdb, sdi, sdf, sdc,
+                                       indBpBx = indBpBx))
                 if(is.null(tacs)){
                     tacs <- tactmp
                 }else{

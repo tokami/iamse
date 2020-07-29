@@ -25,6 +25,9 @@ runMSE <- function(dat, set, ncores=parallel::detectCores()-1, verbose=TRUE){
 
         if(verbose) writeLines(paste0("Running replicate: ", x))
 
+        ## set seed
+        if(is.numeric(set$seed)) set.seed(set$seed + x)
+
         ## pop list with errors
         pop <- initPop(dat, set)
         ## add reference levels
@@ -99,6 +102,7 @@ runMSE <- function(dat, set, ncores=parallel::detectCores()-1, verbose=TRUE){
         for(i in 1:nrep){
             tmp[[i]] <- res[[i]][[x]]
         }
+        names(tmp) <- 1:nrep
         resList[[x]] <- tmp
     })
     names(res2) <- hcrs

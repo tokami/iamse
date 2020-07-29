@@ -36,18 +36,18 @@ estMets <- function(mse, dat, mets = "all"){
     nrep <- length(mse[[1]])
     nquant <- length(mse[[1]][[1]])
     nysim <- nrow(mse[[1]][[1]]$tacs)
-    dims <- dim(mse[[1]][[1]]$TSB)
+    dims <- dim(mse[[1]][[1]]$CW)
     ny <- dims[1] - nysim
     ns <- dims[2]
 
     hcrs <- names(mse)
 
 
-    metsAll <- c("BBmsyFL","avCatch","avCatchLast5y","BBmsyLowest",
+    metsAll <- c("BBmsyFL","avCatch","avCatchFirst5y","avCatchLast5y","BBmsyLowest",
                  "PBBlim","PBBlimFirst5y","PBBlimLast5y","CatchCV", "avRelCatch",
-                 "avRelCatchLast5y","converged","avCatchFirst5y",
+                 "avRelCatchLast5y","converged",
                  "avRelCatchFirst5y", "BBmsy5y","TimeRecov",
-                 "AAVC","AAVB")
+                 "AAVC","AAVCFirst5y","AAVB")
     if(mets[1] == "all") mets <- metsAll
     if(any(which(!mets %in% metsAll))) writeLines(paste0("Metric ",
                                                          paste0(mets[which(!mets %in% metsAll)], collapse=", "),
@@ -79,6 +79,11 @@ estMets <- function(mse, dat, mets = "all"){
         ## "avCatch"   ### also implement that for rel catch (to ref hcr)
         if(any(mets == "avCatch")){
             tmp <- unlist(lapply(msei, function(x) apply(x$CW,1,sum)[simYears]))
+            res <- rbind(res, quantile(tmp, probs = c(0.025, 0.5, 0.975), na.rm=TRUE))
+        }
+        ## "avCatchFirst5y"
+        if(any(mets == "avCatchFirst5y")){
+            tmp <- unlist(lapply(msei, function(x) apply(x$CW,1,sum)[first5Years]))
             res <- rbind(res, quantile(tmp, probs = c(0.025, 0.5, 0.975), na.rm=TRUE))
         }
         ## "avCatchLast5y"
@@ -147,11 +152,6 @@ estMets <- function(mse, dat, mets = "all"){
                 ))
             res <- rbind(res, c(NA, mean(tmp/nysim) * 100, NA))
         }
-        ## "avCatchFirst5y"
-        if(any(mets == "avCatchFirst5y")){
-            tmp <- unlist(lapply(msei, function(x) apply(x$CW,1,sum)[first5Years]))
-            res <- rbind(res, quantile(tmp, probs = c(0.025, 0.5, 0.975), na.rm=TRUE))
-        }
         ## "avRelCatchFirst5y"
         if(any(mets == "avRelCatchFirst5y")){
             if("refFmsy" %in% hcrs){
@@ -181,6 +181,15 @@ estMets <- function(mse, dat, mets = "all"){
                                         function(x) (((apply(x$CW,1,sum)[simYears] -
                                                        apply(x$CW,1,sum)[simYears+1])/
                                                       apply(x$CW,1,sum)[simYears+1])^2)^0.5),
+                                 mean ,na.rm=TRUE))
+            tmp[is.infinite(tmp)] <- NA
+            res <- rbind(res, quantile(tmp, probs = c(0.025, 0.5, 0.975),na.rm=TRUE))
+        }
+        if(any(mets == "AAVCFirst5y")){
+            tmp <- unlist(lapply(lapply(msei,
+                                        function(x) (((apply(x$CW,1,sum)[first5Years] -
+                                                       apply(x$CW,1,sum)[first5Years+1])/
+                                                      apply(x$CW,1,sum)[first5Years+1])^2)^0.5),
                                  mean ,na.rm=TRUE))
             tmp[is.infinite(tmp)] <- NA
             res <- rbind(res, quantile(tmp, probs = c(0.025, 0.5, 0.975),na.rm=TRUE))
