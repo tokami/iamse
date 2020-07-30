@@ -106,7 +106,7 @@ checkDat <- function(dat){
 
     ## natural mortality
     ##------------------
-    if(!any(names(dat) == "M") || dim(dat$Ms)[2] != dim(dat$plba)){
+    if(!any(names(dat) == "M") || dim(dat$Ms)[2] != tail(dim(dat$plba),1)){
         writeLines("M not defined. Using Gislason's empirical formula for M at length.")
         M <- exp(0.55 - 1.61 * log(dat$LA) + 1.44 * log(dat$linf) + log(dat$k))
         for(i in 1:dim(M)[2]){
