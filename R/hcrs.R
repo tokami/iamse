@@ -53,7 +53,7 @@ defHCRref <- function(consF = 0,
             '
 structure(
     function(inp, tacs=NULL){
-        tacs <- gettacs(tacs, id="',id,'", TAC=NA)
+        tacs <- gettacs(tacs, id="',id,'", TAC=NA, inp=inp)
         return(tacs)
     },
     class="hcr"
@@ -67,7 +67,7 @@ structure(
             '
 structure(
     function(inp, tacs=NULL){
-        tacs <- gettacs(tacs, id="',id,'", TAC=NA)
+        tacs <- gettacs(tacs, id="',id,'", TAC=NA, inp=inp)
         return(tacs)
     },
     class="hcr"
@@ -81,7 +81,7 @@ structure(
             '
 structure(
     function(inp, tacs=NULL){
-        tacs <- gettacs(tacs, id="',id,'", TAC=0)
+        tacs <- gettacs(tacs, id="',id,'", TAC=0, inp=inp)
         return(tacs)
     },
     class="hcr"
