@@ -87,7 +87,7 @@ runMSE <- function(dat, set, ncores=parallel::detectCores()-1, verbose=TRUE){
         writeLines(paste0("Info about failed replicate ",ind,": length = ",
                           length(res[[ind]]), " value = ", res[[ind]], " names = ",
                           names(res[[ind]]),
-                          " length(res) = ", length(res), ))
+                          " length(res) = ", length(res)))
         writeLines("Warning messages: ")
         warnings()
         stop(paste0("Replicate ",ind," does not have the correct length."))
