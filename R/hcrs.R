@@ -317,6 +317,8 @@ defHCRspict <- function(id = "spict-msy",
                         priorlogbeta = c(log(1),2,1),
                         schaefer = 0,
                         bfac = NA,
+                        manstartdY = 1,
+                        intC = NA,
                         env = globalenv()
                         ){
 
@@ -342,21 +344,38 @@ structure(
         inp$reportmode <- ',reportmode,'
         inp$dteuler <- ',dteuler,'
         inp$stabilise <- ',stabilise,'
+        ## Intermediate year
+        manstart <- inp$timeC[length(inp$timeC)] + ',manstartdY,'
+        inp$maninterval <- c(manstart, manstart + 1)
+        ## Check inp
         inp <- check.inp(inp)
+        ## priors
         inp$priors$logn <- c(',priorlogn[1],',',priorlogn[2],',',priorlogn[3],')
         inp$priors$logalpha <- c(',priorlogalpha[1],',',priorlogalpha[2],',',priorlogalpha[3],')
         inp$priors$logbeta <- c(',priorlogbeta[1],',',priorlogbeta[2],',',priorlogbeta[3],')
+        ## Bfac rule
         if(is.null(tacs)){
             indBpBx <- inp$indBpBx
         }else{
             indBpBx <- tacs$indBpBx[nrow(tacs)]
         }
         inp$indBpBx <- indBpBx
+        ## Catch for intermediate year
+        if(is.na(',intC,')){
+            intC2 <- NULL
+        }else{
+            if(is.null(tacs)){
+                intC2 <- tail(inp$obsC,1) ## does not account for seasonal catches!
+            }else{
+                intC2 <- tacs$TAC[nrow(tacs)]
+            }
+        }
         if(',schaefer,'){
             inp$phases$logn <- -1
             inp$ini$logn <- log(2)
         }
         if(is.list(inp$obsI)) nis <- length(inp$obsI)
+        ## inp$optimiser.control <- list(iter.max = 1e3, eval.max = 1e3)
         rep <- try(fit.spict(inp), silent=TRUE)
         if(class(rep) == "try-error" || rep$opt$convergence != 0 || any(is.infinite(rep$sd))){
             tacs <- conscat(inp, tacs=tacs)
@@ -422,6 +441,7 @@ structure(
                                                         fmsy  = ',frf,'),
                                        breakpointB = ',breakpointB,',
                                        safeguardB = list(limitB = ',limitB,',prob = ',prob,'),
+                                       intermediatePeriodCatch = intC2,
                                        verbose = FALSE),
                        silent = TRUE)
             if(inherits(tac, "try-error") || !is.numeric(tac)){
@@ -454,21 +474,6 @@ structure(
     ## allow for assigning names
     invisible(id)
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
