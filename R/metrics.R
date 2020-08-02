@@ -44,7 +44,8 @@ estMets <- function(mse, dat, mets = "all"){
 
 
     metsAll <- c("BBmsyFL","avCatch","avCatchFirst5y","avCatchLast5y","BBmsyLowest",
-                 "PBBlim","PBBlimFirst5y","PBBlimLast5y","CatchCV", "avRelCatch",
+                 "PBBlim","PBBlim2",
+                 "PBBlimFirst5y","PBBlimLast5y","CatchCV", "avRelCatch",
                  "avRelCatchLast5y","converged",
                  "avRelCatchFirst5y", "BBmsy5y","TimeRecov",
                  "AAVC","AAVCFirst5y","AAVB")
@@ -100,6 +101,12 @@ estMets <- function(mse, dat, mets = "all"){
         ## "PBBlim"
         if(any(mets == "PBBlim")){
             tmp <- unlist(lapply(msei, function(x) mean(x$TSBfinal[simYears]/refs$Blim < 1)))
+            tmp <- prop.test(sum(tmp), n = length(tmp), conf.level = 0.95, correct = FALSE)
+            res <- rbind(res, c(tmp$conf.int[1],tmp$estimate,tmp$conf.int[2]))
+        }
+        ## "PBBlim2"
+        if(any(mets == "PBBlim2")){
+            tmp <- unlist(lapply(msei, function(x) mean(x$TSB[simYears,1]/refs$Blim < 1)))
             tmp <- prop.test(sum(tmp), n = length(tmp), conf.level = 0.95, correct = FALSE)
             res <- rbind(res, c(tmp$conf.int[1],tmp$estimate,tmp$conf.int[2]))
         }
