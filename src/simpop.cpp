@@ -211,7 +211,11 @@ List simpop(double logFM, List dat, List set, int out) {
       // }
       CW(y) += Ctmp;
 
-      if(s == 0){
+      for(int a=0; a<amax; a++){
+        Ntemp(a) = NAA(a) * exp(-ZAA(a,s));
+        NAA(a) = Ntemp(a);
+      }
+      if(s == (ns-1)){
         for(int a=0; a<amax; a++){
           // biomasses
           Bage(a) = NAA(a) * weights(a,s);
@@ -223,11 +227,6 @@ List simpop(double logFM, List dat, List set, int out) {
           ESB(y) += ESBage(a);
         }
       }
-
-      for(int a=0; a<amax; a++){
-        Ntemp(a) = NAA(a) * exp(-ZAA(a,s));
-        NAA(a) = Ntemp(a);
-      }
       if(s == (ns-1)){
         NAA(amax-1) = Ntemp(amax-1) + Ntemp(amax-2);
         for(int a=1; a<(amax-1); a++){
@@ -237,8 +236,8 @@ List simpop(double logFM, List dat, List set, int out) {
     }
   }
 
-  for(int y=0; y<(ny-1); y++){
-    SP(y) = TSB(y+1) - TSB(y) + CW(y);
+  for(int y=1; y<ny; y++){
+    SP(y) = TSB(y) - TSB(y-1) + CW(y);  // SP(y) = TSB(y+1) - TSB(y) + CW(y);  // if TSB in first season
   }
 
   List res;

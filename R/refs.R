@@ -102,14 +102,14 @@ estRef <- function(dat, set=NULL, fvec = seq(0,5,0.1),
     nt <- ny * ns
 
     if(is.null(set)) set <- checkSet()
-        ## Remove variability
-        set$sigmaF <- 0
-        set$sigmaR <- 0
-        set$rhoR <- 0
-        set$sigmaM <- 0
-        set$sigmaH <- 0
-        set$sigmaMat <- 0
-        set$sigmaR0 <- 0
+    ## Remove variability
+    set$sigmaF <- 0
+    set$sigmaR <- 0
+    set$rhoR <- 0
+    set$sigmaM <- 0
+    set$sigmaH <- 0
+    set$sigmaMat <- 0
+    set$sigmaR0 <- 0
     set$sigmaImp <- 0
 
     if(any(ref %in% c("Fmsy","Bmsy","MSY"))){
