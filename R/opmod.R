@@ -97,7 +97,7 @@ initPop <- function(dat, set = NULL, out.opt = 1){
 
     ## containers
     TSB <- TSB1plus <- ESB <- SSB <- CW <- FM <- matrix(0, nrow=ny, ncol=ns)
-    TACs <- TSBfinal <- rec <- rep(NA, ny)
+    TACs <- TSBfinal <- ESBfinal <- rec <- rep(NA, ny)
     obsI <- vector("list", nsurv)
     timeI <- vector("list", nsurv)
     ## burnin period
@@ -204,6 +204,7 @@ initPop <- function(dat, set = NULL, out.opt = 1){
             if(s == ns){
                 ## end of year biomass for risk P(B/Blim)
                 TSBfinal[y] <- sum(NAA * weights[,ns])
+                ESBfinal[y] <- sum(NAA * weights[,ns] * sels[,ns])
                 ## Ageing by year
                 NAA[amax] <- Ntemp[amax] + Ntemp[amax-1]
                 for(a in 2:(amax-1)) NAA[a] <- Ntemp[a-1]
@@ -246,6 +247,7 @@ initPop <- function(dat, set = NULL, out.opt = 1){
         out$lastNAA <- NAA
         out$lastFAA <- FAA[,ns]
         out$TSBfinal <- TSBfinal
+        out$ESBfinal <- ESBfinal
         out$rec <- rec
         out$TSB <- TSB
         out$TSB1plus <- TSB1plus
@@ -366,6 +368,7 @@ advancePop <- function(dat, hist, set, tacs){
     FAA <- ZAA <- MAA <- matrix(NA, amax, ns)
     TACs <- c(hist$TACs, NA)
     TSBfinal <- c(hist$TSBfinal, NA)
+    ESBfinal <- c(hist$ESBfinal, NA)
     TACreal <- rep(NA, ns)
     ## for observations
     if(!is.null(hist$inp$obsC)){
@@ -474,6 +477,7 @@ advancePop <- function(dat, hist, set, tacs){
         if(s == ns){
             ## end of year biomass for risk P(B/Blim)
             TSBfinal[y] <- sum(NAA * weights[,ns])
+            ESBfinal[y] <- sum(NAA * weights[,ns] * sels[,ns])
             ## Ageing by year
             NAA[amax] <- Ntemp[amax] + Ntemp[amax-1]
             for(a in 2:(amax-1)) NAA[a] <- Ntemp[a-1]
@@ -513,6 +517,7 @@ advancePop <- function(dat, hist, set, tacs){
     out$lastFAA <- FAA[,ns]
     out$TSB <- TSB
     out$TSBfinal <- TSBfinal
+    out$ESBfinal <- ESBfinal
     out$ESB <- ESB
     out$SSB <- SSB
     out$FM <- FM
