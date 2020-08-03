@@ -13,26 +13,30 @@ getConvs <- function(mse, convyears = "all", convhcrs = "all", verbose = FALSE){
     ny <- dims[1] - nysim
     ns <- dims[2]
 
-    if(convyears[1] == "all") convyears <- 1:ny
-    if(convhcrs[1] == "all") convhcrs <- 1:nhcr
+    if(!is.na(convyears[1]) && convyears[1] == "all")
+        convyears <- 1:ny
+    if(!is.na(convhcrs[1]) && convhcrs[1] == "all")
+        convhcrs <- 1:nhcr
 
 
-    indlist <- vector("list",nhcr)
-    for(hcr in 1:nhcr){
-        tmp <- do.call(rbind,lapply(mse[[hcr]], function(x) x[["tacs"]]$conv))
-        indlist[[hcr]] <- apply(tmp[,convyears], 1, all)
+    if(is.numeric(convhcrs[1]) && is.numeric(convyears[1])){
+        indlist <- vector("list",nhcr)
+        for(hcr in 1:nhcr){
+            tmp <- do.call(rbind,lapply(mse[[hcr]], function(x) x[["tacs"]]$conv))
+            indlist[[hcr]] <- apply(tmp[,convyears], 1, all)
+        }
+        ## across hcrs only
+        indlist2 <- do.call(cbind,indlist[convhcrs])
+
+        ## ## across hcrs and scens
+        ## tmp <- lapply(indlist, function(x) do.call(cbind,x[convhcrs]))
+        ## tmp2 <- do.call(cbind, tmp)
+        ## print(5*length(which(apply(tmp2, 1, all))))
+        inds <- which(apply(indlist2,1,all))
+    }else{
+        inds <- 1:nrep
     }
 
-    ## across hcrs only
-    indlist2 <- do.call(cbind,indlist[convhcrs])
-
-
-    ## ## across hcrs and scens
-    ## tmp <- lapply(indlist, function(x) do.call(cbind,x[convhcrs]))
-    ## tmp2 <- do.call(cbind, tmp)
-    ## print(5*length(which(apply(tmp2, 1, all))))
-
-    inds <- which(apply(indlist2,1,all))
     if(verbose)
         writeLines(paste0("Converged reps: ",length(inds), " of ",nrep,
                           " reps = ",round(length(inds)/nrep*100),"%"))

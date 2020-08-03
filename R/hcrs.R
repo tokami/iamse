@@ -432,33 +432,38 @@ structure(
             }else sdc <- c(NA,NA)
             names(sdc) <- c("sdc.est","sdc.sd")
             ##
-            tac <- try(spict:::get.TAC(rep = rep,
-                                       bfac = ',bfac,',
-                                       fractiles = list(catch = ',frc,',
-                                                        ffmsy = ',frff,',
-                                                        bbmsy = ',frbb,',
-                                                        bmsy  = ',frb,',
-                                                        fmsy  = ',frf,'),
-                                       breakpointB = ',breakpointB,',
-                                       safeguardB = list(limitB = ',limitB,',prob = ',prob,'),
-                                       intermediatePeriodCatch = intC2,
-                                       verbose = FALSE),
-                       silent = TRUE)
-            if(inherits(tac, "try-error") || !is.numeric(tac)){
+            quantstmp <- c(fmfmsy, bpbmsy, cp, fmsy, bmsy, sdb, sdi, sdf, sdc)
+            if(any(is.na(quantstmp))){
                 tacs <- conscat(inp, tacs=tacs)
                 tacs$conv[nrow(tacs)] <- FALSE
             }else{
-                tactmp <- data.frame(TAC=tac, id="',id,'", hitSC=NA,
-                                     red=NA, barID=NA, sd=NA, conv = TRUE)
-                tactmp <- data.frame(TAC=tac, id="spict", hitSC=NA,
-                                     red=NA, barID=NA, sd=NA, conv = TRUE)
-                tactmp <- data.frame(c(tactmp, fmfmsy, bpbmsy, cp,
-                                       fmsy, bmsy, sdb, sdi, sdf, sdc,
-                                       indBpBx = indBpBx))
-                if(is.null(tacs)){
-                    tacs <- tactmp
+                tac <- try(spict:::get.TAC(rep = rep,
+                                           bfac = ',bfac,',
+                                           fractiles = list(catch = ',frc,',
+                                                            ffmsy = ',frff,',
+                                                            bbmsy = ',frbb,',
+                                                            bmsy  = ',frb,',
+                                                            fmsy  = ',frf,'),
+                                           breakpointB = ',breakpointB,',
+                                           safeguardB = list(limitB = ',limitB,',prob = ',prob,'),
+                                           intermediatePeriodCatch = intC2,
+                                           verbose = FALSE),
+                           silent = TRUE)
+                if(inherits(tac, "try-error") || !is.numeric(tac)){
+                    tacs <- conscat(inp, tacs=tacs)
+                    tacs$conv[nrow(tacs)] <- FALSE
                 }else{
-                    tacs <- rbind(tacs, tactmp)
+                    tactmp <- data.frame(TAC=tac, id="',id,'", hitSC=NA,
+                                         red=NA, barID=NA, sd=NA, conv = TRUE)
+                    tactmp <- data.frame(TAC=tac, id="spict", hitSC=NA,
+                                         red=NA, barID=NA, sd=NA, conv = TRUE)
+                    tactmp <- data.frame(c(tactmp, quantstmp,
+                                           indBpBx = indBpBx))
+                    if(is.null(tacs)){
+                        tacs <- tactmp
+                    }else{
+                        tacs <- rbind(tacs, tactmp)
+                    }
                 }
             }
         }
@@ -474,7 +479,6 @@ structure(
     ## allow for assigning names
     invisible(id)
 }
-
 
 
 ## 2/3
