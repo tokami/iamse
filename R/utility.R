@@ -358,15 +358,47 @@ baranov <- function(FAA,M,NAA){
 }
 
 
-#' @name getFAA
+#' @name getFM
 #' @export
 getFM <- function(TAC, NAA, M, weight, sel){
     tacEst <- function(FM, NAA, M, sel, weight, TAC){
-        (TAC - sum(baranov(exp(FM) * sel, M, NAA) * weight))^2
+        (TAC - sum(baranov(exp(FM) * sel, M, NAA*exp(-M/2)) * weight))^2
     }
     opt <- optimise(tacEst, c(-10,10), NAA = NAA, M = M, TAC = TAC,
                     weight = weight, sel = sel)
     return(exp(opt$minimum))
+}
+
+
+#' @name getFM2
+#' @description Hybrid method (Methot and Wetzel)
+#' @export
+getFM2 <- function(TAC, TSB, ds, M, NAA, weight, weightF, sel, fmax = 1){
+    fout <- 0
+    if(TAC > 0){
+        tmp <- TAC/(TSB + 0.1*TAC)
+        j <- (1 + exp(30 * (tmp - 0.95)))^-1
+        tmp2 <- j * tmp + 0.95 * (1 - j)
+        fout <- -log(1 - tmp2) / ds
+        for(i in 1:4){
+            Fs <- fout * sel
+            Z <- M + Fs
+            Alpha <- (1 - exp(-Z))
+            Ctmp <- sum((Fs/Z) * (NAA * weightF * sel) * Alpha)
+
+            Zadj <- TAC/(Ctmp + 0.0001)
+
+            Zprime <- M + Zadj * (Z - M)
+            Alpha <- (1 - exp(-Zprime))/(Zprime)
+
+            tmp <- sum(NAA * weight * sel * Alpha)
+            Ftmp <-  TAC/(tmp + 0.0001)
+            j2 <- 1/(1 + exp(30 * (Ftmp - 0.95 * fmax)))
+
+            fout <- j2 * Ftmp + (1 - j2)
+        }
+    }
+    return(fout)
 }
 
 

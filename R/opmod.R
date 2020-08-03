@@ -122,9 +122,9 @@ initPop <- function(dat, set = NULL, out.opt = 1){
                 Btemp <- sum(NAAbi * weights[,s] * sels[,s] * exp(-Ms[,s]/2))
                 CWbi <- sum(baranov(Fbi[,s], Ms[,s], NAAbi) * weightFs[,s])
                 if(CWbi > 0.99 * Btemp){
-                    Fbi[,s] <- sels[,s] * min(set$maxF/ns,
-                                          getFM(0.75 * Btemp, NAA = NAAbi,
-                                                M = Ms[,s], weight = weightFs[,s], sel = sels[,s]))
+                    Fbi[,s] <- sels[,s] * getFM2(0.75 * Btemp, Btemp, 1/ns, Ms[,s], NAAbi,
+                                                 weights[,s], weightFs[,s], sels[,s],
+                                                 fmax = set$maxF/ns)
                     Zbi <- Ms + Fbi
                 }
                 ## ageing by season or year
@@ -170,9 +170,8 @@ initPop <- function(dat, set = NULL, out.opt = 1){
             CAA <- baranov(FAA[,s], MAA[,s], NAA)
             CW[y,s] <- sum(CAA * weightFs[,s])
             if(CW[y,s] > 0.99 * Btemp){
-                FM[y,s] <- min(set$maxF/ns,
-                               getFM(0.75 * Btemp, NAA = NAA,
-                                     M = MAA[,s], weight = weightFs[,s], sel = sels[,s]))
+                FM[y,s] <- getFM2(0.75 * Btemp, Btemp, 1/ns, MAA[,s], NAA, weights[,s],
+                                                 weightFs[,s], sels[,s], fmax = set$maxF/ns)
                 FAA[,s] <- FM[y,s] * sels[,s]
                 ZAA[,s] <- MAA[,s] + FAA[,s]
                 CAA <- baranov(FAA[,s], MAA[,s], NAA)
@@ -434,9 +433,8 @@ advancePop <- function(dat, hist, set, tacs){
         CAA <- baranov(FAA[,s], MAA[,s], NAA)
         CW[y,s] <- sum(CAA * weightFs[,s])
         if(CW[y,s] > 0.99 * Btemp){
-            FM[y,s] <- min(set$maxF/ns,
-                             getFM(0.75 * Btemp, NAA = NAA,
-                                   M = MAA[,s], weight = weightFs[,s], sel = sels[,s]))
+            FM[y,s] <- getFM2(0.75 * Btemp, Btemp, 1/ns, MAA[,s], NAA, weights[,s],
+                              weightFs[,s], sels[,s], fmax = set$maxF/ns)
             FAA[,s] <- FM[y,s] * sels[,s]
             ZAA[,s] <- MAA[,s] + FAA[,s]
             CAA <- baranov(FAA[,s], MAA[,s], NAA)

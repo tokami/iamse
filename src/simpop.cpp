@@ -197,7 +197,7 @@ List simpop(double logFM, List dat, List set, int out) {
       // can't catch more than what's there
       // if(Ctmp > 0.99 * Btmp){
       //   for(int a=0; a<amax; a++){
-      //     Ftmp = as<double>(getFM(0.75 * Btmp, NAA, MAA(_,s), weightFs(_,s), sels(_,s)));
+      //     Ftmp = as<double>(getFM(0.75 * Btmp, NAA, MAA(_,s), weightFs(_,s), sels(_,s))); // if using this, use getFM2
       //     if(Ftmp > maxF/ns){
       //       Ftmp = maxF / ns;
       //     }

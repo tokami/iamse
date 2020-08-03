@@ -1,6 +1,77 @@
 ## estimate reference levels for OM
 
+#' @name estRef
+#'
+#' @importFrom parallel detectCores
+#' @importFrom parallel mclapply
+#'
+#' @export
+#'
+estRef <- function(dat, set=NULL, fvec = seq(0,5,0.1),
+                   ncores=parallel::detectCores()-1,
+                   ref = c("Fmsy","Bmsy","MSY","B0"),
+                   plot = FALSE){
 
+    ny <- dat$ny
+    ns <- dat$nseasons
+    nt <- ny * ns
+
+    if(is.null(set)) set <- checkSet()
+    ## Remove variability
+    set$sigmaF <- 0
+    set$sigmaR <- 0
+    set$rhoR <- 0
+    set$sigmaM <- 0
+    set$sigmaH <- 0
+    set$sigmaMat <- 0
+    set$sigmaR0 <- 0
+    set$sigmaImp <- 0
+
+    if(any(ref %in% c("Fmsy","Bmsy","MSY"))){
+        res0 <- parallel::mclapply(as.list(fvec),
+                                   function(x){
+                                       with(simpop(log(x), dat, set, out = 0),
+                                            c(x,
+                                              head(tail(TSB,2),1),
+                                              head(tail(SP,2),1),
+                                              head(tail(CW,2),1)))
+                                   },
+                                   mc.cores = ncores)
+
+        ## refs
+        res <- do.call(cbind, res0)
+        msy <- res[4, which.max(res[3,])]
+        fmsy <- res[1, which.max(res[3,])]
+        bmsy <- res[2, which.max(res[3,])]
+        binf <- res[2, which.max(res[2,])]
+
+        if(plot){
+            plot(fvec, res[3,], ty='b')
+        }
+    }
+
+
+    ## B0
+    if(any(ref == "B0")){
+        unfished <- simpop(log(1e-20), dat, set, out = 0)
+        b0 <- tail(unfished$TSB,1) ## CHECK: why TSB1plus?
+    }
+
+
+    refs <- list()
+    if(any(ref == "Fmsy")) refs$Fmsy = fmsy
+    if(any(ref == "MSY")) refs$MSY = msy
+    if(any(ref == "Bmsy")) refs$Bmsy = bmsy
+    if(any(ref == "B0")) refs$B0 = b0
+
+    dat$ref <- refs
+
+    ## return
+    return(dat)
+}
+
+
+## not up to date: simpop.cpp used instead
 
 #' @name simpopR
 #' @export
@@ -84,76 +155,6 @@ simpopR <- function(FM, dat, set){
                 SSB=SSBy))
 }
 
-
-#' @name estRef
-#'
-#' @importFrom parallel detectCores
-#' @importFrom parallel mclapply
-#'
-#' @export
-#'
-estRef <- function(dat, set=NULL, fvec = seq(0,5,0.1),
-                   ncores=parallel::detectCores()-1,
-                   ref = c("Fmsy","Bmsy","MSY","B0"),
-                   plot = FALSE){
-
-    ny <- dat$ny
-    ns <- dat$nseasons
-    nt <- ny * ns
-
-    if(is.null(set)) set <- checkSet()
-    ## Remove variability
-    set$sigmaF <- 0
-    set$sigmaR <- 0
-    set$rhoR <- 0
-    set$sigmaM <- 0
-    set$sigmaH <- 0
-    set$sigmaMat <- 0
-    set$sigmaR0 <- 0
-    set$sigmaImp <- 0
-
-    if(any(ref %in% c("Fmsy","Bmsy","MSY"))){
-        res0 <- parallel::mclapply(as.list(fvec),
-                                   function(x){
-                                       with(simpop(log(x), dat, set, out = 0),
-                                            c(x,
-                                              head(tail(TSB,2),1),
-                                              head(tail(SP,2),1),
-                                              head(tail(CW,2),1)))
-                                   },
-                                   mc.cores = ncores)
-
-        ## refs
-        res <- do.call(cbind, res0)
-        msy <- res[4, which.max(res[3,])]
-        fmsy <- res[1, which.max(res[3,])]
-        bmsy <- res[2, which.max(res[3,])]
-        binf <- res[2, which.max(res[2,])]
-
-        if(plot){
-            plot(fvec, res[3,], ty='b')
-        }
-    }
-
-
-    ## B0
-    if(any(ref == "B0")){
-        unfished <- simpop(log(1e-20), dat, set, out = 0)
-        b0 <- tail(unfished$TSB,1) ## CHECK: why TSB1plus?
-    }
-
-
-    refs <- list()
-    if(any(ref == "Fmsy")) refs$Fmsy = fmsy
-    if(any(ref == "MSY")) refs$MSY = msy
-    if(any(ref == "Bmsy")) refs$Bmsy = bmsy
-    if(any(ref == "B0")) refs$B0 = b0
-
-    dat$ref <- refs
-
-    ## return
-    return(dat)
-}
 
 
 #' @name estRefStoch

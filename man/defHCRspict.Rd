@@ -17,6 +17,8 @@ defHCRspict(
   priorlogbeta = c(log(1), 2, 1),
   schaefer = 0,
   bfac = NA,
+  manstartdY = 1,
+  intC = NA,
   env = globalenv()
 )
 }
