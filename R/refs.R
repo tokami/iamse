@@ -9,7 +9,7 @@
 #'
 estRef <- function(dat, set=NULL, fvec = seq(0,5,0.1),
                    ncores=parallel::detectCores()-1,
-                   ref = c("Fmsy","Bmsy","MSY","B0"),
+                   ref = c("Fmsy","Bmsy","MSY","ESBmsy","SSBmsy","B0"),
                    plot = FALSE){
 
     ny <- dat$ny
@@ -34,7 +34,11 @@ estRef <- function(dat, set=NULL, fvec = seq(0,5,0.1),
                                             c(x,
                                               head(tail(TSB,2),1),
                                               head(tail(SP,2),1),
-                                              head(tail(CW,2),1)))
+                                              head(tail(CW,2),1),
+                                              head(tail(ESB,2),1),
+                                              head(tail(SSB,2),1)
+                                              )
+                                            )
                                    },
                                    mc.cores = ncores)
 
@@ -44,6 +48,8 @@ estRef <- function(dat, set=NULL, fvec = seq(0,5,0.1),
         fmsy <- res[1, which.max(res[3,])]
         bmsy <- res[2, which.max(res[3,])]
         binf <- res[2, which.max(res[2,])]
+        esbmsy <- res[5, which.max(res[3,])]
+        ssbmsy <- res[6, which.max(res[3,])]
 
         if(plot){
             plot(fvec, res[3,], ty='b')
@@ -62,6 +68,8 @@ estRef <- function(dat, set=NULL, fvec = seq(0,5,0.1),
     if(any(ref == "Fmsy")) refs$Fmsy = fmsy
     if(any(ref == "MSY")) refs$MSY = msy
     if(any(ref == "Bmsy")) refs$Bmsy = bmsy
+    if(any(ref == "ESBmsy")) refs$ESBmsy = esbmsy
+    if(any(ref == "SSBmsy")) refs$SSBmsy = ssbmsy
     if(any(ref == "B0")) refs$B0 = b0
 
     dat$ref <- refs
