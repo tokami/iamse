@@ -18,8 +18,7 @@ getConvs <- function(mse, convyears = "all", convhcrs = "all", verbose = FALSE){
     if(!is.na(convhcrs[1]) && convhcrs[1] == "all")
         convhcrs <- 1:nhcr
 
-
-    if(is.numeric(convhcrs[1]) && is.numeric(convyears[1])){
+    if(is.numeric(convyears[1]) && is.numeric(convhcrs[1])){
         indlist <- vector("list",nhcr)
         for(hcr in 1:nhcr){
             tmp <- do.call(rbind,lapply(mse[[hcr]], function(x) x[["tacs"]]$conv))
@@ -33,18 +32,33 @@ getConvs <- function(mse, convyears = "all", convhcrs = "all", verbose = FALSE){
         ## tmp2 <- do.call(cbind, tmp)
         ## print(5*length(which(apply(tmp2, 1, all))))
         inds <- which(apply(indlist2,1,all))
+
+        if(verbose)
+            writeLines(paste0("Converged reps: ",length(inds), " of ",nrep,
+                              " reps = ",round(length(inds)/nrep*100),"%"))
+        res <- vector("list",nhcr)
+        for(hcr in 1:nhcr){
+            res[[hcr]] <- mse[[hcr]][inds]
+            names(res[[hcr]]) <- inds
+        }
     }else{
-        inds <- 1:nrep
+        hcr <- 3
+        res <- vector("list",nhcr)
+        for(hcr in 1:nhcr){
+            id <- unique(mse[[hcr]][[1]]$tacs$id)[1]
+            if(!(id %in% c("noF","refFmsy"))){
+                tmp <- do.call(rbind,lapply(mse[[hcr]], function(x) x[["tacs"]]$conv))
+                inds <- which(apply(tmp[,convyears], 1, all))
+                as.numeric(inds)
+            }else inds <- 1:nrep
+            if(verbose)
+                writeLines(paste0("Converged reps: ",length(inds), " of ",nrep,
+                                  " reps = ",round(length(inds)/nrep*100),"%"))
+            res[[hcr]] <- mse[[hcr]][inds]
+            names(res[[hcr]]) <- inds
+        }
     }
 
-    if(verbose)
-        writeLines(paste0("Converged reps: ",length(inds), " of ",nrep,
-                          " reps = ",round(length(inds)/nrep*100),"%"))
-    res <- vector("list",nhcr)
-    for(hcr in 1:nhcr){
-        res[[hcr]] <- mse[[hcr]][inds]
-        names(res[[hcr]]) <- inds
-    }
 
     ## return
     return(res)
