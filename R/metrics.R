@@ -12,13 +12,13 @@ estConsMets <- function(mse, dat, mets = "all",
     nsamp <- length(sampleSizes)
     nhcr <- length(mse)
     ## nreps <- sapply(mse, length)
-    nrep <- length(mse[[1]])
+    nreps <- sapply(mse, length)
 
     res <- vector("list", nsamp)
     for(samp in 1:nsamp){
-        sampi <- floor(sampleSizes[samp] * nrep)
-        ind <- sample(1:nrep, sampi)
-        msei <- lapply(mse, function(x) x[ind])
+        sampi <- floor(sampleSizes[samp] * nreps)
+        ind <- sapply(1:nhcr, function(x) sample(1:nreps[x], sampi[x]))
+        msei <- lapply(1:nhcr, function(x) mse[[x]][ind[[x]]])
         res[[samp]] <- estMets(msei, dat = dat, mets = mets)
     }
 
@@ -43,12 +43,19 @@ estMets <- function(mse, dat, mets = "all"){
     hcrs <- names(mse)
 
 
-    metsAll <- c("BBmsyFL","avCatch","avCatchFirst5y","avCatchLast5y","BBmsyLowest",
-                 "PBBlim","PBBlim2",
+    metsAll <- c("CMSY","PBBlim","AAVC",
+                 "CMSYST","PBBlimST",
+                 "CMSYLT","PBBlimLT",
+                 "CMSYMaxAge","PBBlimMaxAge",
+                 "BBmsy","BBmsyLT",
+                 ## OLDER:
+                 "BBmsyFL","avCatch",
+                 "avCatchFirst5y","avCatchLast5y","BBmsyLowest",
+                 "PBBlim2",
                  "PBBlimFirst5y","PBBlimLast5y","CatchCV", "avRelCatch",
                  "avRelCatchLast5y","converged",
                  "avRelCatchFirst5y", "BBmsy5y","TimeRecov",
-                 "AAVC","AAVCFirst5y","AAVB")
+                 "AAVCFirst5y","AAVB")
     if(mets[1] == "all") mets <- metsAll
     if(any(which(!mets %in% metsAll))) writeLines(paste0("Metric ",
                                                          paste0(mets[which(!mets %in% metsAll)], collapse=", "),
@@ -62,6 +69,10 @@ estMets <- function(mse, dat, mets = "all"){
     last5Years <- (finalYear - 4) : finalYear
     first5Years <- (ny + 1) : (ny + 5)
     simYears <- (ny + 1) : finalYear
+    last10Years <- (finalYear - 9) : finalYear
+    first10Years <- (ny + 1) : (ny + 10)
+    last15Years <- (finalYear - 14) : finalYear
+    first15Years <- (ny + 1) : (ny + 15)
 
     ## TODO: make part of mse
     refs <- dat$ref
@@ -72,6 +83,73 @@ estMets <- function(mse, dat, mets = "all"){
         nrep <- length(mse[[hcr]])
         msei <- mse[[hcr]]
         res <- NULL
+        ## CMSY
+        if(any(mets == "CMSY")){
+            tmp <- unlist(lapply(msei, function(x) median(apply(x$CW,1,sum)[simYears] / refs$MSY)))
+            res <- rbind(res, quantile(tmp, probs = c(0.025, 0.5, 0.975), na.rm=TRUE))
+        }
+        ## "PBBlim"
+        if(any(mets == "PBBlim")){
+            tmp <- unlist(lapply(msei, function(x) mean(x$TSBfinal[simYears] / refs$Blim < 1)))
+            tmp <- prop.test(sum(tmp), n = length(tmp), conf.level = 0.95, correct = FALSE)
+            res <- rbind(res, c(tmp$conf.int[1],tmp$estimate,tmp$conf.int[2]))
+        }
+        ## "AAVC"
+        if(any(mets == "AAVC")){
+            tmp <- unlist(lapply(lapply(msei,
+                                        function(x) (((apply(x$CW,1,sum)[simYears] -
+                                                       apply(x$CW,1,sum)[simYears+1])/
+                                                      apply(x$CW,1,sum)[simYears+1])^2)^0.5),
+                                 mean ,na.rm=TRUE))
+            tmp[is.infinite(tmp)] <- NA
+            res <- rbind(res, quantile(tmp, probs = c(0.025, 0.5, 0.975),na.rm=TRUE))
+        }
+        ## CMSYST
+        if(any(mets == "CMSYST")){
+            tmp <- unlist(lapply(msei, function(x) median(apply(x$CW,1,sum)[first5Years] / refs$MSY)))
+            res <- rbind(res, quantile(tmp, probs = c(0.025, 0.5, 0.975), na.rm=TRUE))
+        }
+        ## "PBBlimST"
+        if(any(mets == "PBBlimST")){
+            tmp <- unlist(lapply(msei, function(x) mean(x$TSBfinal[first5Years] / refs$Blim < 1)))
+            tmp <- prop.test(sum(tmp), n = length(tmp), conf.level = 0.95, correct = FALSE)
+            res <- rbind(res, c(tmp$conf.int[1],tmp$estimate,tmp$conf.int[2]))
+        }
+        ## CMSYLT
+        if(any(mets == "CMSYLT")){
+            tmp <- unlist(lapply(msei, function(x) median(apply(x$CW,1,sum)[last15Years] / refs$MSY)))
+            res <- rbind(res, quantile(tmp, probs = c(0.025, 0.5, 0.975), na.rm=TRUE))
+        }
+        ## "PBBlimLT"
+        if(any(mets == "PBBlimLT")){
+            tmp <- unlist(lapply(msei, function(x) mean(x$TSBfinal[last15Years] / refs$Blim < 1)))
+            tmp <- prop.test(sum(tmp), n = length(tmp), conf.level = 0.95, correct = FALSE)
+            res <- rbind(res, c(tmp$conf.int[1],tmp$estimate,tmp$conf.int[2]))
+        }
+        ## CMSYMaxAge
+        if(any(mets == "CMSYMaxAge")){
+            tmp <- unlist(lapply(msei, function(x) median(apply(x$CW,1,sum)[min(simYears):(min(simYears)+dat$amax)] /
+                                                   refs$MSY)))
+            res <- rbind(res, quantile(tmp, probs = c(0.025, 0.5, 0.975), na.rm=TRUE))
+        }
+        ## "PBBlimMaxAge"
+        if(any(mets == "PBBlimMaxAge")){
+            tmp <- unlist(lapply(msei, function(x) mean(x$TSBfinal[min(simYears):(min(simYears)+dat$amax)]/
+                                                        refs$Blim < 1)))
+            tmp <- prop.test(sum(tmp), n = length(tmp), conf.level = 0.95, correct = FALSE)
+            res <- rbind(res, c(tmp$conf.int[1],tmp$estimate,tmp$conf.int[2]))
+        }
+        ## "BBmsy"
+        if(any(mets == "BBmsy")){
+            tmp <- unlist(lapply(msei, function(x) median(x$TSBfinal[simYears] / refs$Bmsy)))
+            res <- rbind(res, quantile(tmp, probs = c(0.025, 0.5, 0.975), na.rm=TRUE))
+        }
+        ## "BBmsyLT"
+        if(any(mets == "BBmsyLT")){
+            tmp <- unlist(lapply(msei, function(x) median(x$TSBfinal[last5Years] / refs$Bmsy)))
+            res <- rbind(res, quantile(tmp, probs = c(0.025, 0.5, 0.975), na.rm=TRUE))
+        }
+        ## OLDER:
         ## "BBmsyFL"
         if(any(mets == "BBmsyFL")){
             tmp <- unlist(lapply(msei, function(x) x$TSBfinal[finalYear]/refs$Bmsy))
@@ -98,12 +176,12 @@ estMets <- function(mse, dat, mets = "all"){
                                  function(y) min(y, na.rm=TRUE)))
             res <- rbind(res, quantile(tmp, probs = c(0.025, 0.5, 0.975), na.rm=TRUE))
         }
-        ## "PBBlim"
-        if(any(mets == "PBBlim")){
-            tmp <- unlist(lapply(msei, function(x) mean(x$TSBfinal[simYears]/refs$Blim < 1)))
-            tmp <- prop.test(sum(tmp), n = length(tmp), conf.level = 0.95, correct = FALSE)
-            res <- rbind(res, c(tmp$conf.int[1],tmp$estimate,tmp$conf.int[2]))
-        }
+        ## ## "PBBlim"
+        ## if(any(mets == "PBBlim")){
+        ##     tmp <- unlist(lapply(msei, function(x) mean(x$TSBfinal[simYears]/refs$Blim < 1)))
+        ##     tmp <- prop.test(sum(tmp), n = length(tmp), conf.level = 0.95, correct = FALSE)
+        ##     res <- rbind(res, c(tmp$conf.int[1],tmp$estimate,tmp$conf.int[2]))
+        ## }
         ## "PBBlim2"
         if(any(mets == "PBBlim2")){
             tmp <- unlist(lapply(msei, function(x) mean(x$TSB[simYears,1]/refs$Blim < 1)))
@@ -180,16 +258,6 @@ estMets <- function(mse, dat, mets = "all"){
             tmp <- unlist(lapply(lapply(msei, function(x) x$TSBfinal[simYears]/refs$Bmsy),
                                  function(y) min(which(y > 1),na.rm=TRUE)))
             tmp[is.infinite(tmp)] <- NA  ## some sims might never recover...
-            res <- rbind(res, quantile(tmp, probs = c(0.025, 0.5, 0.975),na.rm=TRUE))
-        }
-        ## "AAVC"
-        if(any(mets == "AAVC")){
-            tmp <- unlist(lapply(lapply(msei,
-                                        function(x) (((apply(x$CW,1,sum)[simYears] -
-                                                       apply(x$CW,1,sum)[simYears+1])/
-                                                      apply(x$CW,1,sum)[simYears+1])^2)^0.5),
-                                 mean ,na.rm=TRUE))
-            tmp[is.infinite(tmp)] <- NA
             res <- rbind(res, quantile(tmp, probs = c(0.025, 0.5, 0.975),na.rm=TRUE))
         }
         if(any(mets == "AAVCFirst5y")){
