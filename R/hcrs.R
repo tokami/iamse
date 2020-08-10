@@ -20,6 +20,10 @@ gettacs <- function(tacs=NULL, id="", TAC=NA, inp=NULL){
                            sdi,
                            sdf.est=NA,sdf.sd=NA,
                            sdc.est=NA,sdc.sd=NA,
+                           bmbmsy.est=NA,bmbmsy.sd=NA,
+                           n.est=NA,n.sd=NA,
+                           K.est=NA,K.sd=NA,
+                           m.est=NA,m.sd=NA,
                            indBpBx = NA))
     if(is.null(tacs)){
         tacs <- tactmp
@@ -53,6 +57,7 @@ defHCRref <- function(consF = 0,
             '
 structure(
     function(inp, tacs=NULL){
+        inp <- check.inp(inp)
         tacs <- gettacs(tacs, id="',id,'", TAC=NA, inp=inp)
         return(tacs)
     },
@@ -67,6 +72,7 @@ structure(
             '
 structure(
     function(inp, tacs=NULL){
+        inp <- check.inp(inp)
         tacs <- gettacs(tacs, id="',id,'", TAC=NA, inp=inp)
         return(tacs)
     },
@@ -81,6 +87,7 @@ structure(
             '
 structure(
     function(inp, tacs=NULL){
+        inp <- check.inp(inp)
         tacs <- gettacs(tacs, id="',id,'", TAC=0, inp=inp)
         return(tacs)
     },
@@ -431,8 +438,28 @@ structure(
                 sdc <- round(sdc,2)
             }else sdc <- c(NA,NA)
             names(sdc) <- c("sdc.est","sdc.sd")
+            bmbmsy <- try(get.par("logBmBmsy",rep, exp=TRUE)[,c(2,4)],silent=TRUE)
+            if(all(is.numeric(bmbmsy))){
+                bmbmsy <- round(bmbmsy,2)
+            }else bmbmsy <- c(NA,NA)
+            names(bmbmsy) <- c("bmbmsy.est","bmbmsy.sd")
+            nest <- try(get.par("logn",rep, exp=TRUE)[,c(2,4)],silent=TRUE)
+            if(all(is.numeric(nest))){
+                nest <- round(nest,2)
+            }else nest <- c(NA,NA)
+            names(nest) <- c("n.est","n.sd")
+            Kest <- try(get.par("logK",rep, exp=TRUE)[,c(2,4)],silent=TRUE)
+            if(all(is.numeric(Kest))){
+                Kest <- round(Kest,2)
+            }else Kest <- c(NA,NA)
+            names(Kest) <- c("K.est","K.sd")
+            mest <- try(get.par("logm",rep, exp=TRUE)[,c(2,4)],silent=TRUE)
+            if(all(is.numeric(mest))){
+                mest <- round(mest,2)
+            }else mest <- c(NA,NA)
+            names(mest) <- c("m.est","m.sd")
             ##
-            quantstmp <- c(fmfmsy, bpbmsy, cp, fmsy, bmsy, sdb, sdi, sdf, sdc)
+            quantstmp <- c(fmfmsy, bpbmsy, cp, fmsy, bmsy, sdb, sdi, sdf, sdc, bmbmsy, nest, Kest, mest)
             if(any(is.na(quantstmp))){
                 tacs <- conscat(inp, tacs=tacs)
                 tacs$conv[nrow(tacs)] <- FALSE
@@ -454,8 +481,6 @@ structure(
                     tacs$conv[nrow(tacs)] <- FALSE
                 }else{
                     tactmp <- data.frame(TAC=tac, id="',id,'", hitSC=NA,
-                                         red=NA, barID=NA, sd=NA, conv = TRUE)
-                    tactmp <- data.frame(TAC=tac, id="spict", hitSC=NA,
                                          red=NA, barID=NA, sd=NA, conv = TRUE)
                     tactmp <- data.frame(c(tactmp, quantstmp,
                                            indBpBx = indBpBx))
