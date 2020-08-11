@@ -50,7 +50,7 @@ runMSE <- function(dat, set, ncores=parallel::detectCores()-1, verbose=TRUE){
         setx$eImp <- rlnorm(nysim, muconv(1,set$sigmaImp), sdconv(1,set$sigmaImp))
         setx$eC <- rlnorm(nysim, muconv(1,set$CVC), sdconv(1,set$CVC))
         setx$eI <- list()
-        for(i in 1:nsurv){
+        for(i in 1:length(set$surveyTimes)){
            setx$eI[[i]] <- rlnorm(nysim, muconv(1,set$CVI), sdconv(1,set$CVI))
         }
 
