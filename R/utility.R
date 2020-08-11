@@ -66,11 +66,21 @@ getConvs <- function(mse, convyears = "all", convhcrs = "all", verbose = FALSE){
 }
 
 
+#' @name sdconv
+#' @export
+sdconv <- function(mu, sd) (log(1 + ((sd^2)/(mu^2))))^0.5
+
+
+#' @name muconv
+#' @export
+muconv <- function(mu, sd) log(mu) - 0.5 * log(1 + ((sd^2)/(mu^2)))
+
+
 #' @name genDevs
 #' @export
 genDevs <- function(n, sd, rho=0){
 
-    rnoise <- rnorm(n, 0, sd) - sd^2/2
+    rnoise <- rlnorm(n, muconv(1,sd), sdconv(1,sd))
 
     res <- numeric(n)
     res[1] <- rnoise[1]

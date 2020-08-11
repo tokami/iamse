@@ -63,27 +63,35 @@ initPop <- function(dat, set = NULL, out.opt = 1){
         eImp <- set$eImp
         eC <- set$eC
         eI <- set$eI
-        if(is.null(eF)) eF <- exp(rnorm(ny, 0, set$sigmaF) - set$sigmaF^2/2)
+        if(is.null(eF)) eF <- rlnorm(ny, muconv(1,set$sigmaF), sdconv(1,set$sigmaF))
         if(is.null(eR)) {
             eR <- genDevs(ny, set$sigmaR, set$rhoR)
         }
-        if(is.null(eM)) eM <- exp(rnorm(ny, 0, set$sigmaM) - set$sigmaM^2/2)
-        if(is.null(eH)) eH <- exp(rnorm(ny, 0, set$sigmaH) - set$sigmaH^2/2)
-        if(is.null(eR0)) eR0 <- exp(rnorm(ny, 0, set$sigmaR0) - set$sigmaR0^2/2)
-        if(is.null(eMat)) eMat <- exp(rnorm(ny, 0, set$sigmaMat) - set$sigmaMat^2/2)
-        if(is.null(eImp)) eImp <- exp(rnorm(ny, 0, set$sigmaImp) - set$sigmaImp^2/2)
-        if(is.null(eC)) eC <- exp(rnorm(ny, 0, set$CVC) - set$CVC^2/2)
-        if(is.null(eI)) eI <- exp(rnorm(ny, 0, set$CVI) - set$CVI^2/2)
+        if(is.null(eM)) eM <- rlnorm(ny, muconv(1,set$sigmaM), sdconv(1,set$sigmaM))
+        if(is.null(eH)) eH <- rlnorm(ny, muconv(1,set$sigmaH), sdconv(1,set$sigmaH))
+        if(is.null(eR0)) eR0 <- rlnorm(ny, muconv(1,set$sigmaR0), sdconv(1,set$sigmaR0))
+        if(is.null(eMat)) eMat <- rlnorm(ny, muconv(1,set$sigmaMat), sdconv(1,set$sigmaMat))
+        if(is.null(eImp)) eImp <- rlnorm(ny, muconv(1,set$sigmaImp), sdconv(1,set$sigmaImp))
+        if(is.null(eC)) eC <- rlnorm(ny, muconv(1,set$CVC), sdconv(1,set$CVC))
+        if(is.null(eI)){
+            eI <- list()
+            for(i in 1:nsurv){
+                eI[[i]] <- rlnorm(ny, muconv(1,set$CVI), sdconv(1,set$CVI))
+            }
+        }
     }else{
-        eF <- exp(rnorm(ny, 0, 0))
-        eR <- genDevs(ny, 0, 0)
-        eM <- exp(rnorm(ny, 0, 0))
-        eH <- exp(rnorm(ny, 0, 0))
-        eR0 <- exp(rnorm(ny, 0, 0))
-        eMat <- exp(rnorm(ny, 0, 0))
-        eImp <- exp(rnorm(ny, 0, 0))
-        eC <- exp(rnorm(ny, 0, 0))
-        eI <- exp(rnorm(ny, 0, 0))
+        eF <- rep(1, ny)
+        eR <- rep(1, ny)
+        eM <- rep(1, ny)
+        eH <- rep(1, ny)
+        eR0 <- rep(1, ny)
+        eMat <- rep(1, ny)
+        eImp <- rep(1, ny)
+        eC <- rep(1, ny)
+        eI <- list()
+        for(i in 1:nsurv){
+            eI[[i]] <- rep(1, ny)
+        }
     }
     errs <- list(eF = eF,
                  eR = eR,
@@ -192,7 +200,7 @@ initPop <- function(dat, set = NULL, out.opt = 1){
                     surveyTime <- surveyTimes[idxi[i]] - seasonStart[idxS[idxi[i]]]
                     NAAsurv <- exp(log(NAA) - ZAA[,s] * surveyTime)
                     ESBsurv <- sum(NAAsurv * weightFs[,s] * sels[,s])
-                    obsI[[idxi[i]]] <- c(obsI[[idxi[i]]], q[idxi[i]] * ESBsurv * eI[y])
+                    obsI[[idxi[i]]] <- c(obsI[[idxi[i]]], q[idxi[i]] * ESBsurv * eI[[idxi[i]]][y])
                     if(is.null(timeI[[idxi[i]]]))
                         timeIi <- 0 else timeIi <- floor(tail(timeI[[idxi[i]]],1))
                     timeI[[idxi[i]]] <- c(timeI[[idxi[i]]], timeIi + 1 + surveyTimes[idxi[i]])
@@ -323,18 +331,26 @@ advancePop <- function(dat, hist, set, tacs){
     eMat <- set$eMat[ysim]
     eImp <- set$eImp[ysim]
     eC <- set$eC[ysim]
-    eI <- set$eI[ysim]
+    eI <- list()
+    for(i in 1:nsurv){
+        eI[[i]] <- set$eI[ysim]
+    }
     if(is.null(eR)) {
         eR <- genDevs(1, set$sigmaR, set$rhoR)
     }
-    if(is.null(eF)) eF <- exp(rnorm(1, 0, set$sigmaF) - set$sigmaF^2/2)
-    if(is.null(eM)) eM <- exp(rnorm(1, 0, set$sigmaM) - set$sigmaM^2/2)
-    if(is.null(eR0)) eR0 <- exp(rnorm(1, 0, set$sigmaR0) - set$sigmaR0^2/2)
-    if(is.null(eH)) eH <- exp(rnorm(1, 0, set$sigmaH) - set$sigmaH^2/2)
-    if(is.null(eMat)) eMat <- exp(rnorm(1, 0, set$sigmaMat) - set$sigmaMat^2/2)
-    if(is.null(eImp)) eImp <- exp(rnorm(1, 0, set$sigmaImp) - set$sigmaImp^2/2)
-    if(is.null(eC)) eC <- exp(rnorm(1, 0, set$CVC) - set$CVC^2/2)
-    if(is.null(eI)) eI <- exp(rnorm(1, 0, set$CVI) - set$CVI^2/2)
+    if(is.null(eF)) eF <- rlnorm(ny, muconv(1,set$sigmaF), sdconv(1,set$sigmaF))
+    if(is.null(eM)) eM <- rlnorm(ny, muconv(1,set$sigmaM), sdconv(1,set$sigmaM))
+    if(is.null(eR0)) eR0 <- rlnorm(ny, muconv(1,set$sigmaR0), sdconv(1,set$sigmaR0))
+    if(is.null(eH)) eH <- rlnorm(ny, muconv(1,set$sigmaH), sdconv(1,set$sigmaH))
+    if(is.null(eMat)) eMat <- rlnorm(ny, muconv(1,set$sigmaMat), sdconv(1,set$sigmaMat))
+    if(is.null(eImp)) eImp <- rlnorm(ny, muconv(1,set$sigmaImp), sdconv(1,set$sigmaImp))
+    if(is.null(eC)) eC <- rlnorm(ny, muconv(1,set$CVC), sdconv(1,set$CVC))
+    if(is.null(eI)){
+        eI <- list()
+        for(i in 1:nsurv){
+            eI[[i]] <- rlnorm(ny, muconv(1,set$CVI), sdconv(1,set$CVI))
+        }
+    }
     if("errs" %in% names(hist)){
         errs <- list(eF = c(hist$errs$eF, eF),
                      eR = c(hist$errs$eR, eR),
@@ -343,8 +359,11 @@ advancePop <- function(dat, hist, set, tacs){
                      eR0 = c(hist$errs$eR0,eR0),
                      eMat = c(hist$errs$eMat, eMat),
                      eImp = c(hist$errs$eImp, eImp),
-                     eC = c(hist$errs$eC, eC),
-                     eI = c(hist$errs$eI, eI))
+                     eC = c(hist$errs$eC, eC))
+        errs$eI <- list()
+        for(i in 1:nsurv){
+            errs$eI[[i]] = c(hist$errs$eI[[i]], eI[[i]])
+        }
     }else{
         errs <- list(eF = eF,
                      eR = eR,
@@ -465,7 +484,7 @@ advancePop <- function(dat, hist, set, tacs){
                 surveyTime <- set$surveyTimes[idxi[i]] - seasonStart[idxS[idxi[i]]]
                 NAAsurv <- exp(log(NAA) - ZAA[,s] * surveyTime)
                 ESBsurv <- sum(NAAsurv * dat$weightFs[,s] * dat$sels[,s])
-                obsI[[idxi[i]]] <- c(obsI[[idxi[i]]], q[idxi[i]] * ESBsurv * eI)
+                obsI[[idxi[i]]] <- c(obsI[[idxi[i]]], q[idxi[i]] * ESBsurv * eI[[idxi[i]]])
                 if(is.null(timeI[[idxi[i]]]))
                     timeIi <- ny-nyhist+1 else timeIi <- floor(tail(timeI[[idxi[i]]],1))
                 timeI[[idxi[i]]] <- c(timeI[[idxi[i]]], timeIi + 1 + set$surveyTimes[idxi[i]])
