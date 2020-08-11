@@ -333,7 +333,7 @@ advancePop <- function(dat, hist, set, tacs){
     eC <- set$eC[ysim]
     eI <- list()
     for(i in 1:nsurv){
-        eI[[i]] <- set$eI[ysim]
+        eI[[i]] <- set$eI[[i]][ysim]
     }
     if(is.null(eR)) {
         eR <- genDevs(1, set$sigmaR, set$rhoR)
