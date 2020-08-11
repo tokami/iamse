@@ -338,17 +338,17 @@ advancePop <- function(dat, hist, set, tacs){
     if(is.null(eR)) {
         eR <- genDevs(1, set$sigmaR, set$rhoR)
     }
-    if(is.null(eF)) eF <- rlnorm(ny, muconv(1,set$sigmaF), sdconv(1,set$sigmaF))
-    if(is.null(eM)) eM <- rlnorm(ny, muconv(1,set$sigmaM), sdconv(1,set$sigmaM))
-    if(is.null(eR0)) eR0 <- rlnorm(ny, muconv(1,set$sigmaR0), sdconv(1,set$sigmaR0))
-    if(is.null(eH)) eH <- rlnorm(ny, muconv(1,set$sigmaH), sdconv(1,set$sigmaH))
-    if(is.null(eMat)) eMat <- rlnorm(ny, muconv(1,set$sigmaMat), sdconv(1,set$sigmaMat))
-    if(is.null(eImp)) eImp <- rlnorm(ny, muconv(1,set$sigmaImp), sdconv(1,set$sigmaImp))
-    if(is.null(eC)) eC <- rlnorm(ny, muconv(1,set$CVC), sdconv(1,set$CVC))
+    if(is.null(eF)) eF <- rlnorm(1, muconv(1,set$sigmaF), sdconv(1,set$sigmaF))
+    if(is.null(eM)) eM <- rlnorm(1, muconv(1,set$sigmaM), sdconv(1,set$sigmaM))
+    if(is.null(eR0)) eR0 <- rlnorm(1, muconv(1,set$sigmaR0), sdconv(1,set$sigmaR0))
+    if(is.null(eH)) eH <- rlnorm(1, muconv(1,set$sigmaH), sdconv(1,set$sigmaH))
+    if(is.null(eMat)) eMat <- rlnorm(1, muconv(1,set$sigmaMat), sdconv(1,set$sigmaMat))
+    if(is.null(eImp)) eImp <- rlnorm(1, muconv(1,set$sigmaImp), sdconv(1,set$sigmaImp))
+    if(is.null(eC)) eC <- rlnorm(1, muconv(1,set$CVC), sdconv(1,set$CVC))
     if(is.null(eI)){
         eI <- list()
         for(i in 1:nsurv){
-            eI[[i]] <- rlnorm(ny, muconv(1,set$CVI), sdconv(1,set$CVI))
+            eI[[i]] <- rlnorm(1, muconv(1,set$CVI), sdconv(1,set$CVI))
         }
     }
     if("errs" %in% names(hist)){

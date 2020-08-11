@@ -41,17 +41,17 @@ runMSE <- function(dat, set, ncores=parallel::detectCores()-1, verbose=TRUE){
         popListx <- popList
         setx <- set
         ## errors
-        setx$eF <- rlnorm(ny, muconv(1,set$sigmaF), sdconv(1,set$sigmaF))
+        setx$eF <- rlnorm(nysim, muconv(1,set$sigmaF), sdconv(1,set$sigmaF))
         setx$eR <- genDevs(nysim, set$sigmaR, set$rhoR)
-        setx$eM <- rlnorm(ny, muconv(1,set$sigmaM), sdconv(1,set$sigmaM))
-        setx$eH <- rlnorm(ny, muconv(1,set$sigmaH), sdconv(1,set$sigmaH))
-        setx$eR0 <- rlnorm(ny, muconv(1,set$sigmaR0), sdconv(1,set$sigmaR0))
-        setx$eMat <- rlnorm(ny, muconv(1,set$sigmaMat), sdconv(1,set$sigmaMat))
-        setx$eImp <- rlnorm(ny, muconv(1,set$sigmaImp), sdconv(1,set$sigmaImp))
-        setx$eC <- rlnorm(ny, muconv(1,set$CVC), sdconv(1,set$CVC))
+        setx$eM <- rlnorm(nysim, muconv(1,set$sigmaM), sdconv(1,set$sigmaM))
+        setx$eH <- rlnorm(nysim, muconv(1,set$sigmaH), sdconv(1,set$sigmaH))
+        setx$eR0 <- rlnorm(nysim, muconv(1,set$sigmaR0), sdconv(1,set$sigmaR0))
+        setx$eMat <- rlnorm(nysim, muconv(1,set$sigmaMat), sdconv(1,set$sigmaMat))
+        setx$eImp <- rlnorm(nysim, muconv(1,set$sigmaImp), sdconv(1,set$sigmaImp))
+        setx$eC <- rlnorm(nysim, muconv(1,set$CVC), sdconv(1,set$CVC))
         setx$eI <- list()
         for(i in 1:nsurv){
-           setx$eI[[i]] <- rlnorm(ny, muconv(1,set$CVI), sdconv(1,set$CVI))
+           setx$eI[[i]] <- rlnorm(nysim, muconv(1,set$CVI), sdconv(1,set$CVI))
         }
 
         ## loop
