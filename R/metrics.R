@@ -40,14 +40,25 @@ estMets <- function(mse, dat, mets = "all"){
     ny <- dims[1] - nysim
     ns <- dims[2]
 
-    hcrs <- names(mse)
+    finalYear <- ny + nysim
+    fifthYear <- ny + 5
+    last5Years <- (finalYear - 4) : finalYear
+    first5Years <- (ny + 1) : (ny + 5)
+    simYears <- (ny + 1) : finalYear
+    last10Years <- (finalYear - 9) : finalYear
+    first10Years <- (ny + 1) : (ny + 10)
+    last15Years <- (finalYear - 14) : finalYear
+    first15Years <- (ny + 1) : (ny + 15)
 
+    hcrs <- names(mse)
+    reffmsyInd <- which(hcrs == "refFmsy")
+    refyield <- lapply(mse[[reffmsyInd]], function(x) apply(x$CW,1,sum)[simYears])
 
     metsAll <- c("CMSY","PBBlim","AAVC",
                  "CMSYST","PBBlimST",
                  "CMSYLT","PBBlimLT",
                  "CMSYMaxAge","PBBlimMaxAge",
-                 "BBmsy","BBmsyLT",
+                 "BBmsy","BBmsyLT","CMSYmean",
                  ## OLDER:
                  "BBmsyFL","avCatch",
                  "avCatchFirst5y","avCatchLast5y","BBmsyLowest",
@@ -63,17 +74,6 @@ estMets <- function(mse, dat, mets = "all"){
     mets <- metsAll[which(metsAll %in% mets)]
     nmets <- length(mets)
 
-
-    finalYear <- ny + nysim
-    fifthYear <- ny + 5
-    last5Years <- (finalYear - 4) : finalYear
-    first5Years <- (ny + 1) : (ny + 5)
-    simYears <- (ny + 1) : finalYear
-    last10Years <- (finalYear - 9) : finalYear
-    first10Years <- (ny + 1) : (ny + 10)
-    last15Years <- (finalYear - 14) : finalYear
-    first15Years <- (ny + 1) : (ny + 15)
-
     ## TODO: make part of mse
     refs <- dat$ref
     if(is.null(refs)) stop("Reference levels missing.")
@@ -87,6 +87,13 @@ estMets <- function(mse, dat, mets = "all"){
         if(any(mets == "CMSY")){
             tmp <- unlist(lapply(msei, function(x) median(apply(x$CW,1,sum)[simYears] / refs$MSY)))
             res <- rbind(res, quantile(tmp, probs = c(0.025, 0.5, 0.975), na.rm=TRUE))
+        }
+        if(any(mets == "CMSYmean")){
+            if(length(reffmsyInd) > 0){
+                indi <- as.numeric(names(msei))
+                tmp <- sapply(1:length(msei), function(x) mean(apply(msei[[x]]$CW,1,sum)[simYears] / refyield[[indi[x]]]))
+                res <- rbind(res, c(NA, mean(tmp,na.rm=TRUE), NA))
+            }else writeLines("CMSYmean could not be estimated, because no rule 'refFmsy' not found.")
         }
         ## "PBBlim"
         if(any(mets == "PBBlim")){
