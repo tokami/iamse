@@ -13,6 +13,7 @@ runMSE <- function(dat, set, ncores=parallel::detectCores()-1, verbose=TRUE){
 
     ## Variables
     hcrs <- set$hcr
+    hcrs2 <- sapply(hcrs, function(x) unlist(strsplit(as.character(x), "-"))[1])
     nhcrs <- length(hcrs)
     nysim <- set$nysim
     nrep <- set$nrep
@@ -59,10 +60,10 @@ runMSE <- function(dat, set, ncores=parallel::detectCores()-1, verbose=TRUE){
             hcri <- hcrs[i]
             poptmp <- popListx[[i]]
             poptmp$tacs <- NULL
-            if(hcri == "refFmsy"){
+            if(hcrs2[i] %in% c("refFmsy","consF")){
                 ## Reference rule Fmsy
                 for(y in 1:nysim){
-                    poptmp$tacs <- gettacs(tacs = poptmp$tacs, id = "refFmsy", TAC=NA)
+                    poptmp$tacs <- gettacs(tacs = poptmp$tacs, id = hcri, TAC=NA)
                     poptmp <- advancePop(dat = dat, hist = poptmp, set = setx,
                                          tacs = poptmp$tacs)
                 }

@@ -307,9 +307,9 @@ advancePop <- function(dat, hist, set, tacs){
     q <- dat$q
     if(length(q) < nsurv) q <- rep(q, nsurv)
     tacID <- tacs$id[nrow(tacs)]
+    tacID2 <- unlist(strsplit(as.character(tacID), "-"))[1]
 
     ## parameters per age
-
     Ms <- dat$Ms
     weight <- dat$weight
     weights <- dat$weights
@@ -423,10 +423,16 @@ advancePop <- function(dat, hist, set, tacs){
     NAA[1] <- rec * eR
 
     ## Define F/TACs
-    if(tacID == "refFmsy"){
-        ## Fmsy
-        FMtac <- dat$ref$Fmsy / ns
-    }else if(tacID == "noF"){
+    if(tacID2 == "refFmsy"){
+        if(tacID == "refFmsy"){
+            ## Fishing at Fmsy
+            FMtac <- dat$ref$Fmsy / ns
+        }else{
+            fraci <- as.numeric(unlist(strsplit(as.character(tacID), "-"))[2])
+            ## Fishing at fraction of Fmsy
+            FMtac <- (fraci * dat$ref$Fmsy) / ns
+        }
+    }else if(tacID2 == "noF"){
         ## noF
         FMtac <- 0
     }else{
@@ -438,7 +444,7 @@ advancePop <- function(dat, hist, set, tacs){
 
     ## seasons
     for(s in 1:ns){
-        if(!(tacID %in% c("refFmsy","noF"))){
+        if(!(tacID2 %in% c("refFmsy","noF"))){
             FMtac <- min(set$maxF/ns,
                          getFM(TACreal[s], NAA = NAA, M = MAA[,s],
                                weight = weightFs[,s], sel = sels[,s]))
@@ -462,7 +468,7 @@ advancePop <- function(dat, hist, set, tacs){
             }else writeLines("Could not get full annual TAC.")
             TACreal[s] <- CW[y,s]
         }
-        if(tacID == "refFmsy"){
+        if(tacID2 == "refFmsy"){
             TACreal[s] <- sum(CAA * weightFs[,s], na.rm = TRUE)
             if(s == ns) TACs[y] <- tacs$TAC[nrow(tacs)] <- sum(TACreal)
         }

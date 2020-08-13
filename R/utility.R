@@ -85,7 +85,7 @@ genNoise <- function(n, sd, rho=0, bias.cor = 0){
     }else if(bias.cor == 1){
         rnoise <- rnorm(n, 0, sd) - sd^2/2
     }else if(bias.cor == 2){
-        rnoise <- log(rlnorm(n, mconv(1,sd), sdconv(1,sd)))
+        rnoise <- log(rlnorm(n, muconv(1,sd), sdconv(1,sd)))
     }
 
     if(rho > 0){

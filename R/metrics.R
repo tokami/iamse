@@ -52,7 +52,7 @@ estMets <- function(mse, dat, mets = "all"){
 
     hcrs <- names(mse)
     reffmsyInd <- which(hcrs == "refFmsy")
-    refyield <- lapply(mse[[reffmsyInd]], function(x) apply(x$CW,1,sum)[simYears])
+    refyield <- lapply(mse[[reffmsyInd]], function(x) apply(x$CW,1,sum)[last5Years]) ## HERE:
 
     metsAll <- c("CMSY","CMSYmean","PBBlim","AAVC",
                  "CMSYST","PBBlimST",
@@ -85,13 +85,15 @@ estMets <- function(mse, dat, mets = "all"){
         res <- NULL
         ## CMSY
         if(any(mets == "CMSY")){
-            tmp <- unlist(lapply(msei, function(x) median(apply(x$CW,1,sum)[simYears] / refs$MSY)))
+            tmp <- unlist(lapply(msei, function(x) mean(apply(x$CW,1,sum)[last5Years] / refs$MSY)))## HERE:
             res <- rbind(res, quantile(tmp, probs = c(0.025, 0.5, 0.975), na.rm=TRUE))
+            ## tmp <- unlist(lapply(msei, function(x) median(apply(x$CW,1,sum)[simYears] / refs$MSY)))
+            ## res <- rbind(res, quantile(tmp, probs = c(0.025, 0.5, 0.975), na.rm=TRUE))
         }
         if(any(mets == "CMSYmean")){
             if(length(reffmsyInd) > 0){
                 indi <- as.numeric(names(msei))
-                tmp <- sapply(1:length(msei), function(x) mean(apply(msei[[x]]$CW,1,sum)[simYears] / refyield[[indi[x]]]))
+                tmp <- sapply(1:length(msei), function(x) mean(apply(msei[[x]]$CW,1,sum)[last5Years] / refyield[[indi[x]]]))
                 res <- rbind(res, c(NA, mean(tmp,na.rm=TRUE), NA))
             }else writeLines("CMSYmean could not be estimated, because no rule 'refFmsy' not found.")
         }
