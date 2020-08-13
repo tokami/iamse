@@ -76,24 +76,35 @@ sdconv <- function(mu, sd) (log(1 + ((sd^2)/(mu^2))))^0.5
 muconv <- function(mu, sd) log(mu) - 0.5 * log(1 + ((sd^2)/(mu^2)))
 
 
-#' @name genDevs
+#' @name genNoise
 #' @export
-genDevs <- function(n, sd, rho=0){
+genNoise <- function(n, sd, rho=0, bias.cor = 0){
 
-    rnoise <- rlnorm(n, muconv(1,sd), sdconv(1,sd))
-
-    res <- numeric(n)
-    res[1] <- rnoise[1]
-    if(n > 1){
-        for(i in 2:n) res[i] <- rho * res[i-1] + sqrt(1 - rho^2) * rnoise[i]
+    if(bias.cor == 0){
+        rnoise <- rnorm(n, 0, sd)
+    }else if(bias.cor == 1){
+        rnoise <- rnorm(n, 0, sd) - sd^2/2
+    }else if(bias.cor == 2){
+        rnoise <- log(rlnorm(n, mconv(1,sd), sdconv(1,sd)))
     }
 
-    res <- exp(res)
-    res <- res/mean(res)
+    if(rho > 0){
+        res <- numeric(n)
+        res[1] <- rnoise[1]
+        if(n > 1){
+            for(i in 2:n) res[i] <- rho * res[i-1] + sqrt(1 - rho^2) * rnoise[i]
+        }
+
+        res <- exp(res)
+        res <- res/mean(res)
+
+    }else{
+        res <- exp(rnoise)
+    }
 
     return(res)
-
 }
+
 
 #' @name estDepl
 #' @export
@@ -141,46 +152,6 @@ estDepl <- function(dat, set=NULL, fmax = 10, nrep = 100, verbose = TRUE){
     return(dat)
 }
 
-
-estDeplOLD <- function(dat, set=NULL, fmax = 10, verbose = TRUE){
-
-    if(!any(names(dat) == "ref")) stop("Reference points are missing in dat. Use estRef to estimate reference points.")
-
-    browser()
-
-    if(is.null(set)) set <- checkSet()
-
-    depl <- dat$depl
-    depl.quant <- dat$depl.quant
-
-    frel <- dat$FM/max(dat$FM)
-
-    fn <- function(logfabs, frel, depl, dat, set, opt=1){
-        datx <- dat
-        fpat <- frel * exp(logfabs)
-        datx$FM <- fpat
-        datx$Fs <- fpat / datx$nseasons
-        dreal <- initPop(datx, set, out.opt = 2, depl.quant = depl.quant)
-        if(opt==1) return((depl - dreal)^2)
-        if(opt==2) return(dreal)
-    }
-
-    opt <- optimize(fn, c(log(0.0001),log(fmax)), frel = frel, depl = depl, dat = dat)
-    fabs <- exp(opt$minimum)
-    fvals <- frel * fabs
-    dreal <- round(fn(log(fabs), frel, depl, dat, opt=2),3)
-
-    if(verbose){
-        print(paste0("Required depletion relative to ", depl.quant,
-                    ": ", depl, " -- Realised: ", dreal, " with abs F equal to ",round(fabs,3)))
-    }
-
-    dat$FM <- fvals
-    dat$Fs <- fvals / dat$nseasons
-    dat$depl <- dreal
-
-    return(dat)
-}
 
 
 #' @name estProd
@@ -297,33 +268,81 @@ checkSet <- function(set = NULL){
     ## empty list
     if(is.null(set)) set <- list()
 
-    ## lognormal SDs of noise
-    if(is.null(set$sigmaR)) set$sigmaR <- 0
-    if(is.null(set$sigmaF)) set$sigmaF <- 0
-    if(is.null(set$sigmaM)) set$sigmaM <- 0
-    if(is.null(set$sigmaH)) set$sigmaH <- 0
-    if(is.null(set$sigmaR0)) set$sigmaR0 <- 0
-    if(is.null(set$sigmaMat)) set$sigmaMat <- 0
-    if(is.null(set$sigmaImp)) set$sigmaImp <- 0
-
-    ## auto-correlated recruitment devs
-    if(is.null(set$rhoR)) set$rhoR <- 0
+    ## noise vectors (SD, rho, bias correction)
+    if(is.null(set$noiseR)){
+        set$noiseR <- c(0,0,0)
+    }else if(length(set$noiseR) != 3){
+        writeLines("'set$noiseR' needs to be a vector with 3 values corresponding to: sd, rho, bias.corr (see genNoise). Setting to c(0,0,0)!")
+    }
+    if(is.null(set$noiseF)){
+        set$noiseF <- c(0,0,0)
+    }else if(length(set$noiseF) != 3){
+        writeLines("'set$noiseF' needs to be a vector with 3 values corresponding to: sd, rho, bias.corr (see genNoise). Setting to c(0,0,0)!")
+    }
+    if(is.null(set$noiseM)){
+        set$noiseM <- c(0,0,0)
+    }else if(length(set$noiseM) != 3){
+        writeLines("'set$noiseM' needs to be a vector with 3 values corresponding to: sd, rho, bias.corr (see genNoise). Setting to c(0,0,0)!")
+    }
+    if(is.null(set$noiseH)){
+        set$noiseH <- c(0,0,0)
+    }else if(length(set$noiseH) != 3){
+        writeLines("'set$noiseH' needs to be a vector with 3 values corresponding to: sd, rho, bias.corr (see genNoise). Setting to c(0,0,0)!")
+    }
+    if(is.null(set$noiseR0)){
+        set$noiseR0 <- c(0,0,0)
+    }else if(length(set$noiseR0) != 3){
+        writeLines("'set$noiseR0' needs to be a vector with 3 values corresponding to: sd, rho, bias.corr (see genNoise). Setting to c(0,0,0)!")
+    }
+    if(is.null(set$noiseMat)){
+        set$noiseMat <- c(0,0,0)
+    }else if(length(set$noiseMat) != 3){
+        writeLines("'set$noiseMat' needs to be a vector with 3 values corresponding to: sd, rho, bias.corr (see genNoise). Setting to c(0,0,0)!")
+    }
+    if(is.null(set$noiseImp)){
+        set$noiseImp <- c(0,0,0)
+    }else if(length(set$noiseImp) != 3){
+        writeLines("'set$noiseImp' needs to be a vector with 3 values corresponding to: sd, rho, bias.corr (see genNoise). Setting to c(0,0,0)!")
+    }
+    if(is.null(set$noiseC)){
+        set$noiseC <- c(0,0,0)
+    }else if(length(set$noiseC) != 3){
+        writeLines("'set$noiseC' needs to be a vector with 3 values corresponding to: sd, rho, bias.corr (see genNoise). Setting to c(0,0,0)!")
+    }
+    if(is.null(set$noiseI)){
+        set$noiseI <- c(0,0,0)
+    }else if(length(set$noiseI) != 3){
+        writeLines("'set$noiseI' needs to be a vector with 3 values corresponding to: sd, rho, bias.corr (see genNoise). Setting to c(0,0,0)!")
+    }
 
     ## maximum F for baranov solution for F given TAC
     if(is.null(set$maxF)) set$maxF <- 5
 
     ## for estimation of ref levels
-    if(is.null(set$refN)) set$refN <- 1e4
-    if(is.null(set$refYears)) set$refYears <- 300
+    if(is.null(set$refN)) set$refN <- 1e3
+    if(is.null(set$refYears)){
+        set$refYears <- 300
+    }else if(set$refYears < 100){
+        writeLines("set$refYears has to be at least 100 years, as the median surplus production over the last 50 years are used for reference estimation. Setting to 100.")
+        set$refYears <- 100
+    }
+    if(is.null(set$refYearsMSY)){
+        set$refYearsMSY <- 100
+    }else if(set$refYearsMSY >= set$refYears){
+        writeLines("set$refYearsMSY cannot be longer than 'set$refYears'. Setting to half of 'set$refYears'.")
+        set$refYearsMSY <- floor(set$refYears / 2)
+    }
+    if(is.null(set$refMethod)){
+        set$refMethod <- "mean"
+    }else if(set$refYears < 100){
+        writeLines("'set$refMethod' has to be mean or median. Setting to 'mean'.")
+        set$refMethod <- "mean"
+    }
 
     ## number of years available to assessment method
     if(is.null(set$nyhist)) set$nyhist <- 35
     if(is.null(set$nysim)) set$nysim <- 35
     if(is.null(set$nrep)) set$nrep <- 50
-
-    ## observation noise
-    if(is.null(set$CVC)) set$CVC <- 0
-    if(is.null(set$CVI)) set$CVI <- 0
 
     ## HCR
     if(is.null(set$hcr)) set$hcr <- c(defHCRref(),defHCRref(consF = "fmsy"))

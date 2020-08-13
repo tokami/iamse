@@ -41,19 +41,18 @@ runMSE <- function(dat, set, ncores=parallel::detectCores()-1, verbose=TRUE){
         popListx <- popList
         setx <- set
         ## errors
-        setx$eF <- rlnorm(nysim, muconv(1,set$sigmaF), sdconv(1,set$sigmaF))
-        setx$eR <- genDevs(nysim, set$sigmaR, set$rhoR)
-        setx$eM <- rlnorm(nysim, muconv(1,set$sigmaM), sdconv(1,set$sigmaM))
-        setx$eH <- rlnorm(nysim, muconv(1,set$sigmaH), sdconv(1,set$sigmaH))
-        setx$eR0 <- rlnorm(nysim, muconv(1,set$sigmaR0), sdconv(1,set$sigmaR0))
-        setx$eMat <- rlnorm(nysim, muconv(1,set$sigmaMat), sdconv(1,set$sigmaMat))
-        setx$eImp <- rlnorm(nysim, muconv(1,set$sigmaImp), sdconv(1,set$sigmaImp))
-        setx$eC <- rlnorm(nysim, muconv(1,set$CVC), sdconv(1,set$CVC))
+        setx$eF <- genNoise(nysim, set$noiseF[1], set$noiseF[2], set$noiseF[3])
+        setx$eR <- genNoise(nysim, set$noiseR[1], set$noiseR[2], set$noiseR[3])
+        setx$eM <- genNoise(nysim, set$noiseM[1], set$noiseM[2], set$noiseM[3])
+        setx$eH <- genNoise(nysim, set$noiseH[1], set$noiseH[2], set$noiseH[3])
+        setx$eR0 <- genNoise(nysim, set$noiseR0[1], set$noiseR0[2], set$noiseR0[3])
+        setx$eMat <- genNoise(nysim, set$noiseMat[1], set$noiseMat[2], set$noiseMat[3])
+        setx$eImp <- genNoise(nysim, set$noiseImp[1], set$noiseImp[2], set$noiseImp[3])
+        setx$eC <- genNoise(nysim, set$noiseC[1], set$noiseC[2], set$noiseC[3])
         setx$eI <- list()
         for(i in 1:length(set$surveyTimes)){
-           setx$eI[[i]] <- rlnorm(nysim, muconv(1,set$CVI), sdconv(1,set$CVI))
+           setx$eI[[i]] <- genNoise(nysim, set$noiseI[1], set$noiseI[2], set$noiseI[3])
         }
-
 
         ## loop
         for(i in 1:nhcrs){

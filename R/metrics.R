@@ -54,11 +54,11 @@ estMets <- function(mse, dat, mets = "all"){
     reffmsyInd <- which(hcrs == "refFmsy")
     refyield <- lapply(mse[[reffmsyInd]], function(x) apply(x$CW,1,sum)[simYears])
 
-    metsAll <- c("CMSY","PBBlim","AAVC",
+    metsAll <- c("CMSY","CMSYmean","PBBlim","AAVC",
                  "CMSYST","PBBlimST",
                  "CMSYLT","PBBlimLT",
                  "CMSYMaxAge","PBBlimMaxAge",
-                 "BBmsy","BBmsyLT","CMSYmean",
+                 "BBmsy","BBmsyLT",
                  ## OLDER:
                  "BBmsyFL","avCatch",
                  "avCatchFirst5y","avCatchLast5y","BBmsyLowest",

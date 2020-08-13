@@ -63,20 +63,18 @@ initPop <- function(dat, set = NULL, out.opt = 1){
         eImp <- set$eImp
         eC <- set$eC
         eI <- set$eI
-        if(is.null(eF)) eF <- rlnorm(ny, muconv(1,set$sigmaF), sdconv(1,set$sigmaF))
-        if(is.null(eR)) {
-            eR <- genDevs(ny, set$sigmaR, set$rhoR)
-        }
-        if(is.null(eM)) eM <- rlnorm(ny, muconv(1,set$sigmaM), sdconv(1,set$sigmaM))
-        if(is.null(eH)) eH <- rlnorm(ny, muconv(1,set$sigmaH), sdconv(1,set$sigmaH))
-        if(is.null(eR0)) eR0 <- rlnorm(ny, muconv(1,set$sigmaR0), sdconv(1,set$sigmaR0))
-        if(is.null(eMat)) eMat <- rlnorm(ny, muconv(1,set$sigmaMat), sdconv(1,set$sigmaMat))
-        if(is.null(eImp)) eImp <- rlnorm(ny, muconv(1,set$sigmaImp), sdconv(1,set$sigmaImp))
-        if(is.null(eC)) eC <- rlnorm(ny, muconv(1,set$CVC), sdconv(1,set$CVC))
+        if(is.null(eF)) eF <- genNoise(ny, set$noiseF[1], set$noiseF[2], bias.cor = set$noiseF[3])
+        if(is.null(eR)) eR <- genNoise(ny, set$noiseR[1], set$noiseR[2], bias.cor = set$noiseR[3])
+        if(is.null(eM)) eM <- genNoise(ny, set$noiseM[1], set$noiseM[2], bias.cor = set$noiseM[3])
+        if(is.null(eH)) eH <- genNoise(ny, set$noiseH[1], set$noiseH[2], bias.cor = set$noiseH[3])
+        if(is.null(eR0)) eR0 <- genNoise(ny, set$noiseR0[1], set$noiseR0[2], bias.cor = set$noiseR0[3])
+        if(is.null(eMat)) eMat <- genNoise(ny, set$noiseMat[1], set$noiseMat[2], bias.cor = set$noiseMat[3])
+        if(is.null(eImp)) eImp <- genNoise(ny, set$noiseImp[1], set$noiseImp[2], bias.cor = set$noiseImp[3])
+        if(is.null(eC)) eC <- genNoise(ny, set$noiseC[1], set$noiseC[2], bias.cor = set$noiseC[3])
         if(is.null(eI)){
             eI <- list()
             for(i in 1:nsurv){
-                eI[[i]] <- rlnorm(ny, muconv(1,set$CVI), sdconv(1,set$CVI))
+                eI[[i]] <- genNoise(ny, set$noiseI[1], set$noiseI[2], bias.cor = set$noiseI[3])
             }
         }
     }else{
@@ -335,20 +333,18 @@ advancePop <- function(dat, hist, set, tacs){
     for(i in 1:nsurv){
         eI[[i]] <- set$eI[[i]][ysim]
     }
-    if(is.null(eR)) {
-        eR <- genDevs(1, set$sigmaR, set$rhoR)
-    }
-    if(is.null(eF)) eF <- rlnorm(1, muconv(1,set$sigmaF), sdconv(1,set$sigmaF))
-    if(is.null(eM)) eM <- rlnorm(1, muconv(1,set$sigmaM), sdconv(1,set$sigmaM))
-    if(is.null(eR0)) eR0 <- rlnorm(1, muconv(1,set$sigmaR0), sdconv(1,set$sigmaR0))
-    if(is.null(eH)) eH <- rlnorm(1, muconv(1,set$sigmaH), sdconv(1,set$sigmaH))
-    if(is.null(eMat)) eMat <- rlnorm(1, muconv(1,set$sigmaMat), sdconv(1,set$sigmaMat))
-    if(is.null(eImp)) eImp <- rlnorm(1, muconv(1,set$sigmaImp), sdconv(1,set$sigmaImp))
-    if(is.null(eC)) eC <- rlnorm(1, muconv(1,set$CVC), sdconv(1,set$CVC))
+    if(is.null(eF)) eF <- genNoise(1, set$noiseF[1], set$noiseF[2], bias.cor = set$noiseF[3])
+    if(is.null(eR)) eR <- genNoise(1, set$noiseR[1], set$noiseR[2], bias.cor = set$noiseR[3])
+    if(is.null(eM)) eM <- genNoise(1, set$noiseM[1], set$noiseM[2], bias.cor = set$noiseM[3])
+    if(is.null(eH)) eH <- genNoise(1, set$noiseH[1], set$noiseH[2], bias.cor = set$noiseH[3])
+    if(is.null(eR0)) eR0 <- genNoise(1, set$noiseR0[1], set$noiseR0[2], bias.cor = set$noiseR0[3])
+    if(is.null(eMat)) eMat <- genNoise(1, set$noiseMat[1], set$noiseMat[2], bias.cor = set$noiseMat[3])
+    if(is.null(eImp)) eImp <- genNoise(1, set$noiseImp[1], set$noiseImp[2], bias.cor = set$noiseImp[3])
+    if(is.null(eC)) eC <- genNoise(1, set$noiseC[1], set$noiseC[2], bias.cor = set$noiseC[3])
     if(is.null(eI)){
         eI <- list()
         for(i in 1:nsurv){
-            eI[[i]] <- rlnorm(1, muconv(1,set$CVI), sdconv(1,set$CVI))
+            eI[[i]] <- genNoise(1, set$noiseI[1], set$noiseI[2], bias.cor = set$noiseI[3])
         }
     }
     if("errs" %in% names(hist)){

@@ -57,7 +57,7 @@ defHCRref <- function(consF = 0,
             '
 structure(
     function(inp, tacs=NULL){
-        inp <- check.inp(inp)
+        inp <- spict::check.inp(inp)
         tacs <- gettacs(tacs, id="',id,'", TAC=NA, inp=inp)
         return(tacs)
     },
@@ -72,7 +72,7 @@ structure(
             '
 structure(
     function(inp, tacs=NULL){
-        inp <- check.inp(inp)
+        inp <- spict::check.inp(inp)
         tacs <- gettacs(tacs, id="',id,'", TAC=NA, inp=inp)
         return(tacs)
     },
@@ -87,7 +87,7 @@ structure(
             '
 structure(
     function(inp, tacs=NULL){
-        inp <- check.inp(inp)
+        inp <- spict::check.inp(inp)
         tacs <- gettacs(tacs, id="',id,'", TAC=0, inp=inp)
         return(tacs)
     },
@@ -127,7 +127,7 @@ defHCRconscat <- function(id = "conscat",
         '
 structure(
     function(inp, tacs = NULL){
-        inp <- check.inp(inp)
+        inp <- spict::check.inp(inp)
         if(is.null(tacs)){
             indBpBx <- inp$indBpBx
         }else{
@@ -222,7 +222,7 @@ defHCRindex <- function(id = "r2_3",
         red <- ',red,'
         redyears <- ',redyears,'
 
-        inp <- check.inp(inp)
+        inp <- spict::check.inp(inp)
         if(is.null(tacs)){
             indBpBx <- inp$indBpBx
         }else{
@@ -355,7 +355,7 @@ structure(
         manstart <- inp$timeC[length(inp$timeC)] + ',manstartdY,'
         inp$maninterval <- c(manstart, manstart + 1)
         ## Check inp
-        inp <- check.inp(inp)
+        inp <- spict::check.inp(inp)
         ## priors
         inp$priors$logn <- c(',priorlogn[1],',',priorlogn[2],',',priorlogn[3],')
         inp$priors$logalpha <- c(',priorlogalpha[1],',',priorlogalpha[2],',',priorlogalpha[3],')

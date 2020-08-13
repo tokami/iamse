@@ -36,6 +36,8 @@ List simpop(double logFM, List dat, List set, int out) {
   std::string SR = as<std::string>(dat["SR"]);
   double pzbm = as<double>(dat["pzbm"]);
   double maxF = as<double>(set["maxF"]);
+  std::string refmethod = as<std::string>(set["refMethod"]);
+  int nyrefmsy = as<int>(set["refYearsMSY"]);
   NumericMatrix weights = as<NumericMatrix>(dat["weights"]);
   NumericVector weight = as<NumericVector>(dat["weight"]);
   NumericMatrix weightFs = as<NumericMatrix>(dat["weightFs"]);
@@ -46,7 +48,6 @@ List simpop(double logFM, List dat, List set, int out) {
   NumericVector sel = as<NumericVector>(dat["sel"]);
   NumericVector M = as<NumericVector>(dat["M"]);
   NumericVector initN = as<NumericVector>(dat["initN"]);
-  Function getFM("getFM");
 
   // Containers
   NumericVector Bage (amax);
@@ -77,9 +78,7 @@ List simpop(double logFM, List dat, List set, int out) {
   double beta = 0.0;
   double hy = 0.0;
   double R0y = 0.0;
-  double Btmp = 0.0;
   double Ctmp = 0.0;
-  double Ftmp = 0.0;
 
   // Initialise
   std::fill( CW.begin(), CW.end(), 0);
@@ -95,41 +94,13 @@ List simpop(double logFM, List dat, List set, int out) {
   for(int a=1; a<amax; a++) NAA(a) = NAA(a-1) * exp(-ZAA(a-1,0)) * exp(initN(a));
 
   // errors
-  double sdF = as<double>(set["sigmaF"]);
-  double sdM = as<double>(set["sigmaM"]);
-  double sdH = as<double>(set["sigmaH"]);
-  double sdR0 = as<double>(set["sigmaR0"]);
-  double sdMat = as<double>(set["sigmaMat"]);
-  NumericVector eF = rnorm(ny, 0, sdF);
-  double sdF2 = pow(sdF,2);
-  for(int y=0; y<ny; y++) eF(y) = exp(eF(y) - sdF2/2);
-  NumericVector eM = rnorm(ny, 0, sdM);
-  double sdM2 = pow(sdM,2);
-  for(int y=0; y<ny; y++) eM(y) = exp(eM(y) - sdM2/2);
-  NumericVector eH = rnorm(ny, 0, sdH);
-  double sdH2 = pow(sdH,2);
-  for(int y=0; y<ny; y++) eH(y) = exp(eH(y) - sdH2/2);
-  NumericVector eR0 = rnorm(ny, 0, sdR0);
-  double sdR02 = pow(sdR0,2);
-  for(int y=0; y<ny; y++) eR0(y) = exp(eR0(y) - sdR02/2);
-  NumericVector eMat = rnorm(ny, 0, sdMat);
-  double sdMat2 = pow(sdMat,2);
-  for(int y=0; y<ny; y++) eMat(y) = exp(eMat(y) - sdMat2/2);
-
-  // recruitment devs
-  double sdR = as<double>(set["sigmaR"]);
-  double rhoR = as<double>(set["rhoR"]);
-  double sdR2 = pow(sdR,2);
-  double rhoR2 = pow(rhoR,2);
-  NumericVector rnum = rnorm(ny, 0, sdR) - sdR2/2;
-  NumericVector eR(rnum.size());
-  eR(0) = rnum(0);
-  for(int i=1; i<rnum.size(); i++) eR(i) = rhoR * eR(i-1) + sqrt(1-rhoR2) * rnum(i);
-  eR = exp(eR);
-  double eRmean;
-  for(int i=0; i<eR.size(); i++) eRmean += eR(i);
-  eRmean = eRmean / eR.size();
-  eR = eR / eRmean;
+  //  NumericVector eF = as<NumericVector>(set["eF"]);
+  NumericVector eR = as<NumericVector>(set["eR"]);
+  NumericVector eM = as<NumericVector>(set["eM"]);
+  NumericVector eH = as<NumericVector>(set["eH"]);
+  NumericVector eR0 = as<NumericVector>(set["eR0"]);
+  NumericVector eMat = as<NumericVector>(set["eMat"]);
+  //  NumericVector eImp = as<NumericVector>(set["eImp"]);
 
   // years
   for(int y=0; y<ny; y++){
@@ -152,7 +123,7 @@ List simpop(double logFM, List dat, List set, int out) {
     for(int a=0; a<amax; a++) SSBPR0(y) += NnatM(a) * matyear(a) * weight(a) * fecun;
     // SSB
     for(int a=0; a<amax; a++){
-      FAA(a,0) = sels(a,0) * FM * eF(y) / ns;
+      FAA(a,0) = sels(a,0) * FM / ns;  // Casper 13/08: constant F for ref estimation, no noise on F // * eF(y)
       ZAA(a,0) = FAA(a,0) + MAA(a,0);
       SSB(y) += NAA(a) * maty(a,0) * weights(a,0) * exp(-pzbm * ZAA(a,0));
     }
@@ -176,39 +147,18 @@ List simpop(double logFM, List dat, List set, int out) {
                          sqrt(pow(SSB(y)-bp,2) + pow(recGamma,2)/4));
     }
     NAA(0) = rec * eR(y);
-    //    std::cout << "NAA(0)" << NAA(0) << std::endl;
 
-    // Seasons
+    // seasons
     for(int s=0; s<ns; s++){
-      Btmp = 0.0;
       Ctmp = 0.0;
 
       // ages
       for(int a=0; a<amax; a++){
-        // vulnerable midyear biomass
-        Btmp += NAA(a) * weights(a,s) * sels(a,s) * exp(-MAA(a,s)/2);
-        // catch
-        FAA(a,s) = sels(a,s) * FM * eF(y) / ns;
+        FAA(a,s) = sels(a,s) * FM / ns; // * eF(y)
         ZAA(a,s) = FAA(a,s) + MAA(a,s);
         CAA(a) = FAA(a,s)/ZAA(a,s) * NAA(a) * (1 - exp(-ZAA(a,s)));
         Ctmp += CAA(a) * weightFs(a,s);
       }
-
-      // can't catch more than what's there
-      // if(Ctmp > 0.99 * Btmp){
-      //   for(int a=0; a<amax; a++){
-      //     Ftmp = as<double>(getFM(0.75 * Btmp, NAA, MAA(_,s), weightFs(_,s), sels(_,s))); // if using this, use getFM2
-      //     if(Ftmp > maxF/ns){
-      //       Ftmp = maxF / ns;
-      //     }
-      //     FAA(a,s) = sels(a,s) * Ftmp;
-      //     ZAA(a,s) = FAA(a,s) + MAA(a,s);
-      //     CAA(a) = FAA(a,s)/ZAA(a,s) * NAA(a) * (1 - exp(-ZAA(a,s)));
-      //     CW(y) += CAA(a) * weightFs(a,s);
-      //   }
-      // }else{
-      //   CW(y) += Ctmp;
-      // }
       CW(y) += Ctmp;
 
       for(int a=0; a<amax; a++){
@@ -249,7 +199,16 @@ List simpop(double logFM, List dat, List set, int out) {
     res["ESB"] = ESB;
     res["SSB"] = SSB2;
   }else if(out == 1){
-    res = SP(ny-2);
+    // median SP over last 50 years (or mean)
+    NumericVector sp2 = tail(SP, nyrefmsy);
+    double tmp;
+    if(refmethod == "mean"){
+      tmp = mean(sp2);
+    }else if(refmethod == "median"){
+      tmp = median(sp2);
+    }
+    res = tmp;
+    // res = SP(ny-2);
   }
 
   return res;
