@@ -46,7 +46,8 @@ getConvs <- function(mse, convyears = "all", convhcrs = "all", verbose = FALSE){
         res <- vector("list",nhcr)
         for(hcr in 1:nhcr){
             id <- unique(mse[[hcr]][[1]]$tacs$id)[1]
-            if(!(id %in% c("noF","refFmsy"))){
+            id2 <- unlist(strsplit(as.character(id), "-"))[1]
+            if(!(id2 %in% c("noF","refFmsy"))){
                 tmp <- do.call(rbind,lapply(mse[[hcr]], function(x) x[["tacs"]]$conv))
                 inds <- which(apply(tmp[,convyears], 1, all))
                 as.numeric(inds)
@@ -108,7 +109,7 @@ genNoise <- function(n, sd, rho=0, bias.cor = 0){
 
 #' @name estDepl
 #' @export
-estDepl <- function(dat, set=NULL, fmax = 10, nrep = 100, verbose = TRUE){
+estDepl <- function(dat, set=NULL, fmax = 10, nrep = 100, verbose = TRUE, method = "percentile"){
 
     if(!any(names(dat) == "ref")) stop("Reference points are missing in dat. Use estRef to estimate reference points.")
 
@@ -129,7 +130,13 @@ estDepl <- function(dat, set=NULL, fmax = 10, nrep = 100, verbose = TRUE){
         datx$FM <- fpat
         datx$Fs <- fpat / datx$nseasons
         dreal <- sapply(1:nrep, function(x) initPop(datx, set, out.opt = 2))
-        drealQ <- quantile(dreal, probs = depl.prob)
+        if(method == "mean"){
+            drealQ <- mean(dreal)
+        }else if(method == "median"){
+            drealQ <- quantile(dreal, probs = 0.5)
+        }else if(method == "percentile"){
+            drealQ <- quantile(dreal, probs = depl.prob)
+        }
         if(opt==1) return((depl - drealQ)^2)
         if(opt==2) return(drealQ)
     }

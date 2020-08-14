@@ -401,7 +401,6 @@ structure(
             inp$ini$logn <- log(2)
         }
         if(is.list(inp$obsI)) nis <- length(inp$obsI)
-        ## inp$optimiser.control <- list(iter.max = 1e3, eval.max = 1e3)
         rep <- try(fit.spict(inp), silent=TRUE)
         if(class(rep) == "try-error" || rep$opt$convergence != 0 || any(is.infinite(rep$sd))){
             tacs <- conscat(inp, tacs=tacs)
