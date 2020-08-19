@@ -3,7 +3,7 @@
 #' @name genConvs
 #' @description Get converged simulates from a resMSE object
 #' @export
-getConvs <- function(mse, convyears = "all", convhcrs = "all", verbose = FALSE){
+getConvs <- function(mse, convyears = "all", convhcrs = "all", out = 0, verbose = FALSE){
 
     nhcr <- length(mse)
     nrep <- length(mse[[1]])
@@ -62,7 +62,11 @@ getConvs <- function(mse, convyears = "all", convhcrs = "all", verbose = FALSE){
 
 
     ## return
-    return(res)
+    if(out == 0){
+        return(res)
+    }else if(out == 1){
+        return(sapply(res, length))
+    }
 
 }
 
@@ -175,14 +179,13 @@ estProd <- function(dat, set= NULL,
 
     ## noise
     if(is.null(set)) set <- checkSet()
-    set$sigmaF <- 0
-    set$sigmaR <- 0
-    set$rhoR <- 0
-    set$sigmaR0 <- 0
-    set$sigmaH <- 0
-    set$sigmaM <- 0
-    set$sigmaMat <- 0
-    set$sigmaImp <- 0
+    set$noiseF <- c(0,0,0)
+    set$noiseR <- c(0,0,0)
+    set$noiseR0 <- c(0,0,0)
+    set$noiseH <- c(0,0,0)
+    set$noiseM <- c(0,0,0)
+    set$noiseMat <- c(0,0,0)
+    set$noiseImp <- c(0,0,0)
 
     ##
     len1 <- len3 <- floor(ny/tsSplit)
@@ -194,11 +197,11 @@ estProd <- function(dat, set= NULL,
                 rep(fmax,len3))
     dat$Fs <- dat$FM / ns
     pop1 <- initPop(dat, set)
-    tsb1 <- pop1$TSB[,1]
+    tsb1 <- pop1$TSBfinal
     cw1 <- apply(pop1$CW,1,sum)
     prod1 <- rep(NA, ny)
-    for(i in 1:(ny-1)){
-        prod1[i] <- tsb1[i+1] - tsb1[i] + cw1[i]
+    for(i in 2:ny){
+        prod1[i] <- tsb1[i] - tsb1[i-1] + cw1[i]
     }
 
     ## decreasing effort
@@ -207,11 +210,11 @@ estProd <- function(dat, set= NULL,
                    rep(0, len3))
     pop2 <- initPop(dat, set)
     dat$Fs <- dat$FM / ns
-    tsb2 <- pop2$TSB[,1]
+    tsb2 <- pop2$TSBfinal
     cw2 <- apply(pop2$CW,1,sum)
     prod2 <- rep(NA, ny)
-    for(i in 1:(ny-1)){
-        prod2[i] <- tsb2[i+1] - tsb2[i] + cw2[i]
+    for(i in 2:ny){
+        prod2[i] <- tsb2[i] - tsb2[i-1] + cw2[i]
     }
 
     if(plot){

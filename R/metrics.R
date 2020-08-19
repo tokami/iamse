@@ -13,12 +13,18 @@ estConsMets <- function(mse, dat, mets = "all",
     nhcr <- length(mse)
     ## nreps <- sapply(mse, length)
     nreps <- sapply(mse, length)
+    tacID <- names(mse)
+    tacID2 <- sapply(strsplit(as.character(tacID), "-"), "[[", 1)
 
     res <- vector("list", nsamp)
     for(samp in 1:nsamp){
         sampi <- floor(sampleSizes[samp] * nreps)
+        sampi[tacID2 %in% c("noF", "refFmsy")] <- nreps[tacID2 %in% c("noF", "refFmsy")] ## otherwise C/MSY not possible
         ind <- sapply(1:nhcr, function(x) sample(1:nreps[x], sampi[x]))
         msei <- lapply(1:nhcr, function(x) mse[[x]][ind[[x]]])
+        names(msei) <- names(mse)
+        names(mse[[1]])
+        names(msei[[1]])
         res[[samp]] <- estMets(msei, dat = dat, mets = mets)
     }
 
@@ -40,6 +46,8 @@ estMets <- function(mse, dat, mets = "all"){
     ny <- dims[1] - nysim
     ns <- dims[2]
 
+
+
     finalYear <- ny + nysim
     fifthYear <- ny + 5
     last5Years <- (finalYear - 4) : finalYear
@@ -52,7 +60,10 @@ estMets <- function(mse, dat, mets = "all"){
 
     hcrs <- names(mse)
     reffmsyInd <- which(hcrs == "refFmsy")
-    refyield <- lapply(mse[[reffmsyInd]], function(x) apply(x$CW,1,sum)[simYears]) ## HERE:
+    refyield <- list(
+        lapply(mse[[reffmsyInd]], function(x) apply(x$CW,1,sum)[simYears]),
+        lapply(mse[[reffmsyInd]], function(x) apply(x$CW,1,sum)[first5Years]),
+        lapply(mse[[reffmsyInd]], function(x) apply(x$CW,1,sum)[last15Years]))
 
     metsAll <- c("CMSY","CMSYmean","PBBlim","AAVC",
                  "CMSYST","PBBlimST",
@@ -85,24 +96,28 @@ estMets <- function(mse, dat, mets = "all"){
         res <- NULL
         ## CMSY
         if(any(mets == "CMSY")){
-            ## tmp <- unlist(lapply(msei, function(x) mean(apply(x$CW,1,sum)[last5Years] / refs$MSY)))## HERE:
-            ## res <- rbind(res, quantile(tmp, probs = c(0.025, 0.5, 0.975), na.rm=TRUE))
-            tmp <- unlist(lapply(msei, function(x) median(apply(x$CW,1,sum)[simYears] / refs$MSY)))
-            res <- rbind(res, quantile(tmp, probs = c(0.025, 0.5, 0.975), na.rm=TRUE))
-        }
-        if(any(mets == "CMSYmean")){
             if(length(reffmsyInd) > 0){
                 indi <- as.numeric(names(msei))
-                tmp <- sapply(1:length(msei), function(x) mean(apply(msei[[x]]$CW,1,sum)[simYears] / refyield[[indi[x]]]))
-##                res <- rbind(res, quantile(tmp, probs = c(0.025, 0.5, 0.975), na.rm=TRUE))
-                res <- rbind(res, c(NA, mean(tmp,na.rm=TRUE), NA))
-            }else writeLines("CMSYmean could not be estimated, because no rule 'refFmsy' not found.")
+                tmp <- sapply(1:length(msei), function(x) mean(apply(msei[[x]]$CW,1,sum)[simYears] /
+                                                               refyield[[1]][[indi[x]]]))
+                mu <- mean(tmp,na.rm=TRUE)
+                vari <- var(tmp,na.rm=TRUE)
+                sei <- sqrt(vari)/length(tmp)
+                res <- rbind(res, c(mu - qt(0.975,df=length(tmp)-1)*sei,
+                                    mu,
+                                    mu + qt(0.975,df=length(tmp)-1)*sei,
+                                    sei,
+                                    length(tmp)))
+            }else writeLines("CMSY could not be estimated, because no rule 'refFmsy' not found.")
         }
         ## "PBBlim"
         if(any(mets == "PBBlim")){
             tmp <- unlist(lapply(msei, function(x) mean(x$TSBfinal[simYears] / refs$Blim < 1)))
+            vari <- var(tmp)
+            ni <- length(tmp)
+            sei <- sqrt(vari)/ni
             tmp <- prop.test(sum(tmp), n = length(tmp), conf.level = 0.95, correct = FALSE)
-            res <- rbind(res, c(tmp$conf.int[1],tmp$estimate,tmp$conf.int[2]))
+            res <- rbind(res, c(tmp$conf.int[1], tmp$estimate, tmp$conf.int[2], sei, ni))
         }
         ## "AAVC"
         if(any(mets == "AAVC")){
@@ -112,30 +127,64 @@ estMets <- function(mse, dat, mets = "all"){
                                                       apply(x$CW,1,sum)[simYears+1])^2)^0.5),
                                  mean ,na.rm=TRUE))
             tmp[is.infinite(tmp)] <- NA
-            res <- rbind(res, quantile(tmp, probs = c(0.025, 0.5, 0.975),na.rm=TRUE))
+            mu <- mean(tmp,na.rm=TRUE)
+            vari <- var(tmp,na.rm=TRUE)
+            sei <- sqrt(vari)/length(tmp)
+            res <- rbind(res, c(mu - qt(0.975,df=length(tmp)-1)*sei,
+                                mu,
+                                mu + qt(0.975,df=length(tmp)-1)*sei,
+                                sei,
+                                length(tmp)))
         }
-        ## CMSYST
         if(any(mets == "CMSYST")){
-            tmp <- unlist(lapply(msei, function(x) median(apply(x$CW,1,sum)[first5Years] / refs$MSY)))
-            res <- rbind(res, quantile(tmp, probs = c(0.025, 0.5, 0.975), na.rm=TRUE))
+            if(length(reffmsyInd) > 0){
+                indi <- as.numeric(names(msei))
+                tmp <- sapply(1:length(msei), function(x) mean(apply(msei[[x]]$CW,1,sum)[first5Years] /
+                                                               refyield[[2]][[indi[x]]]))
+                mu <- mean(tmp,na.rm=TRUE)
+                vari <- var(tmp,na.rm=TRUE)
+                sei <- sqrt(vari)/length(tmp)
+                res <- rbind(res, c(mu - qt(0.975,df=length(tmp)-1)*sei,
+                                    mu,
+                                    mu + qt(0.975,df=length(tmp)-1)*sei,
+                                    sei,
+                                    length(tmp)))
+            }else writeLines("CMSYST could not be estimated, because no rule 'refFmsy' not found.")
         }
         ## "PBBlimST"
         if(any(mets == "PBBlimST")){
             tmp <- unlist(lapply(msei, function(x) mean(x$TSBfinal[first5Years] / refs$Blim < 1)))
+            vari <- var(tmp)
+            ni <- length(tmp)
+            sei <- sqrt(vari)/ni
             tmp <- prop.test(sum(tmp), n = length(tmp), conf.level = 0.95, correct = FALSE)
-            res <- rbind(res, c(tmp$conf.int[1],tmp$estimate,tmp$conf.int[2]))
+            res <- rbind(res, c(tmp$conf.int[1], tmp$estimate, tmp$conf.int[2], sei, ni))
         }
-        ## CMSYLT
         if(any(mets == "CMSYLT")){
-            tmp <- unlist(lapply(msei, function(x) median(apply(x$CW,1,sum)[last15Years] / refs$MSY)))
-            res <- rbind(res, quantile(tmp, probs = c(0.025, 0.5, 0.975), na.rm=TRUE))
+            if(length(reffmsyInd) > 0){
+                indi <- as.numeric(names(msei))
+                tmp <- sapply(1:length(msei), function(x) mean(apply(msei[[x]]$CW,1,sum)[last15Years] /
+                                                               refyield[[3]][[indi[x]]]))
+                mu <- mean(tmp,na.rm=TRUE)
+                vari <- var(tmp,na.rm=TRUE)
+                sei <- sqrt(vari)/length(tmp)
+                res <- rbind(res, c(mu - qt(0.975,df=length(tmp)-1)*sei,
+                                    mu,
+                                    mu + qt(0.975,df=length(tmp)-1)*sei,
+                                    sei,
+                                    length(tmp)))
+            }else writeLines("CMSYLT could not be estimated, because no rule 'refFmsy' not found.")
         }
         ## "PBBlimLT"
         if(any(mets == "PBBlimLT")){
             tmp <- unlist(lapply(msei, function(x) mean(x$TSBfinal[last15Years] / refs$Blim < 1)))
+            vari <- var(tmp)
+            ni <- length(tmp)
+            sei <- sqrt(vari)/ni
             tmp <- prop.test(sum(tmp), n = length(tmp), conf.level = 0.95, correct = FALSE)
-            res <- rbind(res, c(tmp$conf.int[1],tmp$estimate,tmp$conf.int[2]))
+            res <- rbind(res, c(tmp$conf.int[1], tmp$estimate, tmp$conf.int[2], sei, ni))
         }
+        ## OLDER (not used in probHCR):
         ## CMSYMaxAge
         if(any(mets == "CMSYMaxAge")){
             tmp <- unlist(lapply(msei, function(x) median(apply(x$CW,1,sum)[min(simYears):(min(simYears)+dat$amax)] /
@@ -157,6 +206,12 @@ estMets <- function(mse, dat, mets = "all"){
         ## "BBmsyLT"
         if(any(mets == "BBmsyLT")){
             tmp <- unlist(lapply(msei, function(x) median(x$TSBfinal[last5Years] / refs$Bmsy)))
+            res <- rbind(res, quantile(tmp, probs = c(0.025, 0.5, 0.975), na.rm=TRUE))
+        }
+        if(any(mets == "CMSYold")){
+            ## tmp <- unlist(lapply(msei, function(x) mean(apply(x$CW,1,sum)[last5Years] / refs$MSY)))## HERE:
+            ## res <- rbind(res, quantile(tmp, probs = c(0.025, 0.5, 0.975), na.rm=TRUE))
+            tmp <- unlist(lapply(msei, function(x) median(apply(x$CW,1,sum)[simYears] / refs$MSY)))
             res <- rbind(res, quantile(tmp, probs = c(0.025, 0.5, 0.975), na.rm=TRUE))
         }
         ## OLDER:
@@ -292,7 +347,7 @@ estMets <- function(mse, dat, mets = "all"){
 
         ## names
         rownames(res) <- mets
-        colnames(res) <- c("2.5%","50%","97.5%")
+        colnames(res) <- c("loCI","mu","upCI","se","n")
         res2[[hcr]] <- round(res, 3)
     }
     names(res2) <- hcrs
