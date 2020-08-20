@@ -67,7 +67,7 @@ estMets <- function(mse, dat, mets = "all"){
 
     metsAll <- c("CMSY","CMSYmean","PBBlim","AAVC",
                  "CMSYST","PBBlimST",
-                 "CMSYLT","PBBlimLT",
+                 "CMSYLT","PBBlimLT","AAVC2",
                  "CMSYMaxAge","PBBlimMaxAge",
                  "BBmsy","BBmsyLT",
                  ## OLDER:
@@ -127,7 +127,7 @@ estMets <- function(mse, dat, mets = "all"){
                                                       apply(x$CW,1,sum)[simYears+1])^2)^0.5),
                                  mean ,na.rm=TRUE))
             tmp[is.infinite(tmp)] <- NA
-            mu <- mean(tmp,na.rm=TRUE)
+            mu <- median(tmp,na.rm=TRUE)
             vari <- var(tmp,na.rm=TRUE)
             sei <- sqrt(vari)/length(tmp)
             res <- rbind(res, c(mu - qt(0.975,df=length(tmp)-1)*sei,
@@ -183,6 +183,23 @@ estMets <- function(mse, dat, mets = "all"){
             sei <- sqrt(vari)/ni
             tmp <- prop.test(sum(tmp), n = length(tmp), conf.level = 0.95, correct = FALSE)
             res <- rbind(res, c(tmp$conf.int[1], tmp$estimate, tmp$conf.int[2], sei, ni))
+        }
+        ## "AAVC2" ## with mean but not very robust!
+        if(any(mets == "AAVC2")){
+            tmp <- unlist(lapply(lapply(msei,
+                                        function(x) (((apply(x$CW,1,sum)[simYears] -
+                                                       apply(x$CW,1,sum)[simYears+1])/
+                                                      apply(x$CW,1,sum)[simYears+1])^2)^0.5),
+                                 mean ,na.rm=TRUE))
+            tmp[is.infinite(tmp)] <- NA
+            mu <- mean(tmp,na.rm=TRUE)
+            vari <- var(tmp,na.rm=TRUE)
+            sei <- sqrt(vari)/length(tmp)
+            res <- rbind(res, c(mu - qt(0.975,df=length(tmp)-1)*sei,
+                                mu,
+                                mu + qt(0.975,df=length(tmp)-1)*sei,
+                                sei,
+                                length(tmp)))
         }
         ## OLDER (not used in probHCR):
         ## CMSYMaxAge
