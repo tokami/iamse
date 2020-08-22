@@ -68,6 +68,7 @@ estMets <- function(mse, dat, mets = "all"){
     metsAll <- c("CMSY","CMSYmean","PBBlim","AAVC",
                  "CMSYST","PBBlimST",
                  "CMSYLT","PBBlimLT","AAVC2",
+                 "CMSY2","CMSYST2","CMSYLT2",
                  "CMSYMaxAge","PBBlimMaxAge",
                  "BBmsy","BBmsyLT",
                  ## OLDER:
@@ -98,16 +99,35 @@ estMets <- function(mse, dat, mets = "all"){
         if(any(mets == "CMSY")){
             if(length(reffmsyInd) > 0){
                 indi <- as.numeric(names(msei))
-                tmp <- sapply(1:length(msei), function(x) mean(apply(msei[[x]]$CW,1,sum)[simYears] /
-                                                               refyield[[1]][[indi[x]]]))
-                mu <- mean(tmp,na.rm=TRUE)
-                vari <- var(tmp,na.rm=TRUE)
-                sei <- sqrt(vari)/length(tmp)
-                res <- rbind(res, c(mu - qt(0.975,df=length(tmp)-1)*sei,
-                                    mu,
-                                    mu + qt(0.975,df=length(tmp)-1)*sei,
-                                    sei,
-                                    length(tmp)))
+                tmp <- sapply(1:length(msei), function(x)
+                    median(apply(msei[[x]]$CW,1,sum)[simYears] / refyield[[1]][[indi[x]]]))
+                vari <- var(tmp)
+                ni <- length(tmp)
+                sei <- sqrt(vari/ni)
+                tmp2 <- try(wilcox.test(as.numeric(tmp),
+                                   alternative="two.sided",
+                                   correct=TRUE,
+                                   conf.int=TRUE,
+                                   conf.level=0.95), silent=TRUE)
+                if(hcrs[hcr] == "noF"){
+                    res <- rbind(res, c(0,
+                                        0,
+                                        0,
+                                        sei,
+                                        ni))
+                }else if(hcrs[hcr] == "refFmsy"){
+                    res <- rbind(res, c(1,
+                                        1,
+                                        1,
+                                        sei,
+                                        ni))
+                }else{
+                    res <- rbind(res, c(tmp2$conf.int[1],
+                                        tmp2$estimate,
+                                        tmp2$conf.int[2],
+                                        sei,
+                                        ni))
+                }
             }else writeLines("CMSY could not be estimated, because no rule 'refFmsy' not found.")
         }
         ## "PBBlim"
@@ -115,40 +135,75 @@ estMets <- function(mse, dat, mets = "all"){
             tmp <- unlist(lapply(msei, function(x) mean(x$TSBfinal[simYears] / refs$Blim < 1)))
             vari <- var(tmp)
             ni <- length(tmp)
-            sei <- sqrt(vari)/ni
+            sei <- sqrt(vari/ni)
             tmp <- prop.test(sum(tmp), n = length(tmp), conf.level = 0.95, correct = FALSE)
             res <- rbind(res, c(tmp$conf.int[1], tmp$estimate, tmp$conf.int[2], sei, ni))
         }
         ## "AAVC"
         if(any(mets == "AAVC")){
-            tmp <- unlist(lapply(lapply(msei,
-                                        function(x) (((apply(x$CW,1,sum)[simYears] -
-                                                       apply(x$CW,1,sum)[simYears+1])/
-                                                      apply(x$CW,1,sum)[simYears+1])^2)^0.5),
-                                 mean ,na.rm=TRUE))
-            tmp[is.infinite(tmp)] <- NA
-            mu <- median(tmp,na.rm=TRUE)
-            vari <- var(tmp,na.rm=TRUE)
-            sei <- sqrt(vari)/length(tmp)
-            res <- rbind(res, c(mu - qt(0.975,df=length(tmp)-1)*sei,
-                                mu,
-                                mu + qt(0.975,df=length(tmp)-1)*sei,
-                                sei,
-                                length(tmp)))
+            ## tmp <- unlist(lapply(lapply(msei,
+            ##                             function(x) (((apply(x$CW,1,sum)[simYears] -
+            ##                                            apply(x$CW,1,sum)[simYears+1])/
+            ##                                           apply(x$CW,1,sum)[simYears+1])^2)^0.5),
+            ##                      median ,na.rm=TRUE))
+            tmp <- sapply(msei, function(x) (sum(abs(apply(x$CW,1,sum)[simYears] -
+                                                     apply(x$CW,1,sum)[simYears-1]),na.rm=TRUE)/
+                                             sum(apply(x$CW,1,sum)[simYears], na.rm=TRUE)))
+            vari <- var(tmp)
+            ni <- length(tmp)
+            sei <- sqrt(vari/ni)
+            tmp2 <- try(wilcox.test(as.numeric(tmp),
+                                    alternative="two.sided",
+                                    correct=TRUE,
+                                    conf.int=TRUE,
+                                    conf.level=0.95), silent=TRUE)
+            if(hcrs[hcr] == "noF"){
+                res <- rbind(res, c(0,
+                                    0,
+                                    0,
+                                    sei,
+                                    ni))
+            }else{
+                res <- rbind(res, c(tmp2$conf.int[1],
+                                    tmp2$estimate,
+                                    tmp2$conf.int[2],
+                                    sei,
+                                    ni))
+            }
         }
+        ## CMSYST
         if(any(mets == "CMSYST")){
             if(length(reffmsyInd) > 0){
                 indi <- as.numeric(names(msei))
-                tmp <- sapply(1:length(msei), function(x) mean(apply(msei[[x]]$CW,1,sum)[first5Years] /
-                                                               refyield[[2]][[indi[x]]]))
-                mu <- mean(tmp,na.rm=TRUE)
-                vari <- var(tmp,na.rm=TRUE)
-                sei <- sqrt(vari)/length(tmp)
-                res <- rbind(res, c(mu - qt(0.975,df=length(tmp)-1)*sei,
-                                    mu,
-                                    mu + qt(0.975,df=length(tmp)-1)*sei,
-                                    sei,
-                                    length(tmp)))
+                tmp <- sapply(1:length(msei), function(x)
+                    median(apply(msei[[x]]$CW,1,sum)[first5Years] / refyield[[2]][[indi[x]]]))
+                vari <- var(tmp)
+                ni <- length(tmp)
+                sei <- sqrt(vari/ni)
+                tmp2 <- try(wilcox.test(as.numeric(tmp),
+                                   alternative="two.sided",
+                                   correct=TRUE,
+                                   conf.int=TRUE,
+                                   conf.level=0.95), silent=TRUE)
+                if(hcrs[hcr] == "noF"){
+                    res <- rbind(res, c(0,
+                                        0,
+                                        0,
+                                        sei,
+                                        ni))
+                }else if(hcrs[hcr] == "refFmsy"){
+                    res <- rbind(res, c(1,
+                                        1,
+                                        1,
+                                        sei,
+                                        ni))
+                }else{
+                    res <- rbind(res, c(tmp2$conf.int[1],
+                                        tmp2$estimate,
+                                        tmp2$conf.int[2],
+                                        sei,
+                                        ni))
+                }
             }else writeLines("CMSYST could not be estimated, because no rule 'refFmsy' not found.")
         }
         ## "PBBlimST"
@@ -156,23 +211,43 @@ estMets <- function(mse, dat, mets = "all"){
             tmp <- unlist(lapply(msei, function(x) mean(x$TSBfinal[first5Years] / refs$Blim < 1)))
             vari <- var(tmp)
             ni <- length(tmp)
-            sei <- sqrt(vari)/ni
+            sei <- sqrt(vari/ni)
             tmp <- prop.test(sum(tmp), n = length(tmp), conf.level = 0.95, correct = FALSE)
             res <- rbind(res, c(tmp$conf.int[1], tmp$estimate, tmp$conf.int[2], sei, ni))
         }
+        ## CMSYLT
         if(any(mets == "CMSYLT")){
             if(length(reffmsyInd) > 0){
                 indi <- as.numeric(names(msei))
-                tmp <- sapply(1:length(msei), function(x) mean(apply(msei[[x]]$CW,1,sum)[last15Years] /
-                                                               refyield[[3]][[indi[x]]]))
-                mu <- mean(tmp,na.rm=TRUE)
-                vari <- var(tmp,na.rm=TRUE)
-                sei <- sqrt(vari)/length(tmp)
-                res <- rbind(res, c(mu - qt(0.975,df=length(tmp)-1)*sei,
-                                    mu,
-                                    mu + qt(0.975,df=length(tmp)-1)*sei,
-                                    sei,
-                                    length(tmp)))
+                tmp <- sapply(1:length(msei), function(x)
+                    median(apply(msei[[x]]$CW,1,sum)[last15Years] / refyield[[3]][[indi[x]]]))
+                vari <- var(tmp)
+                ni <- length(tmp)
+                sei <- sqrt(vari/ni)
+                tmp2 <- try(wilcox.test(as.numeric(tmp),
+                                   alternative="two.sided",
+                                   correct=TRUE,
+                                   conf.int=TRUE,
+                                   conf.level=0.95), silent=TRUE)
+                if(hcrs[hcr] == "noF"){
+                    res <- rbind(res, c(0,
+                                        0,
+                                        0,
+                                        sei,
+                                        ni))
+                }else if(hcrs[hcr] == "refFmsy"){
+                    res <- rbind(res, c(1,
+                                        1,
+                                        1,
+                                        sei,
+                                        ni))
+                }else{
+                    res <- rbind(res, c(tmp2$conf.int[1],
+                                        tmp2$estimate,
+                                        tmp2$conf.int[2],
+                                        sei,
+                                        ni))
+                }
             }else writeLines("CMSYLT could not be estimated, because no rule 'refFmsy' not found.")
         }
         ## "PBBlimLT"
@@ -180,26 +255,84 @@ estMets <- function(mse, dat, mets = "all"){
             tmp <- unlist(lapply(msei, function(x) mean(x$TSBfinal[last15Years] / refs$Blim < 1)))
             vari <- var(tmp)
             ni <- length(tmp)
-            sei <- sqrt(vari)/ni
+            sei <- sqrt(vari/ni)
             tmp <- prop.test(sum(tmp), n = length(tmp), conf.level = 0.95, correct = FALSE)
             res <- rbind(res, c(tmp$conf.int[1], tmp$estimate, tmp$conf.int[2], sei, ni))
         }
-        ## "AAVC2" ## with mean but not very robust!
+        ## "AAVC2"
         if(any(mets == "AAVC2")){
-            tmp <- unlist(lapply(lapply(msei,
-                                        function(x) (((apply(x$CW,1,sum)[simYears] -
-                                                       apply(x$CW,1,sum)[simYears+1])/
-                                                      apply(x$CW,1,sum)[simYears+1])^2)^0.5),
-                                 mean ,na.rm=TRUE))
-            tmp[is.infinite(tmp)] <- NA
-            mu <- mean(tmp,na.rm=TRUE)
-            vari <- var(tmp,na.rm=TRUE)
-            sei <- sqrt(vari)/length(tmp)
-            res <- rbind(res, c(mu - qt(0.975,df=length(tmp)-1)*sei,
-                                mu,
-                                mu + qt(0.975,df=length(tmp)-1)*sei,
-                                sei,
-                                length(tmp)))
+            ## tmp <- unlist(lapply(lapply(msei,
+            ##                             function(x) (((apply(x$CW,1,sum)[simYears] -
+            ##                                            apply(x$CW,1,sum)[simYears+1])/
+            ##                                           apply(x$CW,1,sum)[simYears+1])^2)^0.5),
+            ##                      median ,na.rm=TRUE))
+            tmp <- sapply(msei, function(x) (sum(abs(apply(x$CW,1,sum)[simYears] -
+                                                     apply(x$CW,1,sum)[simYears-1]),na.rm=TRUE)/
+                                             sum(apply(x$CW,1,sum)[simYears], na.rm=TRUE)))
+            mu <- mean(tmp)
+            vari <- var(tmp)
+            ni <- length(tmp)
+            sei <- sqrt(vari/ni)
+            if(hcrs[hcr] == "noF"){
+                res <- rbind(res, c(0,
+                                    0,
+                                    0,
+                                    sei,
+                                    ni))
+            }else{
+                res <- rbind(res, c(mu - qnorm(1-0.05/2)*sei,
+                                    mu,
+                                    mu + qnorm(1-0.05/2)*sei,
+                                    sei,
+                                    ni))
+            }
+        }
+        ## CMSY2 (mean)
+        if(any(mets == "CMSY2")){
+            if(length(reffmsyInd) > 0){
+                indi <- as.numeric(names(msei))
+                tmp <- sapply(1:length(msei), function(x) mean(apply(msei[[x]]$CW,1,sum)[simYears] /
+                                                               refyield[[1]][[indi[x]]]))
+                mu <- mean(tmp,na.rm=TRUE)
+                vari <- var(tmp,na.rm=TRUE)
+                sei <- sqrt(vari/length(tmp))
+                res <- rbind(res, c(mu - qt(0.975,df=length(tmp)-1)*sei,
+                                    mu,
+                                    mu + qt(0.975,df=length(tmp)-1)*sei,
+                                    sei,
+                                    length(tmp)))
+            }else writeLines("CMSY2 could not be estimated, because no rule 'refFmsy' not found.")
+        }
+        ## CMSYST2 (mean)
+        if(any(mets == "CMSYST2")){
+            if(length(reffmsyInd) > 0){
+                indi <- as.numeric(names(msei))
+                tmp <- sapply(1:length(msei), function(x) mean(apply(msei[[x]]$CW,1,sum)[first5Years] /
+                                                               refyield[[2]][[indi[x]]]))
+                mu <- mean(tmp,na.rm=TRUE)
+                vari <- var(tmp,na.rm=TRUE)
+                sei <- sqrt(vari/length(tmp))
+                res <- rbind(res, c(mu - qt(0.975,df=length(tmp)-1)*sei,
+                                    mu,
+                                    mu + qt(0.975,df=length(tmp)-1)*sei,
+                                    sei,
+                                    length(tmp)))
+            }else writeLines("CMSYST2 could not be estimated, because no rule 'refFmsy' not found.")
+        }
+        if(any(mets == "CMSYLT2")){
+            if(length(reffmsyInd) > 0){
+                indi <- as.numeric(names(msei))
+                tmp <- sapply(1:length(msei), function(x) mean(apply(msei[[x]]$CW,1,sum)[last15Years] /
+                                                               refyield[[3]][[indi[x]]]))
+                mu <- mean(tmp,na.rm=TRUE)
+                vari <- var(tmp,na.rm=TRUE)
+                sei <- sqrt(vari/length(tmp))
+                res <- rbind(res, c(mu - qt(0.975,df=length(tmp)-1)*sei,
+                                    mu,
+                                    mu + qt(0.975,df=length(tmp)-1)*sei,
+                                    sei,
+                                    length(tmp)))
+            }else writeLines("CMSYLT2 could not be estimated, because no rule 'refFmsy' not found.")
         }
         ## OLDER (not used in probHCR):
         ## CMSYMaxAge
