@@ -55,7 +55,7 @@ defHCRref <- function(consF = 0,
                 '
 structure(
     function(inp, tacs=NULL){
-        inp <- spict::check.inp(inp)
+        inp <- spict::check.inp(inp, verbose = FALSE)
         tacs <- gettacs(tacs, id="',id,'", TAC=NA, inp=inp)
         return(tacs)
     },
@@ -73,7 +73,7 @@ structure(
                 '
 structure(
     function(inp, tacs=NULL){
-        inp <- spict::check.inp(inp)
+        inp <- spict::check.inp(inp, verbose = FALSE)
         tacs <- gettacs(tacs, id="',id,'", TAC=NA, inp=inp)
         return(tacs)
     },
@@ -88,7 +88,7 @@ structure(
                 '
 structure(
     function(inp, tacs=NULL){
-        inp <- spict::check.inp(inp)
+        inp <- spict::check.inp(inp, verbose = FALSE)
         tacs <- gettacs(tacs, id="',id,'", TAC=NA, inp=inp)
         return(tacs)
     },
@@ -103,7 +103,7 @@ structure(
                 '
 structure(
     function(inp, tacs=NULL){
-        inp <- spict::check.inp(inp)
+        inp <- spict::check.inp(inp, verbose = FALSE)
         tacs <- gettacs(tacs, id="',id,'", TAC=0, inp=inp)
         return(tacs)
     },
@@ -146,13 +146,14 @@ defHCRconscat <- function(id = "conscat",
         '
 structure(
     function(inp, tacs = NULL){
-        inp <- spict::check.inp(inp)
+        inp <- spict::check.inp(inp, verbose = FALSE)
         if(is.null(tacs)){
             indBpBx <- inp$indBpBx
         }else{
             indBpBx <- tacs$indBpBx[nrow(tacs)]
         }
         inp$indBpBx <- indBpBx
+        if(length(indBpBx)>1) indBpBx2 <- max(indBpBx) else indBpBx2 <- indBpBx
 
         TAC <- ',constantC,'
         if(!is.numeric(TAC)){
@@ -181,7 +182,7 @@ structure(
         tacs$hitSC <- NA
         tacs$barID <- barID
         tacs$red <- red
-        tacs$indBpBx <- indBpBx
+        tacs$indBpBx <- indBpBx2
         return(tacs)
     },
 class="hcr"
@@ -241,13 +242,14 @@ defHCRindex <- function(id = "r2_3",
         red <- ',red,'
         redyears <- ',redyears,'
 
-        inp <- spict::check.inp(inp)
+        inp <- spict::check.inp(inp, verbose = FALSE)
         if(is.null(tacs)){
             indBpBx <- inp$indBpBx
         }else{
             indBpBx <- tacs$indBpBx[nrow(tacs)]
         }
         inp$indBpBx <- indBpBx
+        if(length(indBpBx)>1) indBpBx2 <- max(indBpBx) else indBpBx2 <- indBpBx
 
         inds <- inp$obsI
         if(length(inds) > 1){
@@ -292,7 +294,7 @@ defHCRindex <- function(id = "r2_3",
         tacs$hitSC <- hitSC
         tacs$barID <- barID
         tacs$red <- red
-        tacs$indBpBx <- indBpBx
+        tacs$indBpBx <- indBpBx2
         return(tacs)
     },
 class="hcr"
@@ -343,6 +345,7 @@ defHCRspict <- function(id = "spict-msy",
                         priorlogbeta = c(log(1),2,1),
                         schaefer = 0,
                         bfac = NA,
+                        bref = "cur", ## or mean, or lowest
                         manstartdY = 1,
                         intC = NA,
                         env = globalenv()
@@ -374,18 +377,28 @@ structure(
         manstart <- inp$timeC[length(inp$timeC)] + ',manstartdY,'
         inp$maninterval <- c(manstart, manstart + 1)
         ## Check inp
-        inp <- spict::check.inp(inp)
+        inp <- spict::check.inp(inp, verbose = FALSE)
         ## priors
         inp$priors$logn <- c(',priorlogn[1],',',priorlogn[2],',',priorlogn[3],')
         inp$priors$logalpha <- c(',priorlogalpha[1],',',priorlogalpha[2],',',priorlogalpha[3],')
         inp$priors$logbeta <- c(',priorlogbeta[1],',',priorlogbeta[2],',',priorlogbeta[3],')
         ## Bfac rule
-        if(is.null(tacs)){
-            indBpBx <- inp$indBpBx
-        }else{
-            indBpBx <- tacs$indBpBx[nrow(tacs)]
+        if(bref == "cur"){
+            inp$bref <- 0
+            if(is.null(tacs)){
+                indBpBx <- inp$indBpBx
+            }else{
+                indBpBx <- tacs$indBpBx[nrow(tacs)]
+            }
+        }else if(bref == "lowest"){  ## this can always update the lowest or keep the same lowest of original historical period!
+            inp$bref <- 1
+            indBpBx <- 0
+        }else if(bref == "mean"){  ## this can always update the mean or keep the same mean.
+            inp$bref <- 2
+            indBpBx <- 1:inp$indBpBx
         }
         inp$indBpBx <- indBpBx
+        if(length(indBpBx)>1) indBpBx2 <- max(indBpBx) else indBpBx2 <- indBpBx
         ## Catch for intermediate year
         if(is.na(',intC,')){
             intC2 <- NULL
@@ -406,6 +419,7 @@ structure(
             tacs <- conscat(inp, tacs=tacs)
             tacs$conv[nrow(tacs)] <- FALSE
         }else{
+
             fmfmsy <- try(get.par("logFmFmsynotS",rep, exp=TRUE)[,c(2,4)],silent=TRUE)
             if(!is.numeric(fmfmsy)) print(paste0("fmfmsy not numeric. fmfmsy: ", fmfmsy))
             if(all(is.numeric(fmfmsy))){
@@ -478,7 +492,7 @@ structure(
             names(mest) <- c("m.est","m.sd")
             ##
             quantstmp <- c(fmfmsy, bpbmsy, cp, fmsy, bmsy, sdb, sdi, sdf, sdc, bmbmsy, nest, Kest, mest)
-            if(any(is.na(quantstmp))){
+            if(!schaefer && reportmode %in% c(0,1) && any(is.na(quantstmp))){  ## n.sd is NA if schaefer (n fixed), reportmode 3 does not report most quantities
                 tacs <- conscat(inp, tacs=tacs)
                 tacs$conv[nrow(tacs)] <- FALSE
             }else{
@@ -501,7 +515,7 @@ structure(
                     tactmp <- data.frame(TAC=tac, id="',id,'", hitSC=NA,
                                          red=NA, barID=NA, sd=NA, conv = TRUE)
                     tactmp <- data.frame(c(tactmp, quantstmp,
-                                           indBpBx = indBpBx))
+                                           indBpBx = indBpBx2))
                     if(is.null(tacs)){
                         tacs <- tactmp
                     }else{

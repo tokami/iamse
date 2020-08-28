@@ -41,8 +41,7 @@ getConvs <- function(mse, convyears = "all", convhcrs = "all", out = 0, verbose 
             res[[hcr]] <- mse[[hcr]][inds]
             names(res[[hcr]]) <- inds
         }
-    }else{
-        hcr <- 3
+    }else if(!is.na(convyears[1])){
         res <- vector("list",nhcr)
         for(hcr in 1:nhcr){
             id <- unique(mse[[hcr]][[1]]$tacs$id)[1]
@@ -57,6 +56,12 @@ getConvs <- function(mse, convyears = "all", convhcrs = "all", out = 0, verbose 
                                   " reps = ",round(length(inds)/nrep*100),"%"))
             res[[hcr]] <- mse[[hcr]][inds]
             names(res[[hcr]]) <- inds
+        }
+    }else{
+        res <- vector("list",nhcr)
+        for(hcr in 1:nhcr){
+            res[[hcr]] <- mse[[hcr]]
+            names(res[[hcr]]) <- 1:nrep
         }
     }
 
