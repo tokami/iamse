@@ -382,6 +382,7 @@ advancePop <- function(dat, hist, set, tacs){
     NAA <- rep(0, amax)
     FAA <- ZAA <- MAA <- matrix(NA, amax, ns)
     TACs <- c(hist$TACs, NA)
+    rec <- c(hist$rec, NA)
     TSBfinal <- c(hist$TSBfinal, NA)
     ESBfinal <- c(hist$ESBfinal, NA)
     TACreal <- rep(NA, ns)
@@ -416,11 +417,11 @@ advancePop <- function(dat, hist, set, tacs){
     ## recruitment
     SSBtemp <- sum(NAA * weights[,1] * maty[,1] * exp(-pzbm * Ztemp)) ## pre-recruitment mort
     SSBPR0 <- getSSBPR(dat$M * eM, dat$mat * eMat, dat$weight, 1, amax, dat$R0) ## annual M
-    rec <- recfunc(h = hy, SSBPR0 = SSBPR0, SSB = SSBtemp, R0 = R0y,
+    rec[y] <- recfunc(h = hy, SSBPR0 = SSBPR0, SSB = SSBtemp, R0 = R0y,
                    method = dat$SR, bp = dat$bp,
                    beta = dat$recBeta, gamma = dat$recGamma)
     rec[rec<0] <- 1e-10
-    NAA[1] <- rec * eR
+    NAA[1] <- rec[y] * eR
 
     ## Define F/TACs
     if(tacID2 == "refFmsy"){
@@ -437,7 +438,7 @@ advancePop <- function(dat, hist, set, tacs){
         FMtac <- 0
     }else{
         ## any other HCR
-        TAC <- as.numeric(as.character(tacs$TAC[nrow(tacs)]))
+        TAC <- as.numeric(as.character(tacs$TAC[nrow(tacs)])) / set$assessmentInterval
         TACs[y] <- TAC
         TACreal <- rep(TAC/ns, ns)
     }
@@ -541,6 +542,7 @@ advancePop <- function(dat, hist, set, tacs){
     out$ESBfinal <- ESBfinal
     out$ESB <- ESB
     out$SSB <- SSB
+    out$rec <- rec
     out$FM <- FM
     out$CW <- CW
     out$TACs <- TACs
