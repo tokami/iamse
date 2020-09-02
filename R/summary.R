@@ -6,7 +6,7 @@
 #'
 sumMSE <- function(mse){
     ##
-    quants <- c("TSB","SSB","ESB","CW","TACs","FM")
+    quants <- c("TSB","SSB","ESB","CW","TSBfinal","TACs","FM")
     nquants <- length(quants)
     nmse <- length(mse)
     resList <- vector("list",nmse)
@@ -19,7 +19,7 @@ sumMSE <- function(mse){
                 tmp <- do.call(rbind,lapply(msei, function(x) apply(x[[quant]],1,mean)))
             }else if(quant %in% c("CW","FM")){
                 tmp <- do.call(rbind,lapply(msei, function(x) apply(x[[quant]],1,sum)))
-            }else if(quant == "TACs"){
+            }else if(quant %in% c("TSBfinal","TACs")){
                 tmp <- do.call(rbind,lapply(msei, function(x) x[[quant]]))
             }
             res[[j]] <- apply(tmp, 2, quantile, probs=c(0.025,0.5,0.975), na.rm=TRUE)
