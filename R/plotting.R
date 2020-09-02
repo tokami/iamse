@@ -63,9 +63,9 @@ plotmse.cw <- function(dat, set, resMSE,
         if(med) lines(xsim, medsim, lwd=2, col=cols[i])
         if(is.numeric(trendline)){
             for(j in 1:length(trendline))
-                lines(xsim, resMSE[[i]][[trendline[j]]]$CW[idxsim], col=cols[i])
+                lines(xsim, apply(resMSE[[i]][[trendline[j]]]$CW,1,sum)[idxsim], col=cols[i])
         }else if(trendline)
-            lines(xsim, resMSE[[i]][[1]]$CW[idxsim], col=cols[i])
+            lines(xsim, apply(resMSE[[i]][[1]]$CW,1,sum)[idxsim], col=cols[i])
     }
     abline(v=dat$ny, col="grey60",lwd=2)
     abline(v=max(which(dat$FM==0)), col="grey60",lwd=2,lty=2)
@@ -99,13 +99,13 @@ plotmse.b <- function(dat, set, resMSE,
     idxsim <- (dat$ny):(dat$ny+set$nysim)
     idxhist <- 1:dat$ny
     xall <- 1:(dat$ny+set$nysim)
-    if(is.null(ylim)) ylim <- c(0.8,1.2) * range(lapply(res,function(x) x$TSB))
+    if(is.null(ylim)) ylim <- c(0.8,1.2) * range(lapply(res,function(x) x$TSBfinal))
     cols <- rainbow(nms)
     ## historic
     i <- 1 ## historic pattern the same between mss
-    llhist <- res[[i]]$TSB[1,idxhist]
-    ulhist <- res[[i]]$TSB[3,idxhist]
-    medhist <- res[[i]]$TSB[2,idxhist]
+    llhist <- res[[i]]$TSBfinal[1,idxhist]
+    ulhist <- res[[i]]$TSBfinal[3,idxhist]
+    medhist <- res[[i]]$TSBfinal[2,idxhist]
     if(!is.null(dat$ref$Bmsy)) bmsy <- dat$ref$Bmsy
     llbmsy <- NA ##tmp[1]
     ulbmsy <- NA ##tmp[2]
@@ -128,20 +128,20 @@ plotmse.b <- function(dat, set, resMSE,
     ## projection
     if(uncert){
         for(i in 1:nms){
-            llsim <- res[[i]]$TSB[1,idxsim]
-            ulsim <- res[[i]]$TSB[3,idxsim]
+            llsim <- res[[i]]$TSBfinal[1,idxsim]
+            ulsim <- res[[i]]$TSBfinal[3,idxsim]
             polygon(x = c(xsim,rev(xsim)), y = c(llsim,rev(ulsim)),
                     border=NA, col=rgb(t(col2rgb(cols[i]))/255,alpha=0.2))
         }
     }
     for(i in 1:nms){
-        medsim <- res[[i]]$TSB[2,idxsim]
+        medsim <- res[[i]]$TSBfinal[2,idxsim]
         if(med) lines(xsim, medsim, lwd=2, col=cols[i])
         if(is.numeric(trendline)){
             for(j in 1:length(trendline))
-                lines(xsim, resMSE[[i]][[trendline[j]]]$TSB[idxsim], col=cols[i])
+                lines(xsim, resMSE[[i]][[trendline[j]]]$TSBfinal[idxsim], col=cols[i])
         }else if(trendline)
-            lines(xsim, resMSE[[i]][[1]]$TSB[idxsim], col=cols[i])
+            lines(xsim, resMSE[[i]][[1]]$TSBfinal[idxsim], col=cols[i])
     }
     abline(v=dat$ny, col="grey60",lwd=2)
     abline(v=max(which(dat$FM==0)), col="grey60",lwd=2,lty=2)
@@ -216,9 +216,9 @@ plotmse.f <- function(dat, set, resMSE,
         if(med) lines(xsim, medsim, lwd=2, col=cols[i])
         if(is.numeric(trendline)){
             for(j in 1:length(trendline))
-                lines(xsim, resMSE[[i]][[trendline[j]]]$FM[idxsim], col=cols[i])
+                lines(xsim, apply(resMSE[[i]][[trendline[j]]]$FM,1,sum)[idxsim], col=cols[i])
         }else if(trendline)
-            lines(xsim, resMSE[[i]][[1]]$FM[idxsim], col=cols[i])
+            lines(xsim, apply(resMSE[[i]][[1]]$FM,1,sum)[idxsim], col=cols[i])
     }
     abline(v=dat$ny, col="grey60",lwd=2)
     abline(v=max(which(dat$FM==0)), col="grey60",lwd=2,lty=2)
