@@ -106,7 +106,10 @@ checkDat <- function(dat){
 
     ## natural mortality
     ##------------------
-    if(!any(names(dat) == "M") || dim(dat$Ms)[2] != tail(dim(dat$plba),1)){
+    if(any(names(dat) == "M") && length(dat$M) == 1){
+        dat$M <- rep(dat$M, amax + 1)
+        dat$Ms <- matrix(dat$M, ncol=ns, nrow=amax+1) / ns
+    }else if(!any(names(dat) == "M") || dim(dat$Ms)[2] != tail(dim(dat$plba),1)){
         writeLines("M not defined. Using Gislason's empirical formula for M at length.")
         M <- exp(0.55 - 1.61 * log(dat$LA) + 1.44 * log(dat$linf) + log(dat$k))
         for(i in 1:dim(M)[2]){
@@ -115,11 +118,7 @@ checkDat <- function(dat){
         ## account for seasons
         dat$Ms <- M / ns
         dat$M <- M[,1]
-    }else if(length(dat$M) == 1){
-        dat$M <- rep(dat$M, amax + 1)
-        dat$Ms <- dat$M / ns
     }else if(length(dat$M) != amax+1) stop("Natural mortality has incorrect length. Length has to be equal to maximum age + 1 (age 0)!")
-
 
 
     ## historic fishing mortality
