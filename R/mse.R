@@ -70,7 +70,11 @@ runMSE <- function(dat, set, ncores=parallel::detectCores()-1, verbose=TRUE){
             }else{
                 ## Any other HCR
                 for(y in 1:nysim){
-                    poptmp$tacs <- estTAC(inp = poptmp$inp, hcr = hcri, tacs = poptmp$tacs)
+                    if(y %in% seq(1,nysim, set$assessmentInterval)){
+                        poptmp$tacs <- estTAC(inp = poptmp$inp, hcr = hcri, tacs = poptmp$tacs,
+                                              pars=list("ffmsy" = tail(apply(poptmp$FM,1,sum),1)/dat$ref$Fmsy,
+                                                        "bbtrigger" = tail(poptmp$TSBfinal,1)/(dat$ref$Bmsy*0.5)))
+                    }
                     poptmp <- advancePop(dat = dat, hist = poptmp, set = setx,
                                          tacs = poptmp$tacs)
                 }
