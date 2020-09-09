@@ -87,16 +87,20 @@ checkDat <- function(dat){
     ##------------------
     if(!any(names(dat) == "Lm50")) stop("Length at 50% maturity missing: Lm50")
     if(!any(names(dat) == "Lm95")) stop("Length at 95% maturity missing: Lm95")
-    dat$mats <- getMat(dat$Lm50, dat$Lm95, dat$mids, dat$plba)
-    dat$mat <- getMat(dat$Lm50, dat$Lm95, dat$mids, dat$plba[,,1, drop=FALSE]) ## or rowMeans?
+    if(!is.na(dat$Lm50) && !is.na(dat$Lm95)){
+        dat$mats <- getMat(dat$Lm50, dat$Lm95, dat$mids, dat$plba)
+        dat$mat <- getMat(dat$Lm50, dat$Lm95, dat$mids, dat$plba[,,1, drop=FALSE]) ## or rowMeans?
+    }
 
 
     ## selectivity
     ##------------------
     if(!any(names(dat) == "L50")) dat$L50 <- dat$Lm50
     if(!any(names(dat) == "L95")) dat$L95 <- dat$Lm95
-    dat$sels <- getSel(dat$L50, dat$L95, dat$mids, dat$plba)
-    dat$sel <- getSel(dat$L50, dat$L95, dat$mids, dat$plba[,,1, drop=FALSE]) ## or rowMeans?
+    if(!is.na(dat$L50) && !is.na(dat$L95)){
+        dat$sels <- getSel(dat$L50, dat$L95, dat$mids, dat$plba)
+        dat$sel <- getSel(dat$L50, dat$L95, dat$mids, dat$plba[,,1, drop=FALSE]) ## or rowMeans?
+    }
 
 
     ## fecundity

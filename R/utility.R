@@ -6,6 +6,7 @@
 getConvs <- function(mse, convyears = "all", convhcrs = "all", out = 0, verbose = FALSE){
 
     nhcr <- length(mse)
+    hcrs <- names(mse)
     nrep <- length(mse[[1]])
     nquant <- length(mse[[1]][[1]])
     nysim <- nrow(mse[[1]][[1]]$tacs)
@@ -38,8 +39,13 @@ getConvs <- function(mse, convyears = "all", convhcrs = "all", out = 0, verbose 
                               " reps = ",round(length(inds)/nrep*100),"%"))
         res <- vector("list",nhcr)
         for(hcr in 1:nhcr){
+            if(hcrs[hcr] != "refFmsy"){
             res[[hcr]] <- mse[[hcr]][inds]
             names(res[[hcr]]) <- inds
+            }else{
+                res[[hcr]] <- mse[[hcr]]
+            names(res[[hcr]]) <- 1:nrep
+            }
         }
     }else if(!is.na(convyears[1])){
         res <- vector("list",nhcr)
