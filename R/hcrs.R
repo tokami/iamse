@@ -503,7 +503,7 @@ structure(
                 ## benchmark (assuming bm always in first year)
                 if(!is.null(tacs)){
                     if(!is.numeric(bm) ||
-                       any(as.logical(tail(tacs$bmID[idx],(bm-1))),na.rm=TRUE)){
+                       any(as.logical(tail(tacs$bmID,(bm-1))),na.rm=TRUE)){
                         bmID <- FALSE
                     }else bmID <- TRUE
                 }else bmID <- TRUE
