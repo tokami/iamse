@@ -271,25 +271,30 @@ structure(
         ## Cl <- sum(tail(inp$obsC, tail(1/inp$dtc,1))) ## CHECK: dtc required?
         Cl <- mean(tail(inp$obsC, clyears))
         TAC <- Cl * r * 1 * 1 ## Clast * r * f * b
-        ## bianunal reduction (usually 0.2) if B < Btrigger proxy or F > Fmsy
-        if(is.numeric(red) && (is.numeric(',ffmsySD,') || is.numeric(',bbtriggerSD,'))){
-            if(ffmsy > 1 || bbtrigger < 1){
+        ## PA buffer (e.g. 0.2 reduction of TAC) if B < Btrigger proxy or F > Fmsy
+        if(is.numeric(red)){
             if(is.null(tacs)){
-                TAC <- TAC * (1-red)
+                ## apply in first year
                 barID <- TRUE
+            }else if(any(as.logical(tail(tacs$barID,(redyears-1))),na.rm=TRUE)){
+                ## do not apply if applied during last x years (redyears)
+                barID <- FALSE
             }else{
-                idx1 <- ifelse(nrow(tacs) > (redyears-1), (nrow(tacs)-(redyears-2)), 1)
-                idx <- idx1:nrow(tacs)
-                if(all(as.logical(tacs$barID[idx]) == FALSE)){
-                    TAC <- TAC * (1-red)
+                if(!is.numeric(',ffmsySD,') || !is.numeric(',bbtriggerSD,')){
+                    ## apply if any ref = NA
                     barID <- TRUE
                 }else{
-                    barID <- FALSE
+                    if(ffmsy > 1 || bbtrigger < 1){
+                        ## apply if any ref indicates overexploitation
+                        barID <- TRUE
+                    }else barID <- FALSE
                 }
             }
-            }else barID <- FALSE
         }else barID <- FALSE
-
+        ## apply reduction
+        if(barID){
+            TAC <- TAC * (1-red)
+        }
         ## Account for non-annual assessments
         TAC <- TAC * ',assessmentInterval,'
 
@@ -315,9 +320,6 @@ structure(
     ## allow for assigning names
     invisible(id)
 }
-
-
-
 
 #' @name defHCRspict
 #' @title Define harvest control rule
