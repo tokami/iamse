@@ -28,7 +28,7 @@ gettacs <- function(tacs=NULL, id="", TAC=NA, inp=NULL){
                            n.est=NA,n.sd=NA,
                            K.est=NA,K.sd=NA,
                            m.est=NA,m.sd=NA,
-                           indBref2 = NA,
+                           indBref = NA,
                            bmID=NA))
     if(is.null(tacs)){
         tacs <- tactmp
