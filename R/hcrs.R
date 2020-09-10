@@ -6,9 +6,13 @@
 gettacs <- function(tacs=NULL, id="", TAC=NA, inp=NULL){
     if(!is.null(inp) && is.list(inp$obsI))
         nis <- length(inp$obsI) else nis <- 1
-    tactmp <- data.frame(TAC=TAC, id=id, hitSC=NA, red=NA,
-                         barID=FALSE, sd=NA, conv = FALSE,
-                         fmfmsy.est=NA,fmfmsy.sd=NA,
+    tactmp <- data.frame(TAC=TAC, id=id,
+                         hitSC=NA,
+                         red=NA,
+                         barID=FALSE,
+                         sd=NA,
+                         conv = FALSE,               ## model convergence
+                         fmfmsy.est=NA,fmfmsy.sd=NA, ## bunch of spict estimates (point estimate + sd)
                          bpbmsy.est=NA,bpbmsy.sd=NA,
                          cp.est=NA,cp.sd=NA,
                          fmsy.est=NA,fmsy.sd=NA,
@@ -24,7 +28,8 @@ gettacs <- function(tacs=NULL, id="", TAC=NA, inp=NULL){
                            n.est=NA,n.sd=NA,
                            K.est=NA,K.sd=NA,
                            m.est=NA,m.sd=NA,
-                           indBpBx = NA))
+                           indBref2 = NA,
+                           bmID=NA))
     if(is.null(tacs)){
         tacs <- tactmp
     }else{
@@ -145,14 +150,6 @@ defHCRconscat <- function(id = "conscat",
 structure(
     function(inp, tacs = NULL, pars=NULL){
         inp <- spict::check.inp(inp, verbose = FALSE)
-        if(is.null(tacs)){
-            indBpBx <- inp$indBpBx
-        }else{
-            indBpBx <- tacs$indBpBx[nrow(tacs)]
-        }
-        inp$indBpBx <- indBpBx
-        if(length(indBpBx)>1) indBpBx2 <- max(indBpBx) else indBpBx2 <- indBpBx
-
         TAC <- ',constantC,'
         if(!is.numeric(TAC)){
             annualcatch <- spict:::annual(inp$timeC, inp$obsC/inp$dtc, type = "mean") ## CHECK: why not sum?
@@ -183,7 +180,6 @@ structure(
         tacs$hitSC[nrow(tacs)] <- NA
         tacs$barID[nrow(tacs)] <- barID
         tacs$red[nrow(tacs)] <- red
-        tacs$indBpBx[nrow(tacs)] <- indBpBx2
         return(tacs)
     },
 class="hcr"
@@ -253,14 +249,6 @@ structure(
         bbtrigger[bbtrigger < 0] <- 0
 
         inp <- spict::check.inp(inp, verbose = FALSE)
-        if(is.null(tacs)){
-            indBpBx <- inp$indBpBx
-        }else{
-            indBpBx <- tacs$indBpBx[nrow(tacs)]
-        }
-        inp$indBpBx <- indBpBx
-        if(length(indBpBx)>1) indBpBx2 <- max(indBpBx) else indBpBx2 <- indBpBx
-
         inds <- inp$obsI
         if(length(inds) > 1){
             ## WHAT TO DO IF SEVERAL INDICES AVAILABLE? ## for now: mean
@@ -314,7 +302,6 @@ structure(
         tacs$fmfmsy.sd[nrow(tacs)] <- ffmsySD
         tacs$bpbmsy.sd[nrow(tacs)] <- bbtriggerSD
         tacs$n.est[nrow(tacs)] <- r0
-        tacs$indBpBx[nrow(tacs)] <- indBpBx2
         return(tacs)
     },
     class="hcr"
@@ -348,6 +335,8 @@ structure(
 #' One or several arguments of the function can be provided as vectors to generate several
 #' HCRs at once (several vectors have to have same length).
 #'
+#' @importFrom doBy which.minn
+#'
 #' @export
 #'
 defHCRspict <- function(id = "spict-msy",
@@ -366,9 +355,9 @@ defHCRspict <- function(id = "spict-msy",
                         priorlogbeta = c(log(1),2,1),
                         schaefer = 0,
                         bfac = NA,
-                        bref = "cur", ## or mean, or lowest
-                        bfacRef = "target",
-                        manstartdY = 1,
+                        bref = "current", ## lowest or "lowest5"
+                        brefType = "target",
+                        manstartdY = 0,
                         assessmentInterval = 1,
                         intC = NA,
                         nonconvHCR = "conscat",
@@ -376,6 +365,7 @@ defHCRspict <- function(id = "spict-msy",
                         stab = FALSE,
                         lower = 0.8,
                         upper = 1.2,
+                        benchmark = FALSE,  ## e.g. 5 => re-defining Bref at every benchmark
                         env = globalenv()
                         ){
 
@@ -403,8 +393,9 @@ structure(
         inp$dteuler <- ',dteuler,'
         inp$stabilise <- ',stabilise,'
         bfac <- ',bfac,'
+        bm <- ',benchmark,'
         ## Intermediate year
-        manstart <- inp$timeC[length(inp$timeC)] + ',manstartdY,'
+        manstart <- inp$timeC[length(inp$timeC)] + 1 + ',manstartdY,' ## assumes annual catches
         inp$maninterval <- c(manstart, manstart + ',assessmentInterval,')
         inp$maneval <- max(inp$maninterval)
         ## Check inp
@@ -413,23 +404,6 @@ structure(
         inp$priors$logn <- c(',priorlogn[1],',',priorlogn[2],',',priorlogn[3],')
         inp$priors$logalpha <- c(',priorlogalpha[1],',',priorlogalpha[2],',',priorlogalpha[3],')
         inp$priors$logbeta <- c(',priorlogbeta[1],',',priorlogbeta[2],',',priorlogbeta[3],')
-        ## Bfac rule
-        if(bref == "cur"){
-            inp$bref <- 0
-            if(is.null(tacs)){
-                indBpBx <- inp$indBpBx
-            }else{
-                indBpBx <- tacs$indBpBx[nrow(tacs)]
-            }
-        }else if(bref == "lowest"){  ## this can always update the lowest or keep the same lowest of original historical period!
-            inp$bref <- 1
-            indBpBx <- 0
-        }else if(bref == "mean"){  ## this can always update the mean or keep the same mean.
-            inp$bref <- 2
-            indBpBx <- (inp$indBpBx-9):inp$indBpBx
-        }
-        inp$indBpBx <- indBpBx
-        if(length(indBpBx)>1) indBpBx2 <- max(indBpBx) else indBpBx2 <- indBpBx
         ## Catch for intermediate year
         if(is.na(',intC,')){
             intC2 <- NULL
@@ -526,10 +500,30 @@ structure(
                 tacs <- func(inp, tacs=tacs, pars=pars)
                 tacs$conv[nrow(tacs)] <- FALSE
             }else{
-                if(is.numeric(bfac)) rep <- spict:::retape.spict(rep, inp)
+                ## benchmark (assuming bm always in first year)
+                if(!is.null(tacs)){
+                    if(!is.numeric(bm) ||
+                       any(as.logical(tail(tacs$bmID[idx],(bm-1))),na.rm=TRUE)){
+                        bmID <- FALSE
+                    }else bmID <- TRUE
+                }else bmID <- TRUE
+                ## resetting brefs at benchmark
+                if(bmID){
+                    logB <- rep$obj$report(rep$obj$env$last.par.best)$logB[inp$indest]
+                    if(bref == "current"){
+                        indBref <- inp$indlastobs
+                    }else if(bref == "lowest"){
+                        indBref <- which.min(logB)
+                    }else if(bref == "lowest5"){
+                        indBref <- doBy::which.minn(logB, 5)
+                    }else stop(paste0("bref = ",bref, " not known! Either current, lowest, or lowest5."))
+                    rep <- set.bref(rep, indBref = indBref)
+                }
+                indBref2 <- rep$inp$indBref[1]
+                ## get TAC
                 tac <- try(spict:::get.TAC(rep = rep,
                                            bfac = bfac,
-                                           bfacRef = "',bfacRef,'",
+                                           bref.type = "',brefType,'",
                                            fractiles = list(catch = ',frc,',
                                                             ffmsy = ',frff,',
                                                             bbmsy = ',frbb,',
@@ -556,7 +550,7 @@ structure(
                     tactmp <- data.frame(TAC=tac, id="',id,'", hitSC=hitSC,
                                          red=NA, barID=NA, sd=NA, conv = TRUE)
                     tactmp <- data.frame(c(tactmp, quantstmp,
-                                           indBpBx = indBpBx2))
+                                           indBref = indBref2, bmID=bmID))
                     if(is.null(tacs)){
                         tacs <- tactmp
                     }else{

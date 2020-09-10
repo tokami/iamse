@@ -17,8 +17,17 @@ defHCRspict(
   priorlogbeta = c(log(1), 2, 1),
   schaefer = 0,
   bfac = NA,
-  manstartdY = 1,
+  bref = "current",
+  brefType = "target",
+  manstartdY = 0,
+  assessmentInterval = 1,
   intC = NA,
+  nonconvHCR = "conscat",
+  clyears = 1,
+  stab = FALSE,
+  lower = 0.8,
+  upper = 1.2,
+  benchmark = FALSE,
   env = globalenv()
 )
 }

@@ -5,15 +5,18 @@
 \title{Define harvest control rule}
 \usage{
 defHCRindex(
-  id = "r2_3",
+  id = "r23",
   x = 2,
   y = 3,
-  stab = FALSE,
+  stab = TRUE,
   lower = 0.8,
   upper = 1.2,
   clyears = 1,
   red = NA,
-  redyears = 2,
+  redyears = 3,
+  ffmsySD = 0,
+  bbtriggerSD = 0,
+  assessmentInterval = 1,
   env = globalenv()
 )
 }
