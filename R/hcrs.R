@@ -226,6 +226,7 @@ defHCRindex <- function(id = "r23",
                         redyears = 3,
                         ffmsySD = 0,
                         bbtriggerSD = 0,
+                        wrongRef=NA,
                         assessmentInterval = 1,
                         env = globalenv()
                         ){
@@ -244,8 +245,10 @@ structure(
         redyears <- ',redyears,'
 
         ffmsy <- rnorm(1, pars$ffmsy, ',ffmsySD,')
+        ## ffmsy <- runif(1, pars$ffmsy * ',ffmsySD,', pars$ffmsy)
         ffmsy[ffmsy < 0] <- 0
         bbtrigger <- rnorm(1, pars$bbtrigger, ',bbtriggerSD,')
+        ## bbtrigger <- runif(1, pars$bbtrigger, pars$bbtrigger * ',bbtriggerSD,')
         bbtrigger[bbtrigger < 0] <- 0
 
         inp <- spict::check.inp(inp, verbose = FALSE)
@@ -284,7 +287,8 @@ structure(
                     ## apply if any ref = NA
                     barID <- TRUE
                 }else{
-                    if(ffmsy > 1 || bbtrigger < 1){
+                    wrong <- ifelse(runif(1) < ',wrongRef,', FALSE, TRUE)
+                    if((ffmsy > 1 || bbtrigger < 1) && wrong){
                         ## apply if any ref indicates overexploitation
                         barID <- TRUE
                     }else barID <- FALSE
