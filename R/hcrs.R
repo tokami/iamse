@@ -226,7 +226,7 @@ defHCRindex <- function(id = "r23",
                         redyears = 3,
                         ffmsySD = 0,
                         bbtriggerSD = 0,
-                        wrongRef=NA,
+                        wrongRef=0,
                         assessmentInterval = 1,
                         env = globalenv()
                         ){
@@ -287,7 +287,7 @@ structure(
                     ## apply if any ref = NA
                     barID <- TRUE
                 }else{
-                    wrong <- ifelse(runif(1) < ',wrongRef,', FALSE, TRUE)
+                    wrong <- ifelse(runif(1) <= ',wrongRef,', FALSE, TRUE)
                     if((ffmsy > 1 || bbtrigger < 1) && wrong){
                         ## apply if any ref indicates overexploitation
                         barID <- TRUE
