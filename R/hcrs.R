@@ -221,6 +221,7 @@ defHCRindex <- function(id = "r23",
                         stab = TRUE,
                         lower = 0.8,
                         upper = 1.2,
+                        clType = "observed",
                         clyears = 1,
                         red = NA,
                         redyears = 3,
@@ -241,6 +242,7 @@ structure(
         lower <- ',lower,'
         upper <- ',upper,'
         clyears <- ',clyears,'
+        clType <- ',clType,'
         red <- ',red,'
         redyears <- ',redyears,'
 
@@ -264,16 +266,25 @@ structure(
         inum <- ind[(ninds-(x-1)):ninds]
         iden <- ind[(ninds-(x+y-1)):(ninds-x)]
         r <- r0 <- mean(inum, na.rm = TRUE)/mean(iden, na.rm = TRUE)
+        ## account for seasonal and annual catches
+        ## cl <- sum(tail(inp$obsC, tail(1/inp$dtc,1))) ## CHECK: dtc required?
+        cl <- mean(tail(inp$obsC, clyears))
+        tac <- cl * r * 1 * 1 ## Clast * r * f * b
         ## uncertainty cap
         if(stab){
-            if(any(r < lower) || any(r > upper)) hitSC <- TRUE else hitSC <- FALSE
-            r[r<lower] <- lower
-            r[r>upper] <- upper
+            if(clType == "TAC"){
+                if(is.null(tacs)){
+                    cl <- mean(tail(inp$obsC, 3))
+                }else{
+                    cl <- tacs$TAC[nrow(tacs)]
+                }
+            }
+            cllo <- cl * lower
+            clup <- cl * upper
+            if(any(tac < cllo) || any(tac > clup)) hitSC <- TRUE else hitSC <- FALSE
+            tac[tac < cllo] <- cllo
+            tac[tac > clup] <- clup
         }else hitSC <- FALSE
-        ## account for seasonal and annual catches
-        ## Cl <- sum(tail(inp$obsC, tail(1/inp$dtc,1))) ## CHECK: dtc required?
-        Cl <- mean(tail(inp$obsC, clyears))
-        TAC <- Cl * r * 1 * 1 ## Clast * r * f * b
         ## PA buffer (e.g. 0.2 reduction of TAC) if B < Btrigger proxy or F > Fmsy
         if(is.numeric(red)){
             if(is.null(tacs)){
@@ -297,12 +308,12 @@ structure(
         }else barID <- FALSE
         ## apply reduction
         if(barID){
-            TAC <- TAC * (1-red)
+            tac <- tac * (1-red)
         }
         ## Account for non-annual assessments
-        TAC <- TAC * ',assessmentInterval,'
+        tac <- tac * ',assessmentInterval,'
 
-        tacs <- gettacs(tacs, id = "',id,'", TAC = TAC, inp = inp)
+        tacs <- gettacs(tacs, id = "',id,'", TAC = tac, inp = inp)
         tacs$hitSC[nrow(tacs)] <- hitSC
         tacs$barID[nrow(tacs)] <- barID
         tacs$red[nrow(tacs)] <- red
@@ -324,6 +335,7 @@ structure(
     ## allow for assigning names
     invisible(id)
 }
+
 
 #' @name defHCRspict
 #' @title Define harvest control rule
@@ -367,6 +379,7 @@ defHCRspict <- function(id = "spict-msy",
                         assessmentInterval = 1,
                         intC = NA,
                         nonconvHCR = "conscat",
+                        clType = "observed",
                         clyears = 1,
                         stab = FALSE,
                         lower = 0.8,
@@ -523,44 +536,57 @@ structure(
                     }else if(bref == "lowest5"){
                         indBref <- doBy::which.minn(logB, 5)
                     }else stop(paste0("bref = ",bref, " not known! Either current, lowest, or lowest5."))
-                    rep <- set.bref(rep, indBref = indBref)
+                    rep <- try(set.bref(rep, indBref = indBref),silent=TRUE)
                 }
                 indBref2 <- rep$inp$indBref[1]
                 ## get TAC
-                tac <- try(spict:::get.TAC(rep = rep,
-                                           bfac = bfac,
-                                           bref.type = "',brefType,'",
-                                           fractiles = list(catch = ',frc,',
-                                                            ffmsy = ',frff,',
-                                                            bbmsy = ',frbb,',
-                                                            bmsy  = ',frb,',
-                                                            fmsy  = ',frf,'),
-                                           breakpointB = ',breakpointB,',
-                                           safeguardB = list(limitB = ',limitB,',prob = ',prob,'),
-                                           intermediatePeriodCatch = intC2,
-                                           verbose = FALSE),
-                           silent = TRUE)
-                if(inherits(tac, "try-error") || !is.numeric(tac)){
+                if(inherits(rep, "try-error")){
                     tacs <- func(inp, tacs=tacs, pars=pars)
                     tacs$conv[nrow(tacs)] <- FALSE
                 }else{
-                    if(',stab,'){
-                        cl <- mean(tail(inp$obsC, ',clyears,'))
-                        cllo <- cl * ',lower,'
-                        clup <- cl * ',upper,'
-                        if(any(tac < cllo) || any(tac > clup)) hitSC <- TRUE else hitSC <- FALSE
-                        tac[tac < cllo] <- cllo
-                        tac[tac > clup] <- clup
-                    }else hitSC <- FALSE
-
-                    tactmp <- data.frame(TAC=tac, id="',id,'", hitSC=hitSC,
-                                         red=NA, barID=NA, sd=NA, conv = TRUE)
-                    tactmp <- data.frame(c(tactmp, quantstmp,
-                                           indBref = indBref2, bmID=bmID))
-                    if(is.null(tacs)){
-                        tacs <- tactmp
+                    tac <- try(spict:::get.TAC(rep = rep,
+                                               bfac = bfac,
+                                               bref.type = "',brefType,'",
+                                               fractiles = list(catch = ',frc,',
+                                                                ffmsy = ',frff,',
+                                                                bbmsy = ',frbb,',
+                                                                bmsy  = ',frb,',
+                                                                fmsy  = ',frf,'),
+                                               breakpointB = ',breakpointB,',
+                                               safeguardB = list(limitB = ',limitB,',prob = ',prob,'),
+                                               intermediatePeriodCatch = intC2,
+                                               verbose = FALSE),
+                               silent = TRUE)
+                    if(inherits(tac, "try-error") || !is.numeric(tac)){
+                        tacs <- func(inp, tacs=tacs, pars=pars)
+                        tacs$conv[nrow(tacs)] <- FALSE
                     }else{
-                        tacs <- rbind(tacs, tactmp)
+                        if(',stab,'){
+                            if(',clType,' == "observed"){
+                                cl <- mean(tail(inp$obsC, ',clyears,'))
+                            }else if(',clType,' == "TAC"){
+                                if(is.null(tacs)){
+                                    cl <- mean(tail(inp$obsC, 3))
+                                }else{
+                                    cl <- tacs$TAC[nrow(tacs)]
+                                }
+                            }
+                            cllo <- cl * ',lower,'
+                            clup <- cl * ',upper,'
+                            if(any(tac < cllo) || any(tac > clup)) hitSC <- TRUE else hitSC <- FALSE
+                            tac[tac < cllo] <- cllo
+                            tac[tac > clup] <- clup
+                        }else hitSC <- FALSE
+
+                        tactmp <- data.frame(TAC=tac, id="',id,'", hitSC=hitSC,
+                                             red=NA, barID=NA, sd=NA, conv = TRUE)
+                        tactmp <- data.frame(c(tactmp, quantstmp,
+                                               indBref = indBref2, bmID=bmID))
+                        if(is.null(tacs)){
+                            tacs <- tactmp
+                        }else{
+                            tacs <- rbind(tacs, tactmp)
+                        }
                     }
                 }
             }
