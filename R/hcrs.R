@@ -536,8 +536,10 @@ structure(
                     }else if(bref == "lowest5"){
                         indBref <- doBy::which.minn(logB, 5)
                     }else stop(paste0("bref = ",bref, " not known! Either current, lowest, or lowest5."))
-                    rep <- try(set.bref(rep, indBref = indBref),silent=TRUE)
+                }else{
+                    indBref <- tail(tacs$indBref,1)
                 }
+                rep <- try(set.bref(rep, indBref = indBref),silent=TRUE)
                 indBref2 <- rep$inp$indBref[1]
                 ## get TAC
                 if(inherits(rep, "try-error")){
@@ -564,6 +566,8 @@ structure(
                         if(',stab,'){
                             if("',clType,'" == "observed"){
                                 cl <- mean(tail(inp$obsC, ',clyears,'))
+                            }else if("',clType,'" == "estimated"){
+                                cl <- mean(tail(get.par("logCpred",rep, exp=TRUE)[,2], ',clyears,'))
                             }else if("',clType,'" == "TAC"){
                                 if(is.null(tacs)){
                                     cl <- mean(tail(inp$obsC, 3))

@@ -51,7 +51,7 @@ estMets <- function(mse, dat, mets = "all"){
     finalYear <- ny + nysim
     fifthYear <- ny + 5
     last5Years <- (finalYear - 4) : finalYear
-    first5Years <- (ny + 1) : (ny + 5)
+    first5Years <- (ny + 1) : (ny + 10)
     simYears <- (ny + 1) : finalYear
     last10Years <- (finalYear - 9) : finalYear
     first10Years <- (ny + 1) : (ny + 10)
@@ -65,14 +65,15 @@ estMets <- function(mse, dat, mets = "all"){
         lapply(mse[[reffmsyInd]], function(x) apply(x$CW,1,sum)[first5Years]),
         lapply(mse[[reffmsyInd]], function(x) apply(x$CW,1,sum)[last15Years]))
 
-    metsAll <- c("CMSY","CMSYmean","PBBlim","AAVC",
+    metsAll <- c("CMSY","CMSYmean","avCatch",
+                 "PBBlim","AAVC",
                  "CMSYST","PBBlimST",
                  "CMSYLT","PBBlimLT","AAVC2",
                  "CMSY2","CMSYST2","CMSYLT2",
                  "CMSYMaxAge","PBBlimMaxAge",
                  "BBmsy","BBmsyLT",
                  ## OLDER:
-                 "BBmsyFL","avCatch",
+                 "BBmsyFL",
                  "avCatchFirst5y","avCatchLast5y","BBmsyLowest",
                  "PBBlim2",
                  "PBBlimFirst5y","PBBlimLast5y","CatchCV", "avRelCatch",
