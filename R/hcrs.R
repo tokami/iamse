@@ -242,7 +242,7 @@ structure(
         lower <- ',lower,'
         upper <- ',upper,'
         clyears <- ',clyears,'
-        clType <- ',clType,'
+        clType <- "',clType,'"
         red <- ',red,'
         redyears <- ',redyears,'
 
@@ -562,9 +562,9 @@ structure(
                         tacs$conv[nrow(tacs)] <- FALSE
                     }else{
                         if(',stab,'){
-                            if(',clType,' == "observed"){
+                            if("',clType,'" == "observed"){
                                 cl <- mean(tail(inp$obsC, ',clyears,'))
-                            }else if(',clType,' == "TAC"){
+                            }else if("',clType,'" == "TAC"){
                                 if(is.null(tacs)){
                                     cl <- mean(tail(inp$obsC, 3))
                                 }else{
