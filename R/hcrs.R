@@ -254,6 +254,7 @@ structure(
         bbtrigger[bbtrigger < 0] <- 0
 
         inp <- spict::check.inp(inp, verbose = FALSE)
+        indBref <- inp$indBref[1]
         inds <- inp$obsI
         if(length(inds) > 1){
             ## WHAT TO DO IF SEVERAL INDICES AVAILABLE? ## for now: mean
@@ -322,6 +323,7 @@ structure(
         tacs$fmfmsy.sd[nrow(tacs)] <- ffmsySD
         tacs$bpbmsy.sd[nrow(tacs)] <- bbtriggerSD
         tacs$n.est[nrow(tacs)] <- r0
+        tacs$indBref[nrow(tacs)] <- indBref
         return(tacs)
     },
     class="hcr"
@@ -438,10 +440,12 @@ structure(
             inp$ini$logn <- log(2)
         }
         if(is.list(inp$obsI)) nis <- length(inp$obsI)
+        indBref2 <- inp$indBref[1]
         rep <- try(fit.spict(inp), silent=TRUE)
         if(class(rep) == "try-error" || rep$opt$convergence != 0 || any(is.infinite(rep$sd))){
             tacs <- func(inp, tacs=tacs, pars=pars)
             tacs$conv[nrow(tacs)] <- FALSE
+            tacs$indBref[nrow(tacs)] <- indBref2
         }else{
             fmfmsy <- try(get.par("logFmFmsynotS",rep, exp=TRUE)[,c(2,4)],silent=TRUE)
             if(!is.numeric(fmfmsy)) print(paste0("fmfmsy not numeric. fmfmsy: ", fmfmsy))
@@ -518,6 +522,7 @@ structure(
             if(!schaefer && reportmode %in% c(0,1) && any(is.na(quantstmp))){  ## n.sd is NA if schaefer (n fixed), reportmode 3 does not report most quantities
                 tacs <- func(inp, tacs=tacs, pars=pars)
                 tacs$conv[nrow(tacs)] <- FALSE
+                tacs$indBref[nrow(tacs)] <- indBref2
             }else{
                 ## benchmark (assuming bm always in first year)
                 if(!is.null(tacs)){
@@ -540,12 +545,13 @@ structure(
                     indBref <- tail(tacs$indBref,1)
                 }
                 rep <- try(set.bref(rep, indBref = indBref),silent=TRUE)
-                indBref2 <- rep$inp$indBref[1]
                 ## get TAC
                 if(inherits(rep, "try-error")){
                     tacs <- func(inp, tacs=tacs, pars=pars)
                     tacs$conv[nrow(tacs)] <- FALSE
+                    tacs$indBref[nrow(tacs)] <- indBref2
                 }else{
+                    indBref2 <- rep$inp$indBref[1]
                     tac <- try(spict:::get.TAC(rep = rep,
                                                bfac = bfac,
                                                bref.type = "',brefType,'",
@@ -562,6 +568,7 @@ structure(
                     if(inherits(tac, "try-error") || !is.numeric(tac)){
                         tacs <- func(inp, tacs=tacs, pars=pars)
                         tacs$conv[nrow(tacs)] <- FALSE
+                        tacs$indBref[nrow(tacs)] <- indBref2
                     }else{
                         if(',stab,'){
                             if("',clType,'" == "observed"){
