@@ -391,7 +391,7 @@ defHCRspict <- function(id = "spict-msy",
                         stab = FALSE,
                         lower = 0.8,
                         upper = 1.2,
-                        benchmark = FALSE,  ## e.g. 5 => re-defining Bref at every benchmark
+                        bm = FALSE,  ## e.g. 5 => re-defining Bref at every benchmark
                         env = globalenv()
                         ){
 
@@ -419,7 +419,7 @@ structure(
         inp$dteuler <- ',dteuler,'
         inp$stabilise <- ',stabilise,'
         bfac <- ',bfac,'
-        bm <- ',benchmark,'
+        bm <- ',bm,'
         ## Intermediate year
         manstart <- inp$timeC[length(inp$timeC)] + 1 + ',manstartdY,' ## assumes annual catches
         inp$maninterval <- c(manstart, manstart + ',assessmentInterval,')
