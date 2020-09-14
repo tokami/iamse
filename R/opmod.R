@@ -439,7 +439,7 @@ advancePop <- function(dat, hist, set, tacs){
     }else{
         ## any other HCR
         TAC <- as.numeric(as.character(tacs$TAC[nrow(tacs)])) / set$assessmentInterval
-        TACs[y] <- TAC
+        TACs[y] <- TAC * eImp
         TACreal <- rep(TAC/ns, ns)
     }
 
@@ -450,7 +450,7 @@ advancePop <- function(dat, hist, set, tacs){
                          getFM(TACreal[s], NAA = NAA, M = MAA[,s],
                                weight = weightFs[,s], sel = sels[,s]))
         }
-        FM[y,s] <- FMtac * eImp
+        FM[y,s] <- FMtac
         FAA[,s] <- FM[y,s] * sels[,s]
         ZAA[,s] <- MAA[,s] + FAA[,s]
         ## can't take more than what's there
