@@ -440,7 +440,11 @@ structure(
             inp$ini$logn <- log(2)
         }
         if(is.list(inp$obsI)) nis <- length(inp$obsI)
-        indBref2 <- inp$indBref[1]
+        if(is.null(tacs)){
+            indBref2 <- inp$indBref[1]
+        }else{
+            indBref2 <- tacs$indBref[nrow(tacs)]
+        }
         rep <- try(fit.spict(inp), silent=TRUE)
         if(class(rep) == "try-error" || rep$opt$convergence != 0 || any(is.infinite(rep$sd))){
             tacs <- func(inp, tacs=tacs, pars=pars)
