@@ -221,13 +221,13 @@ defHCRindex <- function(id = "r23",
                         stab = TRUE,
                         lower = 0.8,
                         upper = 1.2,
-                        clType = "observed",
+                        clType = "TAC",
                         clyears = 1,
                         red = NA,
                         redyears = 3,
                         ffmsySD = 0,
                         bbtriggerSD = 0,
-                        wrongRef=0,
+                        rightRef=1,
                         assessmentInterval = 1,
                         env = globalenv()
                         ){
@@ -269,23 +269,25 @@ structure(
         r <- r0 <- mean(inum, na.rm = TRUE)/mean(iden, na.rm = TRUE)
         ## account for seasonal and annual catches
         ## cl <- sum(tail(inp$obsC, tail(1/inp$dtc,1))) ## CHECK: dtc required?
-        cl <- mean(tail(inp$obsC, clyears))
+        if(clType == "observed"){
+            cl <- mean(tail(inp$obsC, clyears))
+        }else if(clType == "TAC"){
+            if(is.null(tacs)){
+                cl <- mean(tail(inp$obsC, 3))
+            }else{
+                cl <- tacs$TAC[nrow(tacs)]
+            }
+        }
         tac <- cl * r * 1 * 1 ## Clast * r * f * b
         ## uncertainty cap
         if(stab){
-            if(clType == "TAC"){
-                if(is.null(tacs)){
-                    cl <- mean(tail(inp$obsC, 3))
-                }else{
-                    cl <- tacs$TAC[nrow(tacs)]
-                }
-            }
             cllo <- cl * lower
             clup <- cl * upper
-            if(any(tac < cllo) || any(tac > clup)) hitSC <- TRUE else hitSC <- FALSE
+            if(any(tac < cllo)) hitSC <- 1 else hitSC <- 0
+            if(any(tac > clup)) hitSC <- 2 else hitSC <- 0
             tac[tac < cllo] <- cllo
             tac[tac > clup] <- clup
-        }else hitSC <- FALSE
+        }else hitSC <- 0
         ## PA buffer (e.g. 0.2 reduction of TAC) if B < Btrigger proxy or F > Fmsy
         if(is.numeric(red)){
             if(is.null(tacs)){
@@ -299,8 +301,8 @@ structure(
                     ## apply if any ref = NA
                     barID <- TRUE
                 }else{
-                    wrong <- ifelse(runif(1) <= ',wrongRef,', FALSE, TRUE)
-                    if((ffmsy > 1 || bbtrigger < 1) && wrong){
+                    right <- ifelse(runif(1) <= ',rightRef,', TRUE, FALSE)
+                    if((ffmsy > 1 || bbtrigger < 1) && right){
                         ## apply if any ref indicates overexploitation
                         barID <- TRUE
                     }else barID <- FALSE
@@ -337,6 +339,9 @@ structure(
     ## allow for assigning names
     invisible(id)
 }
+
+
+
 
 
 #' @name defHCRspict
@@ -381,7 +386,7 @@ defHCRspict <- function(id = "spict-msy",
                         assessmentInterval = 1,
                         intC = NA,
                         nonconvHCR = "conscat",
-                        clType = "observed",
+                        clType = "TAC",
                         clyears = 1,
                         stab = FALSE,
                         lower = 0.8,
@@ -445,11 +450,21 @@ structure(
         }else{
             indBref2 <- tacs$indBref[nrow(tacs)]
         }
+        ## benchmark (assuming bm always in first year)
+        if(is.null(tacs)){
+            bmID <- TRUE
+        }else{
+            if(!is.numeric(bm) ||
+               any(as.logical(tail(tacs$bmID,(bm-1))),na.rm=TRUE)){
+                bmID <- FALSE
+            }else bmID <- TRUE
+        }
         rep <- try(fit.spict(inp), silent=TRUE)
         if(class(rep) == "try-error" || rep$opt$convergence != 0 || any(is.infinite(rep$sd))){
             tacs <- func(inp, tacs=tacs, pars=pars)
             tacs$conv[nrow(tacs)] <- FALSE
             tacs$indBref[nrow(tacs)] <- indBref2
+            tacs$bmID[nrow(tacs)] <- bmID
         }else{
             fmfmsy <- try(get.par("logFmFmsynotS",rep, exp=TRUE)[,c(2,4)],silent=TRUE)
             if(!is.numeric(fmfmsy)) print(paste0("fmfmsy not numeric. fmfmsy: ", fmfmsy))
@@ -527,14 +542,8 @@ structure(
                 tacs <- func(inp, tacs=tacs, pars=pars)
                 tacs$conv[nrow(tacs)] <- FALSE
                 tacs$indBref[nrow(tacs)] <- indBref2
+                tacs$bmID[nrow(tacs)] <- bmID
             }else{
-                ## benchmark (assuming bm always in first year)
-                if(!is.null(tacs)){
-                    if(!is.numeric(bm) ||
-                       any(as.logical(tail(tacs$bmID,(bm-1))),na.rm=TRUE)){
-                        bmID <- FALSE
-                    }else bmID <- TRUE
-                }else bmID <- TRUE
                 ## resetting brefs at benchmark
                 if(bmID){
                     logB <- rep$obj$report(rep$obj$env$last.par.best)$logB[inp$indest]
@@ -554,6 +563,7 @@ structure(
                     tacs <- func(inp, tacs=tacs, pars=pars)
                     tacs$conv[nrow(tacs)] <- FALSE
                     tacs$indBref[nrow(tacs)] <- indBref2
+                    tacs$bmID[nrow(tacs)] <- bmID
                 }else{
                     indBref2 <- rep$inp$indBref[1]
                     tac <- try(spict:::get.TAC(rep = rep,
@@ -573,6 +583,7 @@ structure(
                         tacs <- func(inp, tacs=tacs, pars=pars)
                         tacs$conv[nrow(tacs)] <- FALSE
                         tacs$indBref[nrow(tacs)] <- indBref2
+                        tacs$bmID[nrow(tacs)] <- bmID
                     }else{
                         if(',stab,'){
                             if("',clType,'" == "observed"){
@@ -588,10 +599,11 @@ structure(
                             }
                             cllo <- cl * ',lower,'
                             clup <- cl * ',upper,'
-                            if(any(tac < cllo) || any(tac > clup)) hitSC <- TRUE else hitSC <- FALSE
+                            if(any(tac < cllo)) hitSC <- 1 else hitSC <- 0
+                            if(any(tac > clup)) hitSC <- 2 else hitSC <- 0
                             tac[tac < cllo] <- cllo
                             tac[tac > clup] <- clup
-                        }else hitSC <- FALSE
+                        }else hitSC <- 0
 
                         tactmp <- data.frame(TAC=tac, id="',id,'", hitSC=hitSC,
                                              red=NA, barID=NA, sd=NA, conv = TRUE)
