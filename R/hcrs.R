@@ -225,6 +225,7 @@ defHCRindex <- function(id = "r23",
                         clyears = 1,
                         red = NA,
                         redyears = 3,
+                        redAlways = FALSE,
                         ffmsySD = 0,
                         bbtriggerSD = 0,
                         rightRef=1,
@@ -297,8 +298,7 @@ structure(
                 ## do not apply if applied during last x years (redyears)
                 barID <- FALSE
             }else{
-                if(!is.numeric(',ffmsySD,') || !is.numeric(',bbtriggerSD,')){
-                    ## apply if any ref = NA
+                if(',redAlways,'){
                     barID <- TRUE
                 }else{
                     right <- ifelse(runif(1) <= ',rightRef,', TRUE, FALSE)
