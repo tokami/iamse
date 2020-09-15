@@ -15,7 +15,7 @@ getConvs <- function(mse, convyears = "all", convhcrs = "all", out = 0, verbose 
     ns <- dims[2]
 
     if(!is.na(convyears[1]) && convyears[1] == "all")
-        convyears <- 1:ny
+        convyears <- 1:nysim
     if(!is.na(convhcrs[1]) && convhcrs[1] == "all")
         convhcrs <- 1:nhcr
 
@@ -50,12 +50,12 @@ getConvs <- function(mse, convyears = "all", convhcrs = "all", out = 0, verbose 
     }else if(!is.na(convyears[1])){
         res <- vector("list",nhcr)
         for(hcr in 1:nhcr){
-            id <- unique(mse[[hcr]][[1]]$tacs$id)[1]
+            id <- tail(unique(mse[[hcr]][[1]]$tacs$id),1) ## TODO: find better solution to this
+            print(id)
             id2 <- unlist(strsplit(as.character(id), "-"))[1]
-            if(!(id2 %in% c("noF","refFmsy"))){
+            if(!(id2 %in% c("noF","refFmsy","r12","r23","r35"))){
                 tmp <- do.call(rbind,lapply(mse[[hcr]], function(x) x[["tacs"]]$conv))
                 inds <- which(apply(tmp[,convyears], 1, all))
-                as.numeric(inds)
             }else inds <- 1:nrep
             if(verbose)
                 writeLines(paste0("Converged reps: ",length(inds), " of ",nrep,

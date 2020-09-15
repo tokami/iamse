@@ -61,19 +61,27 @@ estMets <- function(mse, dat, mets = "all"){
     hcrs <- names(mse)
     reffmsyInd <- which(hcrs == "refFmsy")
     refyield <- list(
-        lapply(mse[[reffmsyInd]], function(x) apply(x$CW,1,sum)[simYears]),
-        lapply(mse[[reffmsyInd]], function(x) apply(x$CW,1,sum)[first5Years]),
-        lapply(mse[[reffmsyInd]], function(x) apply(x$CW,1,sum)[last15Years]))
+        "simYears" = lapply(mse[[reffmsyInd]], function(x) apply(x$CW,1,sum)[simYears]),
+        "first5Years" = lapply(mse[[reffmsyInd]], function(x) apply(x$CW,1,sum)[first5Years]),
+        "last15Years" = lapply(mse[[reffmsyInd]], function(x) apply(x$CW,1,sum)[last15Years]),
+        "last5Years" = lapply(mse[[reffmsyInd]], function(x) apply(x$CW,1,sum)[last5Years]))
+
+    refF <- list(
+        "finalYear" = lapply(mse[[reffmsyInd]], function(x) apply(x$FM,1,sum)[finalYear]))
+    refB <- list(
+        "finalYear" = lapply(mse[[reffmsyInd]], function(x) x$TSBfinal[finalYear]))
 
     metsAll <- c("CMSY","CMSYmean","avCatch",
-                 "PBBlim","AAVC",
+                 "CMSYlast5",
+                 "PBBlim","PBBlimlast5","PBBlim1","PBBlim3",
+                 "AAVC",
                  "CMSYST","PBBlimST",
                  "CMSYLT","PBBlimLT","AAVC2",
                  "CMSY2","CMSYST2","CMSYLT2",
                  "CMSYMaxAge","PBBlimMaxAge",
                  "BBmsy","BBmsyLT",
+                 "BBmsyFL","FFmsyFL",
                  ## OLDER:
-                 "BBmsyFL",
                  "avCatchFirst5y","avCatchLast5y","BBmsyLowest",
                  "PBBlim2",
                  "PBBlimFirst5y","PBBlimLast5y","CatchCV", "avRelCatch",
@@ -131,7 +139,19 @@ estMets <- function(mse, dat, mets = "all"){
                 }
             }else writeLines("CMSY could not be estimated, because no rule 'refFmsy' not found.")
         }
-        ## "PBBlim"
+        ## "PBBlim3"
+        if(any(mets == "PBBlim1")){
+            ry <- vector("list",nysim)
+            for(y in 1:nysim){
+                yi <- ((ny+1):finalYear)[y]
+                tmp <- sapply(msei, function(x) x$TSBfinal[yi] / refs$Blim < 1)
+                tmp <- prop.test(sum(tmp), n = length(tmp), conf.level = 0.95, correct = FALSE)
+                ry[[y]] <- c(tmp$conf.int[1], tmp$estimate, tmp$conf.int[2])
+            }
+            tmp <- do.call(rbind,ry)
+            res <- rbind(res, c(NA,tmp[nysim,],NA, NA, NA))
+        }
+        ## "PBBlim" # used for probHCR, but not averaged over years first!
         if(any(mets == "PBBlim")){
             tmp <- unlist(lapply(msei, function(x) mean(x$TSBfinal[simYears] / refs$Blim < 1)))
             vari <- var(tmp)
@@ -139,6 +159,18 @@ estMets <- function(mse, dat, mets = "all"){
             sei <- sqrt(vari/ni)
             tmp <- prop.test(sum(tmp), n = length(tmp), conf.level = 0.95, correct = FALSE)
             res <- rbind(res, c(tmp$conf.int[1], tmp$estimate, tmp$conf.int[2], sei, ni))
+        }
+        ## "PBBlim3"
+        if(any(mets == "PBBlim3")){
+            ry <- vector("list",nysim)
+            for(y in 1:nysim){
+                yi <- ((ny+1):finalYear)[y]
+                tmp <- sapply(msei, function(x) x$TSBfinal[yi] / refs$Blim < 1)
+                tmp <- prop.test(sum(tmp), n = length(tmp), conf.level = 0.95, correct = FALSE)
+                ry[[y]] <- c(tmp$conf.int[1], tmp$estimate, tmp$conf.int[2])
+            }
+            tmp <- do.call(rbind,ry)
+            res <- rbind(res, c(NA,max(tmp[,2]),NA, NA, NA))
         }
         ## "AAVC"
         if(any(mets == "AAVC")){
@@ -260,6 +292,50 @@ estMets <- function(mse, dat, mets = "all"){
             tmp <- prop.test(sum(tmp), n = length(tmp), conf.level = 0.95, correct = FALSE)
             res <- rbind(res, c(tmp$conf.int[1], tmp$estimate, tmp$conf.int[2], sei, ni))
         }
+        ## CMSYlast5
+        if(any(mets == "CMSYlast5")){
+            if(length(reffmsyInd) > 0){
+                indi <- as.numeric(names(msei))
+                tmp <- sapply(1:length(msei), function(x)
+                    median(apply(msei[[x]]$CW,1,sum)[last5Years] / refyield[["last5Years"]][[indi[x]]]))
+                vari <- var(tmp)
+                ni <- length(tmp)
+                sei <- sqrt(vari/ni)
+                tmp2 <- try(wilcox.test(as.numeric(tmp),
+                                   alternative="two.sided",
+                                   correct=TRUE,
+                                   conf.int=TRUE,
+                                   conf.level=0.95), silent=TRUE)
+                if(hcrs[hcr] == "noF"){
+                    res <- rbind(res, c(0,
+                                        0,
+                                        0,
+                                        sei,
+                                        ni))
+                }else if(hcrs[hcr] == "refFmsy"){
+                    res <- rbind(res, c(1,
+                                        1,
+                                        1,
+                                        sei,
+                                        ni))
+                }else{
+                    res <- rbind(res, c(tmp2$conf.int[1],
+                                        tmp2$estimate,
+                                        tmp2$conf.int[2],
+                                        sei,
+                                        ni))
+                }
+            }else writeLines("CMSYLT could not be estimated, because no rule 'refFmsy' not found.")
+        }
+        ## "PBBlimlast5"
+        if(any(mets == "PBBlimlast5")){
+            tmp <- unlist(lapply(msei, function(x) mean(x$TSBfinal[last5Years] / refs$Blim < 1)))
+            vari <- var(tmp)
+            ni <- length(tmp)
+            sei <- sqrt(vari/ni)
+            tmp <- prop.test(sum(tmp), n = length(tmp), conf.level = 0.95, correct = FALSE)
+            res <- rbind(res, c(tmp$conf.int[1], tmp$estimate, tmp$conf.int[2], sei, ni))
+        }
         ## "AAVC2"
         if(any(mets == "AAVC2")){
             ## tmp <- unlist(lapply(lapply(msei,
@@ -368,8 +444,16 @@ estMets <- function(mse, dat, mets = "all"){
         ## OLDER:
         ## "BBmsyFL"
         if(any(mets == "BBmsyFL")){
-            tmp <- unlist(lapply(msei, function(x) x$TSBfinal[finalYear]/refs$Bmsy))
-            res <- rbind(res, c(NA,mean(tmp),NA)) ##quantile(tmp, probs = c(0.025, 0.5, 0.975), na.rm=TRUE)
+            indi <- as.numeric(names(msei))
+            tmp <- sapply(1:length(msei), function(x) msei[[x]]$TSBfinal[finalYear]/
+                                                      refB[["finalYear"]][[indi[x]]]) ##refs$Bmsy)
+            res <- rbind(res, c(quantile(tmp, probs = c(0.25, 0.5, 0.75), na.rm=TRUE),NA,NA))
+        }
+        if(any(mets == "FFmsyFL")){
+            indi <- as.numeric(names(msei))
+            tmp <- sapply(1:length(msei), function(x) apply(msei[[x]]$FM,1,sum)[finalYear]/
+                                                      refF[["finalYear"]][[indi[x]]]) ##refs$Fmsy)
+            res <- rbind(res, c(quantile(tmp, probs = c(0.25, 0.5, 0.75), na.rm=TRUE),NA,NA))
         }
         ## "avCatch"   ### also implement that for rel catch (to ref hcr)
         if(any(mets == "avCatch")){

@@ -380,7 +380,7 @@ defHCRspict <- function(id = "spict-msy",
                         priorlogbeta = c(log(1),2,1),
                         schaefer = 0,
                         bfac = NA,
-                        bref = "current", ## lowest or "lowest5"
+                        bref = "current", ## lowest or "lowest5" or "average"
                         brefType = "target",
                         manstartdY = 0,
                         assessmentInterval = 1,
@@ -460,6 +460,7 @@ structure(
             }else bmID <- TRUE
         }
         rep <- try(fit.spict(inp), silent=TRUE)
+
         if(class(rep) == "try-error" || rep$opt$convergence != 0 || any(is.infinite(rep$sd))){
             tacs <- func(inp, tacs=tacs, pars=pars)
             tacs$conv[nrow(tacs)] <- FALSE
@@ -553,6 +554,8 @@ structure(
                         indBref <- which.min(logB)
                     }else if(bref == "lowest5"){
                         indBref <- doBy::which.minn(logB, 5)
+                    }else if(bref == "average"){
+                        indBref <- 1:length(logB)
                     }else stop(paste0("bref = ",bref, " not known! Either current, lowest, or lowest5."))
                 }else{
                     indBref <- tail(tacs$indBref,1)
