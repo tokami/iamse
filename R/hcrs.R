@@ -579,7 +579,7 @@ structure(
                                                intermediatePeriodCatch = intC2,
                                                verbose = FALSE),
                                silent = TRUE)
-                    if(inherits(tac, "try-error") || !is.numeric(tac)){
+                    if(inherits(tac, "try-error") || !is.numeric(tac) || is.na(tac)){
                         tacs <- func(inp, tacs=tacs, pars=pars)
                         tacs$conv[nrow(tacs)] <- FALSE
                         tacs$indBref[nrow(tacs)] <- indBref2
