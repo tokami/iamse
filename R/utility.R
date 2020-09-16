@@ -53,7 +53,7 @@ getConvs <- function(mse, convyears = "all", convhcrs = "all", out = 0, verbose 
             id <- tail(unique(mse[[hcr]][[1]]$tacs$id),1) ## TODO: find better solution to this
             print(id)
             id2 <- unlist(strsplit(as.character(id), "-"))[1]
-            if(!(id2 %in% c("noF","refFmsy","r12","r23","r35"))){
+            if(!(id2 %in% c("noF","refFmsy","r11","r12","r23","r35"))){
                 tmp <- do.call(rbind,lapply(mse[[hcr]], function(x) x[["tacs"]]$conv))
                 inds <- which(apply(tmp[,convyears], 1, all))
             }else inds <- 1:nrep

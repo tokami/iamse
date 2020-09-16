@@ -50,6 +50,7 @@ estMets <- function(mse, dat, mets = "all"){
 
     finalYear <- ny + nysim
     fifthYear <- ny + 5
+    tenthYear <- ny + 10
     last5Years <- (finalYear - 4) : finalYear
     first5Years <- (ny + 1) : (ny + 10)
     simYears <- (ny + 1) : finalYear
@@ -57,6 +58,7 @@ estMets <- function(mse, dat, mets = "all"){
     first10Years <- (ny + 1) : (ny + 10)
     last15Years <- (finalYear - 14) : finalYear
     first15Years <- (ny + 1) : (ny + 15)
+
 
     hcrs <- names(mse)
     reffmsyInd <- which(hcrs == "refFmsy")
@@ -68,9 +70,11 @@ estMets <- function(mse, dat, mets = "all"){
         "last10Years" = lapply(mse[[reffmsyInd]], function(x) apply(x$CW,1,sum)[last10Years]))
 
     refF <- list(
-        "finalYear" = lapply(mse[[reffmsyInd]], function(x) apply(x$FM,1,sum)[finalYear]))
+        "finalYear" = lapply(mse[[reffmsyInd]], function(x) apply(x$FM,1,sum)[finalYear]),
+        "tenthYear" = lapply(mse[[reffmsyInd]], function(x) apply(x$FM,1,sum)[tenthYear]))
     refB <- list(
-        "finalYear" = lapply(mse[[reffmsyInd]], function(x) x$TSBfinal[finalYear]))
+        "finalYear" = lapply(mse[[reffmsyInd]], function(x) x$TSBfinal[finalYear]),
+        "tenthYear" = lapply(mse[[reffmsyInd]], function(x) x$TSBfinal[tenthYear]))
 
     metsAll <- c("CMSY","CMSYmean","avCatch",
                  "CMSYlast5","CMSYlast10",
@@ -332,7 +336,6 @@ estMets <- function(mse, dat, mets = "all"){
                                         ni))
                 }
             }else writeLines("CMSYLT could not be estimated, because no rule 'refFmsy' not found.")
-            print(                                        tmp2$estimate)
         }
         ## "PBBlimlast5"
         if(any(mets == "PBBlimlast5")){
@@ -493,14 +496,14 @@ estMets <- function(mse, dat, mets = "all"){
         ## "BBmsyFL"
         if(any(mets == "BBmsyFL")){
             indi <- as.numeric(names(msei))
-            tmp <- sapply(1:length(msei), function(x) msei[[x]]$TSBfinal[finalYear]/
-                                                      refB[["finalYear"]][[indi[x]]]) ##refs$Bmsy)
+            tmp <- sapply(1:length(msei), function(x) msei[[x]]$TSBfinal[tenthYear]/
+                                                      refB[["tenthYear"]][[indi[x]]]) ##refs$Bmsy)
             res <- rbind(res, c(quantile(tmp, probs = c(0.25, 0.5, 0.75), na.rm=TRUE),NA,NA))
         }
         if(any(mets == "FFmsyFL")){
             indi <- as.numeric(names(msei))
-            tmp <- sapply(1:length(msei), function(x) apply(msei[[x]]$FM,1,sum)[finalYear]/
-                                                      refF[["finalYear"]][[indi[x]]]) ##refs$Fmsy)
+            tmp <- sapply(1:length(msei), function(x) apply(msei[[x]]$FM,1,sum)[tenthYear]/
+                                                      refF[["tenthYear"]][[indi[x]]]) ##refs$Fmsy)
             res <- rbind(res, c(quantile(tmp, probs = c(0.25, 0.5, 0.75), na.rm=TRUE),NA,NA))
         }
         ## "avCatch"   ### also implement that for rel catch (to ref hcr)
