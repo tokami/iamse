@@ -93,7 +93,8 @@ estMets <- function(mse, dat, mets = "all"){
     if(mets[1] == "all") mets <- metsAll
     if(any(which(!mets %in% metsAll))) writeLines(paste0("Metric ",
                                                          paste0(mets[which(!mets %in% metsAll)], collapse=", "),
-                                                                " not defined and thus omitted."))
+                                                         " not defined and thus omitted."))
+
     mets <- metsAll[which(metsAll %in% mets)]
     nmets <- length(mets)
 
@@ -173,38 +174,6 @@ estMets <- function(mse, dat, mets = "all"){
             }
             tmp <- do.call(rbind,ry)
             res <- rbind(res, c(NA,max(tmp[,2]),NA, NA, NA))
-        }
-        ## "AAVC"
-        if(any(mets == "AAVC")){
-            ## tmp <- unlist(lapply(lapply(msei,
-            ##                             function(x) (((apply(x$CW,1,sum)[simYears] -
-            ##                                            apply(x$CW,1,sum)[simYears+1])/
-            ##                                           apply(x$CW,1,sum)[simYears+1])^2)^0.5),
-            ##                      median ,na.rm=TRUE))
-            tmp <- sapply(msei, function(x) (sum(abs(apply(x$CW,1,sum)[simYears] -
-                                                     apply(x$CW,1,sum)[simYears-1]),na.rm=TRUE)/
-                                             sum(apply(x$CW,1,sum)[simYears], na.rm=TRUE)))
-            vari <- var(tmp)
-            ni <- length(tmp)
-            sei <- sqrt(vari/ni)
-            tmp2 <- try(wilcox.test(as.numeric(tmp),
-                                    alternative="two.sided",
-                                    correct=TRUE,
-                                    conf.int=TRUE,
-                                    conf.level=0.95), silent=TRUE)
-            if(hcrs[hcr] == "noF"){
-                res <- rbind(res, c(0,
-                                    0,
-                                    0,
-                                    sei,
-                                    ni))
-            }else{
-                res <- rbind(res, c(tmp2$conf.int[1],
-                                    tmp2$estimate,
-                                    tmp2$conf.int[2],
-                                    sei,
-                                    ni))
-            }
         }
         ## CMSYST
         if(any(mets == "CMSYST")){
@@ -382,6 +351,38 @@ estMets <- function(mse, dat, mets = "all"){
             sei <- sqrt(vari/ni)
             tmp <- prop.test(sum(tmp), n = length(tmp), conf.level = 0.95, correct = FALSE)
             res <- rbind(res, c(tmp$conf.int[1], tmp$estimate, tmp$conf.int[2], sei, ni))
+        }
+        ## "AAVC"
+        if(any(mets == "AAVC")){
+            ## tmp <- unlist(lapply(lapply(msei,
+            ##                             function(x) (((apply(x$CW,1,sum)[simYears] -
+            ##                                            apply(x$CW,1,sum)[simYears+1])/
+            ##                                           apply(x$CW,1,sum)[simYears+1])^2)^0.5),
+            ##                      median ,na.rm=TRUE))
+            tmp <- sapply(msei, function(x) (sum(abs(apply(x$CW,1,sum)[simYears] -
+                                                     apply(x$CW,1,sum)[simYears-1]),na.rm=TRUE)/
+                                             sum(apply(x$CW,1,sum)[simYears], na.rm=TRUE)))
+            vari <- var(tmp)
+            ni <- length(tmp)
+            sei <- sqrt(vari/ni)
+            tmp2 <- try(wilcox.test(as.numeric(tmp),
+                                    alternative="two.sided",
+                                    correct=TRUE,
+                                    conf.int=TRUE,
+                                    conf.level=0.95), silent=TRUE)
+            if(hcrs[hcr] == "noF"){
+                res <- rbind(res, c(0,
+                                    0,
+                                    0,
+                                    sei,
+                                    ni))
+            }else{
+                res <- rbind(res, c(tmp2$conf.int[1],
+                                    tmp2$estimate,
+                                    tmp2$conf.int[2],
+                                    sei,
+                                    ni))
+            }
         }
         ## "AAVC2"
         if(any(mets == "AAVC2")){
