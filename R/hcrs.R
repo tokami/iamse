@@ -442,7 +442,7 @@ structure(
         }
         if(',schaefer,'){
             inp$phases$logn <- -1
-            inp$ini$logn <- log(1.478) ## log(2)
+            inp$ini$logn <- log(0.599) ## log(1.478) ## log(2)
         }
         if(is.list(inp$obsI)) nis <- length(inp$obsI)
         if(is.null(tacs)){
