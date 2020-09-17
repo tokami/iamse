@@ -360,22 +360,28 @@ checkSet <- function(set = NULL){
         set$refMethod <- "mean"
     }
 
+    ## Recruitment
+    if(is.null(set$recruitmentTiming)) set$recruitmentTiming <- 1
+
     ## number of years available to assessment method
     if(is.null(set$nyhist)) set$nyhist <- 35
     if(is.null(set$nysim)) set$nysim <- 35
     if(is.null(set$nrep)) set$nrep <- 50
 
-    ## HCR
-    if(is.null(set$hcr)) set$hcr <- c(defHCRref(),defHCRref(consF = "fmsy"))
-    ## define constant catch rule
-    defHCRconscat()
-    if(is.null(set$stab)) set$stab <- FALSE
+    ## Assessment
+    if(is.null(set$assessmentTiming)) set$assessmentTiming <- 1
 
     ## Index timing:
     ## North Sea - IBITS: the majority of countries have only carried
     ## out a survey twice a year; a first quarter survey (January-February) and a
     ## third quarter survey (August-September)
     if(is.null(set$surveyTimes)) set$surveyTimes <- c(1/12,7/12)
+
+    ## HCR
+    if(is.null(set$hcr)) set$hcr <- c(defHCRref(),defHCRref(consF = "fmsy"))
+    ## define constant catch rule
+    defHCRconscat()
+    if(is.null(set$stab)) set$stab <- FALSE
 
     ## Seasonal catch observations
     if(is.null(set$catchSeasons)) set$catchSeasons <- 1

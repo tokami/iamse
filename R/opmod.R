@@ -280,7 +280,7 @@ initPop <- function(dat, set = NULL, out.opt = 1){
 ## advance population
 #' @name advancePop
 #' @export
-advancePop <- function(dat, hist, set, tacs){
+advancePop <- function(dat, hist, set, hcr, year){
 
     ## indices
     ny <- nrow(hist$TSB)
@@ -289,6 +289,8 @@ advancePop <- function(dat, hist, set, tacs){
     ns <- dat$nseason
     nt <- ny * ns
     nsC <- set$catchSeasons
+    nysim <- set$nysim
+    assessYears <- seq(1,nysim, set$assessmentInterval)
 
     ## survey
     nsurv <- length(set$surveyTimes)
@@ -300,13 +302,16 @@ advancePop <- function(dat, hist, set, tacs){
     }
 
     ## parameters
+    tacs <- hist$tacs
+    inp <- hist$inp
+    refs <- dat$ref
     amax <- dat$amax + 1  ## age 0
     pzbm <- dat$pzbm
     R0 <- dat$R0
     h <- dat$h
     q <- dat$q
     if(length(q) < nsurv) q <- rep(q, nsurv)
-    tacID <- tacs$id[nrow(tacs)]
+    tacID <- hcr
     tacID2 <- unlist(strsplit(as.character(tacID), "-"))[1]
 
     ## parameters per age
@@ -385,24 +390,6 @@ advancePop <- function(dat, hist, set, tacs){
     rec <- c(hist$rec, NA)
     TSBfinal <- c(hist$TSBfinal, NA)
     ESBfinal <- c(hist$ESBfinal, NA)
-    TACreal <- rep(NA, ns)
-    ## for observations
-    if(!is.null(hist$inp$obsC)){
-        obsC <- hist$inp$obsC
-    }
-    if(!is.null(hist$inp$timeC)){
-        timeC <- hist$inp$timeC
-    }
-    if(is.null(hist$inp$timeI)){
-        timeI <- vector("list", nsurv)
-    }else{
-        timeI <- hist$inp$timeI
-    }
-    if(is.null(hist$inp$obsI)){
-        obsI <- vector("list", nsurv)
-    }else{
-        obsI <- hist$inp$obsI
-    }
 
     ## project forward
     MAA <- Ms * eM
@@ -410,46 +397,98 @@ advancePop <- function(dat, hist, set, tacs){
     hy <- h * eH
     maty <- mats * eMat
 
-    ## Survivors from previous season/year
-    NAA <- hist$lastNAA
-    Ztemp <- hist$lastFAA + dat$Ms[,1]  ## big assumptions that FAA in s=1 is equal to last FAA (pot s=4)
-
-    ## recruitment
-    SSBtemp <- sum(NAA * weights[,1] * maty[,1] * exp(-pzbm * Ztemp)) ## pre-recruitment mort
-    SSBPR0 <- getSSBPR(dat$M * eM, dat$mat * eMat, dat$weight, 1, amax, dat$R0) ## annual M
-    rec[y] <- recfunc(h = hy, SSBPR0 = SSBPR0, SSB = SSBtemp, R0 = R0y,
-                   method = dat$SR, bp = dat$bp,
-                   beta = dat$recBeta, gamma = dat$recGamma)
-    rec[rec<0] <- 1e-10
-    NAA[1] <- rec[y] * eR
-
-    ## Define F/TACs
-    if(tacID2 == "refFmsy"){
-        if(tacID == "refFmsy"){
-            ## Fishing at Fmsy
-            FMtac <- dat$ref$Fmsy / ns
-        }else{
-            fraci <- as.numeric(unlist(strsplit(as.character(tacID), "-"))[2])
-            ## Fishing at fraction of Fmsy
-            FMtac <- (fraci * dat$ref$Fmsy) / ns
-        }
-    }else if(tacID2 == "noF"){
-        ## noF
-        FMtac <- 0
-    }else{
-        ## any other HCR
-        TAC <- as.numeric(as.character(tacs$TAC[nrow(tacs)])) / set$assessmentInterval
-        TACs[y] <- TAC * eImp
-        TACreal <- rep(TAC/ns, ns)
+    ## TAC from previous year (if e.g. interim advice)
+    ntac <- ns * set$assessmentInterval
+    TACprev <- hist$TACprev ## TAC for full interval
+    if(is.null(TACprev)){
+        TACprev <- tail(as.numeric(t(hist$CW)),ntac)
     }
+    ## Use only part before assessment from previous TAC in assessment year
+    if(year %in% assessYears){
+        TACreal <- rep(NA, ntac)
+        if(set$assessmentTiming > 1){
+            ind <- 1:(set$assessmentTiming-1)
+            TACreal[ind] <- tail(TACprev, length(ind))
+        }
+    }else{
+        ## Use full previous TAC if no assessment
+        TACreal <- TACprev
+    }
+
+
+    NAA <- hist$lastNAA
 
     ## seasons
     for(s in 1:ns){
-        if(!(tacID2 %in% c("refFmsy","noF"))){
+
+        ## Indices
+        indtac <- (year - assessYears[max(which(assessYears <= year))]) * ns + s
+
+        ## Recruitment
+        if(s == set$recruitmentTiming){
+            ## Survivors from previous season/year
+            if(s == 1){
+                Ztemp <- hist$lastFAA + dat$Ms[,1]  ## i.e. FAA in s=1 is equal to last FAA (pot s=4)
+            }else{
+                Ztemp <- ZAA[,s-1]
+            }
+            NAAtemp <- NAA
+            SSBtemp <- sum(NAAtemp * weights[,1] * maty[,1] * exp(-pzbm * Ztemp)) ## pre-recruitment mort
+            SSBPR0 <- getSSBPR(dat$M * eM, dat$mat * eMat, dat$weight, 1, amax, dat$R0) ## annual M
+            rec[y] <- recfunc(h = hy, SSBPR0 = SSBPR0, SSB = SSBtemp, R0 = R0y,
+                              method = dat$SR, bp = dat$bp,
+                              beta = dat$recBeta, gamma = dat$recGamma)
+            rec[rec<0] <- 1e-10
+            NAA[1] <- rec[y] * eR
+        }
+
+        ## Assessment
+        if(year %in% assessYears && s == set$assessmentTiming){
+
+            ## Estimate TAC
+            if(hcr %in% c("refFmsy","consF")){
+                ## Reference rule Fmsy
+                tacs <- gettacs(tacs = tacs, id = hcr, TAC=NA)
+            }else{
+                ## True stock status
+                TSBtmp <- sum(NAA * weights[,s])
+                bbmsy <- TSBtmp/refs$Bmsy
+                FMtmp <- as.numeric(t(FM))
+                ffmsy <- sum(tail(FMtmp[1:((y*ns)-ns-(s-1))],4))/refs$Fmsy
+                ## TAC
+                tacs <- estTAC(inp = inp,
+                               hcr = hcr,
+                               tacs = tacs,
+                               pars =
+                                   list("ffmsy" = ffmsy,
+                                        "bbmsy" = bbmsy))
+                ## Split TAC to time steps
+                TACs[y] <- as.numeric(as.character(tacs$TAC[nrow(tacs)])) * eImp
+                TACreal <- rep(TACs[y] / ntac, ntac)
+            }
+        }
+
+        ## Find F given TAC
+        if(tacID2 == "refFmsy"){
+            if(tacID == "refFmsy"){
+                ## Fishing at Fmsy
+                FMtac <- refs$Fmsy / ns
+            }else{
+                fraci <- as.numeric(unlist(strsplit(as.character(tacID), "-"))[2])
+                ## Fishing at fraction of Fmsy
+                FMtac <- (fraci * refs$Fmsy) / ns
+            }
+        }else if(tacID2 == "noF"){
+            ## noF
+            FMtac <- 0
+        }else{
+            ## any other HCR
             FMtac <- min(set$maxF/ns,
-                         getFM(TACreal[s], NAA = NAA, M = MAA[,s],
+                         getFM(TACreal[indtac], NAA = NAA, M = MAA[,s],
                                weight = weightFs[,s], sel = sels[,s]))
         }
+
+        ## Population dynamics
         FM[y,s] <- FMtac
         FAA[,s] <- FM[y,s] * sels[,s]
         ZAA[,s] <- MAA[,s] + FAA[,s]
@@ -464,14 +503,14 @@ advancePop <- function(dat, hist, set, tacs){
             ZAA[,s] <- MAA[,s] + FAA[,s]
             CAA <- baranov(FAA[,s], MAA[,s], NAA)
             CW[y,s] <- sum(CAA * weightFs[,s])
-            if(s < ns){
-                TACreal[s+1] <- TACreal[s+1] + TACreal[s] - CW[y,s]
+            if(indtac < ntac){
+                TACreal[indtac+1] <- TACreal[indtac+1] + TACreal[indtac] - CW[y,s]
             }else writeLines("Could not get full annual TAC.")
-            TACreal[s] <- CW[y,s]
+            TACreal[indtac] <- CW[y,s]
         }
         if(tacID2 == "refFmsy"){
-            TACreal[s] <- sum(CAA * weightFs[,s], na.rm = TRUE)
-            if(s == ns) TACs[y] <- tacs$TAC[nrow(tacs)] <- sum(TACreal)
+            TACreal[indtac] <- sum(CAA * weightFs[,s], na.rm = TRUE)
+            if(indtac == ntac) TACs[y] <- tacs$TAC[nrow(tacs)] <- sum(TACreal)
         }
         ## TSB
         TSB[y,s] <- sum(NAA * weights[,s])
@@ -487,10 +526,13 @@ advancePop <- function(dat, hist, set, tacs){
                 surveyTime <- set$surveyTimes[idxi[i]] - seasonStart[idxS[idxi[i]]]
                 NAAsurv <- exp(log(NAA) - ZAA[,s] * surveyTime)
                 ESBsurv <- sum(NAAsurv * dat$weightFs[,s] * dat$sels[,s])
-                obsI[[idxi[i]]] <- c(obsI[[idxi[i]]], q[idxi[i]] * ESBsurv * eI[[idxi[i]]])
-                if(is.null(timeI[[idxi[i]]]))
-                    timeIi <- ny-nyhist+1 else timeIi <- floor(tail(timeI[[idxi[i]]],1))
-                timeI[[idxi[i]]] <- c(timeI[[idxi[i]]], timeIi + 1 + set$surveyTimes[idxi[i]])
+                inp$obsI[[idxi[i]]] <-
+                    c(inp$obsI[[idxi[i]]], q[idxi[i]] * ESBsurv * eI[[idxi[i]]])
+                if(is.null(inp$timeI[[idxi[i]]])){
+                    timeIi <- ny-nyhist+1
+                }else timeIi <- floor(tail(inp$timeI[[idxi[i]]],1))
+                inp$timeI[[idxi[i]]] <-
+                    c(inp$timeI[[idxi[i]]], timeIi + 1 + set$surveyTimes[idxi[i]])
             }
         }
 
@@ -506,32 +548,27 @@ advancePop <- function(dat, hist, set, tacs){
         }
     }
 
-
-
     ## catch observations
     if(ns > 1){
         if(nsC == 1){
-            obsC <- c(obsC, sum(CW[y,]) * eC)
-            if(!is.null(timeC)) timeCi <- tail(timeC,1) else timeCi <- ny-nyhist+1
-            timeC <- c(timeC, timeCi + 1)
+            inp$obsC <- c(inp$obsC, sum(CW[y,]) * eC)
+            if(!is.null(inp$timeC)) timeCi <- tail(inp$timeC,1) else timeCi <- ny-nyhist+1
+            inp$timeC <- c(inp$timeC, timeCi + 1)
         }else if(nsC == ns){
-            obsC <- c(obsC, CW[y,] * eC)
-            if(!is.null(timeC)) timeCi <- floor(tail(timeC,1)) else timeCi <- ny-nyhist+1
-            timeC <- c(timeC, timeCi + 1 + rep(seasonStart, ny))
+            inp$obsC <- c(inp$obsC, CW[y,] * eC)
+            if(!is.null(inp$timeC))
+                timeCi <- floor(tail(inp$timeC,1)) else timeCi <- ny-nyhist+1
+            inp$timeC <- c(inp$timeC, timeCi + 1 + rep(seasonStart, ny))
         }else{
             stop("Catch observation seasons and operating model seasons do not match. Not yet implemented!")
         }
     }else{
         if(nsC > 1) writeLines("Set dat$nseasons to > 1 for seasonal catches. Generating annual catches!")
-        obsC <- c(obsC, sum(CW[y,]) * eC)
-        if(!is.null(timeC)) timeCi <- tail(timeC,1) else timeCi <- ny-nyhist+1
-        timeC <- c(timeC, timeCi + 1)
+        inp$obsC <- c(inp$obsC, sum(CW[y,]) * eC)
+        if(!is.null(inp$timeC)) timeCi <- tail(inp$timeC,1) else timeCi <- ny-nyhist+1
+        inp$timeC <- c(inp$timeC, timeCi + 1)
     }
 
-    inp <- list(obsC = obsC,
-                timeC = timeC,
-                obsI = obsI,
-                timeI = timeI)
 
     ## return
     out <- NULL
@@ -540,6 +577,7 @@ advancePop <- function(dat, hist, set, tacs){
     out$TSB <- TSB
     out$TSBfinal <- TSBfinal
     out$ESBfinal <- ESBfinal
+    out$TACprev <- TACreal
     out$ESB <- ESB
     out$SSB <- SSB
     out$rec <- rec
@@ -549,5 +587,6 @@ advancePop <- function(dat, hist, set, tacs){
     out$tacs <- tacs
     out$errs <- errs
     out$inp <- inp
+    out$tacs <- tacs
     return(out)
 }

@@ -60,24 +60,12 @@ runMSE <- function(dat, set, ncores=parallel::detectCores()-1, verbose=TRUE){
             hcri <- hcrs[i]
             poptmp <- popListx[[i]]
             poptmp$tacs <- NULL
-            if(hcrs2[i] %in% c("refFmsy","consF")){
-                ## Reference rule Fmsy
-                for(y in 1:nysim){
-                    poptmp$tacs <- gettacs(tacs = poptmp$tacs, id = hcri, TAC=NA)
-                    poptmp <- advancePop(dat = dat, hist = poptmp, set = setx,
-                                         tacs = poptmp$tacs)
-                }
-            }else{
-                ## Any other HCR
-                for(y in 1:nysim){
-                    if(y %in% seq(1,nysim, set$assessmentInterval)){
-                        poptmp$tacs <- estTAC(inp = poptmp$inp, hcr = hcri, tacs = poptmp$tacs,
-                                              pars=list("ffmsy" = tail(apply(poptmp$FM,1,sum),1)/dat$ref$Fmsy,
-                                                        "bbtrigger" = tail(poptmp$TSBfinal,1)/(dat$ref$Bmsy*0.5)))
-                    }
-                    poptmp <- advancePop(dat = dat, hist = poptmp, set = setx,
-                                         tacs = poptmp$tacs)
-                }
+            for(y in 1:nysim){
+                poptmp <- advancePop(dat = dat,
+                                     hist = poptmp,
+                                     set = setx,
+                                     hcr = hcri,
+                                     year = y)
             }
             popListx[[i]] <- poptmp
             gc()

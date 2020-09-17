@@ -250,8 +250,8 @@ structure(
         ffmsy <- rnorm(1, pars$ffmsy, ',ffmsySD,')
         ## ffmsy <- runif(1, pars$ffmsy * ',ffmsySD,', pars$ffmsy)
         ffmsy[ffmsy < 0] <- 0
-        bbtrigger <- rnorm(1, pars$bbtrigger, ',bbtriggerSD,')
-        ## bbtrigger <- runif(1, pars$bbtrigger, pars$bbtrigger * ',bbtriggerSD,')
+        bbtrigger <- rnorm(1, pars$bbmsy*0.5, ',bbtriggerSD,')
+        ## bbtrigger <- runif(1, pars$bbmsy*0.5, pars$bbmsy*0.5 * ',bbtriggerSD,')
         bbtrigger[bbtrigger < 0] <- 0
 
         inp <- spict::check.inp(inp, verbose = FALSE)
@@ -378,7 +378,7 @@ defHCRspict <- function(id = "spict-msy",
                         priorlogn = c(log(2),2,1),
                         priorlogalpha = c(log(1),2,1),
                         priorlogbeta = c(log(1),2,1),
-                        schaefer = 0,
+                        fixn = FALSE,
                         bfac = NA,
                         bref = "current", ## lowest or "lowest5" or "average"
                         brefType = "target",
@@ -420,6 +420,7 @@ structure(
         inp$stabilise <- ',stabilise,'
         bfac <- ',bfac,'
         bm <- ',bm,'
+        fixn <- "',fixn,'"
         ## Intermediate year
         manstart <- inp$timeC[length(inp$timeC)] + 1 + ',manstartdY,' ## assumes annual catches
         inp$maninterval <- c(manstart, manstart + ',assessmentInterval,')
@@ -440,9 +441,15 @@ structure(
                 intC2 <- tacs$TAC[nrow(tacs)]
             }
         }
-        if(',schaefer,'){
+        if(fixn == "schaefer"){
             inp$phases$logn <- -1
-            inp$ini$logn <- log(2) ## log(0.599) ## log(1.478) ## log(2)
+            inp$ini$logn <- log(2)
+        }else if(fixn == "thorsonMean"){
+            inp$phases$logn <- -1
+            inp$ini$logn <- log(1.478)
+        }else if(fixn == "thorsonClupeids"){
+            inp$phases$logn <- -1
+            inp$ini$logn <- log(0.599)
         }
         if(is.list(inp$obsI)) nis <- length(inp$obsI)
         if(is.null(tacs)){
@@ -539,7 +546,9 @@ structure(
             names(mest) <- c("m.est","m.sd")
             ##
             quantstmp <- c(fmfmsy, bpbmsy, cp, fmsy, bmsy, sdb, sdi, sdf, sdc, bmbmsy, nest, Kest, mest)
-            if(!schaefer && reportmode %in% c(0,1) && any(is.na(quantstmp))){  ## n.sd is NA if schaefer (n fixed), reportmode 3 does not report most quantities
+            if(!(fixn %in% c("schaefer","thorsonMean","thorsonClupeids")) &&
+               reportmode %in% c(0,1) && any(is.na(quantstmp))){
+               ## n.sd is NA if schaefer (n fixed), reportmode 3 does not report most quantities
                 tacs <- func(inp, tacs=tacs, pars=pars)
                 tacs$conv[nrow(tacs)] <- FALSE
                 tacs$indBref[nrow(tacs)] <- indBref2

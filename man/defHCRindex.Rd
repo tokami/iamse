@@ -11,11 +11,14 @@ defHCRindex(
   stab = TRUE,
   lower = 0.8,
   upper = 1.2,
+  clType = "TAC",
   clyears = 1,
   red = NA,
   redyears = 3,
+  redAlways = FALSE,
   ffmsySD = 0,
   bbtriggerSD = 0,
+  rightRef = 1,
   assessmentInterval = 1,
   env = globalenv()
 )

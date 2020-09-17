@@ -15,7 +15,7 @@ defHCRspict(
   priorlogn = c(log(2), 2, 1),
   priorlogalpha = c(log(1), 2, 1),
   priorlogbeta = c(log(1), 2, 1),
-  schaefer = 0,
+  fixn = FALSE,
   bfac = NA,
   bref = "current",
   brefType = "target",
@@ -23,11 +23,12 @@ defHCRspict(
   assessmentInterval = 1,
   intC = NA,
   nonconvHCR = "conscat",
+  clType = "TAC",
   clyears = 1,
   stab = FALSE,
   lower = 0.8,
   upper = 1.2,
-  benchmark = FALSE,
+  bm = FALSE,
   env = globalenv()
 )
 }
