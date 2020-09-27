@@ -468,6 +468,11 @@ structure(
         }
         rep <- try(fit.spict(inp), silent=TRUE)
 
+if(length(inp$obsC) == 24 && class(rep) != "try-error"){
+if(rep$opt$convergence == 0) browser()
+}
+
+
         if(class(rep) == "try-error" || rep$opt$convergence != 0 || any(is.infinite(rep$sd))){
             tacs <- func(inp, tacs=tacs, pars=pars)
             tacs$conv[nrow(tacs)] <- FALSE

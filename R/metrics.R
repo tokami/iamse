@@ -65,6 +65,7 @@ estMets <- function(mse, dat, mets = "all"){
     refyield <- list(
         "simYears" = lapply(mse[[reffmsyInd]], function(x) apply(x$CW,1,sum)[simYears]),
         "first5Years" = lapply(mse[[reffmsyInd]], function(x) apply(x$CW,1,sum)[first5Years]),
+        "first10Years" = lapply(mse[[reffmsyInd]], function(x) apply(x$CW,1,sum)[first10Years]),
         "last15Years" = lapply(mse[[reffmsyInd]], function(x) apply(x$CW,1,sum)[last15Years]),
         "last5Years" = lapply(mse[[reffmsyInd]], function(x) apply(x$CW,1,sum)[last5Years]),
         "last10Years" = lapply(mse[[reffmsyInd]], function(x) apply(x$CW,1,sum)[last10Years]))
@@ -77,8 +78,9 @@ estMets <- function(mse, dat, mets = "all"){
         "tenthYear" = lapply(mse[[reffmsyInd]], function(x) x$TSBfinal[tenthYear]))
 
     metsAll <- c("CMSY","CMSYmean","avCatch",
-                 "CMSYlast5","CMSYlast10",
+                 "CMSYlast5","CMSYlast10","CMSYfirst10",
                  "PBBlim","PBBlimlast5","PBBlimlast10",
+                 "PBBlimfirst10",
                  "PBBlim1","PBBlim3",
                  "AAVC",
                  "CMSYST","PBBlimST",
@@ -337,6 +339,42 @@ estMets <- function(mse, dat, mets = "all"){
                 }
             }else writeLines("CMSYLT could not be estimated, because no rule 'refFmsy' not found.")
         }
+        ## CMSYfirst10
+        if(any(mets == "CMSYfirst10")){
+            if(length(reffmsyInd) > 0){
+                indi <- as.numeric(names(msei))
+                tmp <- sapply(1:length(msei), function(x)
+                    median(apply(msei[[x]]$CW,1,sum)[first10Years] /
+                           refyield[["first10Years"]][[indi[x]]]))
+                vari <- var(tmp)
+                ni <- length(tmp)
+                sei <- sqrt(vari/ni)
+                tmp2 <- try(wilcox.test(as.numeric(tmp),
+                                   alternative="two.sided",
+                                   correct=TRUE,
+                                   conf.int=TRUE,
+                                   conf.level=0.95), silent=TRUE)
+                if(hcrs[hcr] == "noF"){
+                    res <- rbind(res, c(0,
+                                        0,
+                                        0,
+                                        sei,
+                                        ni))
+                }else if(hcrs[hcr] == "refFmsy"){
+                    res <- rbind(res, c(1,
+                                        1,
+                                        1,
+                                        sei,
+                                        ni))
+                }else{
+                    res <- rbind(res, c(tmp2$conf.int[1],
+                                        tmp2$estimate,
+                                        tmp2$conf.int[2],
+                                        sei,
+                                        ni))
+                }
+            }else writeLines("CMSYLT could not be estimated, because no rule 'refFmsy' not found.")
+        }
         ## "PBBlimlast5"
         if(any(mets == "PBBlimlast5")){
             tmp <- unlist(lapply(msei, function(x) mean(x$TSBfinal[last5Years] / refs$Blim < 1)))
@@ -349,6 +387,15 @@ estMets <- function(mse, dat, mets = "all"){
         ## "PBBlimlast10"
         if(any(mets == "PBBlimlast10")){
             tmp <- unlist(lapply(msei, function(x) mean(x$TSBfinal[last10Years] / refs$Blim < 1)))
+            vari <- var(tmp)
+            ni <- length(tmp)
+            sei <- sqrt(vari/ni)
+            tmp <- prop.test(sum(tmp), n = length(tmp), conf.level = 0.95, correct = FALSE)
+            res <- rbind(res, c(tmp$conf.int[1], tmp$estimate, tmp$conf.int[2], sei, ni))
+        }
+        ## "PBBlimfirst10"
+        if(any(mets == "PBBlimfirst10")){
+            tmp <- unlist(lapply(msei, function(x) mean(x$TSBfinal[first10Years] / refs$Blim < 1)))
             vari <- var(tmp)
             ni <- length(tmp)
             sei <- sqrt(vari/ni)
