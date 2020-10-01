@@ -41,7 +41,7 @@ estMets <- function(mse, dat, mets = "all"){
     nhcr <- length(mse)
     nrep <- length(mse[[1]])
     nquant <- length(mse[[1]][[1]])
-    nysim <- nrow(mse[[1]][[1]]$tacs)
+    nysim <- nrow(mse[[1]][[1]]$tacs)  ## TODO: correct for biennial advice
     dims <- dim(mse[[1]][[1]]$CW)
     ny <- dims[1] - nysim
     ns <- dims[2]
@@ -50,7 +50,7 @@ estMets <- function(mse, dat, mets = "all"){
 
     finalYear <- ny + nysim
     fifthYear <- ny + 5
-    tenthYear <- ny + 10
+    tenthYear <- ny + 5
     last5Years <- (finalYear - 4) : finalYear
     first5Years <- (ny + 1) : (ny + 10)
     simYears <- (ny + 1) : finalYear
@@ -576,6 +576,7 @@ estMets <- function(mse, dat, mets = "all"){
             res <- rbind(res, c(quantile(tmp, probs = c(0.25, 0.5, 0.75), na.rm=TRUE),NA,NA))
         }
         if(any(mets == "FFmsyFL")){
+            metsUsed <- c(metsUsed, "BBmsyFL")
             indi <- as.numeric(names(msei))
             tmp <- sapply(1:length(msei), function(x) apply(msei[[x]]$FM,1,sum)[tenthYear]/
                                                       refF[["tenthYear"]][[indi[x]]]) ##refs$Fmsy)
@@ -705,6 +706,7 @@ estMets <- function(mse, dat, mets = "all"){
             tmp[is.infinite(tmp)] <- NA
             res <- rbind(res, quantile(tmp, probs = c(0.025, 0.5, 0.975),na.rm=TRUE))
         }
+
 
         ## names
         rownames(res) <- metsUsed

@@ -29,7 +29,7 @@ gettacs <- function(tacs=NULL, id="", TAC=NA, inp=NULL){
                            K.est=NA,K.sd=NA,
                            m.est=NA,m.sd=NA,
                            indBref = NA,
-                           bmID=NA))
+                           bmID=NA, assessInt=NA))
     if(is.null(tacs)){
         tacs <- tactmp
     }else{
@@ -180,6 +180,7 @@ structure(
         tacs$hitSC[nrow(tacs)] <- NA
         tacs$barID[nrow(tacs)] <- barID
         tacs$red[nrow(tacs)] <- red
+        tacs$assessInt[nrow(tacs)] <- assessmentInterval
         return(tacs)
     },
 class="hcr"
@@ -326,6 +327,7 @@ structure(
         tacs$bpbmsy.sd[nrow(tacs)] <- bbtriggerSD
         tacs$n.est[nrow(tacs)] <- r0
         tacs$indBref[nrow(tacs)] <- indBref
+        tacs$assessInt[nrow(tacs)] <- assessmentInterval
         return(tacs)
     },
     class="hcr"
@@ -467,17 +469,12 @@ structure(
             }else bmID <- TRUE
         }
         rep <- try(fit.spict(inp), silent=TRUE)
-
-if(length(inp$obsC) == 24 && class(rep) != "try-error"){
-if(rep$opt$convergence == 0) browser()
-}
-
-
         if(class(rep) == "try-error" || rep$opt$convergence != 0 || any(is.infinite(rep$sd))){
             tacs <- func(inp, tacs=tacs, pars=pars)
             tacs$conv[nrow(tacs)] <- FALSE
             tacs$indBref[nrow(tacs)] <- indBref2
             tacs$bmID[nrow(tacs)] <- bmID
+            tacs$assessInt[nrow(tacs)] <- assessmentInterval
         }else{
             fmfmsy <- try(get.par("logFmFmsynotS",rep, exp=TRUE)[,c(2,4)],silent=TRUE)
             if(!is.numeric(fmfmsy)) print(paste0("fmfmsy not numeric. fmfmsy: ", fmfmsy))
@@ -558,6 +555,7 @@ if(rep$opt$convergence == 0) browser()
                 tacs$conv[nrow(tacs)] <- FALSE
                 tacs$indBref[nrow(tacs)] <- indBref2
                 tacs$bmID[nrow(tacs)] <- bmID
+                tacs$assessInt[nrow(tacs)] <- assessmentInterval
             }else{
                 ## resetting brefs at benchmark
                 if(bmID){
@@ -581,6 +579,7 @@ if(rep$opt$convergence == 0) browser()
                     tacs$conv[nrow(tacs)] <- FALSE
                     tacs$indBref[nrow(tacs)] <- indBref2
                     tacs$bmID[nrow(tacs)] <- bmID
+                    tacs$assessInt[nrow(tacs)] <- assessmentInterval
                 }else{
                     indBref2 <- rep$inp$indBref[1]
                     tac <- try(spict:::get.TAC(rep = rep,
@@ -601,6 +600,7 @@ if(rep$opt$convergence == 0) browser()
                         tacs$conv[nrow(tacs)] <- FALSE
                         tacs$indBref[nrow(tacs)] <- indBref2
                         tacs$bmID[nrow(tacs)] <- bmID
+                        tacs$assessInt[nrow(tacs)] <- assessmentInterval
                     }else{
                         if(',stab,'){
                             if("',clType,'" == "observed"){
@@ -625,7 +625,8 @@ if(rep$opt$convergence == 0) browser()
                         tactmp <- data.frame(TAC=tac, id="',id,'", hitSC=hitSC,
                                              red=NA, barID=NA, sd=NA, conv = TRUE)
                         tactmp <- data.frame(c(tactmp, quantstmp,
-                                               indBref = indBref2, bmID=bmID))
+                                               indBref = indBref2, bmID=bmID,
+                                               assessInt = assessmentInterval))
                         if(is.null(tacs)){
                             tacs <- tactmp
                         }else{
