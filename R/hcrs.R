@@ -640,7 +640,7 @@ structure(
                         tactmp <- data.frame(c(tactmp, quantstmp,
                                                indBref = indBref2, bmID=bmID,
                                                assessInt = assessmentInterval,
-                                               medbpbref = medbpbref, bpref = bpref))
+                                               medbpbref = medbpbref, bpbref = bpbref))
                         if(is.null(tacs)){
                             tacs <- tactmp
                         }else{
