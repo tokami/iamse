@@ -41,16 +41,15 @@ estMets <- function(mse, dat, mets = "all"){
     nhcr <- length(mse)
     nrep <- length(mse[[1]])
     nquant <- length(mse[[1]][[1]])
-    nysim <- nrow(mse[[1]][[1]]$tacs)  ## TODO: correct for biennial advice
+    assessInt <- mse[[length(mse)]][[1]]$tacs$assessInt[1]
+    nysim <- nrow(mse[[1]][[1]]$tacs) * assessInt
     dims <- dim(mse[[1]][[1]]$CW)
     ny <- dims[1] - nysim
     ns <- dims[2]
 
-
-
     finalYear <- ny + nysim
     fifthYear <- ny + 5
-    tenthYear <- ny + 5
+    tenthYear <- ny + 10
     last5Years <- (finalYear - 4) : finalYear
     first5Years <- (ny + 1) : (ny + 10)
     simYears <- (ny + 1) : finalYear

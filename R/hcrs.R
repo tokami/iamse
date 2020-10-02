@@ -29,7 +29,8 @@ gettacs <- function(tacs=NULL, id="", TAC=NA, inp=NULL){
                            K.est=NA,K.sd=NA,
                            m.est=NA,m.sd=NA,
                            indBref = NA,
-                           bmID=NA, assessInt=NA))
+                           bmID=NA, assessInt=NA,
+                           medbpbref=NA, bpbref=NA))
     if(is.null(tacs)){
         tacs <- tactmp
     }else{
@@ -423,6 +424,7 @@ structure(
         bfac <- ',bfac,'
         bm <- ',bm,'
         fixn <- "',fixn,'"
+        prob <- ',prob,'
         ## Intermediate year
         manstart <- inp$timeC[length(inp$timeC)] + 1 + ',manstartdY,' ## assumes annual catches
         inp$maninterval <- c(manstart, manstart + ',assessmentInterval,')
@@ -459,6 +461,8 @@ structure(
         }else{
             indBref2 <- tacs$indBref[nrow(tacs)]
         }
+        medbpbref <- NA
+        bpbref <- NA
         ## benchmark (assuming bm always in first year)
         if(is.null(tacs)){
             bmID <- TRUE
@@ -556,6 +560,8 @@ structure(
                 tacs$indBref[nrow(tacs)] <- indBref2
                 tacs$bmID[nrow(tacs)] <- bmID
                 tacs$assessInt[nrow(tacs)] <- assessmentInterval
+                tacs$medbpbref[nrow(tacs)] <- medbpbref
+                tacs$bpbref[nrow(tacs)] <- bpbref
             }else{
                 ## resetting brefs at benchmark
                 if(bmID){
@@ -580,8 +586,13 @@ structure(
                     tacs$indBref[nrow(tacs)] <- indBref2
                     tacs$bmID[nrow(tacs)] <- bmID
                     tacs$assessInt[nrow(tacs)] <- assessmentInterval
+                    tacs$medbpbref[nrow(tacs)] <- medbpbref
+                    tacs$bpbref[nrow(tacs)] <- bpbref
                 }else{
                     indBref2 <- rep$inp$indBref[1]
+                    logBpBref <- get.par("logBpBref", rep, exp = FALSE)
+                    medbpbref <- exp(logBpBref[,2])
+                    bpbref <- exp(qnorm(1-prob, logBpBref[2], logBpBref[4]))
                     tac <- try(spict:::get.TAC(rep = rep,
                                                bfac = bfac,
                                                bref.type = "',brefType,'",
@@ -591,7 +602,7 @@ structure(
                                                                 bmsy  = ',frb,',
                                                                 fmsy  = ',frf,'),
                                                breakpointB = ',breakpointB,',
-                                               safeguardB = list(limitB = ',limitB,',prob = ',prob,'),
+                                               safeguardB = list(limitB = ',limitB,',prob = prob),
                                                intermediatePeriodCatch = intC2,
                                                verbose = FALSE),
                                silent = TRUE)
@@ -601,6 +612,8 @@ structure(
                         tacs$indBref[nrow(tacs)] <- indBref2
                         tacs$bmID[nrow(tacs)] <- bmID
                         tacs$assessInt[nrow(tacs)] <- assessmentInterval
+                        tacs$medbpbref[nrow(tacs)] <- medbpbref
+                        tacs$bpbref[nrow(tacs)] <- bpbref
                     }else{
                         if(',stab,'){
                             if("',clType,'" == "observed"){
@@ -626,7 +639,8 @@ structure(
                                              red=NA, barID=NA, sd=NA, conv = TRUE)
                         tactmp <- data.frame(c(tactmp, quantstmp,
                                                indBref = indBref2, bmID=bmID,
-                                               assessInt = assessmentInterval))
+                                               assessInt = assessmentInterval,
+                                               medbpbref = medbpbref, bpref = bpref))
                         if(is.null(tacs)){
                             tacs <- tactmp
                         }else{
