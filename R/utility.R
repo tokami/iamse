@@ -209,10 +209,17 @@ estProd <- function(dat, set= NULL,
     dat$Fs <- dat$FM / ns
     pop1 <- initPop(dat, set)
     tsb1 <- pop1$TSBfinal
+    esb1 <- pop1$ESBfinal
     cw1 <- apply(pop1$CW,1,sum)
     prod1 <- rep(NA, ny)
-    for(i in 2:ny){
-        prod1[i] <- tsb1[i] - tsb1[i-1] + cw1[i]
+    if(set$spType == 0){
+        for(i in 2:ny){
+            prod1[i] <- tsb1[i] - tsb1[i-1] + cw1[i]
+        }
+    }else if(set$spType == 1){
+        for(i in 2:ny){
+            prod1[i] <- esb1[i] - esb1[i-1] + cw1[i]
+        }
     }
 
     ## decreasing effort
@@ -222,10 +229,17 @@ estProd <- function(dat, set= NULL,
     pop2 <- initPop(dat, set)
     dat$Fs <- dat$FM / ns
     tsb2 <- pop2$TSBfinal
+    esb2 <- pop2$ESBfinal
     cw2 <- apply(pop2$CW,1,sum)
     prod2 <- rep(NA, ny)
-    for(i in 2:ny){
-        prod2[i] <- tsb2[i] - tsb2[i-1] + cw2[i]
+    if(set$spType == 0){
+        for(i in 2:ny){
+            prod2[i] <- tsb2[i] - tsb2[i-1] + cw2[i]
+        }
+    }else if(set$spType == 1){
+        for(i in 2:ny){
+            prod2[i] <- esb2[i] - esb2[i-1] + cw2[i]
+        }
     }
 
     if(plot){
@@ -268,9 +282,11 @@ estProd <- function(dat, set= NULL,
 
     res <- list(
         incr = data.frame(tsb = tsb1,
+                          esb = esb1,
                           cw = cw1,
                           prod = prod1),
         decr = data.frame(tsb = tsb2,
+                          esb = esb2,
                           cw = cw2,
                           prod = prod2)
     )
@@ -280,6 +296,79 @@ estProd <- function(dat, set= NULL,
 }
 
 
+
+#' @name estProd
+#' @export
+estProdStoch <- function(dat, set= NULL,
+                         fmax = 10,
+                         nf = 1e3,
+                         prob = c(0.1,0.9),
+                         ncores = parallel::detectCores()-1,
+                         plot = TRUE){
+
+    ny <- dat$ny
+    ns <- dat$nseasons
+    nt <- ny * ns
+    nyref <- set$refYears
+    nrep <- set$refN
+    nyrefmsy <- set$refYearsMSY
+
+    ## noise
+    if(is.null(set)) set <- checkSet()
+    set$noiseR <- c(dat$sigmaR, dat$rhoR, 1)
+    dist <- NULL
+    if(!(set$refMethod %in% c("mean","median"))){
+        stop("'set$refMethod' not known! Has to be 'mean' or 'median'!")
+    }
+
+    ## errors (have to be re-used for estimation of Bmsy)
+    errs <- vector("list", nrep)
+    for(i in 1:nrep){
+        errs[[i]] <- vector("list", 7)
+        errs[[i]]$eF <- genNoise(nyref, set$noiseF[1], set$noiseF[2], set$noiseF[3])
+        errs[[i]]$eR <- genNoise(nyref, set$noiseR[1], set$noiseR[2], set$noiseR[3])
+        errs[[i]]$eM <- genNoise(nyref, set$noiseM[1], set$noiseM[2], set$noiseM[3])
+        errs[[i]]$eH <- genNoise(nyref, set$noiseH[1], set$noiseH[2], set$noiseH[3])
+        errs[[i]]$eR0 <- genNoise(nyref, set$noiseR0[1], set$noiseR0[2], set$noiseR0[3])
+        errs[[i]]$eMat <- genNoise(nyref, set$noiseMat[1], set$noiseMat[2], set$noiseMat[3])
+        errs[[i]]$eImp <- genNoise(nyref, set$noiseImp[1], set$noiseImp[2], set$noiseImp[3])
+    }
+
+    ##
+    fms <- seq(0, fmax, length.out = nf)
+    resList <- vector("list", nf)
+    for(fx in 1:nf){
+        tmp0 <- parallel::mclapply(as.list(1:nrep), function(x){
+            setx <- c(set, errs[[x]])
+            pop <- simpop(log(fms[fx]), dat, setx, out=0)
+            tsb <- tail(pop$TSB,1)
+            esb <- tail(pop$ESB,1)
+            cw <- tail(pop$CW,1)
+            sp <- tail(pop$SP,1)
+            return(c(TSB = tsb, ESB = esb, CW = cw, SP = sp))
+        }, mc.cores = ncores)
+        tmp <- do.call(rbind, tmp0)
+        resList[[fx]] <- cbind(f = rep(fms[fx],nrep), tmp)
+    }
+
+    means <- as.data.frame(do.call(rbind,lapply(resList,
+                                                function(x) apply(x,2, mean, na.rm=TRUE))))
+    meds <- as.data.frame(do.call(rbind,lapply(resList,
+                                               function(x) apply(x,2, median, na.rm=TRUE))))
+    lo <- as.data.frame(do.call(rbind,lapply(resList,
+                                             function(x) apply(x,2, quantile, prob=min(prob),
+                                                                        na.rm=TRUE))))
+    up <- as.data.frame(do.call(rbind,lapply(resList,
+                                             function(x) apply(x,2, quantile, prob=max(prob),
+                                                          na.rm=TRUE))))
+
+    res <- list(meds = meds,
+                means = means,
+                lo = lo,
+                up = up)
+    return(res)
+
+}
 
 
 #' @name checkSet
@@ -391,6 +480,10 @@ checkSet <- function(set = NULL){
 
     ## seed
     if(is.null(set$seed)) set$seed <- NA
+
+    ## SP type used for estimation of reference levels (and porduction curve)
+    ## SP based on TSB (spType == 0) or on ESB (spType == 1)
+    if(is.null(set$spType)) set$spType <- 0
 
     ## return
     return(set)

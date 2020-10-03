@@ -48,6 +48,7 @@ List simpop(double logFM, List dat, List set, int out) {
   NumericVector sel = as<NumericVector>(dat["sel"]);
   NumericVector M = as<NumericVector>(dat["M"]);
   NumericVector initN = as<NumericVector>(dat["initN"]);
+  int sptype = as<int>(set["spType"]);
 
   // Containers
   NumericVector Bage (amax);
@@ -186,8 +187,14 @@ List simpop(double logFM, List dat, List set, int out) {
     }
   }
 
-  for(int y=1; y<ny; y++){
-    SP(y) = TSB(y) - TSB(y-1) + CW(y);  // SP(y) = TSB(y+1) - TSB(y) + CW(y);  // if TSB in first season
+  if(sptype == 0){
+    for(int y=1; y<ny; y++){
+      SP(y) = TSB(y) - TSB(y-1) + CW(y);  // SP(y) = TSB(y+1) - TSB(y) + CW(y);  // if TSB in first season
+    }
+  }else if(sptype == 1){
+    for(int y=1; y<ny; y++){
+      SP(y) = ESB(y) - ESB(y-1) + CW(y);
+    }
   }
 
   List res;
