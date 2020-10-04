@@ -385,6 +385,7 @@ defHCRspict <- function(id = "spict-msy",
                         bfac = NA,
                         bref = "current", ## lowest or "lowest5" or "average"
                         brefType = "target",
+                        btar = "bmsy",
                         manstartdY = 0,
                         assessmentInterval = 1,
                         intC = NA,
@@ -616,8 +617,11 @@ structure(
 
                     ## Indicators
                     ## -----------------------
-                    ## bindi <- get.par("logBpBmsy", fit, exp = TRUE)[,2]
-                    bindi <- get.par("logBpBmsy", fit, exp = TRUE)[,2]
+                    if("',btar,'" == "bmsy"){
+                       bindi <- get.par("logBpBmsy", fit, exp = TRUE)[,2]
+                    }else if("',btar,'" == "btrigger"){
+                       bindi <- get.par("logBpBtrigger", fit, exp = TRUE)[,2]
+                    }else stop("btar not known. Use either bmsy or btrigger")
                     findi <- get.par("logFmFmsynotS", fit, exp = TRUE)[,2]
                     indBref2 <- fit$inp$indBref[1]
                     logBpBref <- get.par("logBpBref", fit, exp = FALSE)
@@ -636,85 +640,88 @@ structure(
                     }else{
 
 
-                    ## 4 stock status categories
-                    ## -------------------------
-                    if((bpbref - bfac) < -1e-3){
-                        ## Overfished
-                        ## -----------------------
-                        ## -> find F that meets pi
-                        tac <- try(spict:::get.TAC(fit,
-                                                   bfac = bfac,
-                                                   bref.type = "',brefType,'",
-                                                   fractiles = list(catch = ',frc,',
-                                                                    ffmsy = ',frff,',
-                                                                    bbmsy = ',frbb,',
-                                                                    bmsy  = ',frb,',
-                                                                    fmsy  = ',frf,'),
-                                                   breakpointB = ',breakpointB,',
-                                                   safeguardB = list(limitB = ',limitB,',prob = prob),
-                                                   intermediatePeriodCatch = intC2,
-                                                   verbose = FALSE),
-                                   silent = TRUE)
-                        ## avoid to strong and abrupt TAC changes
-                        if(!inherits(tac, "try-error") && is.numeric(tac)){
-                            if(tac < (0.2 * cl)){
-                                tac <- 0.2 * cl
+                        ## 4 stock status categories
+                        ## -------------------------
+                        if((bpbref - bfac) < -1e-3){
+                            ## Overfished
+                            ## -----------------------
+                            ## -> find F that meets pi
+                            tac <- try(spict:::get.TAC(fit,
+                                                       bfac = bfac,
+                                                       bref.type = "',brefType,'",
+                                                       fractiles = list(catch = ',frc,',
+                                                                        ffmsy = ',frff,',
+                                                                        bbmsy = ',frbb,',
+                                                                        bmsy  = ',frb,',
+                                                                        fmsy  = ',frf,'),
+                                                       breakpointB = ',breakpointB,',
+                                                       safeguardB = list(limitB = ',limitB,',prob = prob),
+                                                       intermediatePeriodCatch = intC2,
+                                                       verbose = FALSE),
+                                       silent = TRUE)
+                            ## avoid to strong and abrupt TAC changes
+                            if(!inherits(tac, "try-error") && is.numeric(tac)){
+                                if(tac < (0.2 * cl)){
+                                    tac <- 0.2 * cl
+                                }
+                                if(tac > (1.2 * cl)){
+                                    tac <- 1.2 * cl
+                                }
                             }
-                        }
-                    }else if((bindi - 1) < -1e-3 && (findi - 1) < -1e-3){
-                        ## Strong indication of overfishing
-                        ## -----------------------
-                        ## -> reduce TAC by 20%
-                        tac <- 0.8 * cl
+                        }else if((bindi - 1) < -1e-3 && (1 - findi) < -1e-3){
+                            ## Strong indication of overfishing
+                            ## -----------------------
+                            ## -> reduce TAC by 20%
+                            tac <- 0.8 * cl
 
-                    }else if((bindi - 1) < -1e-3 || (1 - findi) < -1e-3){
-                        ## Indication of overfishing
-                        ## -----------------------
-                        ## -> keep F
-                        tac <- try(spict:::get.TAC(fit,
-                                                   ffac = 1,
-                                                   intermediatePeriodCatch = intC2,
-                                                   verbose = FALSE),
-                                   silent = TRUE)
-                    }else{
-                        ## No indication of overfishing
-                        ## -----------------------
-                        ## -> increase F within 120% TAC range
-                        tac <- 1.2 * cl
-                    }
-
-                    if(inherits(tac, "try-error") || !is.numeric(tac) || is.na(tac)){
-                        tacs <- func(inp, tacs=tacs, pars=pars)
-                        tacs$conv[nrow(tacs)] <- FALSE
-                        tacs$indBref[nrow(tacs)] <- indBref2
-                        tacs$bmID[nrow(tacs)] <- bmID
-                        tacs$assessInt[nrow(tacs)] <- assessmentInterval
-                        tacs$medbpbref[nrow(tacs)] <- medbpbref
-                        tacs$bpbref[nrow(tacs)] <- bpbref
-                    }else{
-                        if(',stab,'){
-                            cllo <- cl * ',lower,'
-                            clup <- cl * ',upper,'
-                            if(any(tac < cllo)) hitSC <- 1 else hitSC <- 0
-                            if(any(tac > clup)) hitSC <- 2 else hitSC <- 0
-                            tac[tac < cllo] <- cllo
-                            tac[tac > clup] <- clup
-                        }else hitSC <- 0
-
-                        tactmp <- data.frame(TAC=tac, id="',id,'", hitSC=hitSC,
-                                             red=NA, barID=NA, sd=NA, conv = TRUE)
-                        tactmp <- data.frame(c(tactmp, quantstmp,
-                                               indBref = indBref2, bmID=bmID,
-                                               assessInt = assessmentInterval,
-                                               medbpbref = medbpbref, bpbref = bpbref))
-                        if(is.null(tacs)){
-                            tacs <- tactmp
+                        }else if((bindi - 1) < -1e-3 || (1 - findi) < -1e-3){
+                            ## Indication of overfishing
+                            ## -----------------------
+                            ## -> keep F
+                            tac <- try(spict:::get.TAC(fit,
+                                                       ffac = 1,
+                                                       intermediatePeriodCatch = intC2,
+                                                       verbose = FALSE),
+                                       silent = TRUE)
                         }else{
-                            tacs <- rbind(tacs, tactmp)
+                            ## No indication of overfishing
+                            ## -----------------------
+                            ## -> increase F within 120% TAC range
+                            tac <- 1.2 * cl
+                        }
+
+                        if(inherits(tac, "try-error") || !is.numeric(tac) || is.na(tac)){
+                            tacs <- func(inp, tacs=tacs, pars=pars)
+                            tacs$conv[nrow(tacs)] <- FALSE
+                            tacs$indBref[nrow(tacs)] <- indBref2
+                            tacs$bmID[nrow(tacs)] <- bmID
+                            tacs$assessInt[nrow(tacs)] <- assessmentInterval
+                            tacs$medbpbref[nrow(tacs)] <- medbpbref
+                            tacs$bpbref[nrow(tacs)] <- bpbref
+                        }else{
+                            if(',stab,'){
+                                cllo <- cl * ',lower,'
+                                clup <- cl * ',upper,'
+                                if(any(tac < cllo)) hitSC <- 1 else hitSC <- 0
+                                if(any(tac > clup)) hitSC <- 2 else hitSC <- 0
+                                tac[tac < cllo] <- cllo
+                                tac[tac > clup] <- clup
+                            }else hitSC <- 0
+
+                            tactmp <- data.frame(TAC=tac, id="',id,'", hitSC=hitSC,
+                                                 red=NA, barID=NA, sd=NA, conv = TRUE)
+                            tactmp <- data.frame(c(tactmp, quantstmp,
+                                                   indBref = indBref2, bmID=bmID,
+                                                   assessInt = assessmentInterval,
+                                                   medbpbref = medbpbref, bpbref = bpbref))
+                            if(is.null(tacs)){
+                                tacs <- tactmp
+                            }else{
+                                tacs <- rbind(tacs, tactmp)
+                            }
                         }
                     }
                 }
-}
             }
         }
         return(tacs)
