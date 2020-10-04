@@ -472,47 +472,71 @@ structure(
                 bmID <- FALSE
             }else bmID <- TRUE
         }
-        rep <- try(fit.spict(inp), silent=TRUE)
-        if(class(rep) == "try-error" || rep$opt$convergence != 0 || any(is.infinite(rep$sd))){
+        ## last years catch/tac
+        if("',clType,'" == "observed"){
+            cl <- mean(tail(inp$obsC, ',clyears,'))
+        }else if("',clType,'" == "estimated"){
+            cl <- NA
+        }else if("',clType,'" == "TAC"){
+            if(is.null(tacs)){
+                cl <- mean(tail(inp$obsC, 3))
+            }else{
+                cl <- tacs$TAC[nrow(tacs)]
+            }
+        }
+        fit <- try(fit.spict(inp), silent=TRUE)
+        if(class(fit) == "try-error" || fit$opt$convergence != 0 || any(is.infinite(fit$sd))){
             tacs <- func(inp, tacs=tacs, pars=pars)
             tacs$conv[nrow(tacs)] <- FALSE
             tacs$indBref[nrow(tacs)] <- indBref2
             tacs$bmID[nrow(tacs)] <- bmID
             tacs$assessInt[nrow(tacs)] <- assessmentInterval
         }else{
-            fmfmsy <- try(get.par("logFmFmsynotS",rep, exp=TRUE)[,c(2,4)],silent=TRUE)
+            ## last years catch/tac
+            if("',clType,'" == "observed"){
+                cl <- mean(tail(inp$obsC, ',clyears,'))
+            }else if("',clType,'" == "estimated"){
+                cl <- mean(tail(get.par("logCpred",fit, exp=TRUE)[,2], ',clyears,'))
+            }else if("',clType,'" == "TAC"){
+                if(is.null(tacs)){
+                    cl <- mean(tail(inp$obsC, 3))
+                }else{
+                    cl <- tacs$TAC[nrow(tacs)]
+                }
+            }
+            fmfmsy <- try(get.par("logFmFmsynotS",fit, exp=TRUE)[,c(2,4)],silent=TRUE)
             if(!is.numeric(fmfmsy)) print(paste0("fmfmsy not numeric. fmfmsy: ", fmfmsy))
             if(all(is.numeric(fmfmsy))){
                 fmfmsy <- round(fmfmsy,2)
             }else fmfmsy <- c(NA, NA)
             names(fmfmsy) <- c("fmfmsy.est","fmfmsy.sd")
-            bpbmsy <- try(get.par("logBpBmsy",rep, exp=TRUE)[,c(2,4)],silent=TRUE)
+            bpbmsy <- try(get.par("logBpBmsy",fit, exp=TRUE)[,c(2,4)],silent=TRUE)
             if(all(is.numeric(bpbmsy))){
                 bpbmsy <- round(bpbmsy,2)
             }else bpbmsy <- c(NA,NA)
             names(bpbmsy) <- c("bpbmsy.est","bpbmsy.sd")
-            cp <- try(get.par("logCp",rep, exp=TRUE)[,c(2,4)],silent=TRUE)
+            cp <- try(get.par("logCp",fit, exp=TRUE)[,c(2,4)],silent=TRUE)
             if(all(is.numeric(cp))){
                 cp <- round(cp,2)
             }else cp <- c(NA,NA)
             names(cp) <- c("cp.est","cp.sd")
             ##
-            fmsy <- try(get.par("logFmsy",rep, exp=TRUE)[,c(2,4)],silent=TRUE)
+            fmsy <- try(get.par("logFmsy",fit, exp=TRUE)[,c(2,4)],silent=TRUE)
             if(all(is.numeric(fmsy))){
                 fmsy <- round(fmsy,2)
             }else fmsy <- c(NA,NA)
             names(fmsy) <- c("fmsy.est","fmsy.sd")
-            bmsy <- try(get.par("logBmsy",rep, exp=TRUE)[,c(2,4)],silent=TRUE)
+            bmsy <- try(get.par("logBmsy",fit, exp=TRUE)[,c(2,4)],silent=TRUE)
             if(all(is.numeric(bmsy))){
                 bmsy <- round(bmsy,2)
             }else bmsy <- c(NA,NA)
             names(bmsy) <- c("bmsy.est","bmsy.sd")
-            sdb <- try(get.par("logsdb",rep, exp=TRUE)[,c(2,4)],silent=TRUE)
+            sdb <- try(get.par("logsdb",fit, exp=TRUE)[,c(2,4)],silent=TRUE)
             if(all(is.numeric(sdb))){
                 sdb <- round(sdb,2)
             }else sdb <- c(NA,NA)
             names(sdb) <- c("sdb.est","sdb.sd")
-            sdi <- try(get.par("logsdi",rep, exp=TRUE)[,c(2,4)],silent=TRUE)
+            sdi <- try(get.par("logsdi",fit, exp=TRUE)[,c(2,4)],silent=TRUE)
             if(all(is.numeric(sdi))){
                 sdi <- round(sdi,2)
                 sdi <- as.numeric(t(sdi))
@@ -520,32 +544,32 @@ structure(
                 sdi <- rep(c(NA,NA),nis)
             }
             names(sdi) <- paste0(rep(c("sdi.est","sdi.sd"),nis),rep(1:nis,each=nis))
-            sdf <- try(get.par("logsdf",rep, exp=TRUE)[,c(2,4)],silent=TRUE)
+            sdf <- try(get.par("logsdf",fit, exp=TRUE)[,c(2,4)],silent=TRUE)
             if(all(is.numeric(sdf))){
                 sdf <- round(sdf,2)
             }else sdf <- c(NA,NA)
             names(sdf) <- c("sdf.est","sdf.sd")
-            sdc <- try(get.par("logsdc",rep, exp=TRUE)[,c(2,4)],silent=TRUE)
+            sdc <- try(get.par("logsdc",fit, exp=TRUE)[,c(2,4)],silent=TRUE)
             if(all(is.numeric(sdc))){
                 sdc <- round(sdc,2)
             }else sdc <- c(NA,NA)
             names(sdc) <- c("sdc.est","sdc.sd")
-            bmbmsy <- try(get.par("logBmBmsy",rep, exp=TRUE)[,c(2,4)],silent=TRUE)
+            bmbmsy <- try(get.par("logBmBmsy",fit, exp=TRUE)[,c(2,4)],silent=TRUE)
             if(all(is.numeric(bmbmsy))){
                 bmbmsy <- round(bmbmsy,2)
             }else bmbmsy <- c(NA,NA)
             names(bmbmsy) <- c("bmbmsy.est","bmbmsy.sd")
-            nest <- try(get.par("logn",rep, exp=TRUE)[,c(2,4)],silent=TRUE)
+            nest <- try(get.par("logn",fit, exp=TRUE)[,c(2,4)],silent=TRUE)
             if(all(is.numeric(nest))){
                 nest <- round(nest,2)
             }else nest <- c(NA,NA)
             names(nest) <- c("n.est","n.sd")
-            Kest <- try(get.par("logK",rep, exp=TRUE)[,c(2,4)],silent=TRUE)
+            Kest <- try(get.par("logK",fit, exp=TRUE)[,c(2,4)],silent=TRUE)
             if(all(is.numeric(Kest))){
                 Kest <- round(Kest,2)
             }else Kest <- c(NA,NA)
             names(Kest) <- c("K.est","K.sd")
-            mest <- try(get.par("logm",rep, exp=TRUE)[,c(2,4)],silent=TRUE)
+            mest <- try(get.par("logm",fit, exp=TRUE)[,c(2,4)],silent=TRUE)
             if(all(is.numeric(mest))){
                 mest <- round(mest,2)
             }else mest <- c(NA,NA)
@@ -565,7 +589,7 @@ structure(
             }else{
                 ## resetting brefs at benchmark
                 if(bmID){
-                    logB <- rep$obj$report(rep$obj$env$last.par.best)$logB[inp$indest]
+                    logB <- fit$obj$report(fit$obj$env$last.par.best)$logB[inp$indest]
                     if(bref == "current"){
                         indBref <- inp$indlastobs
                     }else if(bref == "lowest"){
@@ -578,9 +602,9 @@ structure(
                 }else{
                     indBref <- tail(tacs$indBref,1)
                 }
-                rep <- try(set.bref(rep, indBref = indBref),silent=TRUE)
+                fit <- try(set.bref(fit, indBref = indBref),silent=TRUE)
                 ## get TAC
-                if(inherits(rep, "try-error")){
+                if(inherits(fit, "try-error")){
                     tacs <- func(inp, tacs=tacs, pars=pars)
                     tacs$conv[nrow(tacs)] <- FALSE
                     tacs$indBref[nrow(tacs)] <- indBref2
@@ -589,23 +613,64 @@ structure(
                     tacs$medbpbref[nrow(tacs)] <- medbpbref
                     tacs$bpbref[nrow(tacs)] <- bpbref
                 }else{
-                    indBref2 <- rep$inp$indBref[1]
-                    logBpBref <- get.par("logBpBref", rep, exp = FALSE)
+
+                    ## Indicators
+                    ## -----------------------
+                    ## bindi <- get.par("logBpBmsy", fit, exp = TRUE)[,2]
+                    bindi <- get.par("logBpBmsy", fit, exp = TRUE)[,2]
+                    findi <- get.par("logFmFmsynotS", fit, exp = TRUE)[,2]
+                    indBref2 <- fit$inp$indBref[1]
+                    logBpBref <- get.par("logBpBref", fit, exp = FALSE)
                     medbpbref <- exp(logBpBref[,2])
                     bpbref <- exp(qnorm(1-prob, logBpBref[2], logBpBref[4]))
-                    tac <- try(spict:::get.TAC(rep = rep,
-                                               bfac = bfac,
-                                               bref.type = "',brefType,'",
-                                               fractiles = list(catch = ',frc,',
-                                                                ffmsy = ',frff,',
-                                                                bbmsy = ',frbb,',
-                                                                bmsy  = ',frb,',
-                                                                fmsy  = ',frf,'),
-                                               breakpointB = ',breakpointB,',
-                                               safeguardB = list(limitB = ',limitB,',prob = prob),
-                                               intermediatePeriodCatch = intC2,
-                                               verbose = FALSE),
-                               silent = TRUE)
+
+                    ## 4 stock status categories
+                    ## -------------------------
+                    if((bpbref - bfac) < -1e-3){
+                        ## Overfished
+                        ## -----------------------
+                        ## -> find F that meets pi
+                        tac <- try(spict:::get.TAC(fit,
+                                                   bfac = bfac,
+                                                   bref.type = "',brefType,'",
+                                                   fractiles = list(catch = ',frc,',
+                                                                    ffmsy = ',frff,',
+                                                                    bbmsy = ',frbb,',
+                                                                    bmsy  = ',frb,',
+                                                                    fmsy  = ',frf,'),
+                                                   breakpointB = ',breakpointB,',
+                                                   safeguardB = list(limitB = ',limitB,',prob = prob),
+                                                   intermediatePeriodCatch = intC2,
+                                                   verbose = FALSE),
+                                   silent = TRUE)
+                        ## avoid to strong and abrupt TAC changes
+                        if(!inherits(tac, "try-error") && is.numeric(tac)){
+                            if(tac < (0.2 * cl)){
+                                tac <- 0.2 * cl
+                            }
+                        }
+                    }else if((bindi - 1) < -1e-3 && (findi - 1) < -1e-3){
+                        ## Strong indication of overfishing
+                        ## -----------------------
+                        ## -> reduce TAC by 20%
+                        tac <- 0.8 * cl
+
+                    }else if((bindi - 1) < -1e-3 || (1 - findi) < -1e-3){
+                        ## Indication of overfishing
+                        ## -----------------------
+                        ## -> keep F
+                        tac <- try(spict:::get.TAC(fit,
+                                                   ffac = 1,
+                                                   intermediatePeriodCatch = intC2,
+                                                   verbose = FALSE),
+                                   silent = TRUE)
+                    }else{
+                        ## No indication of overfishing
+                        ## -----------------------
+                        ## -> increase F within 120% TAC range
+                        tac <- 1.2 * cl
+                    }
+
                     if(inherits(tac, "try-error") || !is.numeric(tac) || is.na(tac)){
                         tacs <- func(inp, tacs=tacs, pars=pars)
                         tacs$conv[nrow(tacs)] <- FALSE
@@ -616,17 +681,6 @@ structure(
                         tacs$bpbref[nrow(tacs)] <- bpbref
                     }else{
                         if(',stab,'){
-                            if("',clType,'" == "observed"){
-                                cl <- mean(tail(inp$obsC, ',clyears,'))
-                            }else if("',clType,'" == "estimated"){
-                                cl <- mean(tail(get.par("logCpred",rep, exp=TRUE)[,2], ',clyears,'))
-                            }else if("',clType,'" == "TAC"){
-                                if(is.null(tacs)){
-                                    cl <- mean(tail(inp$obsC, 3))
-                                }else{
-                                    cl <- tacs$TAC[nrow(tacs)]
-                                }
-                            }
                             cllo <- cl * ',lower,'
                             clup <- cl * ',upper,'
                             if(any(tac < cllo)) hitSC <- 1 else hitSC <- 0
