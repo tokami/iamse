@@ -624,6 +624,18 @@ structure(
                     medbpbref <- exp(logBpBref[,2])
                     bpbref <- exp(qnorm(1-prob, logBpBref[2], logBpBref[4]))
 
+                    if(!is.numeric(bindi) || is.na(bindi) || !is.numeric(findi) || is.na(findi) ||
+                       !is.numeric(bpbref) || is.na(bpbref)){
+                        tacs <- func(inp, tacs=tacs, pars=pars)
+                        tacs$conv[nrow(tacs)] <- FALSE
+                        tacs$indBref[nrow(tacs)] <- indBref2
+                        tacs$bmID[nrow(tacs)] <- bmID
+                        tacs$assessInt[nrow(tacs)] <- assessmentInterval
+                        tacs$medbpbref[nrow(tacs)] <- medbpbref
+                        tacs$bpbref[nrow(tacs)] <- bpbref
+                    }else{
+
+
                     ## 4 stock status categories
                     ## -------------------------
                     if((bpbref - bfac) < -1e-3){
@@ -702,6 +714,7 @@ structure(
                         }
                     }
                 }
+}
             }
         }
         return(tacs)
