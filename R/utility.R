@@ -51,8 +51,8 @@ getConvs <- function(mse, convyears = "all", convhcrs = "all", out = 0, verbose 
         res <- vector("list",nhcr)
         for(hcr in 1:nhcr){
             tmpid <- unlist(lapply(strsplit(as.character(mse[[hcr]][[1]]$tacs$id),"-"), "[[", 1))
-            if(any(tmpid %in% c("Bref"))){
-                id <- mse[[hcr]][[1]]$tacs$id[which(tmpid %in% c("Bref"))[1]]
+            if(any(tmpid %in% c("Bref","Bref2"))){
+                id <- mse[[hcr]][[1]]$tacs$id[which(tmpid %in% c("Bref","Bref2"))[1]]
             }else{
                 id <- tail(unique(mse[[hcr]][[1]]$tacs$id),1) ## TODO: find better solution to this
             }

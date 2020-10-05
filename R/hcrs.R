@@ -609,11 +609,11 @@ structure(
             if(bref == "current"){
                 indBref <- inp$indlastobs
             }else if(bref == "lowest"){
-                indBref <- which.min(logB)
+                indBref <- which.min(logB) + (1/inp$dteuler)
             }else if(bref == "lowest5"){
-                indBref <- doBy::which.minn(logB, 5)
+                indBref <- doBy::which.minn(logB, 5) + (1/inp$dteuler)
             }else if(bref == "average"){
-                indBref <- 1:length(logB)
+                indBref <- (1/inp$dteuler):length(logB)
             }else stop(paste0("bref = ",bref, " not known! Either current, lowest, or lowest5."))
         }else{
             indBref <- tail(tacs$indBref,1)
@@ -647,7 +647,6 @@ structure(
         medbpbref <- exp(logBpBref[,2])
         bpbref <- exp(qnorm(1-prob, logBpBref[2], logBpBref[4]))
 
-
         if(',decTree,'){
             ## decision tree using spict reference levels qualitatively
             if(!is.numeric(bindi) || is.na(bindi) || !is.numeric(findi) || is.na(findi) ||
@@ -680,15 +679,15 @@ structure(
                                            intermediatePeriodCatch = intC2,
                                            verbose = FALSE),
                            silent = TRUE)
-                ## avoid to strong and abrupt TAC changes
-                if(!inherits(tac, "try-error") && is.numeric(tac)){
-                    if(tac < (lower * cl)){
-                        tac <- lower * cl
-                    }
-                    if(tac > (upper * cl)){
-                        tac <- upper * cl
-                    }
-                }
+                ## ## avoid to strong and abrupt TAC changes
+                ## if(!inherits(tac, "try-error") && is.numeric(tac)){
+                ##     if(tac < (lower * cl)){
+                ##         tac <- lower * cl
+                ##     }
+                ##     if(tac > (upper * cl)){
+                ##         tac <- upper * cl
+                ##     }
+                ## }
             }else if((bindi - 1) < -1e-3 && (1 - findi) < -1e-3){
                 ## Strong indication of overfishing
                 ## -----------------------
