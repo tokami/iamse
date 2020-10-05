@@ -389,6 +389,7 @@ defHCRspict <- function(id = "spict-msy",
                         btar = "bmsy",
                         probtar = 0.4,
                         decTree = FALSE,
+                        red = 0.2,
                         manstartdY = 0,
                         assessmentInterval = 1,
                         intC = NA,
@@ -679,34 +680,20 @@ structure(
                                            intermediatePeriodCatch = intC2,
                                            verbose = FALSE),
                            silent = TRUE)
-                ## ## avoid to strong and abrupt TAC changes
-                ## if(!inherits(tac, "try-error") && is.numeric(tac)){
-                ##     if(tac < (lower * cl)){
-                ##         tac <- lower * cl
-                ##     }
-                ##     if(tac > (upper * cl)){
-                ##         tac <- upper * cl
-                ##     }
-                ## }
-            }else if((bindi - 1) < -1e-3 && (1 - findi) < -1e-3){
+            }else if((bindi - 1) < -1e-3 || (1 - findi) < -1e-3){
                 ## Strong indication of overfishing
                 ## -----------------------
                 ## -> reduce TAC by 20%
-                tac <- lower * cl
-            }else if((bindi - 1) < -1e-3 || (1 - findi) < -1e-3){
+                tac <- ',red,' * cl
+            }else{
                 ## Indication of overfishing
                 ## -----------------------
-                ## -> keep F
+                ## -> keep F (can increase or decrease TAC)
                 tac <- try(spict:::get.TAC(fit,
                                            ffac = 1,
                                            intermediatePeriodCatch = intC2,
                                            verbose = FALSE),
                            silent = TRUE)
-            }else{
-                ## No indication of overfishing
-                ## -----------------------
-                ## -> increase F within 120% TAC range
-                tac <- upper * cl
             }
         }else{
             ## standard bref rule
