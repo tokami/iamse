@@ -388,8 +388,10 @@ defHCRspict <- function(id = "spict-msy",
                         brefType = "target",
                         btar = "bmsy",
                         probtar = 0.4,
-                        decTree = FALSE,
-                        red = 0.2,
+                        brule = 0,
+                        red = NA,
+                        redyears = 3,
+                        redAlways = FALSE,
                         rai = 0.2,
                         manstartdY = 0,
                         assessmentInterval = 1,
@@ -436,7 +438,9 @@ structure(
         upper <- ',upper,'
         probtar <- ',probtar,'
         red <- ',red,'
+        redyears <- ',redyears,'
         rai <- ',rai,'
+        brule <- ',brule,'
         ## Intermediate year
         manstart <- inp$timeC[length(inp$timeC)] + 1 + ',manstartdY,' ## assumes annual catches
         inp$maninterval <- c(manstart, manstart + ',assessmentInterval,')
@@ -613,15 +617,19 @@ structure(
             if(bref == "current"){
                 indBref <- inp$indlastobs
             }else if(bref == "lowest"){
-                indBref <- which.min(logB) + (1/inp$dteuler)
+                indBref <- which.min(logB) + (2/inp$dteuler)
             }else if(bref == "lowest5"){
-                indBref <- doBy::which.minn(logB, 5) + (1/inp$dteuler)
+                indBref <- doBy::which.minn(logB, 5) + (2/inp$dteuler)
             }else if(bref == "average"){
-                indBref <- (1/inp$dteuler):length(logB)
+                indBref <- (2/inp$dteuler):length(logB)
             }else stop(paste0("bref = ",bref, " not known! Either current, lowest, or lowest5."))
         }else{
             indBref <- tail(tacs$indBref,1)
+            if(bref == "average"){
+                indBref <- (2/inp$dteuler):indBref
+            }
         }
+
         fit <- try(set.bref(fit, indBref = indBref),silent=TRUE)
 
         ## get TAC
@@ -646,12 +654,75 @@ structure(
         logFmFtar <- get.par("logFmFmsynotS", fit, exp = TRUE)
         bindi <- exp(qnorm(probtar, logBpBtar[2], logBpBtar[4]))
         findi <- exp(qnorm(1-probtar, logBpBtar[2], logBpBtar[4]))
-        indBref2 <- fit$inp$indBref[1]
+        indBref2 <- tail(fit$inp$indBref,1)
         logBpBref <- get.par("logBpBref", fit, exp = FALSE)
         medbpbref <- exp(logBpBref[,2])
         bpbref <- exp(qnorm(1-prob, logBpBref[2], logBpBref[4]))
+        barID <- FALSE
 
-        if(',decTree,'){
+        if(brule == 0){
+            ## standard bref rule
+            tac <- try(spict:::get.TAC(fit,
+                                       bfac = bfac,
+                                       bref.type = "',brefType,'",
+                                       fractiles = list(catch = ',frc,',
+                                                        ffmsy = ',frff,',
+                                                        bbmsy = ',frbb,',
+                                                        bmsy  = ',frb,',
+                                                        fmsy  = ',frf,'),
+                                       breakpointB = ',breakpointB,',
+                                       safeguardB = list(limitB = ',limitB,',prob = prob),
+                                       intermediatePeriodCatch = intC2,
+                                       verbose = FALSE),
+                       silent = TRUE)
+        }else if(brule == 1){
+            if(!is.numeric(bindi) || is.na(bindi) || !is.numeric(findi) || is.na(findi) ||
+               !is.numeric(bpbref) || is.na(bpbref)){
+                tacs <- func(inp, tacs=tacs, pars=pars)
+                tacs$conv[nrow(tacs)] <- FALSE
+                tacs$indBref[nrow(tacs)] <- indBref2
+                tacs$bmID[nrow(tacs)] <- bmID
+                tacs$assessInt[nrow(tacs)] <- assessmentInterval
+                tacs$medbpbref[nrow(tacs)] <- medbpbref
+                tacs$bpbref[nrow(tacs)] <- bpbref
+                return(tacs)
+            }
+            ## standard bref rule + reference points
+            tac <- try(spict:::get.TAC(fit,
+                                       bfac = bfac,
+                                       bref.type = "',brefType,'",
+                                       fractiles = list(catch = ',frc,',
+                                                        ffmsy = ',frff,',
+                                                        bbmsy = ',frbb,',
+                                                        bmsy  = ',frb,',
+                                                        fmsy  = ',frf,'),
+                                       breakpointB = ',breakpointB,',
+                                       safeguardB = list(limitB = ',limitB,',prob = prob),
+                                       intermediatePeriodCatch = intC2,
+                                       verbose = FALSE),
+                       silent = TRUE)
+
+            ## PA buffer (e.g. 0.2 reduction of TAC) if B < Btrigger or F > Fmsy
+            if(is.numeric(red)){
+                if(is.null(tacs)){
+                    ## apply in first year
+                    barID <- TRUE
+                }else if(any(as.logical(tail(tacs$barID,(redyears-1))),na.rm=TRUE)){
+                    ## do not apply if applied during last x years (redyears)
+                    barID <- FALSE
+                }else{
+                    if(',redAlways,'){
+                        barID <- TRUE
+                    }else{
+                        if((bindi - 1) < -1e-3 || (1 - findi) < -1e-3){
+                            ## apply if any ref indicates overexploitation
+                            barID <- TRUE
+                        }else barID <- FALSE
+                    }
+                }
+            }else barID <- FALSE
+
+        }else if(brule == 2){
             ## decision tree using spict reference levels qualitatively
             if(!is.numeric(bindi) || is.na(bindi) || !is.numeric(findi) || is.na(findi) ||
                !is.numeric(bpbref) || is.na(bpbref)){
@@ -713,21 +784,6 @@ structure(
             ##     ## -> raise TAC by rai%
             ##     tac <- ',rai,' * cl
             ## }
-        }else{
-            ## standard bref rule
-            tac <- try(spict:::get.TAC(fit,
-                                       bfac = bfac,
-                                       bref.type = "',brefType,'",
-                                       fractiles = list(catch = ',frc,',
-                                                        ffmsy = ',frff,',
-                                                        bbmsy = ',frbb,',
-                                                        bmsy  = ',frb,',
-                                                        fmsy  = ',frf,'),
-                                       breakpointB = ',breakpointB,',
-                                       safeguardB = list(limitB = ',limitB,',prob = prob),
-                                       intermediatePeriodCatch = intC2,
-                                       verbose = FALSE),
-                       silent = TRUE)
         }
 
         if(inherits(tac, "try-error") || !is.numeric(tac) || is.na(tac)){
@@ -750,8 +806,13 @@ structure(
             tac[tac > clup] <- clup
         }else hitSC <- 0
 
+        ## apply reduction
+        if(barID){
+            tac <- tac * (1-red)
+        }
+
         tactmp <- data.frame(TAC=tac, id="',id,'", hitSC=hitSC,
-                             red=NA, barID=NA, sd=NA, conv = TRUE)
+                             red=NA, barID=barID, sd=NA, conv = TRUE)
         tactmp <- data.frame(c(tactmp, quantstmp,
                                indBref = indBref2, bmID=bmID,
                                assessInt = assessmentInterval,
