@@ -681,11 +681,6 @@ structure(
                                            verbose = FALSE),
                            silent = TRUE)
             }else if((bindi - 1) < -1e-3 || (1 - findi) < -1e-3){
-                ## Strong indication of overfishing
-                ## -----------------------
-                ## -> reduce TAC by 20%
-                tac <- ',red,' * cl
-            }else{
                 ## Indication of overfishing
                 ## -----------------------
                 ## -> keep F (can increase or decrease TAC)
@@ -694,6 +689,12 @@ structure(
                                            intermediatePeriodCatch = intC2,
                                            verbose = FALSE),
                            silent = TRUE)
+            }else{
+                ## Strong indication of overfishing
+                ## -----------------------
+                ## -> reduce TAC by 20%
+                tac <- ',red,' * cl
+
             }
         }else{
             ## standard bref rule
