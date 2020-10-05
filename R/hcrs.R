@@ -381,11 +381,14 @@ defHCRspict <- function(id = "spict-msy",
                         priorlogn = c(log(2),2,1),
                         priorlogalpha = c(log(1),2,1),
                         priorlogbeta = c(log(1),2,1),
+                        priorlogbkfrac = c(log(0.5),2,0),
                         fixn = FALSE,
                         bfac = NA,
                         bref = "current", ## lowest or "lowest5" or "average"
                         brefType = "target",
                         btar = "bmsy",
+                        probtar = 0.4,
+                        decTree = FALSE,
                         manstartdY = 0,
                         assessmentInterval = 1,
                         intC = NA,
@@ -428,6 +431,7 @@ structure(
         prob <- ',prob,'
         lower <- ',lower,'
         upper <- ',upper,'
+        probtar <- ',probtar,'
         ## Intermediate year
         manstart <- inp$timeC[length(inp$timeC)] + 1 + ',manstartdY,' ## assumes annual catches
         inp$maninterval <- c(manstart, manstart + ',assessmentInterval,')
@@ -438,6 +442,7 @@ structure(
         inp$priors$logn <- c(',priorlogn[1],',',priorlogn[2],',',priorlogn[3],')
         inp$priors$logalpha <- c(',priorlogalpha[1],',',priorlogalpha[2],',',priorlogalpha[3],')
         inp$priors$logbeta <- c(',priorlogbeta[1],',',priorlogbeta[2],',',priorlogbeta[3],')
+        inp$priors$logbkfrac <- c(',priorlogbkfrac[1],',',priorlogbkfrac[2],',',priorlogbkfrac[3],')
         ## Catch for intermediate year
         if(is.na(',intC,')){
             intC2 <- NULL
@@ -593,6 +598,7 @@ structure(
                 ## resetting brefs at benchmark
                 if(bmID){
                     logB <- fit$obj$report(fit$obj$env$last.par.best)$logB[inp$indest]
+                    logB <- logB[(1/inp$dteuler):length(logB)]  ## hack: remove first year, because first B est often outlier
                     if(bref == "current"){
                         indBref <- inp$indlastobs
                     }else if(bref == "lowest"){
@@ -620,34 +626,82 @@ structure(
                     ## Indicators
                     ## -----------------------
                     if("',btar,'" == "bmsy"){
-                       bindi <- get.par("logBpBmsy", fit, exp = TRUE)[,2]
+                       logBpBtar <- get.par("logBpBmsy", fit, exp = FALSE)
                     }else if("',btar,'" == "btrigger"){
-                       bindi <- get.par("logBpBtrigger", fit, exp = TRUE)[,2]
+                       logBpBtar <- get.par("logBpBtrigger", fit, exp = FALSE)
                     }else stop("btar not known. Use either bmsy or btrigger")
-                    findi <- get.par("logFmFmsynotS", fit, exp = TRUE)[,2]
+                    logFmFtar <- get.par("logFmFmsynotS", fit, exp = TRUE)
+                    bindi <- exp(qnorm(probtar, logBpBtar[2], logBpBtar[4]))
+                    findi <- exp(qnorm(1-probtar, logBpBtar[2], logBpBtar[4]))
                     indBref2 <- fit$inp$indBref[1]
                     logBpBref <- get.par("logBpBref", fit, exp = FALSE)
                     medbpbref <- exp(logBpBref[,2])
                     bpbref <- exp(qnorm(1-prob, logBpBref[2], logBpBref[4]))
 
-                    if(!is.numeric(bindi) || is.na(bindi) || !is.numeric(findi) || is.na(findi) ||
-                       !is.numeric(bpbref) || is.na(bpbref)){
-                        tacs <- func(inp, tacs=tacs, pars=pars)
-                        tacs$conv[nrow(tacs)] <- FALSE
-                        tacs$indBref[nrow(tacs)] <- indBref2
-                        tacs$bmID[nrow(tacs)] <- bmID
-                        tacs$assessInt[nrow(tacs)] <- assessmentInterval
-                        tacs$medbpbref[nrow(tacs)] <- medbpbref
-                        tacs$bpbref[nrow(tacs)] <- bpbref
-                    }else{
 
+                    if(',decTree,'){
+                        ## decision tree using spict reference levels qualitatively
+                        if(!is.numeric(bindi) || is.na(bindi) || !is.numeric(findi) || is.na(findi) ||
+                           !is.numeric(bpbref) || is.na(bpbref)){
+                            tacs <- func(inp, tacs=tacs, pars=pars)
+                            tacs$conv[nrow(tacs)] <- FALSE
+                            tacs$indBref[nrow(tacs)] <- indBref2
+                            tacs$bmID[nrow(tacs)] <- bmID
+                            tacs$assessInt[nrow(tacs)] <- assessmentInterval
+                            tacs$medbpbref[nrow(tacs)] <- medbpbref
+                            tacs$bpbref[nrow(tacs)] <- bpbref
+                        }else{
+                            ## 4 stock status categories
+                            ## -------------------------
+                            if((bpbref - bfac) < -1e-3){
+                                ## Overfished
+                                ## -----------------------
+                                ## -> find F that meets pi
+                                tac <- try(spict:::get.TAC(fit,
+                                                           bfac = bfac,
+                                                           bref.type = "',brefType,'",
+                                                           fractiles = list(catch = ',frc,',
+                                                                            ffmsy = ',frff,',
+                                                                            bbmsy = ',frbb,',
+                                                                            bmsy  = ',frb,',
+                                                                            fmsy  = ',frf,'),
+                                                           breakpointB = ',breakpointB,',
+                                                           safeguardB = list(limitB = ',limitB,',prob = prob),
+                                                           intermediatePeriodCatch = intC2,
+                                                           verbose = FALSE),
+                                           silent = TRUE)
+                                ## avoid to strong and abrupt TAC changes
+                                if(!inherits(tac, "try-error") && is.numeric(tac)){
+                                    if(tac < (lower * cl)){
+                                        tac <- lower * cl
+                                    }
+                                    if(tac > (upper * cl)){
+                                        tac <- upper * cl
+                                    }
+                                }
+                            }else if((bindi - 1) < -1e-3 && (1 - findi) < -1e-3){
+                                ## Strong indication of overfishing
+                                ## -----------------------
+                                ## -> reduce TAC by 20%
+                                tac <- lower * cl
+                            }else if((bindi - 1) < -1e-3 || (1 - findi) < -1e-3){
+                                ## Indication of overfishing
+                                ## -----------------------
+                                ## -> keep F
+                                tac <- try(spict:::get.TAC(fit,
+                                                           ffac = 1,
+                                                           intermediatePeriodCatch = intC2,
+                                                           verbose = FALSE),
+                                           silent = TRUE)
+                            }else{
+                                ## No indication of overfishing
+                                ## -----------------------
+                                ## -> increase F within 120% TAC range
+                                tac <- upper * cl
+                            }
 
-                        ## 4 stock status categories
-                        ## -------------------------
-                        if((bpbref - bfac) < -1e-3){
-                            ## Overfished
-                            ## -----------------------
-                            ## -> find F that meets pi
+                        }else{
+                            ## standard bref rule
                             tac <- try(spict:::get.TAC(fit,
                                                        bfac = bfac,
                                                        bref.type = "',brefType,'",
@@ -661,36 +715,8 @@ structure(
                                                        intermediatePeriodCatch = intC2,
                                                        verbose = FALSE),
                                        silent = TRUE)
-                            ## avoid to strong and abrupt TAC changes
-                            if(!inherits(tac, "try-error") && is.numeric(tac)){
-                                if(tac < (lower * cl)){
-                                    tac <- lower * cl
-                                }
-                                if(tac > (upper * cl)){
-                                    tac <- upper * cl
-                                }
-                            }
-                        ## }else if((bindi - 1) < -1e-3 || (1 - findi) < -1e-3){
-                        ##     ## Strong indication of overfishing
-                        ##     ## -----------------------
-                        ##     ## -> reduce TAC by 20%
-                        ##     tac <- 0.8 * cl
-
-                        }else if((bindi - 1) < -1e-3 || (1 - findi) < -1e-3){
-                            ## Indication of overfishing
-                            ## -----------------------
-                            ## -> keep F
-                            tac <- try(spict:::get.TAC(fit,
-                                                       ffac = 1,
-                                                       intermediatePeriodCatch = intC2,
-                                                       verbose = FALSE),
-                                       silent = TRUE)
-                        }else{
-                            ## No indication of overfishing
-                            ## -----------------------
-                            ## -> increase F within 120% TAC range
-                            tac <- upper * cl
                         }
+
 
                         if(inherits(tac, "try-error") || !is.numeric(tac) || is.na(tac)){
                             tacs <- func(inp, tacs=tacs, pars=pars)
@@ -729,6 +755,7 @@ structure(
         return(tacs)
     },
     class="hcr")
+
 '))
 
     ## create HCR as functions
