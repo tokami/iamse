@@ -626,9 +626,9 @@ structure(
                     ## Indicators
                     ## -----------------------
                     if("',btar,'" == "bmsy"){
-                       logBpBtar <- get.par("logBpBmsy", fit, exp = FALSE)
+                        logBpBtar <- get.par("logBpBmsy", fit, exp = FALSE)
                     }else if("',btar,'" == "btrigger"){
-                       logBpBtar <- get.par("logBpBtrigger", fit, exp = FALSE)
+                        logBpBtar <- get.par("logBpBtrigger", fit, exp = FALSE)
                     }else stop("btar not known. Use either bmsy or btrigger")
                     logFmFtar <- get.par("logFmFmsynotS", fit, exp = TRUE)
                     bindi <- exp(qnorm(probtar, logBpBtar[2], logBpBtar[4]))
@@ -699,63 +699,62 @@ structure(
                                 ## -> increase F within 120% TAC range
                                 tac <- upper * cl
                             }
-
-                        }else{
-                            ## standard bref rule
-                            tac <- try(spict:::get.TAC(fit,
-                                                       bfac = bfac,
-                                                       bref.type = "',brefType,'",
-                                                       fractiles = list(catch = ',frc,',
-                                                                        ffmsy = ',frff,',
-                                                                        bbmsy = ',frbb,',
-                                                                        bmsy  = ',frb,',
-                                                                        fmsy  = ',frf,'),
-                                                       breakpointB = ',breakpointB,',
-                                                       safeguardB = list(limitB = ',limitB,',prob = prob),
-                                                       intermediatePeriodCatch = intC2,
-                                                       verbose = FALSE),
-                                       silent = TRUE)
                         }
+                    }else{
+                        ## standard bref rule
+                        tac <- try(spict:::get.TAC(fit,
+                                                   bfac = bfac,
+                                                   bref.type = "',brefType,'",
+                                                   fractiles = list(catch = ',frc,',
+                                                                    ffmsy = ',frff,',
+                                                                    bbmsy = ',frbb,',
+                                                                    bmsy  = ',frb,',
+                                                                    fmsy  = ',frf,'),
+                                                   breakpointB = ',breakpointB,',
+                                                   safeguardB = list(limitB = ',limitB,',prob = prob),
+                                                   intermediatePeriodCatch = intC2,
+                                                   verbose = FALSE),
+                                   silent = TRUE)
+                    }
 
 
-                        if(inherits(tac, "try-error") || !is.numeric(tac) || is.na(tac)){
-                            tacs <- func(inp, tacs=tacs, pars=pars)
-                            tacs$conv[nrow(tacs)] <- FALSE
-                            tacs$indBref[nrow(tacs)] <- indBref2
-                            tacs$bmID[nrow(tacs)] <- bmID
-                            tacs$assessInt[nrow(tacs)] <- assessmentInterval
-                            tacs$medbpbref[nrow(tacs)] <- medbpbref
-                            tacs$bpbref[nrow(tacs)] <- bpbref
+                    if(inherits(tac, "try-error") || !is.numeric(tac) || is.na(tac)){
+                        tacs <- func(inp, tacs=tacs, pars=pars)
+                        tacs$conv[nrow(tacs)] <- FALSE
+                        tacs$indBref[nrow(tacs)] <- indBref2
+                        tacs$bmID[nrow(tacs)] <- bmID
+                        tacs$assessInt[nrow(tacs)] <- assessmentInterval
+                        tacs$medbpbref[nrow(tacs)] <- medbpbref
+                        tacs$bpbref[nrow(tacs)] <- bpbref
+                    }else{
+                        if(',stab,'){
+                            cllo <- cl * lower
+                            clup <- cl * upper
+                            if(any(tac < cllo)) hitSC <- 1 else hitSC <- 0
+                            if(any(tac > clup)) hitSC <- 2 else hitSC <- 0
+                            tac[tac < cllo] <- cllo
+                            tac[tac > clup] <- clup
+                        }else hitSC <- 0
+
+                        tactmp <- data.frame(TAC=tac, id="',id,'", hitSC=hitSC,
+                                             red=NA, barID=NA, sd=NA, conv = TRUE)
+                        tactmp <- data.frame(c(tactmp, quantstmp,
+                                               indBref = indBref2, bmID=bmID,
+                                               assessInt = assessmentInterval,
+                                               medbpbref = medbpbref, bpbref = bpbref))
+                        if(is.null(tacs)){
+                            tacs <- tactmp
                         }else{
-                            if(',stab,'){
-                                cllo <- cl * lower
-                                clup <- cl * upper
-                                if(any(tac < cllo)) hitSC <- 1 else hitSC <- 0
-                                if(any(tac > clup)) hitSC <- 2 else hitSC <- 0
-                                tac[tac < cllo] <- cllo
-                                tac[tac > clup] <- clup
-                            }else hitSC <- 0
-
-                            tactmp <- data.frame(TAC=tac, id="',id,'", hitSC=hitSC,
-                                                 red=NA, barID=NA, sd=NA, conv = TRUE)
-                            tactmp <- data.frame(c(tactmp, quantstmp,
-                                                   indBref = indBref2, bmID=bmID,
-                                                   assessInt = assessmentInterval,
-                                                   medbpbref = medbpbref, bpbref = bpbref))
-                            if(is.null(tacs)){
-                                tacs <- tactmp
-                            }else{
-                                tacs <- rbind(tacs, tactmp)
-                            }
+                            tacs <- rbind(tacs, tactmp)
                         }
                     }
                 }
             }
         }
-        return(tacs)
-    },
-    class="hcr")
-
+    }
+    return(tacs)
+},
+class="hcr")
 '))
 
     ## create HCR as functions
