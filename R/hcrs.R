@@ -622,11 +622,15 @@ structure(
                 indBref <- doBy::which.minn(logB, 5) + (2/inp$dteuler)
             }else if(bref == "average"){
                 indBref <- (2/inp$dteuler):length(logB)
+            }else if(bref == "last10"){
+                indBref <- (length(logB)-9):length(logB)
             }else stop(paste0("bref = ",bref, " not known! Either current, lowest, or lowest5."))
         }else{
             indBref <- tail(tacs$indBref,1)
             if(bref == "average"){
                 indBref <- (2/inp$dteuler):indBref
+            }else if(bref == "last10"){
+                indBref <- (indBref-9):indBref
             }
         }
 
@@ -676,6 +680,7 @@ structure(
                                        verbose = FALSE),
                        silent = TRUE)
         }else if(brule == 1){
+            ## standard bref rule + pa buffer
             if(!is.numeric(bindi) || is.na(bindi) || !is.numeric(findi) || is.na(findi) ||
                !is.numeric(bpbref) || is.na(bpbref)){
                 tacs <- func(inp, tacs=tacs, pars=pars)
@@ -687,7 +692,6 @@ structure(
                 tacs$bpbref[nrow(tacs)] <- bpbref
                 return(tacs)
             }
-            ## standard bref rule + reference points
             tac <- try(spict:::get.TAC(fit,
                                        bfac = bfac,
                                        bref.type = "',brefType,'",
@@ -812,7 +816,7 @@ structure(
         }
 
         tactmp <- data.frame(TAC=tac, id="',id,'", hitSC=hitSC,
-                             red=NA, barID=barID, sd=NA, conv = TRUE)
+                             red=red, barID=barID, sd=NA, conv = TRUE)
         tactmp <- data.frame(c(tactmp, quantstmp,
                                indBref = indBref2, bmID=bmID,
                                assessInt = assessmentInterval,
