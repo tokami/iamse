@@ -51,7 +51,7 @@ estMets <- function(mse, dat, mets = "all"){
     fifthYear <- ny + 5
     tenthYear <- ny + 10
     last5Years <- (finalYear - 4) : finalYear
-    first5Years <- (ny + 1) : (ny + 10)
+    first5Years <- (ny + 1) : (ny + 5)
     simYears <- (ny + 1) : finalYear
     last10Years <- (finalYear - 9) : finalYear
     first10Years <- (ny + 1) : (ny + 10)

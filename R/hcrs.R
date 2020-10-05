@@ -426,6 +426,8 @@ structure(
         bm <- ',bm,'
         fixn <- "',fixn,'"
         prob <- ',prob,'
+        lower <- ',lower,'
+        upper <- ',upper,'
         ## Intermediate year
         manstart <- inp$timeC[length(inp$timeC)] + 1 + ',manstartdY,' ## assumes annual catches
         inp$maninterval <- c(manstart, manstart + ',assessmentInterval,')
@@ -661,18 +663,18 @@ structure(
                                        silent = TRUE)
                             ## avoid to strong and abrupt TAC changes
                             if(!inherits(tac, "try-error") && is.numeric(tac)){
-                                if(tac < (0.2 * cl)){
-                                    tac <- 0.2 * cl
+                                if(tac < (lower * cl)){
+                                    tac <- lower * cl
                                 }
-                                if(tac > (1.2 * cl)){
-                                    tac <- 1.2 * cl
+                                if(tac > (upper * cl)){
+                                    tac <- upper * cl
                                 }
                             }
-                        }else if((bindi - 1) < -1e-3 && (1 - findi) < -1e-3){
-                            ## Strong indication of overfishing
-                            ## -----------------------
-                            ## -> reduce TAC by 20%
-                            tac <- 0.8 * cl
+                        ## }else if((bindi - 1) < -1e-3 || (1 - findi) < -1e-3){
+                        ##     ## Strong indication of overfishing
+                        ##     ## -----------------------
+                        ##     ## -> reduce TAC by 20%
+                        ##     tac <- 0.8 * cl
 
                         }else if((bindi - 1) < -1e-3 || (1 - findi) < -1e-3){
                             ## Indication of overfishing
@@ -687,7 +689,7 @@ structure(
                             ## No indication of overfishing
                             ## -----------------------
                             ## -> increase F within 120% TAC range
-                            tac <- 1.2 * cl
+                            tac <- upper * cl
                         }
 
                         if(inherits(tac, "try-error") || !is.numeric(tac) || is.na(tac)){
@@ -700,8 +702,8 @@ structure(
                             tacs$bpbref[nrow(tacs)] <- bpbref
                         }else{
                             if(',stab,'){
-                                cllo <- cl * ',lower,'
-                                clup <- cl * ',upper,'
+                                cllo <- cl * lower
+                                clup <- cl * upper
                                 if(any(tac < cllo)) hitSC <- 1 else hitSC <- 0
                                 if(any(tac > clup)) hitSC <- 2 else hitSC <- 0
                                 tac[tac < cllo] <- cllo
