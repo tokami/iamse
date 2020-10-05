@@ -390,6 +390,7 @@ defHCRspict <- function(id = "spict-msy",
                         probtar = 0.4,
                         decTree = FALSE,
                         red = 0.2,
+                        rai = 0.2,
                         manstartdY = 0,
                         assessmentInterval = 1,
                         intC = NA,
@@ -434,6 +435,8 @@ structure(
         lower <- ',lower,'
         upper <- ',upper,'
         probtar <- ',probtar,'
+        red <- ',red,'
+        rai <- ',rai,'
         ## Intermediate year
         manstart <- inp$timeC[length(inp$timeC)] + 1 + ',manstartdY,' ## assumes annual catches
         inp$maninterval <- c(manstart, manstart + ',assessmentInterval,')
@@ -683,19 +686,33 @@ structure(
             }else if((bindi - 1) < -1e-3 || (1 - findi) < -1e-3){
                 ## Indication of overfishing
                 ## -----------------------
-                ## -> keep F (can increase or decrease TAC)
+                ## -> reduce F/TAC by red%
                 tac <- try(spict:::get.TAC(fit,
-                                           ffac = 1,
+                                           ffac = 1 * (1-red),
                                            intermediatePeriodCatch = intC2,
                                            verbose = FALSE),
                            silent = TRUE)
             }else{
-                ## Strong indication of overfishing
+                ## No indication of overfishing
                 ## -----------------------
-                ## -> reduce TAC by 20%
-                tac <- ',red,' * cl
-
+                ## -> raise F/TAC by rai%
+                tac <- try(spict:::get.TAC(fit,
+                                           ffac = 1 * (1+rai),
+                                           intermediatePeriodCatch = intC2,
+                                           verbose = FALSE),
+                           silent = TRUE)
             }
+            ## if((bindi - 1) < -1e-3 || (1 - findi) < -1e-3){
+            ##     ## Indication of overfishing
+            ##     ## -----------------------
+            ##     ## -> reduce TAC by red%
+            ##     tac <- ',red,' * cl
+            ## }else{
+            ##     ## No indication of overfishing
+            ##     ## -----------------------
+            ##     ## -> raise TAC by rai%
+            ##     tac <- ',rai,' * cl
+            ## }
         }else{
             ## standard bref rule
             tac <- try(spict:::get.TAC(fit,
