@@ -502,7 +502,6 @@ structure(
             }
         }
         fit <- try(fit.spict(inp), silent=TRUE)
-
         if(class(fit) == "try-error" || fit$opt$convergence != 0 || any(is.infinite(fit$sd))){
             tacs <- func(inp, tacs=tacs, pars=pars)
             tacs$conv[nrow(tacs)] <- FALSE

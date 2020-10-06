@@ -41,8 +41,12 @@ estMets <- function(mse, dat, mets = "all"){
     nhcr <- length(mse)
     nrep <- length(mse[[1]])
     nquant <- length(mse[[1]][[1]])
-    assessInt <- mse[[length(mse)]][[1]]$tacs$assessInt[1]
-    nysim <- nrow(mse[[1]][[1]]$tacs) * assessInt
+    if(any(names(mse[[1]][[1]]$tacs) == "assessInt")){
+        assessInt <- mse[[length(mse)]][[1]]$tacs$assessInt[1]
+        nysim <- nrow(mse[[1]][[1]]$tacs) * assessInt
+    }else{
+        nysim <- nrow(mse[[1]][[1]]$tacs)
+    }
     dims <- dim(mse[[1]][[1]]$CW)
     ny <- dims[1] - nysim
     ns <- dims[2]
@@ -169,9 +173,9 @@ estMets <- function(mse, dat, mets = "all"){
             ##                                            apply(x$CW,1,sum)[simYears+1])/
             ##                                           apply(x$CW,1,sum)[simYears+1])^2)^0.5),
             ##                      median ,na.rm=TRUE))
-            tmp <- sapply(msei, function(x) (sum(abs(apply(x$CW,1,sum)[simYears] -
-                                                     apply(x$CW,1,sum)[simYears-1]),na.rm=TRUE)/
-                                             sum(apply(x$CW,1,sum)[simYears], na.rm=TRUE)))
+            tmp <- sapply(msei, function(x) (sum(abs(apply(x$CW,1,sum)[simYears[-1]] -
+                                                     apply(x$CW,1,sum)[simYears[-length(simYears)]]),na.rm=TRUE)/
+                                             sum(apply(x$CW,1,sum)[simYears[-1]], na.rm=TRUE)))
             vari <- var(tmp)
             ni <- length(tmp)
             sei <- sqrt(vari/ni)
