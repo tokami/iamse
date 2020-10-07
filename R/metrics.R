@@ -94,6 +94,8 @@ estMets <- function(mse, dat, mets = "all"){
                  "CMSYMaxAge","PBBlimMaxAge",
                  "BBmsy","BBmsyLT",
                  "BBmsyFL","FFmsyFL",
+                 "AAVCfirst10",
+                 "AAVBfirst10",
                  ## OLDER:
                  "avCatchFirst5y","avCatchLast5y","BBmsyLowest",
                  "PBBlim2",
@@ -533,6 +535,62 @@ estMets <- function(mse, dat, mets = "all"){
                                     sei,
                                     length(tmp)))
             }else writeLines("CMSYLT2 could not be estimated, because no rule 'refFmsy' not found.")
+        }
+        ## "AAVCfirst10"
+        if(any(mets == "AAVCfirst10")){
+            metsUsed <- c(metsUsed, "AAVCfirst10")
+            tmp <- sapply(msei, function(x) (sum(abs(apply(x$CW,1,sum)[first10Years[-1]] -
+                                                     apply(x$CW,1,sum)[first10Years[-length(first10Years)]]),na.rm=TRUE)/
+                                             sum(apply(x$CW,1,sum)[first10Years[-1]], na.rm=TRUE)))
+            vari <- var(tmp)
+            ni <- length(tmp)
+            sei <- sqrt(vari/ni)
+            tmp2 <- try(wilcox.test(as.numeric(tmp),
+                                    alternative="two.sided",
+                                    correct=TRUE,
+                                    conf.int=TRUE,
+                                    conf.level=0.95), silent=TRUE)
+            if(hcrs[hcr] == "noF"){
+                res <- rbind(res, c(0,
+                                    0,
+                                    0,
+                                    sei,
+                                    ni))
+            }else{
+                res <- rbind(res, c(tmp2$conf.int[1],
+                                    tmp2$estimate,
+                                    tmp2$conf.int[2],
+                                    sei,
+                                    ni))
+            }
+        }
+        ## "AAVBfirst10"
+        if(any(mets == "AAVBfirst10")){
+            metsUsed <- c(metsUsed, "AAVBfirst10")
+            tmp <- sapply(msei, function(x) (sum(abs(x$TSBfinal[first10Years[-1]] -
+                                                     x$TSBfinal[first10Years[-length(first10Years)]]),na.rm=TRUE)/
+                                             sum(x$TSBfinal[first10Years[-1]], na.rm=TRUE)))
+            vari <- var(tmp)
+            ni <- length(tmp)
+            sei <- sqrt(vari/ni)
+            tmp2 <- try(wilcox.test(as.numeric(tmp),
+                                    alternative="two.sided",
+                                    correct=TRUE,
+                                    conf.int=TRUE,
+                                    conf.level=0.95), silent=TRUE)
+            if(hcrs[hcr] == "noF"){
+                res <- rbind(res, c(0,
+                                    0,
+                                    0,
+                                    sei,
+                                    ni))
+            }else{
+                res <- rbind(res, c(tmp2$conf.int[1],
+                                    tmp2$estimate,
+                                    tmp2$conf.int[2],
+                                    sei,
+                                    ni))
+            }
         }
         ## OLDER (not used in probHCR):
         ## CMSYMaxAge

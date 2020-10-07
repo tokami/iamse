@@ -654,9 +654,9 @@ structure(
         }else if("',btar,'" == "btrigger"){
             logBpBtar <- get.par("logBpBtrigger", fit, exp = FALSE)
         }else stop("btar not known. Use either bmsy or btrigger")
-        logFmFtar <- get.par("logFmFmsynotS", fit, exp = TRUE)
+        logFmFtar <- get.par("logFmFmsynotS", fit, exp = FALSE)
         bindi <- exp(qnorm(probtar, logBpBtar[2], logBpBtar[4]))
-        findi <- exp(qnorm(1-probtar, logBpBtar[2], logBpBtar[4]))
+        findi <- exp(qnorm(1-probtar, logFmFtar[2], logFmFtar[4]))
         indBref2 <- tail(fit$inp$indBref,1)
         logBpBref <- get.par("logBpBref", fit, exp = FALSE)
         medbpbref <- exp(logBpBref[,2])
@@ -707,10 +707,7 @@ structure(
 
             ## PA buffer (e.g. 0.2 reduction of TAC) if B < Btrigger or F > Fmsy
             if(is.numeric(red)){
-                if(is.null(tacs)){
-                    ## apply in first year
-                    barID <- TRUE
-                }else if(any(as.logical(tail(tacs$barID,(redyears-1))),na.rm=TRUE)){
+                if(any(as.logical(tail(tacs$barID,(redyears-1))),na.rm=TRUE)){
                     ## do not apply if applied during last x years (redyears)
                     barID <- FALSE
                 }else{
