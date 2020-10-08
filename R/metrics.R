@@ -83,10 +83,12 @@ estMets <- function(mse, dat, mets = "all"){
     metsAll <- c("CMSY",
                  "PBBlim",
                  "AAVC",
+                 "AAVB",
                  "CMSYmean","avCatch",
-                 "CMSYlast5","CMSYlast10","CMSYfirst10",
-                 "PBBlimlast5","PBBlimlast10",
+                 "CMSYfirst10",
+                 "CMSYlast5","CMSYlast10",
                  "PBBlimfirst10",
+                 "PBBlimlast5","PBBlimlast10",
                  "PBBlim1","PBBlim3",
                  "CMSYST","PBBlimST",
                  "CMSYLT","PBBlimLT","AAVC2",
@@ -102,7 +104,7 @@ estMets <- function(mse, dat, mets = "all"){
                  "PBBlimFirst5y","PBBlimLast5y","CatchCV", "avRelCatch",
                  "avRelCatchLast5y","converged",
                  "avRelCatchFirst5y", "BBmsy5y","TimeRecov",
-                 "AAVCFirst5y","AAVB")
+                 "AAVCFirst5y")
     if(mets[1] == "all") mets <- metsAll
     if(any(which(!mets %in% metsAll))) writeLines(paste0("Metric ",
                                                          paste0(mets[which(!mets %in% metsAll)], collapse=", "),
@@ -592,6 +594,34 @@ estMets <- function(mse, dat, mets = "all"){
                                     ni))
             }
         }
+        ## "AAVB"
+        if(any(mets == "AAVB")){
+            metsUsed <- c(metsUsed, "AAVB")
+            tmp <- sapply(msei, function(x) (sum(abs(x$TSBfinal[simYears[-1]] -
+                                                     x$TSBfinal[simYears[-length(simYears)]]),na.rm=TRUE)/
+                                             sum(x$TSBfinal[simYears[-1]], na.rm=TRUE)))
+            vari <- var(tmp)
+            ni <- length(tmp)
+            sei <- sqrt(vari/ni)
+            tmp2 <- try(wilcox.test(as.numeric(tmp),
+                                    alternative="two.sided",
+                                    correct=TRUE,
+                                    conf.int=TRUE,
+                                    conf.level=0.95), silent=TRUE)
+            if(hcrs[hcr] == "noF"){
+                res <- rbind(res, c(0,
+                                    0,
+                                    0,
+                                    sei,
+                                    ni))
+            }else{
+                res <- rbind(res, c(tmp2$conf.int[1],
+                                    tmp2$estimate,
+                                    tmp2$conf.int[2],
+                                    sei,
+                                    ni))
+            }
+        }
         ## OLDER (not used in probHCR):
         ## CMSYMaxAge
         if(any(mets == "CMSYMaxAge")){
@@ -632,15 +662,15 @@ estMets <- function(mse, dat, mets = "all"){
         if(any(mets == "BBmsyFL")){
             metsUsed <- c(metsUsed, "BBmsyFL")
             indi <- as.numeric(names(msei))
-            tmp <- sapply(1:length(msei), function(x) msei[[x]]$TSBfinal[tenthYear]/
-                                                      refB[["tenthYear"]][[indi[x]]]) ##refs$Bmsy)
+            tmp <- sapply(1:length(msei), function(x) msei[[x]]$TSBfinal[finalYear]/
+                                                      refB[["finalYear"]][[indi[x]]]) ##refs$Bmsy)
             res <- rbind(res, c(quantile(tmp, probs = c(0.25, 0.5, 0.75), na.rm=TRUE),NA,NA))
         }
         if(any(mets == "FFmsyFL")){
-            metsUsed <- c(metsUsed, "BBmsyFL")
+            metsUsed <- c(metsUsed, "FFmsyFL")
             indi <- as.numeric(names(msei))
-            tmp <- sapply(1:length(msei), function(x) apply(msei[[x]]$FM,1,sum)[tenthYear]/
-                                                      refF[["tenthYear"]][[indi[x]]]) ##refs$Fmsy)
+            tmp <- sapply(1:length(msei), function(x) apply(msei[[x]]$FM,1,sum)[finalYear]/
+                                                      refF[["finalYear"]][[indi[x]]]) ##refs$Fmsy)
             res <- rbind(res, c(quantile(tmp, probs = c(0.25, 0.5, 0.75), na.rm=TRUE),NA,NA))
         }
         ## "avCatch"   ### also implement that for rel catch (to ref hcr)
@@ -753,16 +783,6 @@ estMets <- function(mse, dat, mets = "all"){
                                         function(x) (((apply(x$CW,1,sum)[first5Years] -
                                                        apply(x$CW,1,sum)[first5Years+1])/
                                                       apply(x$CW,1,sum)[first5Years+1])^2)^0.5),
-                                 mean ,na.rm=TRUE))
-            tmp[is.infinite(tmp)] <- NA
-            res <- rbind(res, quantile(tmp, probs = c(0.025, 0.5, 0.975),na.rm=TRUE))
-        }
-        ## "AAVB"
-        if(any(mets == "AAVB")){
-            tmp <- unlist(lapply(lapply(msei,
-                                        function(x) (((x$TSBfinal[simYears] -
-                                                       x$TSBfinal[simYears+1])/
-                                                      x$TSBfinal[simYears+1])^2)^0.5),
                                  mean ,na.rm=TRUE))
             tmp[is.infinite(tmp)] <- NA
             res <- rbind(res, quantile(tmp, probs = c(0.025, 0.5, 0.975),na.rm=TRUE))

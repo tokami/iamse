@@ -151,6 +151,12 @@ defHCRconscat <- function(id = "conscat",
 structure(
     function(inp, tacs = NULL, pars=NULL){
         inp <- spict::check.inp(inp, verbose = FALSE)
+        if(is.null(tacs)){
+            indBref <- inp$indBref
+        }else{
+            indBref <- as.numeric(as.character(unlist(strsplit(as.character(tacs$indBref[nrow(tacs)]), "-"))))
+        }
+        indBref2 <- paste(indBref, collapse="-")
         TAC <- ',constantC,'
         if(!is.numeric(TAC)){
             annualcatch <- spict:::annual(inp$timeC, inp$obsC/inp$dtc, type = "mean") ## CHECK: why not sum?
@@ -181,6 +187,7 @@ structure(
         tacs$hitSC[nrow(tacs)] <- NA
         tacs$barID[nrow(tacs)] <- barID
         tacs$red[nrow(tacs)] <- red
+        tacs$indBref[nrow(tacs)] <- indBref2
         tacs$assessInt[nrow(tacs)] <- assessmentInterval
         return(tacs)
     },
@@ -248,16 +255,24 @@ structure(
         clType <- "',clType,'"
         red <- ',red,'
         redyears <- ',redyears,'
+        assInt <- ',assessmentInterval,'
 
         ffmsy <- rnorm(1, pars$ffmsy, ',ffmsySD,')
         ## ffmsy <- runif(1, pars$ffmsy * ',ffmsySD,', pars$ffmsy)
         ffmsy[ffmsy < 0] <- 0
-        bbtrigger <- rnorm(1, pars$bbmsy*0.5, ',bbtriggerSD,')
-        ## bbtrigger <- runif(1, pars$bbmsy*0.5, pars$bbmsy*0.5 * ',bbtriggerSD,')
+        bbtrigger <- rnorm(1, pars$bbmsy*2, ',bbtriggerSD,')
+        ## bbtrigger <- runif(1, pars$bbmsy*2, pars$bbmsy*2 * ',bbtriggerSD,')
         bbtrigger[bbtrigger < 0] <- 0
 
         inp <- spict::check.inp(inp, verbose = FALSE)
-        indBref <- inp$indBref[1]
+        if(is.null(tacs)){
+            indBref <- inp$indBref
+        }else{
+            indBref <- as.numeric(as.character(unlist(strsplit(as.character(tacs$indBref[nrow(tacs)]), "-"))))
+        }
+        indBref2 <- paste(indBref, collapse="-")
+        ## benchmark (only benchmark in spict)
+        bmID <- FALSE
         inds <- inp$obsI
         if(length(inds) > 1){
             ## WHAT TO DO IF SEVERAL INDICES AVAILABLE? ## for now: mean
@@ -274,9 +289,13 @@ structure(
         ## cl <- sum(tail(inp$obsC, tail(1/inp$dtc,1))) ## CHECK: dtc required?
         if(clType == "observed"){
             cl <- mean(tail(inp$obsC, clyears))
+            ## Account for non-annual assessments
+            cl <- cl * assInt
         }else if(clType == "TAC"){
             if(is.null(tacs)){
                 cl <- mean(tail(inp$obsC, 3))
+                ## Account for non-annual assessments
+                cl <- cl * assInt
             }else{
                 cl <- tacs$TAC[nrow(tacs)]
             }
@@ -294,20 +313,25 @@ structure(
         ## PA buffer (e.g. 0.2 reduction of TAC) if B < Btrigger proxy or F > Fmsy
         if(is.numeric(red)){
             if(is.null(tacs)){
-                ## apply in first year
-                barID <- TRUE
-            }else if(any(as.logical(tail(tacs$barID,(redyears-1))),na.rm=TRUE)){
+                if(',redAlways,'){
+                    barID <- TRUE
+                }else{
+                    if(ffmsy > 1 || bbtrigger < 1){
+                        barID <- TRUE
+                    }else barID <- FALSE
+                    right <- ifelse(runif(1) <= ',rightRef,', barID, !barID)
+                }
+            }else if(any(as.logical(tail(tacs$barID,ceiling(redyears/assessmentInterval-1))),na.rm=TRUE)){
                 ## do not apply if applied during last x years (redyears)
                 barID <- FALSE
             }else{
                 if(',redAlways,'){
                     barID <- TRUE
                 }else{
-                    right <- ifelse(runif(1) <= ',rightRef,', TRUE, FALSE)
-                    if((ffmsy > 1 || bbtrigger < 1) && right){
-                        ## apply if any ref indicates overexploitation
+                    if(ffmsy > 1 || bbtrigger < 1){
                         barID <- TRUE
                     }else barID <- FALSE
+                    right <- ifelse(runif(1) <= ',rightRef,', barID, !barID)
                 }
             }
         }else barID <- FALSE
@@ -316,7 +340,7 @@ structure(
             tac <- tac * (1-red)
         }
         ## Account for non-annual assessments
-        tac <- tac * ',assessmentInterval,'
+##        tac <- tac * ',assessmentInterval,'
 
         tacs <- gettacs(tacs, id = "',id,'", TAC = tac, inp = inp)
         tacs$hitSC[nrow(tacs)] <- hitSC
@@ -327,7 +351,8 @@ structure(
         tacs$fmfmsy.sd[nrow(tacs)] <- ffmsySD
         tacs$bpbmsy.sd[nrow(tacs)] <- bbtriggerSD
         tacs$n.est[nrow(tacs)] <- r0
-        tacs$indBref[nrow(tacs)] <- indBref
+        tacs$indBref[nrow(tacs)] <- indBref2
+        tacs$bmID[nrow(tacs)] <- bmID
         tacs$assessInt[nrow(tacs)] <- assessmentInterval
         return(tacs)
     },
@@ -474,10 +499,11 @@ structure(
         }
         if(is.list(inp$obsI)) nis <- length(inp$obsI)
         if(is.null(tacs)){
-            indBref2 <- inp$indBref[1]
+            indBref <- inp$indBref
         }else{
-            indBref2 <- tacs$indBref[nrow(tacs)]
+            indBref <- as.numeric(as.character(unlist(strsplit(as.character(tacs$indBref[nrow(tacs)]), "-"))))
         }
+        indBref2 <- paste(indBref, collapse="-")
         medbpbref <- NA
         bpbref <- NA
         ## benchmark (assuming bm always in first year)
@@ -485,7 +511,7 @@ structure(
             bmID <- TRUE
         }else{
             if(!is.numeric(bm) ||
-               any(as.logical(tail(tacs$bmID,(bm-1))),na.rm=TRUE)){
+               any(as.logical(tail(tacs$bmID,ceiling(bm/assessmentInterval-1))),na.rm=TRUE)){
                 bmID <- FALSE
             }else bmID <- TRUE
         }
@@ -612,25 +638,24 @@ structure(
         ## resetting brefs at benchmark
         if(bmID){
             logB <- fit$obj$report(fit$obj$env$last.par.best)$logB[inp$indest]
-            logB <- logB[(1/inp$dteuler):length(logB)]  ## hack: remove first year, because first B est often outlier
+            logB[1:(2/inp$dteuler)] <- NA    ## hack: remove first year, because first B est often outlier
             if(bref == "current"){
                 indBref <- inp$indlastobs
             }else if(bref == "lowest"){
-                indBref <- which.min(logB) + (2/inp$dteuler)
-            }else if(bref == "lowest5"){
-                indBref <- doBy::which.minn(logB, 5) + (2/inp$dteuler)
+                indBref <- which.min(logB)
+            }else if(bref == "highest"){
+                indBref <- which.max(logB)
+            }else if(bref == "lowest10"){
+                indBref <- doBy::which.minn(logB, 10) ## * 1/inp$dteuler)
+            }else if(bref == "highest10"){
+                indBref <- doBy::which.maxn(logB, 10) ## * 1/inp$dteuler)
             }else if(bref == "average"){
                 indBref <- (2/inp$dteuler):length(logB)
             }else if(bref == "last10"){
                 indBref <- (length(logB)-9):length(logB)
             }else stop(paste0("bref = ",bref, " not known! Either current, lowest, or lowest5."))
         }else{
-            indBref <- tail(tacs$indBref,1)
-            if(bref == "average"){
-                indBref <- (2/inp$dteuler):indBref
-            }else if(bref == "last10"){
-                indBref <- (indBref-9):indBref
-            }
+            indBref <- as.numeric(as.character(unlist(strsplit(as.character(tacs$indBref[nrow(tacs)]), "-"))))
         }
 
         fit <- try(set.bref(fit, indBref = indBref),silent=TRUE)
@@ -657,11 +682,13 @@ structure(
         logFmFtar <- get.par("logFmFmsynotS", fit, exp = FALSE)
         bindi <- exp(qnorm(probtar, logBpBtar[2], logBpBtar[4]))
         findi <- exp(qnorm(1-probtar, logFmFtar[2], logFmFtar[4]))
-        indBref2 <- tail(fit$inp$indBref,1)
+        indBref2 <- paste(fit$inp$indBref, collapse="-")
         logBpBref <- get.par("logBpBref", fit, exp = FALSE)
         medbpbref <- exp(logBpBref[,2])
         bpbref <- exp(qnorm(1-prob, logBpBref[2], logBpBref[4]))
         barID <- FALSE
+
+print(medbpbref)
 
         if(brule == 0){
             ## standard bref rule
@@ -707,7 +734,7 @@ structure(
 
             ## PA buffer (e.g. 0.2 reduction of TAC) if B < Btrigger or F > Fmsy
             if(is.numeric(red)){
-                if(any(as.logical(tail(tacs$barID,(redyears-1))),na.rm=TRUE)){
+                if(any(as.logical(tail(tacs$barID,ceiling(redyears/assessmentInterval-1))),na.rm=TRUE)){
                     ## do not apply if applied during last x years (redyears)
                     barID <- FALSE
                 }else{
@@ -810,7 +837,6 @@ structure(
         if(barID){
             tac <- tac * (1-red)
         }
-
         tactmp <- data.frame(TAC=tac, id="',id,'", hitSC=hitSC,
                              red=red, barID=barID, sd=NA, conv = TRUE)
         tactmp <- data.frame(c(tactmp, quantstmp,
