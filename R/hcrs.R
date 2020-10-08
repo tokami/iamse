@@ -688,8 +688,6 @@ structure(
         bpbref <- exp(qnorm(1-prob, logBpBref[2], logBpBref[4]))
         barID <- FALSE
 
-print(medbpbref)
-
         if(brule == 0){
             ## standard bref rule
             tac <- try(spict:::get.TAC(fit,
