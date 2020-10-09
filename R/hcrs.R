@@ -639,6 +639,7 @@ structure(
         if(bmID){
             logB <- fit$obj$report(fit$obj$env$last.par.best)$logB[inp$indest]
             logB[1:(2/inp$dteuler)] <- NA    ## hack: remove first year, because first B est often outlier
+            logB[is.infinite(logB)] <- NA    ## hack: remove first year, because first B est often outlier
             if(bref == "current"){
                 indBref <- inp$indlastobs
             }else if(bref == "lowest"){
@@ -657,8 +658,18 @@ structure(
         }else{
             indBref <- as.numeric(as.character(unlist(strsplit(as.character(tacs$indBref[nrow(tacs)]), "-"))))
         }
-
-        fit <- try(set.bref(fit, indBref = indBref),silent=TRUE)
+        if(any(is.na(indBref)) || length(indBref) < 1 || any(is.infinite(indBref))){
+            tacs <- func(inp, tacs=tacs, pars=pars)
+            tacs$conv[nrow(tacs)] <- FALSE
+            tacs$indBref[nrow(tacs)] <- indBref2
+            tacs$bmID[nrow(tacs)] <- bmID
+            tacs$assessInt[nrow(tacs)] <- assessmentInterval
+            tacs$medbpbref[nrow(tacs)] <- medbpbref
+            tacs$bpbref[nrow(tacs)] <- bpbref
+            return(tacs)
+        }else{
+            fit <- try(set.bref(fit, indBref = indBref),silent=TRUE)
+        }
 
         ## get TAC
         if(inherits(fit, "try-error")){
