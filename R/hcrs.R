@@ -137,11 +137,15 @@ structure(
 #'
 defHCRconscat <- function(id = "conscat",
                           constantC = NULL,
-                           clyears = 1,
-                           red = NA,
+                          clyears = 1,
+                          red = NA,
                           redyears = 2,
+                          redAlways = FALSE,
                           assessmentInterval = 1,
-                           env = globalenv()
+                          ffmsySD = 0,
+                          bbtriggerSD = 0,
+                          rightRef=1,
+                          env = globalenv()
                           ){
 
     if(is.null(constantC)) constantC = NA
@@ -150,6 +154,17 @@ defHCRconscat <- function(id = "conscat",
         '
 structure(
     function(inp, tacs = NULL, pars=NULL){
+        red <- ',red,'
+        redyears <- ',redyears,'
+        assInt <- ',assessmentInterval,'
+
+        ffmsy <- rnorm(1, pars$ffmsy, ',ffmsySD,')
+        ## ffmsy <- runif(1, pars$ffmsy * ',ffmsySD,', pars$ffmsy)
+        ffmsy[ffmsy < 0] <- 0
+        bbtrigger <- rnorm(1, pars$bbmsy*2, ',bbtriggerSD,')
+        ## bbtrigger <- runif(1, pars$bbmsy*2, pars$bbmsy*2 * ',bbtriggerSD,')
+        bbtrigger[bbtrigger < 0] <- 0
+
         inp <- spict::check.inp(inp, verbose = FALSE)
         if(is.null(tacs)){
             indBref <- inp$indBref
@@ -157,33 +172,44 @@ structure(
             indBref <- as.numeric(as.character(unlist(strsplit(as.character(tacs$indBref[nrow(tacs)]), "-"))))
         }
         indBref2 <- paste(indBref, collapse="-")
-        TAC <- ',constantC,'
+        tac <- ',constantC,'
         if(!is.numeric(TAC)){
             annualcatch <- spict:::annual(inp$timeC, inp$obsC/inp$dtc, type = "mean") ## CHECK: why not sum?
-            TAC <- mean(tail(annualcatch$annvec, ',clyears,'))
+            tac <- mean(tail(annualcatch$annvec, ',clyears,'))
+            ## Account for non-annual assessments
+            tac <- tac * assInt
         }
 
-        ## bianunal reduction (usually 0.2)
+        ## PA buffer (e.g. 0.2 reduction of TAC) if B < Btrigger proxy or F > Fmsy
         if(is.numeric(red)){
             if(is.null(tacs)){
-                TAC <- TAC * (1-red)
-                barID <- TRUE
-            }else{
-                idx1 <- ifelse(nrow(tacs) > (redyears-1), (nrow(tacs)-(redyears-2)), 1)
-                idx <- idx1:nrow(tacs)
-                if(all(as.logical(tacs$barID[idx]) == FALSE)){
-                    TAC <- TAC * (1-red)
+                if(',redAlways,'){
                     barID <- TRUE
                 }else{
-                    barID <- FALSE
+                    if(ffmsy > 1 || bbtrigger < 1){
+                        barID <- TRUE
+                    }else barID <- FALSE
+                    right <- ifelse(runif(1) <= ',rightRef,', barID, !barID)
+                }
+            }else if(any(as.logical(tail(tacs$barID,ceiling(redyears/assessmentInterval-1))),na.rm=TRUE)){
+                ## do not apply if applied during last x years (redyears)
+                barID <- FALSE
+            }else{
+                if(',redAlways,'){
+                    barID <- TRUE
+                }else{
+                    if(ffmsy > 1 || bbtrigger < 1){
+                        barID <- TRUE
+                    }else barID <- FALSE
+                    right <- ifelse(runif(1) <= ',rightRef,', barID, !barID)
                 }
             }
         }else barID <- FALSE
-
-        ## Account for non-annual assessments
-        TAC <- TAC * ',assessmentInterval,'
-
-        tacs <- gettacs(tacs, id = "',id,'", TAC = TAC, inp=inp)
+        ## apply reduction
+        if(barID){
+            tac <- tac * (1-red)
+        }
+        tacs <- gettacs(tacs, id = "',id,'", TAC = tac, inp=inp)
         tacs$hitSC[nrow(tacs)] <- NA
         tacs$barID[nrow(tacs)] <- barID
         tacs$red[nrow(tacs)] <- red
@@ -339,9 +365,6 @@ structure(
         if(barID){
             tac <- tac * (1-red)
         }
-        ## Account for non-annual assessments
-##        tac <- tac * ',assessmentInterval,'
-
         tacs <- gettacs(tacs, id = "',id,'", TAC = tac, inp = inp)
         tacs$hitSC[nrow(tacs)] <- hitSC
         tacs$barID[nrow(tacs)] <- barID
@@ -523,6 +546,8 @@ structure(
         }else if("',clType,'" == "TAC"){
             if(is.null(tacs)){
                 cl <- mean(tail(inp$obsC, 3))
+                ## Account for non-annual assessments
+                cl <- cl * assInt
             }else{
                 cl <- tacs$TAC[nrow(tacs)]
             }
