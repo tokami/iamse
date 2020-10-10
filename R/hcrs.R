@@ -156,7 +156,7 @@ structure(
     function(inp, tacs = NULL, pars=NULL){
         red <- ',red,'
         redyears <- ',redyears,'
-        assInt <- ',assessmentInterval,'
+        assessInt <- ',assessmentInterval,'
 
         ffmsy <- rnorm(1, pars$ffmsy, ',ffmsySD,')
         ## ffmsy <- runif(1, pars$ffmsy * ',ffmsySD,', pars$ffmsy)
@@ -177,7 +177,7 @@ structure(
             annualcatch <- spict:::annual(inp$timeC, inp$obsC/inp$dtc, type = "mean") ## CHECK: why not sum?
             tac <- mean(tail(annualcatch$annvec, ',clyears,'))
             ## Account for non-annual assessments
-            tac <- tac * assInt
+            tac <- tac * assessInt
         }
 
         ## PA buffer (e.g. 0.2 reduction of TAC) if B < Btrigger proxy or F > Fmsy
@@ -281,7 +281,7 @@ structure(
         clType <- "',clType,'"
         red <- ',red,'
         redyears <- ',redyears,'
-        assInt <- ',assessmentInterval,'
+        assessInt <- ',assessmentInterval,'
 
         ffmsy <- rnorm(1, pars$ffmsy, ',ffmsySD,')
         ## ffmsy <- runif(1, pars$ffmsy * ',ffmsySD,', pars$ffmsy)
@@ -316,12 +316,12 @@ structure(
         if(clType == "observed"){
             cl <- mean(tail(inp$obsC, clyears))
             ## Account for non-annual assessments
-            cl <- cl * assInt
+            cl <- cl * assessInt
         }else if(clType == "TAC"){
             if(is.null(tacs)){
                 cl <- mean(tail(inp$obsC, 3))
                 ## Account for non-annual assessments
-                cl <- cl * assInt
+                cl <- cl * assessInt
             }else{
                 cl <- tacs$TAC[nrow(tacs)]
             }
@@ -489,9 +489,10 @@ structure(
         redyears <- ',redyears,'
         rai <- ',rai,'
         brule <- ',brule,'
+        assessInt <- ',assessmentInterval,'
         ## Intermediate year
         manstart <- inp$timeC[length(inp$timeC)] + 1 + ',manstartdY,' ## assumes annual catches
-        inp$maninterval <- c(manstart, manstart + ',assessmentInterval,')
+        inp$maninterval <- c(manstart, manstart + assessInt)
         inp$maneval <- max(inp$maninterval)
         ## Check inp
         inp <- spict::check.inp(inp, verbose = FALSE)
@@ -547,7 +548,7 @@ structure(
             if(is.null(tacs)){
                 cl <- mean(tail(inp$obsC, 3))
                 ## Account for non-annual assessments
-                cl <- cl * assInt
+                cl <- cl * assessInt
             }else{
                 cl <- tacs$TAC[nrow(tacs)]
             }
