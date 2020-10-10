@@ -366,6 +366,9 @@ structure(
             tac <- tac * (1-red)
         }
         tacs <- gettacs(tacs, id = "',id,'", TAC = tac, inp = inp)
+
+        tacs <- gettacs(tacs, id = "gg", TAC = tac, inp = inp)
+
         tacs$hitSC[nrow(tacs)] <- hitSC
         tacs$barID[nrow(tacs)] <- barID
         tacs$red[nrow(tacs)] <- red
@@ -721,7 +724,7 @@ structure(
         findi <- exp(qnorm(1-probtar, logFmFtar[2], logFmFtar[4]))
         indBref2 <- paste(fit$inp$indBref, collapse="-")
         logBpBref <- get.par("logBpBref", fit, exp = FALSE)
-        medbpbref <- exp(logBpBref[,2])
+        medbpbref <- as.numeric(exp(logBpBref[,2]))
         bpbref <- exp(qnorm(1-prob, logBpBref[2], logBpBref[4]))
         barID <- FALSE
 
@@ -872,12 +875,12 @@ structure(
         if(barID){
             tac <- tac * (1-red)
         }
-        tactmp <- data.frame(TAC=tac, id="',id,'", hitSC=hitSC,
-                             red=red, barID=barID, sd=NA, conv = TRUE)
+        tactmp <- data.frame("TAC"=tac, "id"="',id,'", "hitSC"=hitSC,
+                             "red"=red, "barID"=barID, "sd"=NA, "conv" = TRUE)
         tactmp <- data.frame(c(tactmp, quantstmp,
-                               indBref = indBref2, bmID=bmID,
-                               assessInt = assessInt,
-                               medbpbref = medbpbref, bpbref = bpbref))
+                               "indBref" = indBref2, "bmID"=bmID,
+                               "assessInt" = assessInt,
+                               "medbpbref" = medbpbref, "bpbref" = bpbref))
         if(is.null(tacs)){
             tacs <- tactmp
         }else{
