@@ -191,7 +191,7 @@ structure(
                     }else barID <- FALSE
                     right <- ifelse(runif(1) <= ',rightRef,', barID, !barID)
                 }
-            }else if(any(as.logical(tail(tacs$barID,ceiling(redyears/assessmentInterval-1))),na.rm=TRUE)){
+            }else if(any(as.logical(tail(tacs$barID,ceiling(redyears/assessInt-1))),na.rm=TRUE)){
                 ## do not apply if applied during last x years (redyears)
                 barID <- FALSE
             }else{
@@ -214,7 +214,7 @@ structure(
         tacs$barID[nrow(tacs)] <- barID
         tacs$red[nrow(tacs)] <- red
         tacs$indBref[nrow(tacs)] <- indBref2
-        tacs$assessInt[nrow(tacs)] <- assessmentInterval
+        tacs$assessInt[nrow(tacs)] <- assessInt
         return(tacs)
     },
 class="hcr"
@@ -347,7 +347,7 @@ structure(
                     }else barID <- FALSE
                     right <- ifelse(runif(1) <= ',rightRef,', barID, !barID)
                 }
-            }else if(any(as.logical(tail(tacs$barID,ceiling(redyears/assessmentInterval-1))),na.rm=TRUE)){
+            }else if(any(as.logical(tail(tacs$barID,ceiling(redyears/assessInt-1))),na.rm=TRUE)){
                 ## do not apply if applied during last x years (redyears)
                 barID <- FALSE
             }else{
@@ -376,7 +376,7 @@ structure(
         tacs$n.est[nrow(tacs)] <- r0
         tacs$indBref[nrow(tacs)] <- indBref2
         tacs$bmID[nrow(tacs)] <- bmID
-        tacs$assessInt[nrow(tacs)] <- assessmentInterval
+        tacs$assessInt[nrow(tacs)] <- assessInt
         return(tacs)
     },
     class="hcr"
@@ -535,7 +535,7 @@ structure(
             bmID <- TRUE
         }else{
             if(!is.numeric(bm) ||
-               any(as.logical(tail(tacs$bmID,ceiling(bm/assessmentInterval-1))),na.rm=TRUE)){
+               any(as.logical(tail(tacs$bmID,ceiling(bm/assessInt-1))),na.rm=TRUE)){
                 bmID <- FALSE
             }else bmID <- TRUE
         }
@@ -559,7 +559,7 @@ structure(
             tacs$conv[nrow(tacs)] <- FALSE
             tacs$indBref[nrow(tacs)] <- indBref2
             tacs$bmID[nrow(tacs)] <- bmID
-            tacs$assessInt[nrow(tacs)] <- assessmentInterval
+            tacs$assessInt[nrow(tacs)] <- assessInt
             return(tacs)
         }
 
@@ -655,7 +655,7 @@ structure(
             tacs$conv[nrow(tacs)] <- FALSE
             tacs$indBref[nrow(tacs)] <- indBref2
             tacs$bmID[nrow(tacs)] <- bmID
-            tacs$assessInt[nrow(tacs)] <- assessmentInterval
+            tacs$assessInt[nrow(tacs)] <- assessInt
             tacs$medbpbref[nrow(tacs)] <- medbpbref
             tacs$bpbref[nrow(tacs)] <- bpbref
             return(tacs)
@@ -689,7 +689,7 @@ structure(
             tacs$conv[nrow(tacs)] <- FALSE
             tacs$indBref[nrow(tacs)] <- indBref2
             tacs$bmID[nrow(tacs)] <- bmID
-            tacs$assessInt[nrow(tacs)] <- assessmentInterval
+            tacs$assessInt[nrow(tacs)] <- assessInt
             tacs$medbpbref[nrow(tacs)] <- medbpbref
             tacs$bpbref[nrow(tacs)] <- bpbref
             return(tacs)
@@ -703,7 +703,7 @@ structure(
             tacs$conv[nrow(tacs)] <- FALSE
             tacs$indBref[nrow(tacs)] <- indBref2
             tacs$bmID[nrow(tacs)] <- bmID
-            tacs$assessInt[nrow(tacs)] <- assessmentInterval
+            tacs$assessInt[nrow(tacs)] <- assessInt
             tacs$medbpbref[nrow(tacs)] <- medbpbref
             tacs$bpbref[nrow(tacs)] <- bpbref
             return(tacs)
@@ -748,7 +748,7 @@ structure(
                 tacs$conv[nrow(tacs)] <- FALSE
                 tacs$indBref[nrow(tacs)] <- indBref2
                 tacs$bmID[nrow(tacs)] <- bmID
-                tacs$assessInt[nrow(tacs)] <- assessmentInterval
+                tacs$assessInt[nrow(tacs)] <- assessInt
                 tacs$medbpbref[nrow(tacs)] <- medbpbref
                 tacs$bpbref[nrow(tacs)] <- bpbref
                 return(tacs)
@@ -769,7 +769,7 @@ structure(
 
             ## PA buffer (e.g. 0.2 reduction of TAC) if B < Btrigger or F > Fmsy
             if(is.numeric(red)){
-                if(any(as.logical(tail(tacs$barID,ceiling(redyears/assessmentInterval-1))),na.rm=TRUE)){
+                if(any(as.logical(tail(tacs$barID,ceiling(redyears/assessInt-1))),na.rm=TRUE)){
                     ## do not apply if applied during last x years (redyears)
                     barID <- FALSE
                 }else{
@@ -792,7 +792,7 @@ structure(
                 tacs$conv[nrow(tacs)] <- FALSE
                 tacs$indBref[nrow(tacs)] <- indBref2
                 tacs$bmID[nrow(tacs)] <- bmID
-                tacs$assessInt[nrow(tacs)] <- assessmentInterval
+                tacs$assessInt[nrow(tacs)] <- assessInt
                 tacs$medbpbref[nrow(tacs)] <- medbpbref
                 tacs$bpbref[nrow(tacs)] <- bpbref
                 return(tacs)
@@ -853,7 +853,7 @@ structure(
             tacs$conv[nrow(tacs)] <- FALSE
             tacs$indBref[nrow(tacs)] <- indBref2
             tacs$bmID[nrow(tacs)] <- bmID
-            tacs$assessInt[nrow(tacs)] <- assessmentInterval
+            tacs$assessInt[nrow(tacs)] <- assessInt
             tacs$medbpbref[nrow(tacs)] <- medbpbref
             tacs$bpbref[nrow(tacs)] <- bpbref
             return(tacs)
@@ -876,7 +876,7 @@ structure(
                              red=red, barID=barID, sd=NA, conv = TRUE)
         tactmp <- data.frame(c(tactmp, quantstmp,
                                indBref = indBref2, bmID=bmID,
-                               assessInt = assessmentInterval,
+                               assessInt = assessInt,
                                medbpbref = medbpbref, bpbref = bpbref))
         if(is.null(tacs)){
             tacs <- tactmp
