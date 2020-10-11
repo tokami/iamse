@@ -490,6 +490,8 @@ structure(
         rai <- ',rai,'
         brule <- ',brule,'
         assessInt <- ',assessmentInterval,'
+        clyears <- ',clyears,'
+        clType <- "',clType,'"
         ## Intermediate year
         manstart <- inp$timeC[length(inp$timeC)] + 1 + ',manstartdY,' ## assumes annual catches
         inp$maninterval <- c(manstart, manstart + assessInt)
@@ -539,20 +541,7 @@ structure(
                 bmID <- FALSE
             }else bmID <- TRUE
         }
-        ## last years catch/tac
-        if("',clType,'" == "observed"){
-            cl <- mean(tail(inp$obsC, ',clyears,'))
-        }else if("',clType,'" == "estimated"){
-            cl <- NA
-        }else if("',clType,'" == "TAC"){
-            if(is.null(tacs)){
-                cl <- mean(tail(inp$obsC, 3))
-                ## Account for non-annual assessments
-                cl <- cl * assessInt
-            }else{
-                cl <- tacs$TAC[nrow(tacs)]
-            }
-        }
+        ## fit spict
         fit <- try(fit.spict(inp), silent=TRUE)
         if(class(fit) == "try-error" || fit$opt$convergence != 0 || any(is.infinite(fit$sd))){
             tacs <- func(inp, tacs=tacs, pars=pars)
@@ -562,15 +551,15 @@ structure(
             tacs$assessInt[nrow(tacs)] <- assessInt
             return(tacs)
         }
-
         ## last years catch/tac
-        if("',clType,'" == "observed"){
-            cl <- mean(tail(inp$obsC, ',clyears,'))
-        }else if("',clType,'" == "estimated"){
-            cl <- mean(tail(get.par("logCpred",fit, exp=TRUE)[,2], ',clyears,'))
-        }else if("',clType,'" == "TAC"){
+        if(clType == "observed"){
+            cl <- mean(tail(inp$obsC, clyears))
+        }else if(clType == "estimated"){
+            cl <- mean(tail(get.par("logCpred",fit, exp=TRUE)[,2], clyears))
+        }else if(clType == "TAC"){
             if(is.null(tacs)){
-                cl <- mean(tail(inp$obsC, 3))
+                cl <- mean(tail(inp$obsC, clyears))
+                cl <- cl * assessInt
             }else{
                 cl <- tacs$TAC[nrow(tacs)]
             }
@@ -672,7 +661,7 @@ structure(
                 indBref <- which.min(logB)
             }else if(bref == "highest"){
                 indBref <- which.max(logB)
-            }else if(bref == "lowest10"){
+            }else if(bref == "lowestn10"){
                 indBref <- doBy::which.minn(logB, 10) ## * 1/inp$dteuler)
             }else if(bref == "highest10"){
                 indBref <- doBy::which.maxn(logB, 10) ## * 1/inp$dteuler)
