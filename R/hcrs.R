@@ -345,7 +345,7 @@ structure(
                     if(ffmsy > 1 || bbtrigger < 1){
                         barID <- TRUE
                     }else barID <- FALSE
-                    right <- ifelse(runif(1) <= ',rightRef,', barID, !barID)
+                    barID <- ifelse(runif(1) <= ',rightRef,', barID, !barID)
                 }
             }else if(any(as.logical(tail(tacs$barID,ceiling(redyears/assessInt-1))),na.rm=TRUE)){
                 ## do not apply if applied during last x years (redyears)
@@ -357,7 +357,7 @@ structure(
                     if(ffmsy > 1 || bbtrigger < 1){
                         barID <- TRUE
                     }else barID <- FALSE
-                    right <- ifelse(runif(1) <= ',rightRef,', barID, !barID)
+                    barID <- ifelse(runif(1) <= ',rightRef,', barID, !barID)
                 }
             }
         }else barID <- FALSE
