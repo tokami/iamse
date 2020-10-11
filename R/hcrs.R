@@ -661,7 +661,7 @@ structure(
                 indBref <- which.min(logB)
             }else if(bref == "highest"){
                 indBref <- which.max(logB)
-            }else if(bref == "lowestn10"){
+            }else if(bref == "lowest10"){
                 indBref <- doBy::which.minn(logB, 10) ## * 1/inp$dteuler)
             }else if(bref == "highest10"){
                 indBref <- doBy::which.maxn(logB, 10) ## * 1/inp$dteuler)
