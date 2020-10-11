@@ -366,9 +366,6 @@ structure(
             tac <- tac * (1-red)
         }
         tacs <- gettacs(tacs, id = "',id,'", TAC = tac, inp = inp)
-
-        tacs <- gettacs(tacs, id = "gg", TAC = tac, inp = inp)
-
         tacs$hitSC[nrow(tacs)] <- hitSC
         tacs$barID[nrow(tacs)] <- barID
         tacs$red[nrow(tacs)] <- red
