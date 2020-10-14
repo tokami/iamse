@@ -432,8 +432,9 @@ defHCRspict <- function(id = "spict-msy",
                         priorlogbkfrac = c(log(0.5),2,0),
                         fixn = FALSE,
                         bfac = NA,
-                        bref = "current", ## lowest or "lowest5" or "average"
+                        bref = "current", ## lowest or "highest" or "average" or "last"
                         brefType = "target",
+                        nyBref = 5,
                         btar = "bmsy",
                         probtar = 0.4,
                         brule = 0,
@@ -492,6 +493,7 @@ structure(
         assessInt <- ',assessmentInterval,'
         clyears <- ',clyears,'
         clType <- "',clType,'"
+        nyBref <- ',nyBref,'
         ## Intermediate year
         manstart <- inp$timeC[length(inp$timeC)] + 1 + ',manstartdY,' ## assumes annual catches
         inp$maninterval <- c(manstart, manstart + assessInt)
@@ -658,18 +660,14 @@ structure(
             if(bref == "current"){
                 indBref <- inp$indlastobs
             }else if(bref == "lowest"){
-                indBref <- which.min(logB)
+                indBref <- doBy::which.minn(logB, nyBref * 1/inp$dteuler)
             }else if(bref == "highest"){
-                indBref <- which.max(logB)
-            }else if(bref == "lowest10"){
-                indBref <- doBy::which.minn(logB, 10) ## * 1/inp$dteuler)
-            }else if(bref == "highest10"){
-                indBref <- doBy::which.maxn(logB, 10) ## * 1/inp$dteuler)
+                indBref <- doBy::which.maxn(logB, nyBref * 1/inp$dteuler)
             }else if(bref == "average"){
                 indBref <- (2/inp$dteuler):length(logB)
-            }else if(bref == "last10"){
-                indBref <- (length(logB)-9):length(logB)
-            }else stop(paste0("bref = ",bref, " not known! Either current, lowest, or lowest5."))
+            }else if(bref == "last"){
+                indBref <- (length(logB)-(nyBref * 1/inp$dteuler)):length(logB)
+            }else stop(paste0("bref = ",bref, " not known! Either current, lowest, highest, average, or last."))
         }else{
             indBref <- as.numeric(as.character(unlist(strsplit(as.character(tacs$indBref[nrow(tacs)]), "-"))))
         }
