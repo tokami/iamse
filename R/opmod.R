@@ -103,7 +103,7 @@ initPop <- function(dat, set = NULL, out.opt = 1){
 
     ## containers
     TSB <- TSB1plus <- ESB <- SSB <- CW <- FM <- matrix(0, nrow=ny, ncol=ns)
-    TACs <- TSBfinal <- ESBfinal <- rec <- rep(NA, ny)
+    TACs <- TSBfinal <- SSBfinal <- ESBfinal <- rec <- rep(NA, ny)
     obsI <- vector("list", nsurv)
     timeI <- vector("list", nsurv)
     ## burnin period
@@ -211,6 +211,7 @@ initPop <- function(dat, set = NULL, out.opt = 1){
                 ## end of year biomass for risk P(B/Blim)
                 TSBfinal[y] <- sum(NAA * weights[,ns])
                 ESBfinal[y] <- sum(NAA * weights[,ns] * sels[,ns])
+                SSBfinal[y] <- sum(NAA * weights[,ns] * maty[,ns] * exp(-pzbm * ZAA[,ns]))
                 ## Ageing by year
                 NAA[amax] <- Ntemp[amax] + Ntemp[amax-1]
                 for(a in 2:(amax-1)) NAA[a] <- Ntemp[a-1]
@@ -253,6 +254,7 @@ initPop <- function(dat, set = NULL, out.opt = 1){
         out$lastNAA <- NAA
         out$lastFAA <- FAA[,ns]
         out$TSBfinal <- TSBfinal
+        out$SSBfinal <- SSBfinal
         out$ESBfinal <- ESBfinal
         out$rec <- rec
         out$TSB <- TSB
@@ -389,6 +391,7 @@ advancePop <- function(dat, hist, set, hcr, year){
     TACs <- c(hist$TACs, NA)
     rec <- c(hist$rec, NA)
     TSBfinal <- c(hist$TSBfinal, NA)
+    SSBfinal <- c(hist$SSBfinal, NA)
     ESBfinal <- c(hist$ESBfinal, NA)
 
     ## project forward
@@ -542,6 +545,7 @@ advancePop <- function(dat, hist, set, hcr, year){
             ## end of year biomass for risk P(B/Blim)
             TSBfinal[y] <- sum(NAA * weights[,ns])
             ESBfinal[y] <- sum(NAA * weights[,ns] * sels[,ns])
+            SSBfinal[y] <- sum(NAA * weights[,ns] * maty[,ns] * exp(-pzbm * ZAA[,ns]))
             ## Ageing by year
             NAA[amax] <- Ntemp[amax] + Ntemp[amax-1]
             for(a in 2:(amax-1)) NAA[a] <- Ntemp[a-1]
@@ -576,6 +580,7 @@ advancePop <- function(dat, hist, set, hcr, year){
     out$lastFAA <- FAA[,ns]
     out$TSB <- TSB
     out$TSBfinal <- TSBfinal
+    out$SSBfinal <- SSBfinal
     out$ESBfinal <- ESBfinal
     out$TACprev <- TACreal
     out$ESB <- ESB

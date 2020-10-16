@@ -82,13 +82,14 @@ estMets <- function(mse, dat, mets = "all"){
 
     metsAll <- c("CMSY",
                  "PBBlim",
+                 "PBBlimSSB",
                  "AAVC",
                  "AAVB",
                  "CMSYmean","avCatch",
                  "CMSYfirst10",
                  "CMSYlast5","CMSYlast10",
-                 "PBBlimfirst10",
-                 "PBBlimlast5","PBBlimlast10",
+                 "PBBlimfirst10","PBBlimfirst10SSB",
+                 "PBBlimlast5","PBBlimlast10","PBBlimlast10SSB",
                  "PBBlim1","PBBlim3",
                  "CMSYST","PBBlimST",
                  "CMSYLT","PBBlimLT","AAVC2",
@@ -163,6 +164,15 @@ estMets <- function(mse, dat, mets = "all"){
         if(any(mets == "PBBlim")){
             metsUsed <- c(metsUsed, "PBBlim")
             tmp <- unlist(lapply(msei, function(x) mean(x$TSBfinal[simYears] / refs$Blim < 1)))
+            vari <- var(tmp)
+            ni <- length(tmp)
+            sei <- sqrt(vari/ni)
+            tmp <- prop.test(sum(tmp), n = length(tmp), conf.level = 0.95, correct = FALSE)
+            res <- rbind(res, c(tmp$conf.int[1], tmp$estimate, tmp$conf.int[2], sei, ni))
+        }
+        if(any(mets == "PBBlimSSB")){
+            metsUsed <- c(metsUsed, "PBBlimSSB")
+            tmp <- unlist(lapply(msei, function(x) mean(x$SSBfinal[simYears] / refs$Blim < 1)))
             vari <- var(tmp)
             ni <- length(tmp)
             sei <- sqrt(vari/ni)
@@ -449,10 +459,30 @@ estMets <- function(mse, dat, mets = "all"){
             tmp <- prop.test(sum(tmp), n = length(tmp), conf.level = 0.95, correct = FALSE)
             res <- rbind(res, c(tmp$conf.int[1], tmp$estimate, tmp$conf.int[2], sei, ni))
         }
+        ## "PBBlimlast10"
+        if(any(mets == "PBBlimlast10SSB")){
+            metsUsed <- c(metsUsed, "PBBlimlast10SSB")
+            tmp <- unlist(lapply(msei, function(x) mean(x$SSBfinal[last10Years] / refs$Blim < 1)))
+            vari <- var(tmp)
+            ni <- length(tmp)
+            sei <- sqrt(vari/ni)
+            tmp <- prop.test(sum(tmp), n = length(tmp), conf.level = 0.95, correct = FALSE)
+            res <- rbind(res, c(tmp$conf.int[1], tmp$estimate, tmp$conf.int[2], sei, ni))
+        }
         ## "PBBlimfirst10"
         if(any(mets == "PBBlimfirst10")){
             metsUsed <- c(metsUsed, "PBBlimfirst10")
             tmp <- unlist(lapply(msei, function(x) mean(x$TSBfinal[first10Years] / refs$Blim < 1)))
+            vari <- var(tmp)
+            ni <- length(tmp)
+            sei <- sqrt(vari/ni)
+            tmp <- prop.test(sum(tmp), n = length(tmp), conf.level = 0.95, correct = FALSE)
+            res <- rbind(res, c(tmp$conf.int[1], tmp$estimate, tmp$conf.int[2], sei, ni))
+        }
+        ## "PBBlimfirst10"
+        if(any(mets == "PBBlimfirst10SSB")){
+            metsUsed <- c(metsUsed, "PBBlimfirst10SSB")
+            tmp <- unlist(lapply(msei, function(x) mean(x$SSBfinal[first10Years] / refs$Blim < 1)))
             vari <- var(tmp)
             ni <- length(tmp)
             sei <- sqrt(vari/ni)
