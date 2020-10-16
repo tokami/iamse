@@ -430,7 +430,7 @@ defHCRspict <- function(id = "spict-msy",
                         priorlogalpha = c(log(1),2,1),
                         priorlogbeta = c(log(1),2,1),
                         priorlogbkfrac = c(log(0.5),2,0),
-                        fixn = FALSE,
+                        fixn = NA,
                         bfac = NA,
                         bref = "current", ## lowest or "highest" or "average" or "last"
                         brefType = "target",
@@ -515,15 +515,9 @@ structure(
                 intC2 <- tacs$TAC[nrow(tacs)]
             }
         }
-        if(fixn == "schaefer"){
+        if(is.numeric(fixn) && !is.na(fixn)){
             inp$phases$logn <- -1
-            inp$ini$logn <- log(2)
-        }else if(fixn == "thorsonMean"){
-            inp$phases$logn <- -1
-            inp$ini$logn <- log(1.478)
-        }else if(fixn == "thorsonClupeids"){
-            inp$phases$logn <- -1
-            inp$ini$logn <- log(0.599)
+            inp$ini$logn <- log(fixn)
         }
         if(is.list(inp$obsI)) nis <- length(inp$obsI)
         if(is.null(tacs)){
