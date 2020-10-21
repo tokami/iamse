@@ -481,7 +481,7 @@ structure(
         inp$stabilise <- ',stabilise,'
         bfac <- ',bfac,'
         bm <- ',bm,'
-        fixn <- "',fixn,'"
+        fixn <- ',fixn,'
         prob <- ',prob,'
         lower <- ',lower,'
         upper <- ',upper,'
