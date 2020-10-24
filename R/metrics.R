@@ -60,6 +60,7 @@ estMets <- function(mse, dat, mets = "all"){
     last10Years <- (finalYear - 9) : finalYear
     first10Years <- (ny + 1) : (ny + 10)
     last15Years <- (finalYear - 14) : finalYear
+    last35Years <- (finalYear - 34) : finalYear
     first15Years <- (ny + 1) : (ny + 15)
 
 
@@ -70,6 +71,7 @@ estMets <- function(mse, dat, mets = "all"){
         "first5Years" = lapply(mse[[reffmsyInd]], function(x) apply(x$CW,1,sum)[first5Years]),
         "first10Years" = lapply(mse[[reffmsyInd]], function(x) apply(x$CW,1,sum)[first10Years]),
         "last15Years" = lapply(mse[[reffmsyInd]], function(x) apply(x$CW,1,sum)[last15Years]),
+        "last35Years" = lapply(mse[[reffmsyInd]], function(x) apply(x$CW,1,sum)[last35Years]),
         "last5Years" = lapply(mse[[reffmsyInd]], function(x) apply(x$CW,1,sum)[last5Years]),
         "last10Years" = lapply(mse[[reffmsyInd]], function(x) apply(x$CW,1,sum)[last10Years]))
 
@@ -91,8 +93,9 @@ estMets <- function(mse, dat, mets = "all"){
                  "PBBlimfirst10","PBBlimfirst10SSB",
                  "PBBlimlast5","PBBlimlast10","PBBlimlast10SSB",
                  "PBBlim1","PBBlim3",
-                 "CMSYST","PBBlimST",
-                 "CMSYLT","PBBlimLT","AAVC2",
+                 "CMSYST","PBBlimST","PBBlim1ST","PBBlim3ST",
+                 "CMSYLT","PBBlimLT","PBBlim1LT","PBBlim3LT",
+                 "AAVC2",
                  "CMSY2","CMSYST2","CMSYLT2",
                  "CMSYMaxAge","PBBlimMaxAge",
                  "BBmsy","BBmsyLT",
@@ -212,7 +215,7 @@ estMets <- function(mse, dat, mets = "all"){
                                     ni))
             }
         }
-        ## "PBBlim3"
+        ## "PBBlim1"
         if(any(mets == "PBBlim1")){
             metsUsed <- c(metsUsed, "PBBlim1")
             ry <- vector("list",nysim)
@@ -236,7 +239,7 @@ estMets <- function(mse, dat, mets = "all"){
                 ry[[y]] <- c(tmp$conf.int[1], tmp$estimate, tmp$conf.int[2])
             }
             tmp <- do.call(rbind,ry)
-            res <- rbind(res, c(NA,max(tmp[,2]),NA, NA, NA))
+            res <- rbind(res, c(max(tmp[,1]),max(tmp[,2]),max(tmp[,3]), NA, NA))
         }
         ## CMSYST
         if(any(mets == "CMSYST")){
@@ -284,6 +287,30 @@ estMets <- function(mse, dat, mets = "all"){
             tmp <- prop.test(sum(tmp), n = length(tmp), conf.level = 0.95, correct = FALSE)
             res <- rbind(res, c(tmp$conf.int[1], tmp$estimate, tmp$conf.int[2], sei, ni))
         }
+        if(any(mets == "PBBlim1ST")){
+            metsUsed <- c(metsUsed, "PBBlim1ST")
+            ry <- vector("list",nysim)
+            for(y in 1:nysim){
+                yi <- ((ny+1):finalYear)[y]
+                tmp <- sapply(msei, function(x) x$TSBfinal[yi] / refs$Blim < 1)
+                tmp <- prop.test(sum(tmp), n = length(tmp), conf.level = 0.95, correct = FALSE)
+                ry[[y]] <- c(tmp$conf.int[1], tmp$estimate, tmp$conf.int[2])
+            }
+            tmp <- do.call(rbind,ry)
+            res <- rbind(res, c(mean(tmp[1:5,1]),mean(tmp[1:5,2]),mean(tmp[1:5,3]), NA, NA))
+        }
+        if(any(mets == "PBBlim3ST")){
+            metsUsed <- c(metsUsed, "PBBlim3ST")
+            ry <- vector("list",nysim)
+            for(y in 1:nysim){
+                yi <- ((ny+1):finalYear)[y]
+                tmp <- sapply(msei, function(x) x$TSBfinal[yi] / refs$Blim < 1)
+                tmp <- prop.test(sum(tmp), n = length(tmp), conf.level = 0.95, correct = FALSE)
+                ry[[y]] <- c(tmp$conf.int[1], tmp$estimate, tmp$conf.int[2])
+            }
+            tmp <- do.call(rbind,ry)
+            res <- rbind(res, c(max(tmp[1:5,1]),max(tmp[1:5,2]),max(tmp[1:5,3]), NA, NA))
+        }
         ## CMSYLT
         if(any(mets == "CMSYLT")){
             metsUsed <- c(metsUsed, "CMSYLT")
@@ -329,6 +356,30 @@ estMets <- function(mse, dat, mets = "all"){
             sei <- sqrt(vari/ni)
             tmp <- prop.test(sum(tmp), n = length(tmp), conf.level = 0.95, correct = FALSE)
             res <- rbind(res, c(tmp$conf.int[1], tmp$estimate, tmp$conf.int[2], sei, ni))
+        }
+        if(any(mets == "PBBlim1LT")){
+            metsUsed <- c(metsUsed, "PBBlim1LT")
+            ry <- vector("list",nysim)
+            for(y in 1:nysim){
+                yi <- ((ny+1):finalYear)[y]
+                tmp <- sapply(msei, function(x) x$TSBfinal[yi] / refs$Blim < 1)
+                tmp <- prop.test(sum(tmp), n = length(tmp), conf.level = 0.95, correct = FALSE)
+                ry[[y]] <- c(tmp$conf.int[1], tmp$estimate, tmp$conf.int[2])
+            }
+            tmp <- do.call(rbind,ry)
+            res <- rbind(res, c(mean(tmp[6:40,1]),mean(tmp[6:40,2]),mean(tmp[6:40,3]), NA, NA))
+        }
+        if(any(mets == "PBBlim3LT")){
+            metsUsed <- c(metsUsed, "PBBlim3LT")
+            ry <- vector("list",nysim)
+            for(y in 1:nysim){
+                yi <- ((ny+1):finalYear)[y]
+                tmp <- sapply(msei, function(x) x$TSBfinal[yi] / refs$Blim < 1)
+                tmp <- prop.test(sum(tmp), n = length(tmp), conf.level = 0.95, correct = FALSE)
+                ry[[y]] <- c(tmp$conf.int[1], tmp$estimate, tmp$conf.int[2])
+            }
+            tmp <- do.call(rbind,ry)
+            res <- rbind(res, c(max(tmp[6:40,1]),max(tmp[6:40,2]),max(tmp[6:40,3]), NA, NA))
         }
         ## CMSYlast5
         if(any(mets == "CMSYlast5")){

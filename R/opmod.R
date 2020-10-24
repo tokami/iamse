@@ -266,12 +266,14 @@ initPop <- function(dat, set = NULL, out.opt = 1){
         out$TACs <- TACs
         out$errs <- errs
         out$inp <- inp
-    }else if(out.opt == 2){
+    }else if(out.opt %in% c(2,3)){
         refs <- dat$ref
         if(is.null(refs)){
             warning("The reference points are not part of dat! Use estRef to estimate them")
-        }else{
+        }else if(out.opt == 2){
             out <- TSBfinal[ny]/refs[[dat$depl.quant]]
+        }else if(out.opt == 3){
+            out <- SSBfinal[ny]/refs[[dat$depl.quant]]
         }
     }
     return(out)

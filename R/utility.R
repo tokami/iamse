@@ -142,6 +142,12 @@ estDepl <- function(dat, set=NULL, fmax = 10, nrep = 100, verbose = TRUE, method
     depl.quant <- dat$depl.quant
     depl.prob <- dat$depl.prob
 
+    if(depl.quant %in% c("Bmsy","Blim")){
+        outopt <- 2
+    }else if(depl.quant %in% c("SSBmsy","SSBlim")){
+        outopt <- 3
+    }else stop("depl.quant not implemented. Please use Bmsy, Blim,SSBmsy or SSBlim. Or implement others.")
+
     frel <- dat$FM/max(dat$FM)
 
     fn <- function(logfabs, frel, depl, depl.prob, nrep, dat, set, opt=1){
@@ -149,7 +155,7 @@ estDepl <- function(dat, set=NULL, fmax = 10, nrep = 100, verbose = TRUE, method
         fpat <- frel * exp(logfabs)
         datx$FM <- fpat
         datx$Fs <- fpat / datx$nseasons
-        dreal <- sapply(1:nrep, function(x) initPop(datx, set, out.opt = 2))
+        dreal <- sapply(1:nrep, function(x) initPop(datx, set, out.opt = outopt))
         if(method == "mean"){
             drealQ <- mean(dreal)
         }else if(method == "median"){
@@ -369,7 +375,7 @@ estProdStoch <- function(dat, set= NULL,
     blims <- rep(NA, nrep)
     for(i in 1:nrep){
         msy <- max(sps[,i], na.rm=TRUE)
-        blims[i] <- bs[which.min(abs(sps - msy/2))]
+        blims[i] <- bs[which.min(abs(sps[,i] - msy/2)),i]
     }
 
     means <- as.data.frame(do.call(rbind,lapply(resList,
