@@ -363,6 +363,15 @@ estProdStoch <- function(dat, set= NULL,
         resList[[fx]] <- cbind(f = rep(fms[fx],nrep), tmp)
     }
 
+    ## est blim as fraction of B corresponding to 0.5 MSY (ICES WKBUT 2013, Cadrin 1999)
+    bs <- do.call(rbind, lapply(resList, function(x) x[,2]))
+    sps <- do.call(rbind, lapply(resList, function(x) x[,6]))
+    blims <- rep(NA, nrep)
+    for(i in 1:nrep){
+        msy <- max(sps[,i], na.rm=TRUE)
+        blims[i] <- bs[which.min(abs(sps - msy/2))]
+    }
+
     means <- as.data.frame(do.call(rbind,lapply(resList,
                                                 function(x) apply(x,2, mean, na.rm=TRUE))))
     meds <- as.data.frame(do.call(rbind,lapply(resList,
@@ -377,7 +386,8 @@ estProdStoch <- function(dat, set= NULL,
     res <- list(meds = meds,
                 means = means,
                 lo = lo,
-                up = up)
+                up = up,
+                blims = blims)
     return(res)
 
 }
