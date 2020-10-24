@@ -227,6 +227,10 @@ estProd <- function(dat, set= NULL,
         }
     }
 
+    ## est blim as fraction of B corresponding to 0.5 MSY (ICES WKBUT 2013, Cadrin 1999)
+    msy1 <- max(prod1, na.rm=TRUE)
+    Blim1 <- tsb1[which.min(abs(prod1 - msy1/2))]
+
     ## decreasing effort
     dat$FM <- c(rep(fmax, len1),
                    seq(fmax, 0, length.out = len2),
@@ -246,6 +250,7 @@ estProd <- function(dat, set= NULL,
             prod2[i] <- esb2[i] - esb2[i-1] + cw2[i]
         }
     }
+
 
     if(plot){
 
@@ -286,6 +291,7 @@ estProd <- function(dat, set= NULL,
     ## CHECK: different production curves as a results of different age/length composition of stock (not at equilibrium age composition at given F, because F changes to quickly. If F changes small -> two curves are the same!
 
     res <- list(
+        Blim = Blim1,
         incr = data.frame(tsb = tsb1,
                           esb = esb1,
                           cw = cw1,
