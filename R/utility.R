@@ -679,9 +679,10 @@ recfunc <- function(h, SSBPR0, SSB,  R0 = 1e6, method = "bevholt", bp = 0,
         rec <- (4 * h * R0 * SSB / (SSBPR0 * (1-h) + SSB * (5*h-1)))
 
     }else if(method == "ricker"){
-        beta <- log(5 * h) / (0.8 * R0)
-        alpha <- exp(beta * R0)/SSBPR0
-        rec <- alpha * SSB * exp(-beta * SSB)
+        ## beta <- log(5 * h) / (0.8 * R0)
+        ## alpha <- exp(beta * R0)/SSBPR0
+        ## rec <- alpha * SSB * exp(-beta * SSB)
+        rec <- bp * SSB * exp(-beta * SSB)
     }else if(method == "average"){
         rec <- R0
     }else if(method == "hockey-stick"){
