@@ -123,7 +123,6 @@ estRefStoch <- function(dat, set=NULL,
         errs[[i]]$eImp <- genNoise(nyref, set$noiseImp[1], set$noiseImp[2], set$noiseImp[3])
     }
 
-
     if(any(ref %in% c("Fmsy","Bmsy","MSY","ESBmsy","SSBmsy"))){
 
         ## Fmsy

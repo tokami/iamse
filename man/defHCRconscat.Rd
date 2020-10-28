@@ -10,7 +10,11 @@ defHCRconscat(
   clyears = 1,
   red = NA,
   redyears = 2,
+  redAlways = FALSE,
   assessmentInterval = 1,
+  ffmsySD = 0,
+  bbtriggerSD = 0,
+  rightRef = 1,
   env = globalenv()
 )
 }

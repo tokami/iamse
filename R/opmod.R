@@ -117,7 +117,8 @@ initPop <- function(dat, set = NULL, out.opt = 1){
             Fbi <- sels * Fs[1]
             Zbi <- Ms + Fbi
             SSBtemp <- sum(NAAbi * weights[,1] * mats[,1] * exp(-pzbm * Zbi[,1])) ## pre-recruitment mort
-            SSBPR0 <- getSSBPR(dat$M, dat$mat, dat$weight, 1, amax, dat$R0) ## annual M
+            SSBPR0 <- getSSBPR2(dat$Ms, dat$mats, dat$weights, fecun=1, amax, dat$R0,
+                                ns = ns, recruitmentTiming = set$recruitmentTiming)
             recbi <- recfunc(h = h, SSBPR0 = SSBPR0, SSB = SSBtemp,
                            R0 = R0, method = dat$SR, bp = dat$bp,
                            beta = dat$recBeta, gamma = dat$recGamma)
@@ -163,7 +164,8 @@ initPop <- function(dat, set = NULL, out.opt = 1){
         R0y <- R0 * eR0[y]
         ## recruitment
         SSB[y,1] <- sum(NAA * weights[,1] * maty[,1] * exp(-pzbm * ZAA[,1])) ## pre-recruitment mort
-        SSBPR0 <- getSSBPR(dat$M * eM[y], dat$mat * eMat[y], dat$weight, 1, amax, dat$R0) ## annual M
+        SSBPR0 <- getSSBPR2(MAA, maty, weights, fecun=1, amax, R0y, ns = ns,
+                            recruitmentTiming = set$recruitmentTiming)
         rec[y] <- recfunc(h = hy, SSBPR0 = SSBPR0, SSB = SSB[y,1],
                        R0 = R0y, method = dat$SR, bp = dat$bp,
                        beta = dat$recBeta, gamma = dat$recGamma)
@@ -439,7 +441,8 @@ advancePop <- function(dat, hist, set, hcr, year){
             }
             NAAtemp <- NAA
             SSBtemp <- sum(NAAtemp * weights[,1] * maty[,1] * exp(-pzbm * Ztemp)) ## pre-recruitment mort
-            SSBPR0 <- getSSBPR(dat$M * eM, dat$mat * eMat, dat$weight, 1, amax, dat$R0) ## annual M
+            SSBPR0 <- getSSBPR2(MAA, maty, weights, fecun=1, amax, R0y,
+                                ns = ns, recruitmentTiming = set$recruitmentTiming)
             rec[y] <- recfunc(h = hy, SSBPR0 = SSBPR0, SSB = SSBtemp, R0 = R0y,
                               method = dat$SR, bp = dat$bp,
                               beta = dat$recBeta, gamma = dat$recGamma)

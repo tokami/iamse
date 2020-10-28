@@ -46,9 +46,9 @@ List simpop(double logFM, List dat, List set, int out) {
   NumericVector mat = as<NumericVector>(dat["mat"]);
   NumericMatrix sels = as<NumericMatrix>(dat["sels"]);
   NumericVector sel = as<NumericVector>(dat["sel"]);
-  NumericVector M = as<NumericVector>(dat["M"]);
   NumericVector initN = as<NumericVector>(dat["initN"]);
   int sptype = as<int>(set["spType"]);
+  int recTiming = as<int>(set["recruitmentTiming"]);
 
   // Containers
   NumericVector Bage (amax);
@@ -69,7 +69,8 @@ List simpop(double logFM, List dat, List set, int out) {
   NumericVector SSBPR0 (ny);
   NumericVector Ntemp (amax);
   NumericMatrix maty(amax, ns);
-  NumericVector NnatM (amax);
+  NumericMatrix NnatM (amax, ns);
+  NumericVector SPR (ns);
   NumericVector Myear(amax);
   NumericVector matyear(amax);
   NumericVector Mcumsum(amax);
@@ -82,6 +83,14 @@ List simpop(double logFM, List dat, List set, int out) {
   double Ctmp = 0.0;
 
   // Initialise
+  std::fill( Myear.begin(), Myear.end(), 0);
+  // yearly M
+  for(int a=0; a<amax; a++){
+    for(int s=0; s<ns; s++){
+      Myear(a) += Ms(a,s);
+    }
+  }
+  std::fill( SPR.begin(), SPR.end(), 0);
   std::fill( CW.begin(), CW.end(), 0);
   std::fill( SP.begin(), SP.end(), 0);
   std::fill( SSB.begin(), SSB.end(), 0);
@@ -90,7 +99,7 @@ List simpop(double logFM, List dat, List set, int out) {
   std::fill( TSB1plus.begin(), TSB1plus.end(), 0);
   std::fill( ESB.begin(), ESB.end(), 0);
   std::fill( SSBPR0.begin(), SSBPR0.end(), 0);
-  for(int a=0; a<amax; a++) ZAA(a,0) = M(a) + FM * sel(a);
+  for(int a=0; a<amax; a++) ZAA(a,0) = Myear(a) + FM * sel(a);  // no noise on M
   NAA(0) = exp(initN(0)) * R0;
   for(int a=1; a<amax; a++) NAA(a) = NAA(a-1) * exp(-ZAA(a-1,0)) * exp(initN(a));
 
@@ -110,18 +119,37 @@ List simpop(double logFM, List dat, List set, int out) {
     MAA = Ms * eM(y);
     maty = mats * eMat(y);
     R0y = R0 * eR0(y);
-    Myear = M * eM(y);
     matyear = mat * eMat(y);
 
-    // SSB per R0
-    NnatM(0) = R0y;
+    // SPR for SR
+    // ----------------------------------
+    // set SPR to zero each year
+    std::fill( SPR.begin(), SPR.end(), 0);
+    // cumulative M
     Mcumsum(0) = Myear(0);
-    for(int a=1; a<amax; a++) Mcumsum(a) = Myear(a) + Mcumsum(a-1);
+    for(int a=1; a<amax; a++) Mcumsum(a) = Myear(a) * eM(y) + Mcumsum(a-1);
+    // pop
+    NnatM(0,0) = R0y;
     for(int a=1; a<(amax-1); a++){
-      NnatM(a) = R0y * exp(-Mcumsum(a-1));
+      NnatM(a,0) = R0y * exp(-Mcumsum(a-1));
     }
-    NnatM(amax-1) = R0y * exp(-Mcumsum(amax-2)) / (1 - exp(-Mcumsum(amax-1)));
-    for(int a=0; a<amax; a++) SSBPR0(y) += NnatM(a) * matyear(a) * weight(a) * fecun;
+    NnatM(amax-1,0) = R0y * exp(-Mcumsum(amax-2)) / (1 - exp(-Mcumsum(amax-1)));
+    // if multiple seasons
+    if(ns > 1){
+      for(int s=1; s<ns; s++){
+        for(int a=0; a<amax; a++){
+          NnatM(a,s) = NnatM(a,s-1) * exp(-MAA(a,s));
+        }
+      }
+    }
+    // SPR
+    for(int s=0; s<ns; s++){
+      for(int a=0; a<amax; a++){
+        SPR(s) += NnatM(a,s) * maty(a,s) * weights(a,s) * fecun;
+      }
+    }
+    SSBPR0(y) = SPR(recTiming);
+
     // SSB
     for(int a=0; a<amax; a++){
       FAA(a,0) = sels(a,0) * FM / ns;  // Casper 13/08: constant F for ref estimation, no noise on F // * eF(y)

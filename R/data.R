@@ -89,7 +89,8 @@ checkDat <- function(dat){
     if(!any(names(dat) == "Lm95")) stop("Length at 95% maturity missing: Lm95")
     if(!is.na(dat$Lm50) && !is.na(dat$Lm95)){
         dat$mats <- getMat(dat$Lm50, dat$Lm95, dat$mids, dat$plba)
-        dat$mat <- getMat(dat$Lm50, dat$Lm95, dat$mids, dat$plba[,,1, drop=FALSE]) ## or rowMeans?
+        ##        dat$mat <- getMat(dat$Lm50, dat$Lm95, dat$mids, dat$plba[,,1, drop=FALSE]) ## or rowMeans?
+        dat$mat <- rowMeans(dat$mats)
     }
 
 
@@ -99,7 +100,8 @@ checkDat <- function(dat){
     if(!any(names(dat) == "L95")) dat$L95 <- dat$Lm95
     if(!is.na(dat$L50) && !is.na(dat$L95)){
         dat$sels <- getSel(dat$L50, dat$L95, dat$mids, dat$plba)
-        dat$sel <- getSel(dat$L50, dat$L95, dat$mids, dat$plba[,,1, drop=FALSE]) ## or rowMeans?
+##        dat$sel <- getSel(dat$L50, dat$L95, dat$mids, dat$plba[,,1, drop=FALSE]) ## or rowMeans?
+        dat$sel <- rowMeans(dat$sels)
     }
 
 
@@ -121,7 +123,7 @@ checkDat <- function(dat){
         }
         ## account for seasons
         dat$Ms <- M / ns
-        dat$M <- M[,1]
+        dat$M <- apply(dat$Ms,1,sum)
     }else if(length(dat$M) != amax+1) stop("Natural mortality has incorrect length. Length has to be equal to maximum age + 1 (age 0)!")
 
 

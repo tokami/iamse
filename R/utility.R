@@ -54,8 +54,13 @@ getConvs <- function(mse, convyears = "all", convhcrs = "all", out = 0, verbose 
             if(any(tmpid %in% c("Bref","Bref2"))){
                 id <- mse[[hcr]][[1]]$tacs$id[which(tmpid %in% c("Bref","Bref2"))[1]]
             }else{
-                id <- tail(unique(mse[[hcr]][[1]]$tacs$id),1) ## TODO: find better solution to this
+                if(length(unique(mse[[hcr]][[1]]$tacs$id)) > 1){ ## TODO: find better solution to this
+                    id <- unique(mse[[hcr]][[1]]$tacs$id)[which(!unique(mse[[hcr]][[1]]$tacs$id) %in% c("conscat","r23","r12","r35"))]
+                }else{
+                    id <- unique(mse[[hcr]][[1]]$tacs$id)
+                }
             }
+            if(id == 1) browser()
             print(id)
             id2 <- unlist(strsplit(as.character(id), "-"))[1]
             if(!(id2 %in% c("noF","refFmsy","r11","r12","r23","r35"))){
@@ -654,6 +659,50 @@ getSSBPR <- function(M, mat, weight, fecun=1, amax, R0 = 1, FM = NULL){
     N[2:(amax-1)] <- R0 * exp(-Z[1:(amax-2)])
     N[amax] <- R0 * exp(-Z[amax-1]) / (1-exp(-Z[amax]))
     SBPR <- sum(N * mat * weight * fecun)
+    return(SBPR)
+}
+
+#' @name getSSBPR2
+#' @description Function to calculate spawners per recruit
+#' @param Z - total mortality
+#' @param mat - maturity ogive
+#' @param fecun - fecundity matrix
+#' @param amax - number of age classes
+#' @return spawning biomass per recruit
+#' @export
+getSSBPR2 <- function (Ms, mats, weights, fecun = 1, amax, R0 = 1, FMs = NULL, ns, recruitmentTiming){
+    ## account for seasonal natural mortalities
+    if(inherits(Ms, "matrix")){
+        Mtot <- apply(Ms, 1, sum)
+    }else{
+        Mtot <- Ms
+    }
+    if(is.null(FMs)){
+        FMtot <- 0
+        FMs <- matrix(0, nrow = amax, ncol = ns)
+    }else if(inherits(FMs, "matrix")){
+        FMtot <- apply(FMs, 1, sum)
+    }else{
+        FMtot <- FMs
+    }
+    ## first quarter/whole year
+    NAA <- matrix(NA, nrow = amax, ncol = ns)
+    NAA[1] <- R0
+    MAA <- cumsum(Mtot)
+    FAA <- cumsum(FMtot)
+    ZAA <- MAA + FAA
+    NAA[2:(amax - 1),1] <- R0 * exp(-ZAA[1:(amax - 2)])
+    NAA[amax,1] <- R0 * exp(-ZAA[amax - 1])/(1 - exp(-ZAA[amax]))
+    ## other quarters
+    if(ns > 1){
+        for(s in 2:ns){
+            ZAA <- Ms[,s] + FMs[,s]
+            NAA[,s] <- NAA[,s-1] * exp(-ZAA)
+        }
+    }
+    SBPR_per_season <- apply(NAA * mats * weights * fecun, 2, sum)
+    ## season before spawning? season_before_spawning <- c(ns,(1:(ns-1)))[recruitmentTiming]
+    SBPR <- SBPR_per_season[recruitmentTiming]
     return(SBPR)
 }
 
