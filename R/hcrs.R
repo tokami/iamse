@@ -654,9 +654,15 @@ structure(
             if(bref == "current"){
                 indBref <- inp$indlastobs
             }else if(bref == "lowest"){
-                indBref <- doBy::which.minn(logB, nyBref * 1/inp$dteuler)
+timeX <- inp$time[inp$indest]
+ann <- spict:::annual(timeX,logB)
+ann2 <- ann$anntime[sort(doBy::which.minn(ann$annvec, nyBref))]
+indBref <- which(floor(timeX) %in% ann2)
             }else if(bref == "highest"){
-                indBref <- doBy::which.maxn(logB, nyBref * 1/inp$dteuler)
+timeX <- inp$time[inp$indest]
+ann <- spict:::annual(timeX,logB)
+ann2 <- ann$anntime[sort(doBy::which.maxn(ann$annvec, nyBref))]
+indBref <- which(floor(timeX) %in% ann2)
             }else if(bref == "average"){
                 indBref <- (2/inp$dteuler):length(logB)
             }else if(bref == "last"){
