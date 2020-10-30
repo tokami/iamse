@@ -176,7 +176,7 @@ estDepl <- function(dat, set=NULL, fmax = 10, nrep = 100, verbose = TRUE, method
                     nrep = nrep, dat = dat, set=set, outopt = outopt, optFn = 1)
     fabs <- exp(opt$minimum)
     fvals <- frel * fabs
-    dreal <- round(fn(log(fabs), frel, depl, depl.prob, nrep, dat, set, opt=outopt, optFn = 2),3)
+    dreal <- round(fn(log(fabs), frel, depl, depl.prob, nrep, dat, set, outopt=outopt, optFn = 2),3)
 
     if(verbose){
         print(paste0("Target depletion level as ",depl.prob * 100, "% quantile of ", depl, " ", depl.quant,
