@@ -42,7 +42,7 @@ estMets <- function(mse, dat, mets = "all"){
     nrep <- length(mse[[1]])
     nquant <- length(mse[[1]][[1]])
     if(any(names(mse[[1]][[1]]$tacs) == "assessInt")){
-        assessInt <- mse[[length(mse)]][[1]]$tacs$assessInt[1]
+        assessInt <- mse[[length(mse)-1]][[1]]$tacs$assessInt[1]
         nysim <- nrow(mse[[1]][[1]]$tacs) * assessInt
     }else{
         nysim <- nrow(mse[[1]][[1]]$tacs)
@@ -175,7 +175,7 @@ estMets <- function(mse, dat, mets = "all"){
         }
         if(any(mets == "PBBlimSSB")){
             metsUsed <- c(metsUsed, "PBBlimSSB")
-            tmp <- unlist(lapply(msei, function(x) mean(x$SSBfinal[simYears] / refs$Blim < 1)))
+            tmp <- unlist(lapply(msei, function(x) mean(x$SSBfinal[simYears] / refs$SSBlim < 1)))
             vari <- var(tmp)
             ni <- length(tmp)
             sei <- sqrt(vari/ni)
@@ -513,7 +513,7 @@ estMets <- function(mse, dat, mets = "all"){
         ## "PBBlimlast10"
         if(any(mets == "PBBlimlast10SSB")){
             metsUsed <- c(metsUsed, "PBBlimlast10SSB")
-            tmp <- unlist(lapply(msei, function(x) mean(x$SSBfinal[last10Years] / refs$Blim < 1)))
+            tmp <- unlist(lapply(msei, function(x) mean(x$SSBfinal[last10Years] / refs$SSBlim < 1)))
             vari <- var(tmp)
             ni <- length(tmp)
             sei <- sqrt(vari/ni)
@@ -533,7 +533,7 @@ estMets <- function(mse, dat, mets = "all"){
         ## "PBBlimfirst10"
         if(any(mets == "PBBlimfirst10SSB")){
             metsUsed <- c(metsUsed, "PBBlimfirst10SSB")
-            tmp <- unlist(lapply(msei, function(x) mean(x$SSBfinal[first10Years] / refs$Blim < 1)))
+            tmp <- unlist(lapply(msei, function(x) mean(x$SSBfinal[first10Years] / refs$SSBlim < 1)))
             vari <- var(tmp)
             ni <- length(tmp)
             sei <- sqrt(vari/ni)

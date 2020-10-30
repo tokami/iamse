@@ -633,7 +633,7 @@ structure(
         ##
         quantstmp <- c(fmfmsy, bpbmsy, cp, fmsy, bmsy, sdb, sdi, sdf, sdc, bmbmsy, nest, Kest, mest)
 
-        if(!(fixn %in% c("schaefer","thorsonMean","thorsonClupeids")) &&
+        if(is.na(fixn) &&
            reportmode %in% c(0,1) && any(is.na(quantstmp))){
             ## n.sd is NA if schaefer (n fixed), reportmode 3 does not report most quantities
             tacs <- func(inp, tacs=tacs, pars=pars)
@@ -713,7 +713,7 @@ indBref <- which(floor(timeX) %in% ann2)
         barID <- FALSE
 
         if(brule == 0){
-            ## standard bref rule
+            ## standard rule
             tac <- try(spict:::get.TAC(fit,
                                        bfac = bfac,
                                        bref.type = "',brefType,'",
