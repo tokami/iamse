@@ -155,7 +155,7 @@ estDepl <- function(dat, set=NULL, fmax = 10, nrep = 100, verbose = TRUE, method
 
     frel <- dat$FM/max(dat$FM)
 
-    fn <- function(logfabs, frel, depl, depl.prob, nrep, dat, set, opt=1){
+    fn <- function(logfabs, frel, depl, depl.prob, nrep, dat, set, outopt, optFn=1){
         datx <- dat
         fpat <- frel * exp(logfabs)
         datx$FM <- fpat
@@ -168,15 +168,15 @@ estDepl <- function(dat, set=NULL, fmax = 10, nrep = 100, verbose = TRUE, method
         }else if(method == "percentile"){
             drealQ <- quantile(dreal, probs = depl.prob)
         }
-        if(opt==1) return((depl - drealQ)^2)
-        if(opt==2) return(drealQ)
+        if(optFn==1) return((depl - drealQ)^2)
+        if(optFn==2) return(drealQ)
     }
 
     opt <- optimize(fn, c(log(0.0001),log(fmax)), frel = frel, depl = depl, depl.prob = depl.prob,
-                    nrep = nrep, dat = dat, set=set)
+                    nrep = nrep, dat = dat, set=set, outopt = outopt, optFn = 1)
     fabs <- exp(opt$minimum)
     fvals <- frel * fabs
-    dreal <- round(fn(log(fabs), frel, depl, depl.prob, nrep, dat, set, opt=2),3)
+    dreal <- round(fn(log(fabs), frel, depl, depl.prob, nrep, dat, set, opt=outopt, optFn = 2),3)
 
     if(verbose){
         print(paste0("Target depletion level as ",depl.prob * 100, "% quantile of ", depl, " ", depl.quant,
