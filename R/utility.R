@@ -331,12 +331,12 @@ estProdStoch <- function(dat, set= NULL,
     ny <- dat$ny
     ns <- dat$nseasons
     nt <- ny * ns
+    ## noise
+    if(is.null(set)) set <- checkSet()
     nyref <- set$refYears
     nrep <- set$refN
     nyrefmsy <- set$refYearsMSY
 
-    ## noise
-    if(is.null(set)) set <- checkSet()
     set$noiseR <- c(dat$sigmaR, dat$rhoR, 1)
     dist <- NULL
     if(!(set$refMethod %in% c("mean","median"))){
