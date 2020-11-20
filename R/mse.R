@@ -1,26 +1,38 @@
 ##' @name runMSE
 ##'
 ##' @importFrom parallel mclapply
+##' @importFrom parallel detectCores
 ##'
 ##' @export
-runMSE <- function(dat, set, ref, ncores=detectCores()-1, verbose=TRUE){
+runMSE <- function(dat, set, ncores=parallel::detectCores()-1, verbose=TRUE){
+
+    if(ncores > 1) verbose <- FALSE
+
+    ## define constant catch (resort HCR if something not converging)
+    defHCRconscat()
 
     ## Variables
     hcrs <- set$hcr
+    hcrs2 <- sapply(hcrs, function(x) unlist(strsplit(as.character(x), "-"))[1])
     nhcrs <- length(hcrs)
     nysim <- set$nysim
     nrep <- set$nrep
 
+    if(!any(names(dat) == "ref")) stop("Reference levels have to be part of dat. Use estRef to estimate them.")
+    refs <- dat$ref
+
     ## parallel loop
     res <- parallel::mclapply(as.list(1:nrep), function(x){
+
+        if(verbose) writeLines(paste0("Running replicate: ", x))
+
+        ## set seed
+        if(is.numeric(set$seed)) set.seed(set$seed + x)
 
         ## pop list with errors
         pop <- initPop(dat, set)
         ## add reference levels
-        pop$refs <- ref$refs
-        ## add observation noise
-        pop <- obsmod(specdat = dat, hist = pop, set = set,
-                      years = (dat$ny-(set$nyhist-1)):dat$ny)
+        pop$refs <- refs
         popList <- vector("list", nhcrs)
         for(i in 1:nhcrs){
             popList[[i]] <- pop
@@ -30,49 +42,49 @@ runMSE <- function(dat, set, ref, ncores=detectCores()-1, verbose=TRUE){
         popListx <- popList
         setx <- set
         ## errors
-        setx$eC <- rnorm(nysim, 0, set$CVC) - set$CVC^2/2
-        setx$eI <- rnorm(nysim, 0, set$CVI) - set$CVI^2/2
-        setx$eF <- rnorm(nysim, 0, set$sigmaF) - set$sigmaF^2/2
-        setx$eR <- genDevs(nysim, set$sigmaR, set$rhoR)
-        setx$eM <- rnorm(nysim, 0, set$sigmaM) - set$sigmaM^2/2
-        setx$eH <- rnorm(nysim, 0, set$sigmaH) - set$sigmaH^2/2
-        setx$eMat <- rnorm(nysim, 0, set$sigmaMat) - set$sigmaMat^2/2
+        setx$eF <- genNoise(nysim, set$noiseF[1], set$noiseF[2], set$noiseF[3])
+        setx$eR <- genNoise(nysim, set$noiseR[1], set$noiseR[2], set$noiseR[3])
+        setx$eM <- genNoise(nysim, set$noiseM[1], set$noiseM[2], set$noiseM[3])
+        setx$eH <- genNoise(nysim, set$noiseH[1], set$noiseH[2], set$noiseH[3])
+        setx$eR0 <- genNoise(nysim, set$noiseR0[1], set$noiseR0[2], set$noiseR0[3])
+        setx$eMat <- genNoise(nysim, set$noiseMat[1], set$noiseMat[2], set$noiseMat[3])
+        setx$eImp <- genNoise(nysim, set$noiseImp[1], set$noiseImp[2], set$noiseImp[3])
+        setx$eC <- genNoise(nysim, set$noiseC[1], set$noiseC[2], set$noiseC[3])
+        setx$eI <- list()
+        for(i in 1:length(set$surveyTimes)){
+           setx$eI[[i]] <- genNoise(nysim, set$noiseI[1], set$noiseI[2], set$noiseI[3])
+        }
+
         ## loop
         for(i in 1:nhcrs){
             hcri <- hcrs[i]
             poptmp <- popListx[[i]]
             poptmp$tacs <- NULL
-            if(verbose) writeLines(paste0("Running HCR: ",hcri, " -- rep: ",x))
-            if(verbose) pb <- txtProgressBar(min = 0, max = nysim, style = 3)
-            if(hcri == "refFmsy"){
-                ## Reference rule Fmsy
-                for(y in 1:nysim){
-                    poptmp$tacs <- estTAC(inp = NA, hcr = hcri, stab = setx$stab,
-                                          tacs = poptmp$tacs, hist = poptmp)
-                    poptmp <- advancePop(specdat = dat, hist = poptmp, set = setx,
-                                         tacs = poptmp$tacs)
-                    poptmp <- obsmod(specdat = dat, hist = poptmp, set = setx)
-                    if(verbose){setTxtProgressBar(pb, y); writeLines("\n")}
-                }
-
-            }else{
-                ## Any other HCR
-                for(y in 1:nysim){
-                    inp <- poptmp$obs
-                    poptmp$tacs <- estTAC(inp = inp, hcr = hcri, stab = setx$stab,
-                                          tacs = poptmp$tacs, hist = poptmp)
-                    poptmp <- advancePop(specdat = dat, hist = poptmp, set = setx,
-                                         tacs = poptmp$tacs)
-                    poptmp <- obsmod(specdat = dat, hist = poptmp, set = setx)
-                    if(verbose){setTxtProgressBar(pb, y); writeLines("\n")}
-                }
+            for(y in 1:nysim){
+                poptmp <- advancePop(dat = dat,
+                                     hist = poptmp,
+                                     set = setx,
+                                     hcr = hcri,
+                                     year = y)
             }
-            if(verbose) close(pb)
             popListx[[i]] <- poptmp
             gc()
         }
         repList[[x]] <- popListx
     }, mc.cores = ncores)
+
+
+    ## Debugging printing
+    if(any(sapply(res, length) != nhcrs)){
+        ind <- which(sapply(res, length) != nhcrs)[1]
+        writeLines(paste0("Info about failed replicate ",ind,": length = ",
+                          length(res[[ind]]), " value = ", res[[ind]], " names = ",
+                          names(res[[ind]]),
+                          " length(res) = ", length(res)))
+        writeLines("Warning messages: ")
+        warnings()
+        stop(paste0("Replicate ",ind," does not have the correct length."))
+    }
 
 
     ## sort res of reps for each ms together
@@ -83,9 +95,12 @@ runMSE <- function(dat, set, ref, ncores=detectCores()-1, verbose=TRUE){
         for(i in 1:nrep){
             tmp[[i]] <- res[[i]][[x]]
         }
+        names(tmp) <- 1:nrep
         resList[[x]] <- tmp
     })
     names(res2) <- hcrs
+
+    class(res2) <- "mse"
 
     return(res2)
 }

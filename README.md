@@ -3,13 +3,19 @@ Management strategy evaluation (MSE)
 
 An R-package for mse
 
-1. All estimated reference points (MSY, Fmsy, Bmsy) are reported with uncertainties.
+Highlights:
+
+1. Sub-annual time steps.
+2. Stochastic estimation of reference points (MSY, Fmsy, Bmsy).
+3. Stochastic age-length key.
+4. Length-dependent processes.
+
 
 ## Help files
 
 A vignette for the package is available [`here`](https://github.com/mawp/spict/raw/master/spict/vignettes/vignette.pdf), and serves as an introduction to the package and its functionality. The vignette also contains description of the more advanced features of the package.
 
-The package also contains reasonable documentation in the form of help texts associated with each function (some may not be fully up-to-date). These can be accessed in the usual R manner by writing e.g. ```?checkDat```. A good place to start (in addition to reading the vignette) is to read ```?check.inp``` and ```?runMSE```.
+The package also contains reasonable documentation in the form of help texts associated with each function (some may not be fully up-to-date). These can be accessed in the usual R manner by writing e.g. ```?checkDat```. A good place to start (in addition to reading the vignette) is to read ```?spict::check.inp``` and ```?runMSE```.
 
 ## Citation
 

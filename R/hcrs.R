@@ -1,20 +1,36 @@
-## management procedures
+## Harvest control rules (HCRs)
 ##-----------------------------
 
 
-## constant catch
-##-----------------------------
-#' @name conscat
-#' @export
-conscat <- function(inpin, tacs=NULL){
-    TAC <- sum(tail(inpin$obsC, 1))
-    tactmp <- data.frame(TAC=TAC, id="cc", hitSC=FALSE, red=FALSE,
-                         barID=FALSE, sd=NA, conv = FALSE,
-                         fmfmsy.est=NA,fmfmsy.sd=NA,
+#' @name gettacs
+gettacs <- function(tacs=NULL, id="", TAC=NA, inp=NULL){
+    if(!is.null(inp) && is.list(inp$obsI))
+        nis <- length(inp$obsI) else nis <- 1
+    tactmp <- data.frame(TAC=TAC, id=id,
+                         hitSC=NA,
+                         red=NA,
+                         barID=FALSE,
+                         sd=NA,
+                         conv = FALSE,               ## model convergence
+                         fmfmsy.est=NA,fmfmsy.sd=NA, ## bunch of spict estimates (point estimate + sd)
                          bpbmsy.est=NA,bpbmsy.sd=NA,
                          cp.est=NA,cp.sd=NA,
                          fmsy.est=NA,fmsy.sd=NA,
-                         bmsy.est=NA,bmsy.sd=NA)
+                         bmsy.est=NA,bmsy.sd=NA,
+                         sdb.est=NA,sdb.sd=NA)
+    sdi <- rep(c(NA,NA),nis)
+    names(sdi) <- paste0(rep(c("sdi.est","sdi.sd"),nis),rep(1:nis,each=nis))
+    tactmp <- data.frame(c(tactmp,
+                           sdi,
+                           sdf.est=NA,sdf.sd=NA,
+                           sdc.est=NA,sdc.sd=NA,
+                           bmbmsy.est=NA,bmbmsy.sd=NA,
+                           n.est=NA,n.sd=NA,
+                           K.est=NA,K.sd=NA,
+                           m.est=NA,m.sd=NA,
+                           indBref = NA,
+                           bmID=NA, assessInt=NA,
+                           medbpbref=NA, bpbref=NA))
     if(is.null(tacs)){
         tacs <- tactmp
     }else{
@@ -22,481 +38,848 @@ conscat <- function(inpin, tacs=NULL){
     }
     return(tacs)
 }
-##-----------------------------
 
 
-## 2/3
-##-----------------------------
-#' @name r23
+
+
+#' @name defHCRref
+#'
+#' @param consF either numeric indicating constant F level or "fmsy" for fishing at fmsy
+#'
 #' @export
-r23 <- function(inpin, stab=FALSE, lower=0.8, upper=1.2,
-                red=NA, y_red = 2, tacs=NULL,
-                targetC = FALSE){
-    reps <- 1
-    inds <- inpin$obsI
-    if(length(inds) > 1){
-        ## WHAT TO DO IF SEVERAL INDICES AVAILABLE? ## for now: mean
-        indtab <- do.call(rbind, inds)
-        ind <- apply(indtab, 2, mean)
+#'
+defHCRref <- function(consF = 0,
+                      fracFmsy = NULL,
+                      env = globalenv()
+                      ){
+
+    id <- NULL
+
+    if(!is.null(fracFmsy)){
+        id <- paste0("refFmsy-", as.character(fracFmsy))
+        template  <- expression(paste0(
+                '
+structure(
+    function(inp, tacs=NULL, pars=NULL){
+        inp <- spict::check.inp(inp, verbose = FALSE)
+        tacs <- gettacs(tacs, id="',id,'", TAC=NA, inp=inp)
+        return(tacs)
+    },
+    class="hcr"
+)
+'))
     }else{
-        ind <- unlist(inds)
-    }
-    ninds <- length(ind)
-    inum <- ind[(ninds-1):ninds]
-    iden <- ind[(ninds-4):(ninds-2)]
-    r23 <- mean(inum, na.rm = TRUE)/mean(iden, na.rm = TRUE)
-    ## uncertainty cap
-    if(stab){
-        r23 <- spict:::stabilityClause(r23, lower, upper)
-        if(any(r23 < lower) || any(r23 > upper)) hitSC <- TRUE else hitSC <- FALSE
-    }else hitSC <- FALSE
-    ## account for seasonal and annual catches
-    ## Cl <- sum(tail(inpin$obsC, tail(1/inpin$dtc,1))) ## CHECK: dtc required?
-    Cl <- sum(tail(inpin$obsC, 1))
-    if(targetC) Cl <- mean(tail(inpin$obsC, 5))
-    TACi <- Cl * r23 * 1 * 1 ## Clast * r * f * b
-    ## bienniel reduction (usually 0.2)
-    if(is.null(red)) red <- NA
-    if(is.numeric(red)){
-        if(is.null(tacs)){
-            TACi <- TACi * (1-red)
-            barID <- TRUE
-        }else{
-            idx1 <- ifelse(nrow(tacs) > (y_red-1), (nrow(tacs)-(y_red-2)), 1)
-            idx <- idx1:nrow(tacs)
-            if(all(as.logical(tacs$barID[idx]) == FALSE)){
-                TACi <- TACi * (1-red)
-                barID <- TRUE
-            }else{
-                barID <- FALSE
-            }
+        if(!is.numeric(consF) && !(consF %in% c("fmsy","Fmsy","FMSY","refFmsy","refFMSY","reffmsy")))
+            stop("'consF' has to be either the absolute F (numeric) or 'fmsy'.")
+
+        if(is.numeric(consF)){
+            ## TODO: don't think this is implemented, check mse.R
+            id <- paste0("consF-",consF)
+            template  <- expression(paste0(
+                '
+structure(
+    function(inp, tacs=NULL, pars=NULL){
+        inp <- spict::check.inp(inp, verbose = FALSE)
+        tacs <- gettacs(tacs, id="',id,'", TAC=NA, inp=inp)
+        return(tacs)
+    },
+    class="hcr"
+)
+'))
         }
-    }else barID <- FALSE
-    TAC <- rep(TACi, reps)
-    tactmp <- data.frame(TAC=TAC, id="23", hitSC=hitSC, red=red, barID=barID, sd=NA, conv = FALSE)
-    if(is.null(tacs)){
-        tacs <- tactmp
-    }else{
-        tacs <- rbind(tacs, tactmp)
-    }
-    return(tacs)
-}
-##-----------------------------
 
-## 12
-##-----------------------------
-#' @name r12
-#' @export
-r12 <- function(inpin, stab=FALSE, lower=0.8, upper=1.2,
-                red=NA, y_red = 2, tacs=NULL,
-                targetC = FALSE){
-    reps <- 1
-    inds <- inpin$obsI
-    if(length(inds) > 1){
-        ## WHAT TO DO IF SEVERAL INDICES AVAILABLE? ## for now: mean
-        indtab <- do.call(rbind, inds)
-        ind <- apply(indtab, 2, mean)
-    }else{
-        ind <- unlist(inds)
-    }
-    ninds <- length(ind)
-    inum <- ind[ninds]
-    iden <- ind[(ninds-2):(ninds-1)]
-    r23 <- mean(inum, na.rm = TRUE)/mean(iden, na.rm = TRUE)
-    ## uncertainty cap
-    if(stab){
-        r23 <- spict:::stabilityClause(r23, lower, upper)
-        if(any(r23 < lower) || any(r23 > upper)) hitSC <- TRUE else hitSC <- FALSE
-    }else hitSC <- FALSE
-    ## account for seasonal and annual catches
-##    Cl <- sum(tail(inpin$obsC, tail(1/inpin$dtc,1)))
-    Cl <- sum(tail(inpin$obsC, 1))
-    if(targetC) Cl <- mean(tail(inpin$obsC, 5))
-    TACi <- Cl * r23 * 1 * 1 ## Clast * r * f * b
-    ## bienniel reduction (usually 0.2)
-    if(is.null(red)) red <- NA
-    if(is.numeric(red)){
-        if(is.null(tacs)){
-            TACi <- TACi * (1-red)
-            barID <- TRUE
-        }else{
-            idx1 <- ifelse(nrow(tacs) > (y_red-1), (nrow(tacs)-(y_red-2)), 1)
-            idx <- idx1:nrow(tacs)
-            if(all(as.logical(tacs$barID[idx]) == FALSE)){
-                TACi <- TACi * (1-red)
-                barID <- TRUE
-            }else{
-                barID <- FALSE
-            }
+        if(consF == "fmsy" || consF == "Fmsy" || consF == "FMSY"){
+            id <- "refFmsy"
+            template  <- expression(paste0(
+                '
+structure(
+    function(inp, tacs=NULL, pars=NULL){
+        inp <- spict::check.inp(inp, verbose = FALSE)
+        tacs <- gettacs(tacs, id="',id,'", TAC=NA, inp=inp)
+        return(tacs)
+    },
+    class="hcr"
+)
+'))
         }
-    }else barID <- FALSE
-    TAC <- rep(TACi, reps)
-    tactmp <- data.frame(TAC=TAC, id="12", hitSC=hitSC, red=red, barID=barID, sd=NA, conv = FALSE)
-    if(is.null(tacs)){
-        tacs <- tactmp
-    }else{
-        tacs <- rbind(tacs, tactmp)
-    }
-    return(tacs)
-}
-##-----------------------------
 
-## 35
-##-----------------------------
-#' @name r35
-#' @export
-r35 <- function(inpin, stab=FALSE, lower=0.8, upper=1.2,
-                red=NA, y_red = 2, tacs=NULL,
-                targetC = FALSE){
-    reps <- 1
-    inds <- inpin$obsI
-    if(length(inds) > 1){
-        ## WHAT TO DO IF SEVERAL INDICES AVAILABLE? ## for now: mean
-        indtab <- do.call(rbind, inds)
-        ind <- apply(indtab, 2, mean)
-    }else{
-        ind <- unlist(inds)
-    }
-    ninds <- length(ind)
-    inum <- ind[(ninds-2):ninds]
-    iden <- ind[(ninds-7):(ninds-3)]
-    r23 <- mean(inum, na.rm = TRUE)/mean(iden, na.rm = TRUE)
-    ## uncertainty cap
-    if(stab){
-        r23 <- spict:::stabilityClause(r23, lower, upper)
-        if(any(r23 < lower) || any(r23 > upper)) hitSC <- TRUE else hitSC <- FALSE
-    }else hitSC <- FALSE
-    ## account for seasonal and annual catches
-##    Cl <- sum(tail(inpin$obsC, tail(1/inpin$dtc,1)))
-    Cl <- sum(tail(inpin$obsC, 1))
-    if(targetC) Cl <- mean(tail(inpin$obsC, 5))
-    TACi <- Cl * r23 * 1 * 1 ## Clast * r * f * b
-    ## bienniel reduction (usually 0.2)
-    if(is.null(red)) red <- NA
-    if(is.numeric(red)){
-        if(is.null(tacs)){
-            TACi <- TACi * (1-red)
-            barID <- TRUE
-        }else{
-            idx1 <- ifelse(nrow(tacs) > (y_red-1), (nrow(tacs)-(y_red-2)), 1)
-            idx <- idx1:nrow(tacs)
-            if(all(as.logical(tacs$barID[idx]) == FALSE)){
-                TACi <- TACi * (1-red)
-                barID <- TRUE
-            }else{
-                barID <- FALSE
-            }
+        if(consF == 0){
+            id <- "noF"
+            template  <- expression(paste0(
+                '
+structure(
+    function(inp, tacs=NULL, pars=NULL){
+        inp <- spict::check.inp(inp, verbose = FALSE)
+        tacs <- gettacs(tacs, id="',id,'", TAC=0, inp=inp)
+        return(tacs)
+    },
+    class="hcr"
+)
+'))
         }
-    }else barID <- FALSE
-    TAC <- rep(TACi, reps)
-    tactmp <- data.frame(TAC=TAC, id="12", hitSC=hitSC, red=red, barID=barID, sd=NA, conv = FALSE)
-    if(is.null(tacs)){
-        tacs <- tactmp
-    }else{
-        tacs <- rbind(tacs, tactmp)
     }
-    return(tacs)
+
+
+    ## create HCR as functions
+    templati <- eval(parse(text=paste(parse(text = eval(template)),collapse=" ")))
+    assign(value=templati, x=id, envir=env)
+
+    ## allow for assigning names
+    invisible(id)
 }
-##-----------------------------
 
 
-## derivative method
-##-----------------------------
-#' @name derimeth
+
+#' @name defHCRconscat
+#' @title Define harvest control rule
+#'
 #' @export
-derimeth <- function(inpin, stab=FALSE, lower=0.8, upper=1.2,
-                red=NA, y_red = 2, tacs=NULL, lambda = 0.4, cfac = 0.8){
-    reps <- 1
-    inds <- inpin$obsI
-    if(length(inds) > 1){
-        ## WHAT TO DO IF SEVERAL INDICES AVAILABLE? ## for now: mean
-        indtab <- do.call(rbind, inds)
-        ind <- apply(indtab, 2, mean)
-    }else{
-        ind <- unlist(inds)
-    }
-    ninds <- length(ind)
-    indi <- ind[(ninds-4):ninds]
-    x <- 1:5
-    mod <- summary(lm(indi ~ x))
-    slope <- mod$coef[2]
-    ## uncertainty cap
-    if(stab){
-        slope <- spict:::stabilityClause(slope, lower, upper)
-        if(any(slope < lower) || any(slope > upper)) hitSC <- TRUE else hitSC <- FALSE
-    }else hitSC <- FALSE
-    ## account for seasonal and annual catches
-    if(is.null(tacs)){
-        taclast <- cfac * mean(tail(inpin$obsC, 5))
-    }else{
-        taclast <- tacs$TAC[nrow(tacs)]
-    }
-    TACi <- taclast * (1 + lambda*slope)
-    ## bienniel reduction (usually 0.2)
-    if(is.null(red)) red <- NA
-    if(is.numeric(red)){
+#'
+defHCRconscat <- function(id = "conscat",
+                          constantC = NULL,
+                          clyears = 1,
+                          red = NA,
+                          redyears = 2,
+                          redAlways = FALSE,
+                          assessmentInterval = 1,
+                          ffmsySD = 0,
+                          bbtriggerSD = 0,
+                          rightRef=1,
+                          env = globalenv()
+                          ){
+
+    if(is.null(constantC)) constantC = NA
+
+    template  <- expression(paste0(
+        '
+structure(
+    function(inp, tacs = NULL, pars=NULL){
+        red <- ',red,'
+        redyears <- ',redyears,'
+        assessInt <- ',assessmentInterval,'
+
+        ffmsy <- rnorm(1, pars$ffmsy, ',ffmsySD,')
+        ## ffmsy <- runif(1, pars$ffmsy * ',ffmsySD,', pars$ffmsy)
+        ffmsy[ffmsy < 0] <- 0
+        bbtrigger <- rnorm(1, pars$bbmsy*2, ',bbtriggerSD,')
+        ## bbtrigger <- runif(1, pars$bbmsy*2, pars$bbmsy*2 * ',bbtriggerSD,')
+        bbtrigger[bbtrigger < 0] <- 0
+
+        inp <- spict::check.inp(inp, verbose = FALSE)
         if(is.null(tacs)){
-            TACi <- TACi * (1-red)
-            barID <- TRUE
+            indBref <- inp$indBref
         }else{
-            idx1 <- ifelse(nrow(tacs) > (y_red-1), (nrow(tacs)-(y_red-2)), 1)
-            idx <- idx1:nrow(tacs)
-            if(all(as.logical(tacs$barID[idx]) == FALSE)){
-                TACi <- TACi * (1-red)
-                barID <- TRUE
-            }else{
-                barID <- FALSE
-            }
+            indBref <- as.numeric(as.character(unlist(strsplit(as.character(tacs$indBref[nrow(tacs)]), "-"))))
         }
-    }else barID <- FALSE
-    TAC <- rep(TACi, reps)
-    tactmp <- data.frame(TAC=TAC, id="dm", hitSC=hitSC, red=red, barID=barID, sd=NA, conv = FALSE)
-    if(is.null(tacs)){
-        tacs <- tactmp
-    }else{
-        tacs <- rbind(tacs, tactmp)
-    }
-    return(tacs)
+        indBref2 <- paste(indBref, collapse="-")
+        tac <- ',constantC,'
+        if(!is.numeric(tac)){
+            annualcatch <- spict:::annual(inp$timeC, inp$obsC/inp$dtc, type = "mean") ## CHECK: why not sum?
+            tac <- mean(tail(annualcatch$annvec, ',clyears,'))
+            ## Account for non-annual assessments
+            tac <- tac * assessInt
+        }
+
+        ## PA buffer (e.g. 0.2 reduction of TAC) if B < Btrigger proxy or F > Fmsy
+        if(is.numeric(red)){
+            if(is.null(tacs)){
+                if(',redAlways,'){
+                    barID <- TRUE
+                }else{
+                    if(ffmsy > 1 || bbtrigger < 1){
+                        barID <- TRUE
+                    }else barID <- FALSE
+                    right <- ifelse(runif(1) <= ',rightRef,', barID, !barID)
+                }
+            }else if(any(as.logical(tail(tacs$barID,ceiling(redyears/assessInt-1))),na.rm=TRUE)){
+                ## do not apply if applied during last x years (redyears)
+                barID <- FALSE
+            }else{
+                if(',redAlways,'){
+                    barID <- TRUE
+                }else{
+                    if(ffmsy > 1 || bbtrigger < 1){
+                        barID <- TRUE
+                    }else barID <- FALSE
+                    right <- ifelse(runif(1) <= ',rightRef,', barID, !barID)
+                }
+            }
+        }else barID <- FALSE
+        ## apply reduction
+        if(barID){
+            tac <- tac * (1-red)
+        }
+        tacs <- gettacs(tacs, id = "',id,'", TAC = tac, inp=inp)
+        tacs$hitSC[nrow(tacs)] <- NA
+        tacs$barID[nrow(tacs)] <- barID
+        tacs$red[nrow(tacs)] <- red
+        tacs$indBref[nrow(tacs)] <- indBref2
+        tacs$assessInt[nrow(tacs)] <- assessInt
+        return(tacs)
+    },
+class="hcr"
+)
+'))
+
+    ## create HCR as functions
+    templati <- eval(parse(text=paste(parse(text = eval(template)),collapse=" ")))
+    assign(value=templati, x=id, envir=env)
+
+    ## allow for assigning names
+    invisible(id)
 }
-##-----------------------------
 
 
-## DCV
-##-----------------------------
-## variance for 2/3 rule
-#' @name var23
+
+
+#' @name defHCRindex
+#' @title Define harvest control rule
+#' @details This function allows to define harvest control rules (HCRs) which can be incorporated into a
+#' management strategy evaluation framework (DLMtool package). HCRs are saved with a
+#' generic name to the global environment and the names of the HCRs are returned if results of the
+#' function are assigned to an object. HCR runs a SPiCT assessment using catch and
+#' relative biomass index observations. Stock status estimates are used to set the TAC
+#' for the next year. TAC can be based on the distribution of predicted catches (percentileC)
+#' and/or the distribution of the Fmsy reference level (percentileFmsy).
+#' Additionally, a cap can be applied to account for low biomass levels (below Bmsy).
+#' Arguments of returned function are 'x' - the position in a data-limited mehods data object,
+#' 'Data' - the data-limited methods data object (see DLMtool), and 'reps' - the number of
+#' stochastic samples of the TAC recommendation (not used for this HCR).
+#' One or several arguments of the function can be provided as vectors to generate several
+#' HCRs at once (several vectors have to have same length).
+#'
 #' @export
-var23 <- function(index, sd){  ## sdI list with associated sd for each index element (needed for var23)
-    n <- length(index)
-    idxnum <- c(n-1,n)
-    idxden <- c(n-4,n-3,n-2)
-    munum <- mean(index[idxnum])
-    muden <- mean(index[idxden])
-    sdnum <- sd[idxnum]
-    sdden <- sd[idxden]
-    (1/muden^2) * ((1/2)^2 *sum(sdnum^2)) + (munum^2)/(muden^4) * ((1/3)^2 *sum(sdden^2))
-}
-## r23 or spict-dl
-#' @name spictDCV
-#' @export
-spictDCV <- function(repin, stab=FALSE, lower=0.8, upper=1.2, red=NA,
-                     tacs=NULL,verbose=FALSE){
-    inpin <- repin$inp
-    reps <- 1
-    inds <- inpin$obsI
-    if(length(inds) > 1){
-        ## WHAT TO DO IF SEVERAL INDICES AVAILABLE? ## for now: mean
-        indtab <- do.call(rbind, inds)
-        ind <- apply(indtab, 2, mean)
-        sdtab <- do.call(rbind, inpin$obsIsd)
-        sdI <- apply(sdtab, 2, mean)
-    }else{
-        ind <- unlist(inds)
-        sdI <- unlist(repin$inp$obsIsd)
-    }
-    ## compare sds
-    sd23 <- sqrt(var23(ind, sd = sdI))
-    sdspict <- get.par("logsdi",repin,exp=TRUE)[,2]
-    if(verbose) print(ifelse(sdspict <= sd23, "spictsdl", "23"))
-    if(sdspict <= sd23){
-        tactmp <- get.TAC(repin, hcr="dl", bfrac=1, prob = 0.5,
-                          stab=stab, lower=lower, upper=upper)
-        tactmp$sd <- sdspict
-    }else{
+#'
+defHCRindex <- function(id = "r23",
+                        x = 2,
+                        y = 3,
+                        stab = TRUE,
+                        lower = 0.8,
+                        upper = 1.2,
+                        clType = "TAC",
+                        clyears = 1,
+                        red = NA,
+                        redyears = 3,
+                        redAlways = FALSE,
+                        ffmsySD = 0,
+                        bbtriggerSD = 0,
+                        rightRef=1,
+                        assessmentInterval = 1,
+                        env = globalenv()
+                        ){
+
+    template  <- expression(paste0(
+        '
+structure(
+    function(inp, tacs = NULL, pars = NULL){
+        x <- ',x,'
+        y <- ',y,'
+        stab <- ',stab,'
+        lower <- ',lower,'
+        upper <- ',upper,'
+        clyears <- ',clyears,'
+        clType <- "',clType,'"
+        red <- ',red,'
+        redyears <- ',redyears,'
+        assessInt <- ',assessmentInterval,'
+
+        ffmsy <- rnorm(1, pars$ffmsy, ',ffmsySD,')
+        ## ffmsy <- runif(1, pars$ffmsy * ',ffmsySD,', pars$ffmsy)
+        ffmsy[ffmsy < 0] <- 0
+        bbtrigger <- rnorm(1, pars$bbmsy*2, ',bbtriggerSD,')
+        ## bbtrigger <- runif(1, pars$bbmsy*2, pars$bbmsy*2 * ',bbtriggerSD,')
+        bbtrigger[bbtrigger < 0] <- 0
+
+        inp <- spict::check.inp(inp, verbose = FALSE)
+        if(is.null(tacs)){
+            indBref <- inp$indBref
+        }else{
+            indBref <- as.numeric(as.character(unlist(strsplit(as.character(tacs$indBref[nrow(tacs)]), "-"))))
+        }
+        indBref2 <- paste(indBref, collapse="-")
+        ## benchmark (only benchmark in spict)
+        bmID <- FALSE
+        inds <- inp$obsI
+        if(length(inds) > 1){
+            ## WHAT TO DO IF SEVERAL INDICES AVAILABLE? ## for now: mean
+            indtab <- do.call(rbind, inds)
+            ind <- apply(indtab, 2, mean)
+        }else{
+            ind <- unlist(inds)
+        }
         ninds <- length(ind)
-        inum <- ind[(ninds-1):ninds]
-        iden <- ind[(ninds-4):(ninds-2)]
-        r23 <- mean(inum, na.rm = TRUE)/mean(iden, na.rm = TRUE)
+        inum <- ind[(ninds-(x-1)):ninds]
+        iden <- ind[(ninds-(x+y-1)):(ninds-x)]
+        r <- r0 <- mean(inum, na.rm = TRUE)/mean(iden, na.rm = TRUE)
+        ## account for seasonal and annual catches
+        ## cl <- sum(tail(inp$obsC, tail(1/inp$dtc,1))) ## CHECK: dtc required?
+        if(clType == "observed"){
+            cl <- mean(tail(inp$obsC, clyears))
+            ## Account for non-annual assessments
+            cl <- cl * assessInt
+        }else if(clType == "TAC"){
+            if(is.null(tacs)){
+                cl <- mean(tail(inp$obsC, 3))
+                ## Account for non-annual assessments
+                cl <- cl * assessInt
+            }else{
+                cl <- tacs$TAC[nrow(tacs)]
+            }
+        }
+        tac <- cl * r * 1 * 1 ## Clast * r * f * b
         ## uncertainty cap
         if(stab){
-            r23 <- spict:::stabilityClause(r23, lower, upper)
-            if(any(r23 < lower) || any(r23 > upper)) hitSC <- TRUE else hitSC <- FALSE
-        }else hitSC <- FALSE
-        ## account for seasonal and annual catches
-        Cl <- sum(tail(inpin$obsC, tail(1/inpin$dtc,1)))
-        TACi <- Cl * r23 * 1 * 1  ## Clast * r * f * b
-        TAC <- rep(TACi, reps)
-        tactmp <- data.frame(TAC=TAC, id="r23", hitSC=hitSC, red=red, barID=barID, sd=sd23, conv=FALSE)
-    }
-    if(is.null(tacs)){
-        tacs <- tactmp
-    }else{
-        tacs <- rbind(tacs, tactmp)
-    }
-    return(tacs)
+            cllo <- cl * lower
+            clup <- cl * upper
+            if(any(tac < cllo)) hitSC <- 1 else hitSC <- 0
+            if(any(tac > clup)) hitSC <- 2 else hitSC <- 0
+            tac[tac < cllo] <- cllo
+            tac[tac > clup] <- clup
+        }else hitSC <- 0
+        ## PA buffer (e.g. 0.2 reduction of TAC) if B < Btrigger proxy or F > Fmsy
+        if(is.numeric(red)){
+            if(is.null(tacs)){
+                if(',redAlways,'){
+                    barID <- TRUE
+                }else{
+                    if(ffmsy > 1 || bbtrigger < 1){
+                        barID <- TRUE
+                    }else barID <- FALSE
+                    barID <- ifelse(runif(1) <= ',rightRef,', barID, !barID)
+                }
+            }else if(any(as.logical(tail(tacs$barID,ceiling(redyears/assessInt-1))),na.rm=TRUE)){
+                ## do not apply if applied during last x years (redyears)
+                barID <- FALSE
+            }else{
+                if(',redAlways,'){
+                    barID <- TRUE
+                }else{
+                    if(ffmsy > 1 || bbtrigger < 1){
+                        barID <- TRUE
+                    }else barID <- FALSE
+                    barID <- ifelse(runif(1) <= ',rightRef,', barID, !barID)
+                }
+            }
+        }else barID <- FALSE
+        ## apply reduction
+        if(barID){
+            tac <- tac * (1-red)
+        }
+        tacs <- gettacs(tacs, id = "',id,'", TAC = tac, inp = inp)
+        tacs$hitSC[nrow(tacs)] <- hitSC
+        tacs$barID[nrow(tacs)] <- barID
+        tacs$red[nrow(tacs)] <- red
+        tacs$fmfmsy.est[nrow(tacs)] <- ffmsy
+        tacs$bpbmsy.est[nrow(tacs)] <- bbtrigger
+        tacs$fmfmsy.sd[nrow(tacs)] <- ffmsySD
+        tacs$bpbmsy.sd[nrow(tacs)] <- bbtriggerSD
+        tacs$n.est[nrow(tacs)] <- r0
+        tacs$indBref[nrow(tacs)] <- indBref2
+        tacs$bmID[nrow(tacs)] <- bmID
+        tacs$assessInt[nrow(tacs)] <- assessInt
+        return(tacs)
+    },
+    class="hcr"
+)
+'))
+
+    ## create HCR as functions
+    templati <- eval(parse(text=paste(parse(text = eval(template)),collapse=" ")))
+    assign(value=templati, x=id, envir=env)
+
+    ## allow for assigning names
+    invisible(id)
 }
-##-----------------------------
 
 
 
 
-## WCV
-##-----------------------------
-## r23 and spict-dl weighted
-#' @name spictWCV
+
+#' @name defHCRspict
+#' @title Define harvest control rule
+#' @details This function allows to define harvest control rules (HCRs) which can be incorporated into a
+#' management strategy evaluation framework (DLMtool package). HCRs are saved with a
+#' generic name to the global environment and the names of the HCRs are returned if results of the
+#' function are assigned to an object. HCR runs a SPiCT assessment using catch and
+#' relative biomass index observations. Stock status estimates are used to set the TAC
+#' for the next year. TAC can be based on the distribution of predicted catches (percentileC)
+#' and/or the distribution of the Fmsy reference level (percentileFmsy).
+#' Additionally, a cap can be applied to account for low biomass levels (below Bmsy).
+#' Arguments of returned function are 'x' - the position in a data-limited mehods data object,
+#' 'Data' - the data-limited methods data object (see DLMtool), and 'reps' - the number of
+#' stochastic samples of the TAC recommendation (not used for this HCR).
+#' One or several arguments of the function can be provided as vectors to generate several
+#' HCRs at once (several vectors have to have same length).
+#'
+#' @importFrom doBy which.minn
+#'
 #' @export
-spictWCV <- function(repin, stab=FALSE, lower=0.8, upper=1.2, red=NA,
-                     tacs=NULL, verbose=FALSE){
-    inpin <- repin$inp
-    reps <- 1
-    inds <- inpin$obsI
-    if(length(inds) > 1){
-        ## WHAT TO DO IF SEVERAL INDICES AVAILABLE? ## for now: mean
-        indtab <- do.call(rbind, inds)
-        ind <- apply(indtab, 2, mean)
-        sdtab <- do.call(rbind, inpin$obsIsd)
-        sdI <- apply(sdtab, 2, mean)
-    }else{
-        ind <- unlist(inds)
-        sdI <- unlist(inpin$obsIsd)
-    }
-    ## est spict tac
-    tacspict <- get.TAC(repin, hcr="dl", bfrac=1, prob = 0.5,
-                        stab=stab, lower=lower, upper=upper)$TAC
-    ## est 23 tac
-    ninds <- length(ind)
-    inum <- ind[(ninds-1):ninds]
-    iden <- ind[(ninds-4):(ninds-2)]
-    r23 <- mean(inum, na.rm = TRUE)/mean(iden, na.rm = TRUE)
-    ## uncertainty cap
-    if(stab){
-        r23 <- spict:::stabilityClause(r23, lower, upper)
-        if(any(r23 < lower) || any(r23 > upper)) hitSC <- TRUE else hitSC <- FALSE
-    }else hitSC <- FALSE
-    ## account for seasonal and annual catches
-    Cl <- sum(tail(inpin$obsC, tail(1/inpin$dtc,1)))
-    tac23 <- Cl * r23 * 1 * 1  ## Clast * r * f * b
-    ## est variances
-    sd23 <- sqrt(var23(ind, sd = sdI))
-    sdspict <- get.par("logsdi",repin,exp=TRUE)[,2]
-    if(verbose) print(ifelse(sdpspict <= sd23, "spictsdl", "23"))
-    ## weigh according to variances
-    omega <- sdspict / (sd23 + sdspict)
-    tac <- omega*tacspict + (1-omega)*tac23
-    return(list(TAC=tac, id="", hitSC=hitSC, red = red, barID = NA, sd="", conv = FALSE))
-    ## output
-    tactmp <- data.frame(TAC=tac, id="wcv", hitSC=hitSC,
-                         red=red, barID=NA, sd=NA, conv=TRUE)
-    if(is.null(tacs)){
-        tacs <- tactmp
-    }else{
-        tacs <- rbind(tacs, tactmp)
-    }
-    return(tacs)
+#'
+defHCRspict <- function(id = "spict-msy",
+                        fractiles = list(catch=0.5,
+                                         ffmsy=0.5,
+                                         bbmsy=0.5,
+                                         bmsy = 0.5,
+                                         fmsy = 0.5),
+                        breakpointB = 0.0,
+                        safeguard = list(limitB = 0, prob = 0.95),
+                        dteuler = 1/4,
+                        reportmode = 1,
+                        stabilise = 0,
+                        priorlogn = c(log(2),2,1),
+                        priorlogalpha = c(log(1),2,1),
+                        priorlogbeta = c(log(1),2,1),
+                        priorlogbkfrac = c(log(0.5),2,0),
+                        fixn = NA,
+                        bfac = NA,
+                        bref = "current", ## lowest or "highest" or "average" or "last"
+                        brefType = "target",
+                        nyBref = 5,
+                        btar = "bmsy",
+                        probtar = 0.4,
+                        brule = 0,
+                        red = NA,
+                        redyears = 3,
+                        redAlways = FALSE,
+                        rai = 0.2,
+                        manstartdY = 0,
+                        assessmentInterval = 1,
+                        intC = NA,
+                        nonconvHCR = "conscat",
+                        clType = "TAC",
+                        clyears = 1,
+                        stab = FALSE,
+                        lower = 0.8,
+                        upper = 1.2,
+                        bm = FALSE,  ## e.g. 5 => re-defining Bref at every benchmark
+                        env = globalenv()
+                        ){
+
+    frc <- fractiles$catch
+    if(is.null(frc)) frc <- 0.5
+    frff <- fractiles$ffmsy
+    if(is.null(frff)) frff <- 0.5
+    frbb <- fractiles$bbmsy
+    if(is.null(frbb)) frbb <- 0.5
+    frb <- fractiles$bmsy
+    if(is.null(frb)) frb <- 0.5
+    frf <- fractiles$fmsy
+    if(is.null(frf)) frf <- 0.5
+    limitB <- safeguard$limitB
+    if(is.null(limitB)) limitB <- 0
+    prob <- safeguard$prob
+    if(is.null(prob)) prob <- 0.95
+
+    template  <- expression(paste0(
+        '
+structure(
+    function(inp, tacs = NULL, pars=NULL){
+
+        func <- get(nonconvHCR)
+        inp$reportmode <- ',reportmode,'
+        inp$dteuler <- ',dteuler,'
+        inp$stabilise <- ',stabilise,'
+        bfac <- ',bfac,'
+        bm <- ',bm,'
+        fixn <- ',fixn,'
+        prob <- ',prob,'
+        lower <- ',lower,'
+        upper <- ',upper,'
+        probtar <- ',probtar,'
+        red <- ',red,'
+        redyears <- ',redyears,'
+        rai <- ',rai,'
+        brule <- ',brule,'
+        assessInt <- ',assessmentInterval,'
+        clyears <- ',clyears,'
+        clType <- "',clType,'"
+        nyBref <- ',nyBref,'
+        ## Intermediate year
+        manstart <- inp$timeC[length(inp$timeC)] + 1 + ',manstartdY,' ## assumes annual catches
+        inp$maninterval <- c(manstart, manstart + assessInt)
+        inp$maneval <- max(inp$maninterval)
+        ## Check inp
+        inp <- spict::check.inp(inp, verbose = FALSE)
+        ## priors
+        inp$priors$logn <- c(',priorlogn[1],',',priorlogn[2],',',priorlogn[3],')
+        inp$priors$logalpha <- c(',priorlogalpha[1],',',priorlogalpha[2],',',priorlogalpha[3],')
+        inp$priors$logbeta <- c(',priorlogbeta[1],',',priorlogbeta[2],',',priorlogbeta[3],')
+        inp$priors$logbkfrac <- c(',priorlogbkfrac[1],',',priorlogbkfrac[2],',',priorlogbkfrac[3],')
+        ## Catch for intermediate year
+        if(is.na(',intC,')){
+            intC2 <- NULL
+        }else{
+            if(is.null(tacs)){
+                intC2 <- tail(inp$obsC,1) ## does not account for seasonal catches!
+            }else{
+                intC2 <- tacs$TAC[nrow(tacs)]
+            }
+        }
+        if(is.numeric(fixn) && !is.na(fixn)){
+            inp$phases$logn <- -1
+            inp$ini$logn <- log(fixn)
+        }
+        if(is.list(inp$obsI)) nis <- length(inp$obsI)
+        if(is.null(tacs)){
+            indBref <- inp$indBref
+        }else{
+            indBref <- as.numeric(as.character(unlist(strsplit(as.character(tacs$indBref[nrow(tacs)]), "-"))))
+        }
+        indBref2 <- paste(indBref, collapse="-")
+        medbpbref <- NA
+        bpbref <- NA
+        ## benchmark (assuming bm always in first year)
+        if(is.null(tacs)){
+            bmID <- TRUE
+        }else{
+            if(!is.numeric(bm) ||
+               any(as.logical(tail(tacs$bmID,ceiling(bm/assessInt-1))),na.rm=TRUE)){
+                bmID <- FALSE
+            }else bmID <- TRUE
+        }
+        ## fit spict
+        fit <- try(fit.spict(inp), silent=TRUE)
+        if(class(fit) == "try-error" || fit$opt$convergence != 0 || any(is.infinite(fit$sd))){
+            tacs <- func(inp, tacs=tacs, pars=pars)
+            tacs$conv[nrow(tacs)] <- FALSE
+            tacs$indBref[nrow(tacs)] <- indBref2
+            tacs$bmID[nrow(tacs)] <- bmID
+            tacs$assessInt[nrow(tacs)] <- assessInt
+            return(tacs)
+        }
+        ## last years catch/tac
+        if(clType == "observed"){
+            cl <- mean(tail(inp$obsC, clyears))
+        }else if(clType == "estimated"){
+            cl <- mean(tail(get.par("logCpred",fit, exp=TRUE)[,2], clyears))
+        }else if(clType == "TAC"){
+            if(is.null(tacs)){
+                cl <- mean(tail(inp$obsC, clyears))
+                cl <- cl * assessInt
+            }else{
+                cl <- tacs$TAC[nrow(tacs)]
+            }
+        }
+        fmfmsy <- try(get.par("logFmFmsynotS",fit, exp=TRUE)[,c(2,4)],silent=TRUE)
+        if(!is.numeric(fmfmsy)) print(paste0("fmfmsy not numeric. fmfmsy: ", fmfmsy))
+        if(all(is.numeric(fmfmsy))){
+            fmfmsy <- round(fmfmsy,2)
+        }else fmfmsy <- c(NA, NA)
+        names(fmfmsy) <- c("fmfmsy.est","fmfmsy.sd")
+        bpbmsy <- try(get.par("logBpBmsy",fit, exp=TRUE)[,c(2,4)],silent=TRUE)
+        if(all(is.numeric(bpbmsy))){
+            bpbmsy <- round(bpbmsy,2)
+        }else bpbmsy <- c(NA,NA)
+        names(bpbmsy) <- c("bpbmsy.est","bpbmsy.sd")
+        cp <- try(get.par("logCp",fit, exp=TRUE)[,c(2,4)],silent=TRUE)
+        if(all(is.numeric(cp))){
+            cp <- round(cp,2)
+        }else cp <- c(NA,NA)
+        names(cp) <- c("cp.est","cp.sd")
+        ##
+        fmsy <- try(get.par("logFmsy",fit, exp=TRUE)[,c(2,4)],silent=TRUE)
+        if(all(is.numeric(fmsy))){
+            fmsy <- round(fmsy,2)
+        }else fmsy <- c(NA,NA)
+        names(fmsy) <- c("fmsy.est","fmsy.sd")
+        bmsy <- try(get.par("logBmsy",fit, exp=TRUE)[,c(2,4)],silent=TRUE)
+        if(all(is.numeric(bmsy))){
+            bmsy <- round(bmsy,2)
+        }else bmsy <- c(NA,NA)
+        names(bmsy) <- c("bmsy.est","bmsy.sd")
+        sdb <- try(get.par("logsdb",fit, exp=TRUE)[,c(2,4)],silent=TRUE)
+        if(all(is.numeric(sdb))){
+            sdb <- round(sdb,2)
+        }else sdb <- c(NA,NA)
+        names(sdb) <- c("sdb.est","sdb.sd")
+        sdi <- try(get.par("logsdi",fit, exp=TRUE)[,c(2,4)],silent=TRUE)
+        if(all(is.numeric(sdi))){
+            sdi <- round(sdi,2)
+            sdi <- as.numeric(t(sdi))
+        }else{
+            sdi <- rep(c(NA,NA),nis)
+        }
+        names(sdi) <- paste0(rep(c("sdi.est","sdi.sd"),nis),rep(1:nis,each=nis))
+        sdf <- try(get.par("logsdf",fit, exp=TRUE)[,c(2,4)],silent=TRUE)
+        if(all(is.numeric(sdf))){
+            sdf <- round(sdf,2)
+        }else sdf <- c(NA,NA)
+        names(sdf) <- c("sdf.est","sdf.sd")
+        sdc <- try(get.par("logsdc",fit, exp=TRUE)[,c(2,4)],silent=TRUE)
+        if(all(is.numeric(sdc))){
+            sdc <- round(sdc,2)
+        }else sdc <- c(NA,NA)
+        names(sdc) <- c("sdc.est","sdc.sd")
+        bmbmsy <- try(get.par("logBmBmsy",fit, exp=TRUE)[,c(2,4)],silent=TRUE)
+        if(all(is.numeric(bmbmsy))){
+            bmbmsy <- round(bmbmsy,2)
+        }else bmbmsy <- c(NA,NA)
+        names(bmbmsy) <- c("bmbmsy.est","bmbmsy.sd")
+        nest <- try(get.par("logn",fit, exp=TRUE)[,c(2,4)],silent=TRUE)
+        if(all(is.numeric(nest))){
+            nest <- round(nest,2)
+        }else nest <- c(NA,NA)
+        names(nest) <- c("n.est","n.sd")
+        Kest <- try(get.par("logK",fit, exp=TRUE)[,c(2,4)],silent=TRUE)
+        if(all(is.numeric(Kest))){
+            Kest <- round(Kest,2)
+        }else Kest <- c(NA,NA)
+        names(Kest) <- c("K.est","K.sd")
+        mest <- try(get.par("logm",fit, exp=TRUE)[,c(2,4)],silent=TRUE)
+        if(all(is.numeric(mest))){
+            mest <- round(mest,2)
+        }else mest <- c(NA,NA)
+        names(mest) <- c("m.est","m.sd")
+        ##
+        quantstmp <- c(fmfmsy, bpbmsy, cp, fmsy, bmsy, sdb, sdi, sdf, sdc, bmbmsy, nest, Kest, mest)
+
+        if(is.na(fixn) &&
+           reportmode %in% c(0,1) && any(is.na(quantstmp))){
+            ## n.sd is NA if schaefer (n fixed), reportmode 3 does not report most quantities
+            tacs <- func(inp, tacs=tacs, pars=pars)
+            tacs$conv[nrow(tacs)] <- FALSE
+            tacs$indBref[nrow(tacs)] <- indBref2
+            tacs$bmID[nrow(tacs)] <- bmID
+            tacs$assessInt[nrow(tacs)] <- assessInt
+            tacs$medbpbref[nrow(tacs)] <- medbpbref
+            tacs$bpbref[nrow(tacs)] <- bpbref
+            return(tacs)
+        }
+
+        ## resetting brefs at benchmark
+        if(bmID){
+            logB <- fit$obj$report(fit$obj$env$last.par.best)$logB[inp$indest]
+            logB[1:(2/inp$dteuler)] <- NA    ## hack: remove first year, because first B est often outlier
+            logB[is.infinite(logB)] <- NA    ## hack: remove first year, because first B est often outlier
+            if(bref == "current"){
+                indBref <- inp$indlastobs
+            }else if(bref == "lowest"){
+timeX <- inp$time[inp$indest]
+ann <- spict:::annual(timeX,logB)
+ann2 <- ann$anntime[sort(doBy::which.minn(ann$annvec, nyBref))]
+indBref <- which(floor(timeX) %in% ann2)
+            }else if(bref == "highest"){
+timeX <- inp$time[inp$indest]
+ann <- spict:::annual(timeX,logB)
+ann2 <- ann$anntime[sort(doBy::which.maxn(ann$annvec, nyBref))]
+indBref <- which(floor(timeX) %in% ann2)
+            }else if(bref == "average"){
+                indBref <- (2/inp$dteuler):length(logB)
+            }else if(bref == "last"){
+                indBref <- (length(logB)-(nyBref * 1/inp$dteuler)):length(logB)
+            }else stop(paste0("bref = ",bref, " not known! Either current, lowest, highest, average, or last."))
+        }else{
+            indBref <- as.numeric(as.character(unlist(strsplit(as.character(tacs$indBref[nrow(tacs)]), "-"))))
+        }
+        if(any(is.na(indBref)) || length(indBref) < 1 || any(is.infinite(indBref))){
+            tacs <- func(inp, tacs=tacs, pars=pars)
+            tacs$conv[nrow(tacs)] <- FALSE
+            tacs$indBref[nrow(tacs)] <- indBref2
+            tacs$bmID[nrow(tacs)] <- bmID
+            tacs$assessInt[nrow(tacs)] <- assessInt
+            tacs$medbpbref[nrow(tacs)] <- medbpbref
+            tacs$bpbref[nrow(tacs)] <- bpbref
+            return(tacs)
+        }else{
+            fit <- try(set.bref(fit, indBref = indBref),silent=TRUE)
+        }
+
+        ## get TAC
+        if(inherits(fit, "try-error")){
+            tacs <- func(inp, tacs=tacs, pars=pars)
+            tacs$conv[nrow(tacs)] <- FALSE
+            tacs$indBref[nrow(tacs)] <- indBref2
+            tacs$bmID[nrow(tacs)] <- bmID
+            tacs$assessInt[nrow(tacs)] <- assessInt
+            tacs$medbpbref[nrow(tacs)] <- medbpbref
+            tacs$bpbref[nrow(tacs)] <- bpbref
+            return(tacs)
+        }
+
+        ## Indicators
+        ## -----------------------
+        if("',btar,'" == "bmsy"){
+            logBpBtar <- get.par("logBpBmsy", fit, exp = FALSE)
+        }else if("',btar,'" == "btrigger"){
+            logBpBtar <- get.par("logBpBtrigger", fit, exp = FALSE)
+        }else stop("btar not known. Use either bmsy or btrigger")
+        logFmFtar <- get.par("logFmFmsynotS", fit, exp = FALSE)
+        bindi <- exp(qnorm(probtar, logBpBtar[2], logBpBtar[4]))
+        findi <- exp(qnorm(1-probtar, logFmFtar[2], logFmFtar[4]))
+        indBref2 <- paste(fit$inp$indBref, collapse="-")
+        logBpBref <- get.par("logBpBref", fit, exp = FALSE)
+        medbpbref <- as.numeric(exp(logBpBref[,2]))
+        bpbref <- exp(qnorm(1-prob, logBpBref[2], logBpBref[4]))
+        barID <- FALSE
+
+        if(brule == 0){
+            ## standard rule
+            tac <- try(spict:::get.TAC(fit,
+                                       bfac = bfac,
+                                       bref.type = "',brefType,'",
+                                       fractiles = list(catch = ',frc,',
+                                                        ffmsy = ',frff,',
+                                                        bbmsy = ',frbb,',
+                                                        bmsy  = ',frb,',
+                                                        fmsy  = ',frf,'),
+                                       breakpointB = ',breakpointB,',
+                                       safeguardB = list(limitB = ',limitB,',prob = prob),
+                                       intermediatePeriodCatch = intC2,
+                                       verbose = FALSE),
+                       silent = TRUE)
+        }else if(brule == 1){
+            ## standard bref rule + pa buffer
+            if(!is.numeric(bindi) || is.na(bindi) || !is.numeric(findi) || is.na(findi) ||
+               !is.numeric(bpbref) || is.na(bpbref)){
+                tacs <- func(inp, tacs=tacs, pars=pars)
+                tacs$conv[nrow(tacs)] <- FALSE
+                tacs$indBref[nrow(tacs)] <- indBref2
+                tacs$bmID[nrow(tacs)] <- bmID
+                tacs$assessInt[nrow(tacs)] <- assessInt
+                tacs$medbpbref[nrow(tacs)] <- medbpbref
+                tacs$bpbref[nrow(tacs)] <- bpbref
+                return(tacs)
+            }
+            tac <- try(spict:::get.TAC(fit,
+                                       bfac = bfac,
+                                       bref.type = "',brefType,'",
+                                       fractiles = list(catch = ',frc,',
+                                                        ffmsy = ',frff,',
+                                                        bbmsy = ',frbb,',
+                                                        bmsy  = ',frb,',
+                                                        fmsy  = ',frf,'),
+                                       breakpointB = ',breakpointB,',
+                                       safeguardB = list(limitB = ',limitB,',prob = prob),
+                                       intermediatePeriodCatch = intC2,
+                                       verbose = FALSE),
+                       silent = TRUE)
+
+            ## PA buffer (e.g. 0.2 reduction of TAC) if B < Btrigger or F > Fmsy
+            if(is.numeric(red)){
+                if(any(as.logical(tail(tacs$barID,ceiling(redyears/assessInt-1))),na.rm=TRUE)){
+                    ## do not apply if applied during last x years (redyears)
+                    barID <- FALSE
+                }else{
+                    if(',redAlways,'){
+                        barID <- TRUE
+                    }else{
+                        if((bindi - 1) < -1e-3 || (1 - findi) < -1e-3){
+                            ## apply if any ref indicates overexploitation
+                            barID <- TRUE
+                        }else barID <- FALSE
+                    }
+                }
+            }else barID <- FALSE
+
+        }else if(brule == 2){
+            ## decision tree using spict reference levels qualitatively
+            if(!is.numeric(bindi) || is.na(bindi) || !is.numeric(findi) || is.na(findi) ||
+               !is.numeric(bpbref) || is.na(bpbref)){
+                tacs <- func(inp, tacs=tacs, pars=pars)
+                tacs$conv[nrow(tacs)] <- FALSE
+                tacs$indBref[nrow(tacs)] <- indBref2
+                tacs$bmID[nrow(tacs)] <- bmID
+                tacs$assessInt[nrow(tacs)] <- assessInt
+                tacs$medbpbref[nrow(tacs)] <- medbpbref
+                tacs$bpbref[nrow(tacs)] <- bpbref
+                return(tacs)
+            }
+            ## 4 stock status categories
+            ## -------------------------
+            if((bpbref - bfac) < -1e-3){
+                ## Overfished
+                ## -----------------------
+                ## -> find F that meets pi
+                tac <- try(spict:::get.TAC(fit,
+                                           bfac = bfac,
+                                           bref.type = "',brefType,'",
+                                           fractiles = list(catch = ',frc,',
+                                                            ffmsy = ',frff,',
+                                                            bbmsy = ',frbb,',
+                                                            bmsy  = ',frb,',
+                                                            fmsy  = ',frf,'),
+                                           breakpointB = ',breakpointB,',
+                                           safeguardB = list(limitB = ',limitB,',prob = prob),
+                                           intermediatePeriodCatch = intC2,
+                                           verbose = FALSE),
+                           silent = TRUE)
+            }else if((bindi - 1) < -1e-3 || (1 - findi) < -1e-3){
+                ## Indication of overfishing
+                ## -----------------------
+                ## -> reduce F/TAC by red%
+                tac <- try(spict:::get.TAC(fit,
+                                           ffac = 1 * (1-red),
+                                           intermediatePeriodCatch = intC2,
+                                           verbose = FALSE),
+                           silent = TRUE)
+            }else{
+                ## No indication of overfishing
+                ## -----------------------
+                ## -> raise F/TAC by rai%
+                tac <- try(spict:::get.TAC(fit,
+                                           ffac = 1 * (1+rai),
+                                           intermediatePeriodCatch = intC2,
+                                           verbose = FALSE),
+                           silent = TRUE)
+            }
+            ## if((bindi - 1) < -1e-3 || (1 - findi) < -1e-3){
+            ##     ## Indication of overfishing
+            ##     ## -----------------------
+            ##     ## -> reduce TAC by red%
+            ##     tac <- ',red,' * cl
+            ## }else{
+            ##     ## No indication of overfishing
+            ##     ## -----------------------
+            ##     ## -> raise TAC by rai%
+            ##     tac <- ',rai,' * cl
+            ## }
+        }
+
+        if(inherits(tac, "try-error") || !is.numeric(tac) || is.na(tac)){
+            tacs <- func(inp, tacs=tacs, pars=pars)
+            tacs$conv[nrow(tacs)] <- FALSE
+            tacs$indBref[nrow(tacs)] <- indBref2
+            tacs$bmID[nrow(tacs)] <- bmID
+            tacs$assessInt[nrow(tacs)] <- assessInt
+            tacs$medbpbref[nrow(tacs)] <- medbpbref
+            tacs$bpbref[nrow(tacs)] <- bpbref
+            return(tacs)
+        }
+
+        if(',stab,'){
+            cllo <- cl * lower
+            clup <- cl * upper
+            if(any(tac < cllo)) hitSC <- 1 else hitSC <- 0
+            if(any(tac > clup)) hitSC <- 2 else hitSC <- 0
+            tac[tac < cllo] <- cllo
+            tac[tac > clup] <- clup
+        }else hitSC <- 0
+
+        ## apply reduction
+        if(barID){
+            tac <- tac * (1-red)
+        }
+        tactmp <- data.frame("TAC"=tac, "id"="',id,'", "hitSC"=hitSC,
+                             "red"=red, "barID"=barID, "sd"=NA, "conv" = TRUE)
+        tactmp <- data.frame(c(tactmp, quantstmp,
+                               "indBref" = indBref2, "bmID"=bmID,
+                               "assessInt" = assessInt,
+                               "medbpbref" = medbpbref, "bpbref" = bpbref))
+        if(is.null(tacs)){
+            tacs <- tactmp
+        }else{
+            tacs <- rbind(tacs, tactmp)
+        }
+
+        return(tacs)
+    },
+    class="hcr")
+'))
+
+    ## create HCR as functions
+    templati <- eval(parse(text=paste(parse(text = eval(template)),collapse=" ")))
+    assign(value=templati, x=id, envir=env)
+
+    ## allow for assigning names
+    invisible(id)
 }
-##-----------------------------
-
-
-
-## MSY
-##-----------------------------
-##
-#' @name spictMSY
-#' @export
-spictMSY <- function(repin, stab=FALSE, lower=0.8, upper=1.2, red=NA,
-                     tacs=NULL, verbose=FALSE){
-    inpin <- repin$inp
-    reps <- 1
-    tac0 <- get.TAC(repin, stab=stab)
-    ## output
-    tactmp <- data.frame(TAC=tac0$TAC, id=tac0$id, hitSC=tac0$hitSC,
-                         red=red, barID=NA, sd=NA, conv = tac0$conv)
-    if(is.null(tacs)){
-        tacs <- tactmp
-    }else{
-        tacs <- rbind(tacs, tactmp)
-    }
-    return(tacs)
-}
-##-----------------------------
-
-
-## PBB-MSY
-##-----------------------------
-##
-#' @name spictPBB_MSY
-#' @export
-spictPBB_MSY <- function(repin, stab=FALSE, lower=0.8, upper=1.2, red=NA,
-                     tacs=NULL, verbose=FALSE, prob=0.5, bfrac=1, tcv=0.5){
-    inpin <- repin$inp
-    reps <- 1
-    tac0 <- get.TAC(repin, hcr="dl3", bfrac=bfrac, prob = prob, stab=stab, tcv=tcv)
-    ## output
-    tactmp <- data.frame(TAC=tac0$TAC, id=tac0$id, hitSC=tac0$hitSC,
-                         red=red, barID=NA, sd=NA, conv = tac0$conv)
-    if(is.null(tacs)){
-        tacs <- tactmp
-    }else{
-        tacs <- rbind(tacs, tactmp)
-    }
-    return(tacs)
-}
-##-----------------------------
-
-
-## PBB
-##-----------------------------
-##
-#' @name spictPBB
-#' @export
-spictPBB <- function(repin, stab=FALSE, lower=0.8, upper=1.2, red=NA,
-                     tacs=NULL, verbose=FALSE, prob=0.5, bfrac=1){
-    inpin <- repin$inp
-    reps <- 1
-    tac0 <- get.TAC(repin, hcr="dl", bfrac=bfrac, prob = prob, stab=stab)
-    ## output
-    tactmp <- data.frame(TAC=tac0$TAC, id=tac0$id, hitSC=tac0$hitSC,
-                         red=red, barID=NA, sd=NA, conv = tac0$conv)
-    if(is.null(tacs)){
-        tacs <- tactmp
-    }else{
-        tacs <- rbind(tacs, tactmp)
-    }
-    return(tacs)
-}
-##-----------------------------
-
-## PBBFred
-##-----------------------------
-##
-#' @name spictPBBFred
-#' @export
-spictPBBFred <- function(repin, stab=FALSE, lower=0.8, upper=1.2, red=NA,
-                     tacs=NULL, verbose=FALSE, prob=0.5, bfrac=1){
-    inpin <- repin$inp
-    reps <- 1
-    tac0 <- get.TAC(repin, hcr="bmed", bfrac=bfrac, prob = prob, stab=stab)
-    ## output
-    tactmp <- data.frame(TAC=tac0$TAC, id=tac0$id, hitSC=tac0$hitSC,
-                         red=red, barID=NA, sd=NA, conv = tac0$conv)
-    if(is.null(tacs)){
-        tacs <- tactmp
-    }else{
-        tacs <- rbind(tacs, tactmp)
-    }
-    return(tacs)
-}
-##-----------------------------
-
-
-#' @name spictPBB2
-#' @export
-spictPBB2 <- function(repin, stab=FALSE, lower=0.8, upper=1.2, red=NA,
-                     tacs=NULL, verbose=FALSE, prob=0.5, bfrac=1){
-    inpin <- repin$inp
-    reps <- 1
-    tac0 <- get.TAC(repin, hcr="dl", bfrac=bfrac, prob = prob, stab=stab)
-    ## new:
-    Cl <- sum(tail(inpin$obsC, tail(1/inpin$dtc,1)))
-    TAC <- Cl * tac0$TAC
-    ## output
-    tactmp <- data.frame(TAC=TAC, id=tac0$id, hitSC=tac0$hitSC,
-                         red=red, barID=NA, sd=NA, conv = tac0$conv)
-    if(is.null(tacs)){
-        tacs <- tactmp
-    }else{
-        tacs <- rbind(tacs, tactmp)
-    }
-    return(tacs)
-}
-##-----------------------------

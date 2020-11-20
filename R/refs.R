@@ -1,110 +1,226 @@
-## estimate reference levels for OM
-
-
-
-#' @name simpopR
+#' @name estRef
+#'
+#' @importFrom parallel detectCores
+#' @importFrom parallel mclapply
+#'
 #' @export
-simpopR <- function(FM, dat, set){
-    years <- set$refYears
-    ## errors
-    eF <- rnorm(years, 0, set$sigmaF) - set$sigmaF^2/2
-    eR <- genDevs(years, set$sigmaR, set$rhoR)
-    eM <- rnorm(years, 0, set$sigmaM) - set$sigmaM^2/2
-    eH <- rnorm(years, 0, set$sigmaH) - set$sigmaH^2/2
-    eMat <- rnorm(years, 0, set$sigmaMat) - set$sigmaMat^2/2
-    eR0 <- rnorm(years, 0, set$sigmaR0) - set$sigmaR0^2/2
-    ## some variables
-    amax <- dat$amax + 1
-    weight <- dat$weight
-    R0 <- exp(dat$logR0)
-    ## initiate matrices & vectors
-    Nage <- CAA <- FAA <- matrix(nrow=amax,ncol=years+1)
-    CW <- SP <- rep(NA, years)
-    ## initialize starting values
-    NAtmp <- NAtmp2 <- rep(R0, amax)
-    Nage[,1] <- NAtmp
-    ## loop
-    for(y in 1:years){
-        M <- dat$M * exp(eM[y])
-        h <- dat$h * exp(eH[y])
-        mat <- dat$mat * exp(eMat[y])
-        Nage[,y] <- NAtmp
-##        NAAmid <- Nage[,y] * exp(-M/2)
-        FAA[,y] <- dat$sel * FM * exp(eF[y])
-        CAA[,y] <- baranov(FAA[,y], M, Nage[,y]) ## FAA / Z * Nage[,y] * (1 - exp(-Z))
-        CW[y] <- sum(CAA[,y] * dat$weight)
-        SSBPR0 <- getSSBPR0(M, mat, fecun = 1, amax=amax)
-        SSB <- sum(NAtmp * mat * dat$weight)
-        R0 <- exp(dat$logR0) * exp(eR0[y])
-        NAtmp2[1] <- recfunc(h = h, SSB = SSB,
-                             SSBPR0 = SSBPR0, R0 = R0, method = dat$SR) * eR[y]
-        Z <- M + FAA[,y]
-        survival <- NAtmp * exp(-Z)
-        NAtmp2[2:amax] <- survival[1:(amax-1)]
-        NAtmp2[amax] <- NAtmp2[amax] + survival[amax]
-        NAtmp <- NAtmp2
-    }
-    Bage <- apply(Nage, 2, function(x) x * dat$weight)
-    SSBage <- apply(Nage, 2, function(x) x * dat$weight * dat$mat)
-    ESBage <- apply(Nage, 2, function(x) x * dat$weight * dat$sel)
+#'
+estRef <- function(dat, set=NULL, fvec = seq(0,5,0.1),
+                   ncores=parallel::detectCores()-1,
+                   ref = c("Fmsy","Bmsy","MSY","ESBmsy","SSBmsy","B0"),
+                   plot = FALSE){
 
-    ## surplus production (for reflevs)
-    for(y in 1:(years-1)){
-        SP[y] <- sum(Bage[,y+1]) - sum(Bage[,y]) + CW[y]
+    ny <- dat$ny
+    ns <- dat$nseasons
+    nt <- ny * ns
+
+    if(is.null(set)) set <- checkSet()
+    ## Remove variability
+    set$noiseF <- c(0,0,0)
+    set$noiseR <- c(0,0,0)
+    set$noiseM <- c(0,0,0)
+    set$noiseH <- c(0,0,0)
+    set$noiseR0 <- c(0,0,0)
+    set$noiseMat <- c(0,0,0)
+    set$noiseImp <- c(0,0,0)
+    errs <- vector("list", 7)
+    errs$eF <- genNoise(nyref, set$noiseF[1], set$noiseF[2], set$noiseF[3])
+    errs$eR <- genNoise(nyref, set$noiseR[1], set$noiseR[2], set$noiseR[3])
+    errs$eM <- genNoise(nyref, set$noiseM[1], set$noiseM[2], set$noiseM[3])
+    errs$eH <- genNoise(nyref, set$noiseH[1], set$noiseH[2], set$noiseH[3])
+    errs$eR0 <- genNoise(nyref, set$noiseR0[1], set$noiseR0[2], set$noiseR0[3])
+    errs$eMat <- genNoise(nyref, set$noiseMat[1], set$noiseMat[2], set$noiseMat[3])
+    errs$eImp <- genNoise(nyref, set$noiseImp[1], set$noiseImp[2], set$noiseImp[3])
+    setx <- c(set, errs)
+
+    if(any(ref %in% c("Fmsy","Bmsy","MSY"))){
+        res0 <- parallel::mclapply(as.list(fvec),
+                                   function(x){
+                                       with(simpop(log(x), dat, setx, out = 0),
+                                            c(x,
+                                              head(tail(TSB,2),1),
+                                              head(tail(SP,2),1),
+                                              head(tail(CW,2),1),
+                                              head(tail(ESB,2),1),
+                                              head(tail(SSB,2),1)
+                                              )
+                                            )
+                                   },
+                                   mc.cores = ncores)
+
+        ## refs
+        res <- do.call(cbind, res0)
+        msy <- res[4, which.max(res[3,])]
+        fmsy <- res[1, which.max(res[3,])]
+        bmsy <- res[2, which.max(res[3,])]
+        binf <- res[2, which.max(res[2,])]
+        esbmsy <- res[5, which.max(res[3,])]
+        ssbmsy <- res[6, which.max(res[3,])]
+
+        if(plot){
+            plot(fvec, res[3,], ty='b')
+        }
     }
+
+
+    ## B0
+    if(any(ref == "B0")){
+        unfished <- simpop(log(1e-20), dat, setx, out = 0)
+        b0 <- tail(unfished$TSB,1)
+    }
+
+
+    refs <- list()
+    if(any(ref == "Fmsy")) refs$Fmsy = fmsy
+    if(any(ref == "MSY")) refs$MSY = msy
+    if(any(ref == "Bmsy")) refs$Bmsy = bmsy
+    if(any(ref == "ESBmsy")) refs$ESBmsy = esbmsy
+    if(any(ref == "SSBmsy")) refs$SSBmsy = ssbmsy
+    if(any(ref == "B0")) refs$B0 = b0
+
+    dat$ref <- refs
 
     ## return
-    return(list(CW=CW,
-                TSB=apply(Bage[,1:years],2,sum,na.rm=TRUE),
-                TSB1plus=apply(Bage[-1,1:years],2,sum,na.rm=TRUE),
-                SP=SP,
-                SSB=apply(SSBage[,1:years],2,sum,na.rm=TRUE),
-                ESB=apply(ESBage[,1:years],2,sum,na.rm=TRUE)))
+    return(dat)
 }
 
 
-#' @name estRL
+#' @name estRefStoch
+#'
+#' @importFrom parallel detectCores
+#' @importFrom parallel mclapply
+#'
 #' @export
-estRL <- function(dat, set, fvec = seq(0,5,0.1)){
+#'
+estRefStoch <- function(dat, set=NULL,
+                        ncores = parallel::detectCores()-1,
+                        ref = c("Fmsy","Bmsy","MSY","B0","ESBmsy","SSBmsy"),
+                        plot = FALSE){
 
-    ## Variables
-    years <- set$refYears
+    ny <- dat$ny
+    ns <- dat$nseasons
+    nt <- ny * ns
+    nyref <- set$refYears
+    nrep <- set$refN
+    nyrefmsy <- set$refYearsMSY
 
-    ## Remove variability
-    set$sigmaF <- 0
-    set$sigmaR <- 0
-    set$sigmaM <- 0
-    set$sigmaH <- 0
-    set$sigmaMat <- 0
-    set$sigmaR0 <- 0
+    if(is.null(set)) set <- checkSet()
+    dist <- NULL
+    if(!(set$refMethod %in% c("mean","median"))){
+        stop("'set$refMethod' not known! Has to be 'mean' or 'median'!")
+    }
 
-    ## run over Fvec
-    res <- sapply(fvec, function(x){
-        with(simpop(x, dat, set),
-             c(x, tail(TSB,1),
-               head(tail(SP,2),1),
-               tail(CW,1)))
-    })
+    ## errors (have to be re-used for estimation of Bmsy)
+    errs <- vector("list", nrep)
+    for(i in 1:nrep){
+        errs[[i]] <- vector("list", 7)
+        errs[[i]]$eF <- genNoise(nyref, set$noiseF[1], set$noiseF[2], set$noiseF[3])
+        errs[[i]]$eR <- genNoise(nyref, set$noiseR[1], set$noiseR[2], set$noiseR[3])
+        errs[[i]]$eM <- genNoise(nyref, set$noiseM[1], set$noiseM[2], set$noiseM[3])
+        errs[[i]]$eH <- genNoise(nyref, set$noiseH[1], set$noiseH[2], set$noiseH[3])
+        errs[[i]]$eR0 <- genNoise(nyref, set$noiseR0[1], set$noiseR0[2], set$noiseR0[3])
+        errs[[i]]$eMat <- genNoise(nyref, set$noiseMat[1], set$noiseMat[2], set$noiseMat[3])
+        errs[[i]]$eImp <- genNoise(nyref, set$noiseImp[1], set$noiseImp[2], set$noiseImp[3])
+    }
 
-    ## refs
-    msy <- res[4, which.max(res[3,])]
-    fmsy <- fvec[which.max(res[3,])]
-    bmsy <- res[2, which.max(res[3,])]
-    binf <- res[2, which.max(res[2,])]
+    if(any(ref %in% c("Fmsy","Bmsy","MSY","ESBmsy","SSBmsy"))){
+
+        ## Fmsy
+        res <- parallel::mclapply(as.list(1:nrep), function(x){
+            setx <- c(set, errs[[x]])
+            opt <- optimise(function(x) unlist(simpop(x, dat, setx, out=1)),
+                            log(c(0.001,10)), maximum = TRUE)
+            c(exp(opt$maximum))
+        }, mc.cores = ncores)
+        dist <- do.call(rbind, res)
+
+        ## Other ref points
+        res <- parallel::mclapply(as.list(1:nrep), function(x){
+            setx <- c(set, errs[[x]])
+            tmp <- simpop(log(dist[x,1]), dat, setx, out=0)
+            if(set$refMethod == "mean"){
+                c(mean(tail(tmp$CW,nyrefmsy)), mean(tail(tmp$TSB,nyrefmsy)),
+                  mean(tail(tmp$ESB,nyrefmsy)), mean(tail(tmp$SSB,nyrefmsy)))
+            }else if(set$refMethod == "median"){
+                c(median(tail(tmp$CW,nyrefmsy)), median(tail(tmp$TSB,nyrefmsy)),
+                  median(tail(tmp$ESB,nyrefmsy)), median(tail(tmp$SSB,nyrefmsy)))
+            }
+        }, mc.cores = ncores)
+        dist <- cbind(dist, do.call(rbind, res))
+        colnames(dist) <- c("Fmsy","MSY","Bmsy","ESBmsy","SSBmsy")
+
+    }
 
     ## B0
-    unfished <- simpop(0, dat, set)
-##    b0 <- tail(unfished$TSB1plus,1) ## CHECK: why?
-    b0 <- tail(unfished$TSB,1)
+    if(any(ref == "B0")){
+        b0 <- sapply(1:nrep, function(x){
+            setx <- c(set, errs[[x]])
+            if(set$refMethod == "mean"){
+                mean(tail(simpop(log(1e-20), dat, setx, out = 0)$TSB, nyrefmsy))
+            }else if(set$refMethod == "median"){
+                median(tail(simpop(log(1e-20), dat, setx, out = 0)$TSB, nyrefmsy))
+            }
+        })
+        dist <- cbind(dist, b0)
+        colnames(dist) <- c(colnames(dist)[-ncol(dist)], "B0")
+    }
+
+    ## remove runs where long-term SP is smaller or equal to 0
+    nami <- colnames(dist)
+    if("MSY" %in% nami){
+        dist2 <- dist[dist[,2] > 0,]
+    }else{
+        dist2 <- dist
+    }
+    if(set$refMethod == "mean"){
+        meds <- apply(dist2, 2, mean)
+    }else if(set$refMethod == "median"){
+        meds <- apply(dist2, 2, median)
+    }
+
+    refs <- list()
+    if(any(ref == "Fmsy")) refs$Fmsy = as.numeric(meds[which(nami == "Fmsy")])
+    if(any(ref == "MSY")) refs$MSY = as.numeric(meds[which(nami == "MSY")])
+    if(any(ref == "Bmsy")) refs$Bmsy = as.numeric(meds[which(nami == "Bmsy")])
+    if(any(ref == "ESBmsy")) refs$ESBmsy = as.numeric(meds[which(nami == "ESBmsy")])
+    if(any(ref == "SSBmsy")) refs$SSBmsy = as.numeric(meds[which(nami == "SSBmsy")])
+    if(any(ref == "B0")) refs$B0 = as.numeric(meds[which(nami == "B0")])
+
+    dat$ref <- refs
+    dat$refdist <- dist
+
+    if(plot){
+        nr <- floor(ncol(dist)/2)
+        par(mfrow=c(nr,2))
+        for(i in 1:ncol(dist)){
+            hist(dist[,i], main = colnames(dist)[i], breaks=50)
+            abline(v=mean(dist[,i]), lty=1, lwd=1.5, col=4)
+            abline(v=median(dist[,i]), lty=2, lwd=1.5, col=4)
+            if(i == 1) legend("topright", legend = c("mean","median"),
+                              col=4, lty=c(1,2),lwd=1.5)
+        }
+    }
 
     ## return
-    return(list(refs = list(
-                    Fmsy = fmsy,
-                    Bmsy = bmsy,
-                    MSY = msy,
-                    Binf = binf,
-                    B0 = b0),
-        xvec = fvec,
-        yvec = res[3,]
-    ))
+    return(dat)
+}
+
+
+#' @name sbr
+#' @export
+sbr <- function(FM, dat, out=0){
+    ## some variables
+    amax <- dat$amax + 1
+    ## initialize starting values
+    NAA <- rep(0, amax)
+    NAA[1] <- 1
+    for(a in 2:amax)
+        NAA[a] <- NAA[a-1] * exp(-(dat$M[a-1] + FM * dat$sel[a-1]))
+
+    SSBPR <- sum(NAA * dat$weight * dat$mat * dat$fecun)
+    YPR <- sum(baranov(FM*dat$sel, dat$M, NAA) * dat$weightFs)
+
+    if(out == 0) res <- SSBPR else  res <- YPR
+
+    return(res)
 }

@@ -6,21 +6,22 @@
 using namespace Rcpp;
 
 // simpop
-List simpop(double FM, List dat, List set);
-RcppExport SEXP _mse_simpop(SEXP FMSEXP, SEXP datSEXP, SEXP setSEXP) {
+List simpop(double logFM, List dat, List set, int out);
+RcppExport SEXP _mse_simpop(SEXP logFMSEXP, SEXP datSEXP, SEXP setSEXP, SEXP outSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< double >::type FM(FMSEXP);
+    Rcpp::traits::input_parameter< double >::type logFM(logFMSEXP);
     Rcpp::traits::input_parameter< List >::type dat(datSEXP);
     Rcpp::traits::input_parameter< List >::type set(setSEXP);
-    rcpp_result_gen = Rcpp::wrap(simpop(FM, dat, set));
+    Rcpp::traits::input_parameter< int >::type out(outSEXP);
+    rcpp_result_gen = Rcpp::wrap(simpop(logFM, dat, set, out));
     return rcpp_result_gen;
 END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_mse_simpop", (DL_FUNC) &_mse_simpop, 3},
+    {"_mse_simpop", (DL_FUNC) &_mse_simpop, 4},
     {NULL, NULL, 0}
 };
 

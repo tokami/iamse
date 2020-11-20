@@ -1,26 +1,404 @@
-#' @name stocklist
-#' @title Fisheries data included in Polacheck et al. (1993).
-#' @details Fisheries data for south Atlantic albacore, northern Namibian hake, and New Zealand rock lobster.
-#' @docType data
-#' @keywords datasets
-#' @usage data(stocklist)
-#' @format Data are lists containing data
-NULL
 
-#' @name genDevs
+
+#' @name genConvs
+#' @description Get converged simulates from a resMSE object
 #' @export
-genDevs <- function(n, sd, rho=0){
+getConvs <- function(mse, convyears = "all", convhcrs = "all", out = 0, verbose = FALSE){
+
+    nhcr <- length(mse)
+    hcrs <- names(mse)
+    nrep <- length(mse[[1]])
+    nquant <- length(mse[[1]][[1]])
+    nysim <- nrow(mse[[1]][[1]]$tacs)
+    dims <- dim(mse[[1]][[1]]$CW)
+    ny <- dims[1] - nysim
+    ns <- dims[2]
+
+    if(!is.na(convyears[1]) && convyears[1] == "all")
+        convyears <- 1:nysim
+    if(!is.na(convhcrs[1]) && convhcrs[1] == "all")
+        convhcrs <- 1:nhcr
+
+    if(is.numeric(convyears[1]) && is.numeric(convhcrs[1])){
+        indlist <- vector("list",nhcr)
+        for(hcr in 1:nhcr){
+            tmp <- do.call(rbind,lapply(mse[[hcr]], function(x) x[["tacs"]]$conv))
+            indlist[[hcr]] <- apply(tmp[,convyears], 1, all)
+        }
+        ## across hcrs only
+        indlist2 <- do.call(cbind,indlist[convhcrs])
+
+        ## ## across hcrs and scens
+        ## tmp <- lapply(indlist, function(x) do.call(cbind,x[convhcrs]))
+        ## tmp2 <- do.call(cbind, tmp)
+        ## print(5*length(which(apply(tmp2, 1, all))))
+        inds <- which(apply(indlist2,1,all))
+
+        if(verbose)
+            writeLines(paste0("Converged reps: ",length(inds), " of ",nrep,
+                              " reps = ",round(length(inds)/nrep*100),"%"))
+        res <- vector("list",nhcr)
+        for(hcr in 1:nhcr){
+            if(hcrs[hcr] != "refFmsy"){
+            res[[hcr]] <- mse[[hcr]][inds]
+            names(res[[hcr]]) <- inds
+            }else{
+                res[[hcr]] <- mse[[hcr]]
+            names(res[[hcr]]) <- 1:nrep
+            }
+        }
+    }else if(!is.na(convyears[1])){
+        res <- vector("list",nhcr)
+        for(hcr in 1:nhcr){
+            tmpid <- unlist(lapply(strsplit(as.character(mse[[hcr]][[1]]$tacs$id),"-"), "[[", 1))
+            if(any(tmpid %in% c("Bref","Bref2"))){
+                id <- mse[[hcr]][[1]]$tacs$id[which(tmpid %in% c("Bref","Bref2"))[1]]
+            }else{
+                if(length(unique(mse[[hcr]][[1]]$tacs$id)) > 1){ ## TODO: find better solution to this
+                    id <- unique(mse[[hcr]][[1]]$tacs$id)[which(!unique(mse[[hcr]][[1]]$tacs$id) %in% c("conscat","r23","r12","r35"))]
+                }else{
+                    id <- unique(mse[[hcr]][[1]]$tacs$id)
+                }
+            }
+            if(id == 1) browser()
+            print(id)
+            id2 <- unlist(strsplit(as.character(id), "-"))[1]
+            if(!(id2 %in% c("noF","refFmsy","r11","r12","r23","r35"))){
+                tmp <- do.call(rbind,lapply(mse[[hcr]], function(x) x[["tacs"]]$conv))
+                inds <- which(apply(tmp[,convyears], 1, all))
+            }else inds <- 1:nrep
+            if(verbose)
+                writeLines(paste0("Converged reps: ",length(inds), " of ",nrep,
+                                  " reps = ",round(length(inds)/nrep*100),"%"))
+            res[[hcr]] <- mse[[hcr]][inds]
+            names(res[[hcr]]) <- inds
+        }
+    }else{
+        res <- vector("list",nhcr)
+        for(hcr in 1:nhcr){
+            res[[hcr]] <- mse[[hcr]]
+            names(res[[hcr]]) <- 1:nrep
+        }
+    }
 
 
-    rnoise <- rnorm(n, 0, sd) - sd^2/2
+    ## return
+    if(out == 0){
+        return(res)
+    }else if(out == 1){
+        return(sapply(res, length))
+    }
 
-    res <- numeric(n)
-    res[1] <- rnoise[1]
-    for(i in 2:n) res[i] <- rho * rnoise[i-1] + sqrt(1-rho^2) * rnoise[i]
+}
 
-    res <- exp(res)
-    res <- res/mean(res)
 
+#' @name sdconv
+#' @export
+sdconv <- function(mu, sd) (log(1 + ((sd^2)/(mu^2))))^0.5
+
+
+#' @name muconv
+#' @export
+muconv <- function(mu, sd) log(mu) - 0.5 * log(1 + ((sd^2)/(mu^2)))
+
+
+#' @name genNoise
+#' @export
+genNoise <- function(n, sd, rho=0, bias.cor = 0){
+
+    if(bias.cor == 0){
+        rnoise <- rnorm(n, 0, sd)
+    }else if(bias.cor == 1){
+        rnoise <- rnorm(n, 0, sd) - sd^2/2
+    }else if(bias.cor == 2){
+        rnoise <- log(rlnorm(n, muconv(1,sd), sdconv(1,sd)))
+    }
+
+    if(rho > 0){
+        res <- numeric(n)
+        res[1] <- rnoise[1]
+        if(n > 1){
+            for(i in 2:n) res[i] <- rho * res[i-1] + sqrt(1 - rho^2) * rnoise[i]
+        }
+
+        res <- exp(res)
+        res <- res/mean(res)
+
+    }else{
+        res <- exp(rnoise)
+    }
+
+    return(res)
+}
+
+
+#' @name estDepl
+#' @export
+estDepl <- function(dat, set=NULL, fmax = 10, nrep = 100, verbose = TRUE, method = "percentile"){
+
+    if(!any(names(dat) == "ref")) stop("Reference points are missing in dat. Use estRef to estimate reference points.")
+
+    if(is.null(set)){
+        set <- checkSet()
+        nrep <- 1
+    }
+
+    depl <- dat$depl
+    depl.quant <- dat$depl.quant
+    depl.prob <- dat$depl.prob
+
+    if(depl.quant %in% c("Bmsy","Blim")){
+        outopt <- 2
+    }else if(depl.quant %in% c("SSBmsy","SSBlim")){
+        outopt <- 3
+    }else stop("depl.quant not implemented. Please use Bmsy, Blim,SSBmsy or SSBlim. Or implement others.")
+
+    frel <- dat$FM/max(dat$FM)
+
+    fn <- function(logfabs, frel, depl, depl.prob, nrep, dat, set, outopt, optFn=1){
+        datx <- dat
+        fpat <- frel * exp(logfabs)
+        datx$FM <- fpat
+        datx$Fs <- fpat / datx$nseasons
+        dreal <- sapply(1:nrep, function(x) initPop(datx, set, out.opt = outopt))
+        if(method == "mean"){
+            drealQ <- mean(dreal)
+        }else if(method == "median"){
+            drealQ <- quantile(dreal, probs = 0.5)
+        }else if(method == "percentile"){
+            drealQ <- quantile(dreal, probs = depl.prob)
+        }
+        if(optFn==1) return((depl - drealQ)^2)
+        if(optFn==2) return(drealQ)
+    }
+
+    opt <- optimize(fn, c(log(0.0001),log(fmax)), frel = frel, depl = depl, depl.prob = depl.prob,
+                    nrep = nrep, dat = dat, set=set, outopt = outopt, optFn = 1)
+    fabs <- exp(opt$minimum)
+    fvals <- frel * fabs
+    dreal <- round(fn(log(fabs), frel, depl, depl.prob, nrep, dat, set, outopt=outopt, optFn = 2),3)
+
+    if(verbose){
+        print(paste0("Target depletion level as ",depl.prob * 100, "% quantile of ", depl, " ", depl.quant,
+                     " -- Realised depletion level at ", dreal, " ", depl.quant,
+                     " with absolute F equal to ",round(fabs,3)))
+    }
+
+    dat$FM <- fvals
+    dat$Fs <- fvals / dat$nseasons
+
+    return(dat)
+}
+
+
+
+#' @name estProd
+#' @export
+estProd <- function(dat, set= NULL,
+                    ny = 100,
+                    fmax = 10,
+                    tsSplit = 8,
+                    plot = TRUE){
+
+    dat$ny <- ny
+    ns <- dat$nseasons
+    nt <- ny * ns
+
+    ## noise
+    if(is.null(set)) set <- checkSet()
+    set$noiseF <- c(0,0,0)
+    set$noiseR <- c(0,0,0)
+    set$noiseR0 <- c(0,0,0)
+    set$noiseH <- c(0,0,0)
+    set$noiseM <- c(0,0,0)
+    set$noiseMat <- c(0,0,0)
+    set$noiseImp <- c(0,0,0)
+
+    ##
+    len1 <- len3 <- floor(ny/tsSplit)
+    len2 <- ny - len1 - len3
+
+    ## increasing effort
+    dat$FM <- c(rep(0,len1),
+                   seq(0, fmax, length.out = len2),
+                rep(fmax,len3))
+    dat$Fs <- dat$FM / ns
+    pop1 <- initPop(dat, set)
+    tsb1 <- pop1$TSBfinal
+    esb1 <- pop1$ESBfinal
+    cw1 <- apply(pop1$CW,1,sum)
+    prod1 <- rep(NA, ny)
+    if(set$spType == 0){
+        for(i in 2:ny){
+            prod1[i] <- tsb1[i] - tsb1[i-1] + cw1[i]
+        }
+    }else if(set$spType == 1){
+        for(i in 2:ny){
+            prod1[i] <- esb1[i] - esb1[i-1] + cw1[i]
+        }
+    }
+
+    ## est blim as fraction of B corresponding to 0.5 MSY (ICES WKBUT 2013, Cadrin 1999)
+    msy1 <- max(prod1, na.rm=TRUE)
+    Blim1 <- tsb1[which.min(abs(prod1 - msy1/2))]
+
+    ## decreasing effort
+    dat$FM <- c(rep(fmax, len1),
+                   seq(fmax, 0, length.out = len2),
+                   rep(0, len3))
+    pop2 <- initPop(dat, set)
+    dat$Fs <- dat$FM / ns
+    tsb2 <- pop2$TSBfinal
+    esb2 <- pop2$ESBfinal
+    cw2 <- apply(pop2$CW,1,sum)
+    prod2 <- rep(NA, ny)
+    if(set$spType == 0){
+        for(i in 2:ny){
+            prod2[i] <- tsb2[i] - tsb2[i-1] + cw2[i]
+        }
+    }else if(set$spType == 1){
+        for(i in 2:ny){
+            prod2[i] <- esb2[i] - esb2[i-1] + cw2[i]
+        }
+    }
+
+
+    if(plot){
+
+        plot(tsb1, prod1, ty='n',
+             xlim = range(0,tsb1,tsb2),
+             ylim = range(0,prod1,prod2,na.rm=TRUE))
+        lines(tsb1, prod1, ty='b',
+              col = "dodgerblue2")
+        lines(tsb2, prod2, ty='b',
+              col = "darkgreen")
+        legend("topright",
+               title = "Effort",
+               legend = c("increasing","decreasing"),
+               lty=1, col = c("dodgerblue2","darkgreen"))
+
+        if(FALSE){
+        plot(tsb1/refs$B0, prod1/refs$MSY, ty='n',
+             xlim = c(0,1.05), ylim = c(0,1.5))
+        lines(tsb1/refs$B0, prod1/refs$MSY, ty='b',
+              col = "dodgerblue2")
+        lines(tsb2/refs$B0, prod2/refs$MSY, ty='b',
+              col = "darkgreen")
+        legend("topright",
+               title = "Effort",
+               legend = c("increasing","decreasing"),
+               lty=1, col = c("dodgerblue2","darkgreen"))
+        }
+
+        ## abs plot
+        ## plot(tsb1/refs$B0, prod1, ty='n',
+        ##      xlim = c(0,1), ylim = range(prod1,prod2,na.rm=TRUE))
+        ## lines(tsb1/refs$B0, prod1, ty='b',
+        ##       col = "dodgerblue2")
+        ## lines(tsb2/refs$B0, prod2, ty='b',
+        ##       col = "darkgreen")
+    }
+
+    ## CHECK: different production curves as a results of different age/length composition of stock (not at equilibrium age composition at given F, because F changes to quickly. If F changes small -> two curves are the same!
+
+    res <- list(
+        Blim = Blim1,
+        incr = data.frame(tsb = tsb1,
+                          esb = esb1,
+                          cw = cw1,
+                          prod = prod1),
+        decr = data.frame(tsb = tsb2,
+                          esb = esb2,
+                          cw = cw2,
+                          prod = prod2)
+    )
+
+    return(res)
+
+}
+
+
+
+#' @name estProd
+#' @export
+estProdStoch <- function(dat, set= NULL,
+                         fmax = 10,
+                         nf = 1e3,
+                         prob = c(0.1,0.9),
+                         ncores = parallel::detectCores()-1,
+                         plot = TRUE){
+
+    ny <- dat$ny
+    ns <- dat$nseasons
+    nt <- ny * ns
+    ## noise
+    if(is.null(set)) set <- checkSet()
+    nyref <- set$refYears
+    nrep <- set$refN
+    nyrefmsy <- set$refYearsMSY
+
+    set$noiseR <- c(dat$sigmaR, dat$rhoR, 1)
+    dist <- NULL
+    if(!(set$refMethod %in% c("mean","median"))){
+        stop("'set$refMethod' not known! Has to be 'mean' or 'median'!")
+    }
+
+    ## errors (have to be re-used for estimation of Bmsy)
+    errs <- vector("list", nrep)
+    for(i in 1:nrep){
+        errs[[i]] <- vector("list", 7)
+        errs[[i]]$eF <- genNoise(nyref, set$noiseF[1], set$noiseF[2], set$noiseF[3])
+        errs[[i]]$eR <- genNoise(nyref, set$noiseR[1], set$noiseR[2], set$noiseR[3])
+        errs[[i]]$eM <- genNoise(nyref, set$noiseM[1], set$noiseM[2], set$noiseM[3])
+        errs[[i]]$eH <- genNoise(nyref, set$noiseH[1], set$noiseH[2], set$noiseH[3])
+        errs[[i]]$eR0 <- genNoise(nyref, set$noiseR0[1], set$noiseR0[2], set$noiseR0[3])
+        errs[[i]]$eMat <- genNoise(nyref, set$noiseMat[1], set$noiseMat[2], set$noiseMat[3])
+        errs[[i]]$eImp <- genNoise(nyref, set$noiseImp[1], set$noiseImp[2], set$noiseImp[3])
+    }
+
+    ##
+    fms <- seq(0, fmax, length.out = nf)
+    resList <- vector("list", nf)
+    for(fx in 1:nf){
+        tmp0 <- parallel::mclapply(as.list(1:nrep), function(x){
+            setx <- c(set, errs[[x]])
+            pop <- simpop(log(fms[fx]), dat, setx, out=0)
+            tsb <- tail(pop$TSB,1)
+            esb <- tail(pop$ESB,1)
+            ssb <- tail(pop$SSB,1)
+            cw <- tail(pop$CW,1)
+            sp <- tail(pop$SP,1)
+            return(c(TSB = tsb, SSB = ssb, ESB = esb, CW = cw, SP = sp))
+        }, mc.cores = ncores)
+        tmp <- do.call(rbind, tmp0)
+        resList[[fx]] <- cbind(f = rep(fms[fx],nrep), tmp)
+    }
+
+    ## est blim as fraction of B corresponding to 0.5 MSY (ICES WKBUT 2013, Cadrin 1999)
+    bs <- do.call(rbind, lapply(resList, function(x) x[,2]))
+    sps <- do.call(rbind, lapply(resList, function(x) x[,6]))
+    blims <- rep(NA, nrep)
+    for(i in 1:nrep){
+        msy <- max(sps[,i], na.rm=TRUE)
+        blims[i] <- bs[which.min(abs(sps[,i] - msy/2)),i]
+    }
+
+    means <- as.data.frame(do.call(rbind,lapply(resList,
+                                                function(x) apply(x,2, mean, na.rm=TRUE))))
+    meds <- as.data.frame(do.call(rbind,lapply(resList,
+                                               function(x) apply(x,2, median, na.rm=TRUE))))
+    lo <- as.data.frame(do.call(rbind,lapply(resList,
+                                             function(x) apply(x,2, quantile, prob=min(prob),
+                                                                        na.rm=TRUE))))
+    up <- as.data.frame(do.call(rbind,lapply(resList,
+                                             function(x) apply(x,2, quantile, prob=max(prob),
+                                                          na.rm=TRUE))))
+
+    res <- list(meds = meds,
+                means = means,
+                lo = lo,
+                up = up,
+                blims = blims)
     return(res)
 
 }
@@ -29,37 +407,116 @@ genDevs <- function(n, sd, rho=0){
 #' @name checkSet
 #' @export
 checkSet <- function(set = NULL){
+
+    ## empty list
     if(is.null(set)) set <- list()
 
-    ## lognormal SDs of noise
-    if(is.null(set$sigmaR)) set$sigmaR <- 0
-    if(is.null(set$sigmaF)) set$sigmaF <- 0
-    if(is.null(set$sigmaM)) set$sigmaM <- 0
-    if(is.null(set$sigmaH)) set$sigmaH <- 0
-    if(is.null(set$sigmaR0)) set$sigmaR0 <- 0
-    if(is.null(set$sigmaMat)) set$sigmaMat <- 0
-
-    ## auto-correlated recruitment devs
-    if(is.null(set$rhoR)) set$rhoR <- 0
+    ## noise vectors (SD, rho, bias correction)
+    if(is.null(set$noiseR)){
+        set$noiseR <- c(0,0,0)
+    }else if(length(set$noiseR) != 3){
+        writeLines("'set$noiseR' needs to be a vector with 3 values corresponding to: sd, rho, bias.corr (see genNoise). Setting to c(0,0,0)!")
+    }
+    if(is.null(set$noiseF)){
+        set$noiseF <- c(0,0,0)
+    }else if(length(set$noiseF) != 3){
+        writeLines("'set$noiseF' needs to be a vector with 3 values corresponding to: sd, rho, bias.corr (see genNoise). Setting to c(0,0,0)!")
+    }
+    if(is.null(set$noiseM)){
+        set$noiseM <- c(0,0,0)
+    }else if(length(set$noiseM) != 3){
+        writeLines("'set$noiseM' needs to be a vector with 3 values corresponding to: sd, rho, bias.corr (see genNoise). Setting to c(0,0,0)!")
+    }
+    if(is.null(set$noiseH)){
+        set$noiseH <- c(0,0,0)
+    }else if(length(set$noiseH) != 3){
+        writeLines("'set$noiseH' needs to be a vector with 3 values corresponding to: sd, rho, bias.corr (see genNoise). Setting to c(0,0,0)!")
+    }
+    if(is.null(set$noiseR0)){
+        set$noiseR0 <- c(0,0,0)
+    }else if(length(set$noiseR0) != 3){
+        writeLines("'set$noiseR0' needs to be a vector with 3 values corresponding to: sd, rho, bias.corr (see genNoise). Setting to c(0,0,0)!")
+    }
+    if(is.null(set$noiseMat)){
+        set$noiseMat <- c(0,0,0)
+    }else if(length(set$noiseMat) != 3){
+        writeLines("'set$noiseMat' needs to be a vector with 3 values corresponding to: sd, rho, bias.corr (see genNoise). Setting to c(0,0,0)!")
+    }
+    if(is.null(set$noiseImp)){
+        set$noiseImp <- c(0,0,0)
+    }else if(length(set$noiseImp) != 3){
+        writeLines("'set$noiseImp' needs to be a vector with 3 values corresponding to: sd, rho, bias.corr (see genNoise). Setting to c(0,0,0)!")
+    }
+    if(is.null(set$noiseC)){
+        set$noiseC <- c(0,0,0)
+    }else if(length(set$noiseC) != 3){
+        writeLines("'set$noiseC' needs to be a vector with 3 values corresponding to: sd, rho, bias.corr (see genNoise). Setting to c(0,0,0)!")
+    }
+    if(is.null(set$noiseI)){
+        set$noiseI <- c(0,0,0)
+    }else if(length(set$noiseI) != 3){
+        writeLines("'set$noiseI' needs to be a vector with 3 values corresponding to: sd, rho, bias.corr (see genNoise). Setting to c(0,0,0)!")
+    }
 
     ## maximum F for baranov solution for F given TAC
     if(is.null(set$maxF)) set$maxF <- 5
 
     ## for estimation of ref levels
-    if(is.null(set$refN)) set$refN <- 1e4
-    if(is.null(set$refYears)) set$refYears <- 150
+    if(is.null(set$refN)) set$refN <- 1e3
+    if(is.null(set$refYears)){
+        set$refYears <- 300
+    }else if(set$refYears < 100){
+        writeLines("set$refYears has to be at least 100 years, as the median surplus production over the last 50 years are used for reference estimation. Setting to 100.")
+        set$refYears <- 100
+    }
+    if(is.null(set$refYearsMSY)){
+        set$refYearsMSY <- 100
+    }else if(set$refYearsMSY >= set$refYears){
+        writeLines("set$refYearsMSY cannot be longer than 'set$refYears'. Setting to half of 'set$refYears'.")
+        set$refYearsMSY <- floor(set$refYears / 2)
+    }
+    if(is.null(set$refMethod)){
+        set$refMethod <- "mean"
+    }else if(set$refYears < 100){
+        writeLines("'set$refMethod' has to be mean or median. Setting to 'mean'.")
+        set$refMethod <- "mean"
+    }
 
-    if(is.null(set$nyhist)) set$nyhist <- 50
-    if(is.null(set$nysim)) set$nysim <- 50
+    ## Recruitment
+    if(is.null(set$recruitmentTiming)) set$recruitmentTiming <- 1
+
+    ## number of years available to assessment method
+    if(is.null(set$nyhist)) set$nyhist <- 35
+    if(is.null(set$nysim)) set$nysim <- 35
     if(is.null(set$nrep)) set$nrep <- 50
 
-    ## observation noise
-    if(is.null(set$CVC)) set$CVC <- 0
-    if(is.null(set$CVI)) set$CVI <- 0
+    ## Assessment
+    if(is.null(set$assessmentTiming)) set$assessmentTiming <- 1
+
+    ## Index timing:
+    ## North Sea - IBITS: the majority of countries have only carried
+    ## out a survey twice a year; a first quarter survey (January-February) and a
+    ## third quarter survey (August-September)
+    if(is.null(set$surveyTimes)) set$surveyTimes <- c(1/12,7/12)
 
     ## HCR
-    if(is.null(set$hcr)) set$hcr <- c("refFmsy","noF")
+    if(is.null(set$hcr)) set$hcr <- c(defHCRref(),defHCRref(consF = "fmsy"))
+    ## define constant catch rule
+    defHCRconscat()
     if(is.null(set$stab)) set$stab <- FALSE
+
+    ## Seasonal catch observations
+    if(is.null(set$catchSeasons)) set$catchSeasons <- 1
+
+    ## burn in period
+    if(is.null(set$burnin)) set$burnin <- 20
+
+    ## seed
+    if(is.null(set$seed)) set$seed <- NA
+
+    ## SP type used for estimation of reference levels (and porduction curve)
+    ## SP based on TSB (spType == 0) or on ESB (spType == 1)
+    if(is.null(set$spType)) set$spType <- 0
 
     ## return
     return(set)
@@ -101,15 +558,47 @@ baranov <- function(FAA,M,NAA){
 }
 
 
-#' @name getFAA
+#' @name getFM
 #' @export
 getFM <- function(TAC, NAA, M, weight, sel){
     tacEst <- function(FM, NAA, M, sel, weight, TAC){
-        (TAC - sum(baranov(exp(FM) * sel, M, NAA) * weight))^2
+        (TAC - sum(baranov(exp(FM) * sel, M, NAA*exp(-M/2)) * weight))^2
     }
     opt <- optimise(tacEst, c(-10,10), NAA = NAA, M = M, TAC = TAC,
                     weight = weight, sel = sel)
     return(exp(opt$minimum))
+}
+
+
+#' @name getFM2
+#' @description Hybrid method (Methot and Wetzel)
+#' @export
+getFM2 <- function(TAC, TSB, ds, M, NAA, weight, weightF, sel, fmax = 1){
+    fout <- 0
+    if(TAC > 0){
+        tmp <- TAC/(TSB + 0.1*TAC)
+        j <- (1 + exp(30 * (tmp - 0.95)))^-1
+        tmp2 <- j * tmp + 0.95 * (1 - j)
+        fout <- -log(1 - tmp2) / ds
+        for(i in 1:4){
+            Fs <- fout * sel
+            Z <- M + Fs
+            Alpha <- (1 - exp(-Z))
+            Ctmp <- sum((Fs/Z) * (NAA * weightF * sel) * Alpha)
+
+            Zadj <- TAC/(Ctmp + 0.0001)
+
+            Zprime <- M + Zadj * (Z - M)
+            Alpha <- (1 - exp(-Zprime))/(Zprime)
+
+            tmp <- sum(NAA * weight * sel * Alpha)
+            Ftmp <-  TAC/(tmp + 0.0001)
+            j2 <- 1/(1 + exp(30 * (Ftmp - 0.95 * fmax)))
+
+            fout <- j2 * Ftmp + (1 - j2)
+        }
+    }
+    return(fout)
 }
 
 
@@ -122,8 +611,13 @@ getFM <- function(TAC, NAA, M, weight, sel){
 #' @param plba - probability of being in mids given age
 getSel <- function(L50, L95, mids, plba){
     selL <- (1 /(1 + exp(-log(19)*(mids - L50)/(L95 - L50))))
-    selA <- apply(t(plba) * selL, 2, sum)
-    selA[1] <- 1e-9 # it should be zero for age 0
+    dims <- dim(plba)
+    selA <- matrix(NA, ncol = dims[3], nrow = dims[1])
+    for(i in 1:dim(plba)[3]){
+        selA[,i] <- apply(t(plba[,,i]) * selL, 2, sum)
+    }
+##    selA <- apply(t(plba) * selL, 2, sum)
+##    selA[1] <- 1e-9 # it should be zero for age 0
     return(selA)
 }
 
@@ -138,27 +632,77 @@ getMat <- function(Lm50, Lm95, mids, plba){
     ## maturity at length
     matL <- (1 /(1 + exp(-log(19)*(mids - Lm50)/(Lm95 - Lm50))))
     ## maturity at age
-    matA <- apply(t(plba) * matL, 2, sum)
-    matA <- c(1e-9,matA[-1])
+    dims <- dim(plba)
+    matA <- matrix(NA, ncol = dims[3], nrow = dims[1])
+    for(i in 1:dim(plba)[3]){
+        matA[,i] <- apply(t(plba[,,i]) * matL, 2, sum)
+    }
+##    matA <- apply(t(plba) * matL, 2, sum)
+##    matA <- c(1e-9,matA[-1])
     return(matA)
 }
 
 
-#' @name getSSBPR0
+#' @name getSSBPR
 #' @description Function to calculate spawners per recruit
-#' @param M - natural mortality
+#' @param Z - total mortality
 #' @param mat - maturity ogive
 #' @param fecun - fecundity matrix
 #' @param amax - number of age classes
 #' @return spawning biomass per recruit
 #' @export
-getSSBPR0 <- function(M, mat, fecun=1, amax){
+getSSBPR <- function(M, mat, weight, fecun=1, amax, R0 = 1, FM = NULL){
     N <- rep(NA, amax)
-    N[1] <- 1
-    for(age in 2:amax)
-        N[age] <- N[age-1] * exp(-M[age-1])
-    N[amax] <- N[amax] / (1 - exp(-M[amax-1]))
-    SBPR <- sum(N * mat * fecun)
+    N[1] <- R0
+    M <- cumsum(M)
+    if(!is.null(FM)) Z = M + FM else Z = M
+    N[2:(amax-1)] <- R0 * exp(-Z[1:(amax-2)])
+    N[amax] <- R0 * exp(-Z[amax-1]) / (1-exp(-Z[amax]))
+    SBPR <- sum(N * mat * weight * fecun)
+    return(SBPR)
+}
+
+#' @name getSSBPR2
+#' @description Function to calculate spawners per recruit
+#' @param Z - total mortality
+#' @param mat - maturity ogive
+#' @param fecun - fecundity matrix
+#' @param amax - number of age classes
+#' @return spawning biomass per recruit
+#' @export
+getSSBPR2 <- function (Ms, mats, weights, fecun = 1, amax, R0 = 1, FMs = NULL, ns, recruitmentTiming){
+    ## account for seasonal natural mortalities
+    if(inherits(Ms, "matrix")){
+        Mtot <- apply(Ms, 1, sum)
+    }else{
+        Mtot <- Ms
+    }
+    if(is.null(FMs)){
+        FMtot <- 0
+        FMs <- matrix(0, nrow = amax, ncol = ns)
+    }else if(inherits(FMs, "matrix")){
+        FMtot <- apply(FMs, 1, sum)
+    }else{
+        FMtot <- FMs
+    }
+    ## first quarter/whole year
+    NAA <- matrix(NA, nrow = amax, ncol = ns)
+    NAA[1] <- R0
+    MAA <- cumsum(Mtot)
+    FAA <- cumsum(FMtot)
+    ZAA <- MAA + FAA
+    NAA[2:(amax - 1),1] <- R0 * exp(-ZAA[1:(amax - 2)])
+    NAA[amax,1] <- R0 * exp(-ZAA[amax - 1])/(1 - exp(-ZAA[amax]))
+    ## other quarters
+    if(ns > 1){
+        for(s in 2:ns){
+            ZAA <- Ms[,s] + FMs[,s]
+            NAA[,s] <- NAA[,s-1] * exp(-ZAA)
+        }
+    }
+    SBPR_per_season <- apply(NAA * mats * weights * fecun, 2, sum)
+    ## season before spawning? season_before_spawning <- c(ns,(1:(ns-1)))[recruitmentTiming]
+    SBPR <- SBPR_per_season[recruitmentTiming]
     return(SBPR)
 }
 
@@ -169,912 +713,42 @@ getSSBPR0 <- function(M, mat, fecun=1, amax){
 #' @param R0 - recruitment in unfished population
 #' @param SSBPR0 - spawning biomass produced by one recrut in its lifetime
 #' @param SSB - spawning biomass
+#' @param bp - breakpoint for hockey-stick SR
+#' @param method - SR type
+#'
 #' @export
-recfunc <- function(h, SSBPR0, SSB,  R0 = 1000, method = "bevholt"){
+recfunc <- function(h, SSBPR0, SSB,  R0 = 1e6, method = "bevholt", bp = 0,
+                    beta = 0, gamma = 0){
+
     if(method == "bevholt"){
-        alpha <- SSBPR0 * ((1-h)/(4*h))
-        beta <- (5*h-1)/(4*h*R0)
-        rec <- SSB / (alpha + beta * SSB)
+        ## alpha <- SSBPR0 * ((1-h)/(4*h))
+        ## beta <- (5*h-1)/(4*h*R0)
+        ## rec <- SSB / (alpha + beta * SSB)
+
+        rec <- (4 * h * R0 * SSB / (SSBPR0 * (1-h) + SSB * (5*h-1)))
+
     }else if(method == "ricker"){
-        beta <- log(5 * h) / (0.8 * R0)
-        alpha <- exp(beta * R0)/SSBPR0
-        rec <- alpha * SSB * exp(-beta * SSB)
-    }else print("method not known!")
+        ## beta <- log(5 * h) / (0.8 * R0)
+        ## alpha <- exp(beta * R0)/SSBPR0
+        ## rec <- alpha * SSB * exp(-beta * SSB)
+        rec <- bp * SSB * exp(-beta * SSB)
+    }else if(method == "average"){
+        rec <- R0
+    }else if(method == "hockey-stick"){
+        rec <- ifelse(SSB > bp, R0, SSB * R0/bp)
+    }else if(method == "bent-hyperbola"){  ## Watts-Bacon bent hyperbola
+        rec <- beta * (SSB + sqrt(bp^2 + (gamma^2)/4) - sqrt((SSB-bp)^2 + (gamma^2)/4))
+    }else print("Stock-recruitment method not known! Implemented methods: 'bevholt', 'ricker', 'average', and 'hockey-stick'.")
+
     return (rec)
 }
 
 
+
 #' @name estTAC
 #' @export
-estTAC <- function(inp, hcr, hist=NULL, stab=FALSE, tacs=NULL, tcv=NA){
-
-    switch(hcr,
-           "pbbfred" = {
-               inp <- check.inp(inp)
-               inp$phases$logn <- -1
-               inp$ini$logn <- log(2)
-               inp$MSEmode <- 3
-               rep <- try(fit.spict(inp), silent=TRUE)
-               if(class(rep) == "try-error" || rep$opt$convergence != 0 ||
-                  any(is.infinite(rep$sd))){
-                   tacs <- conscat(inp, tacs=tacs)
-               }else{
-                   tacs <- spictPBBFred(rep, bfrac=1, prob = 0.5, stab=stab, tacs=tacs)
-               }
-
-               if(is.na(tacs$TAC[nrow(tacs)])){
-                   tactmp <- data.frame(TAC=inp$obsC[length(inp$obsC)], id="pbbfred", hitSC=NA,
-                                        red=NA, barID=NA, sd=NA, conv=NA)
-                   if(nrow(tacs) == 1){
-                       tacs <- tactmp
-                   }else{
-                       tacs <- rbind(tacs, tactmp)
-                   }
-               }
-               return(tacs)
-           },
-           "spict-msy" = {
-               inp$reportmode <- 1
-               inp$dteuler <- 1/4
-               inp <- check.inp(inp)
-               rep <- try(fit.spict(inp), silent=TRUE)
-               if(class(rep) == "try-error" || rep$opt$convergence != 0 || any(is.infinite(rep$sd))){
-                   tacs <- conscat(inp, tacs=tacs)
-               }else{
-                   fmfmsy <- round(get.par("logFmFmsynotS",rep, exp=TRUE)[,c(2,4)],2)
-                   names(fmfmsy) <- paste0("fmfmsy-",names(fmfmsy))
-                   bpbmsy <- round(get.par("logBpBmsy",rep, exp=TRUE)[,c(2,4)],2)
-                   names(bpbmsy) <- paste0("bpbmsy-",names(bpbmsy))
-                   cp <- round(get.par("logCp",rep, exp=TRUE)[,c(2,4)],2)
-                   names(cp) <- paste0("cp-",names(cp))
-                   ##
-                   fmsy <- round(get.par("logFmsy",rep, exp=TRUE)[,c(2,4)],2)
-                   names(fmsy) <- paste0("fmsy-",names(fmsy))
-                   bmsy <- round(get.par("logBmsy",rep, exp=TRUE)[,c(2,4)],2)
-                   names(bmsy) <- paste0("bmsy-",names(bmsy))
-                   ##
-                   tac <- try(spict:::get.TAC(rep=rep,
-                                              fractiles = list(catch=0.5, ffmsy=0.5, bbmsy=0.5,
-                                                               bmsy = 0.5, fmsy = 0.5),
-                                              breakpointB = 0, verbose = FALSE), silent = TRUE)
-                   if(class(tac) == "try-error"){
-                       tacs <- conscat(inp, tacs=tacs)
-                   }else{
-                       tactmp <- data.frame(TAC=tac, id="spict-msy", hitSC=NA,
-                                            red=NA, barID=NA, sd=NA, conv = NA)
-                       tactmp <- as.data.frame(c(tactmp, fmfmsy, bpbmsy, cp, fmsy, bmsy))
-                       if(is.null(tacs)){
-                           tacs <- tactmp
-                       }else{
-                           tacs <- rbind(tacs, tactmp)
-                       }
-                   }
-               }
-               return(tacs)
-           },
-           "spict-msy-fmsy30" = {
-               inp$reportmode <- 1
-               inp$dteuler <- 1/4
-               inp <- check.inp(inp)
-               rep <- try(fit.spict(inp), silent=TRUE)
-               if(class(rep) == "try-error" || rep$opt$convergence != 0 || any(is.infinite(rep$sd))){
-                   tacs <- conscat(inp, tacs=tacs)
-               }else{
-                   fmfmsy <- round(get.par("logFmFmsynotS",rep, exp=TRUE)[,c(2,4)],2)
-                   names(fmfmsy) <- paste0("fmfmsy-",names(fmfmsy))
-                   bpbmsy <- round(get.par("logBpBmsy",rep, exp=TRUE)[,c(2,4)],2)
-                   names(bpbmsy) <- paste0("bpbmsy-",names(bpbmsy))
-                   cp <- round(get.par("logCp",rep, exp=TRUE)[,c(2,4)],2)
-                   names(cp) <- paste0("cp-",names(cp))
-                   ##
-                   fmsy <- round(get.par("logFmsy",rep, exp=TRUE)[,c(2,4)],2)
-                   names(fmsy) <- paste0("fmsy-",names(fmsy))
-                   bmsy <- round(get.par("logBmsy",rep, exp=TRUE)[,c(2,4)],2)
-                   names(bmsy) <- paste0("bmsy-",names(bmsy))
-                   ##
-                   tac <- try(spict:::get.TAC(rep=rep,
-                                              fractiles = list(catch=0.5, ffmsy=0.5, bbmsy=0.5,
-                                                               bmsy = 0.5, fmsy = 0.3),
-                                              breakpointB = 0, verbose = FALSE), silent = TRUE)
-                   if(class(tac) == "try-error"){
-                       tacs <- conscat(inp, tacs=tacs)
-                   }else{
-                       tactmp <- data.frame(TAC=tac, id="spict-msy-fmsy30", hitSC=NA,
-                                            red=NA, barID=NA, sd=NA, conv = NA)
-                       tactmp <- as.data.frame(c(tactmp, fmfmsy, bpbmsy, cp, fmsy, bmsy))
-                       if(is.null(tacs)){
-                           tacs <- tactmp
-                       }else{
-                           tacs <- rbind(tacs, tactmp)
-                       }
-                   }
-               }
-               return(tacs)
-           },
-           "spict-msy-bmsy30" = {
-               inp$reportmode <- 1
-               inp$dteuler <- 1/4
-               inp <- check.inp(inp)
-               rep <- try(fit.spict(inp), silent=TRUE)
-               if(class(rep) == "try-error" || rep$opt$convergence != 0 || any(is.infinite(rep$sd))){
-                   tacs <- conscat(inp, tacs=tacs)
-               }else{
-                   fmfmsy <- round(get.par("logFmFmsynotS",rep, exp=TRUE)[,c(2,4)],2)
-                   names(fmfmsy) <- paste0("fmfmsy-",names(fmfmsy))
-                   bpbmsy <- round(get.par("logBpBmsy",rep, exp=TRUE)[,c(2,4)],2)
-                   names(bpbmsy) <- paste0("bpbmsy-",names(bpbmsy))
-                   cp <- round(get.par("logCp",rep, exp=TRUE)[,c(2,4)],2)
-                   names(cp) <- paste0("cp-",names(cp))
-                   ##
-                   fmsy <- round(get.par("logFmsy",rep, exp=TRUE)[,c(2,4)],2)
-                   names(fmsy) <- paste0("fmsy-",names(fmsy))
-                   bmsy <- round(get.par("logBmsy",rep, exp=TRUE)[,c(2,4)],2)
-                   names(bmsy) <- paste0("bmsy-",names(bmsy))
-                   ##
-                   tac <- try(spict:::get.TAC(rep=rep,
-                                              fractiles = list(catch=0.5, ffmsy=0.5, bbmsy=0.5,
-                                                               bmsy = 0.3, fmsy = 0.5),
-                                              breakpointB = 0, verbose = FALSE), silent = TRUE)
-                   if(class(tac) == "try-error"){
-                       tacs <- conscat(inp, tacs=tacs)
-                   }else{
-                       tactmp <- data.frame(TAC=tac, id="spict-msy-bmsy30", hitSC=NA,
-                                            red=NA, barID=NA, sd=NA, conv = NA)
-                       tactmp <- as.data.frame(c(tactmp, fmfmsy, bpbmsy, cp, fmsy, bmsy))
-                       if(is.null(tacs)){
-                           tacs <- tactmp
-                       }else{
-                           tacs <- rbind(tacs, tactmp)
-                       }
-                   }
-               }
-               return(tacs)
-           },
-           "spict-hs50" = {
-               inp$reportmode <- 1
-               inp$dteuler <- 1/4
-               inp <- check.inp(inp)
-               rep <- try(fit.spict(inp), silent=TRUE)
-               if(class(rep) == "try-error" || rep$opt$convergence != 0 || any(is.infinite(rep$sd))){
-                   tactmp <- conscat(inp, tacs=tacs)
-               }else{
-                   fmfmsy <- round(get.par("logFmFmsynotS",rep, exp=TRUE)[,c(2,4,5)],2)
-                   names(fmfmsy) <- paste0("fmfmsy-",names(fmfmsy))
-                   bpbmsy <- round(get.par("logBpBmsy",rep, exp=TRUE)[,c(2,4,5)],2)
-                   names(bpbmsy) <- paste0("bpbmsy-",names(bpbmsy))
-                   cp <- round(get.par("logCp",rep, exp=TRUE)[,c(2,4,5)],2)
-                   names(cp) <- paste0("cp-",names(cp))
-                   tac <- try(spict:::get.TAC(rep=rep,
-                                              fractiles = list(catch=0.5, ffmsy=0.5, bbmsy=0.5),
-                                              breakpointB = 0.5, verbose = FALSE), silent = TRUE)
-                   if(class(tac) == "try-error"){
-                       tactmp <- conscat(inp, tacs=tacs)
-                   }else{
-                       tactmp <- data.frame(TAC=tac, id="spict-hs50", hitSC=NA,
-                                            red=NA, barID=NA, sd=NA, conv = NA)
-                       tactmp <- as.data.frame(c(tactmp, fmfmsy, bpbmsy, cp))
-                   }
-               }
-               if(is.null(tacs)){
-                   tacs <- tactmp
-               }else{
-                   tacs <- rbind(tacs, tactmp)
-               }
-               rm(rep)
-               return(tacs)
-           },
-           "spict-msy-a30" = {
-               inp$reportmode <- 1
-               inp$dteuler <- 1/4
-               inp <- check.inp(inp)
-               rep <- try(fit.spict(inp), silent=TRUE)
-               if(class(rep) == "try-error" || rep$opt$convergence != 0 || any(is.infinite(rep$sd))){
-                   tactmp <- conscat(inp, tacs=tacs)
-               }else{
-                   fmfmsy <- round(get.par("logFmFmsynotS",rep, exp=TRUE)[,c(2,4,5)],2)
-                   names(fmfmsy) <- paste0("fmfmsy-",names(fmfmsy))
-                   bpbmsy <- round(get.par("logBpBmsy",rep, exp=TRUE)[,c(2,4,5)],2)
-                   names(bpbmsy) <- paste0("bpbmsy-",names(bpbmsy))
-                   cp <- round(get.par("logCp",rep, exp=TRUE)[,c(2,4,5)],2)
-                   names(cp) <- paste0("cp-",names(cp))
-                   tac <- try(spict:::get.TAC(rep=rep,
-                                              fractiles = list(catch=0.3, ffmsy=0.3, bbmsy=0.3),
-                                              breakpointB = 0, verbose = FALSE), silent = TRUE)
-                   if(class(tac) == "try-error"){
-                       tactmp <- conscat(inp, tacs=tacs)
-                   }else{
-                       tactmp <- data.frame(TAC=tac, id="spict-msy-a30", hitSC=NA,
-                                            red=NA, barID=NA, sd=NA, conv = NA)
-                       tactmp <- as.data.frame(c(tactmp, fmfmsy, bpbmsy, cp))
-                   }
-               }
-               if(is.null(tacs)){
-                   tacs <- tactmp
-               }else{
-                   tacs <- rbind(tacs, tactmp)
-               }
-               return(tacs)
-           },
-           "spict-msy-b30" = {
-               inp$reportmode <- 1
-               inp$dteuler <- 1/4
-               inp <- check.inp(inp)
-               rep <- try(fit.spict(inp), silent=TRUE)
-               if(class(rep) == "try-error" || rep$opt$convergence != 0 || any(is.infinite(rep$sd))){
-                   tactmp <- conscat(inp, tacs=tacs)
-               }else{
-                   fmfmsy <- round(get.par("logFmFmsynotS",rep, exp=TRUE)[,c(2,4,5)],2)
-                   names(fmfmsy) <- paste0("fmfmsy-",names(fmfmsy))
-                   bpbmsy <- round(get.par("logBpBmsy",rep, exp=TRUE)[,c(2,4,5)],2)
-                   names(bpbmsy) <- paste0("bpbmsy-",names(bpbmsy))
-                   cp <- round(get.par("logCp",rep, exp=TRUE)[,c(2,4,5)],2)
-                   names(cp) <- paste0("cp-",names(cp))
-                   tac <- try(spict:::get.TAC(rep=rep,
-                                              fractiles = list(catch=0.5, ffmsy=0.5, bbmsy=0.3),
-                                              breakpointB = 0, verbose = FALSE), silent = TRUE)
-                   if(class(tac) == "try-error"){
-                       tactmp <- conscat(inp, tacs=tacs)
-                   }else{
-                       tactmp <- data.frame(TAC=tac, id="spict-msy-b30", hitSC=NA,
-                                            red=NA, barID=NA, sd=NA, conv = NA)
-                       tactmp <- as.data.frame(c(tactmp, fmfmsy, bpbmsy, cp))
-                   }
-               }
-               if(is.null(tacs)){
-                   tacs <- tactmp
-               }else{
-                   tacs <- rbind(tacs, tactmp)
-               }
-               return(tacs)
-           },
-           "spict-msy-f30" = {
-               inp$reportmode <- 1
-               inp$dteuler <- 1/4
-               inp <- check.inp(inp)
-               rep <- try(fit.spict(inp), silent=TRUE)
-               if(class(rep) == "try-error" || rep$opt$convergence != 0 || any(is.infinite(rep$sd))){
-                   tactmp <- conscat(inp, tacs=tacs)
-               }else{
-                   fmfmsy <- round(get.par("logFmFmsynotS",rep, exp=TRUE)[,c(2,4,5)],2)
-                   names(fmfmsy) <- paste0("fmfmsy-",names(fmfmsy))
-                   bpbmsy <- round(get.par("logBpBmsy",rep, exp=TRUE)[,c(2,4,5)],2)
-                   names(bpbmsy) <- paste0("bpbmsy-",names(bpbmsy))
-                   cp <- round(get.par("logCp",rep, exp=TRUE)[,c(2,4,5)],2)
-                   names(cp) <- paste0("cp-",names(cp))
-                   tac <- try(spict:::get.TAC(rep=rep,
-                                              fractiles = list(catch=0.5, ffmsy=0.3, bbmsy=0.5),
-                                              breakpointB = 0, verbose = FALSE), silent = TRUE)
-                   if(class(tac) == "try-error"){
-                       tactmp <- conscat(inp, tacs=tacs)
-                   }else{
-                       tactmp <- data.frame(TAC=tac, id="spict-msy-f30", hitSC=NA,
-                                            red=NA, barID=NA, sd=NA, conv = NA)
-                       tactmp <- as.data.frame(c(tactmp, fmfmsy, bpbmsy, cp))
-                   }
-               }
-               if(is.null(tacs)){
-                   tacs <- tactmp
-               }else{
-                   tacs <- rbind(tacs, tactmp)
-               }
-               return(tacs)
-           },
-           "spict-msy-c30" = {
-               inp$reportmode <- 1
-               inp$dteuler <- 1/4
-               inp <- check.inp(inp)
-               rep <- try(fit.spict(inp), silent=TRUE)
-               if(class(rep) == "try-error" || rep$opt$convergence != 0 || any(is.infinite(rep$sd))){
-                   tactmp <- conscat(inp, tacs=tacs)
-               }else{
-                   fmfmsy <- round(get.par("logFmFmsynotS",rep, exp=TRUE)[,c(2,4,5)],2)
-                   names(fmfmsy) <- paste0("fmfmsy-",names(fmfmsy))
-                   bpbmsy <- round(get.par("logBpBmsy",rep, exp=TRUE)[,c(2,4,5)],2)
-                   names(bpbmsy) <- paste0("bpbmsy-",names(bpbmsy))
-                   cp <- round(get.par("logCp",rep, exp=TRUE)[,c(2,4,5)],2)
-                   names(cp) <- paste0("cp-",names(cp))
-                   tac <- try(spict:::get.TAC(rep=rep,
-                                              fractiles = list(catch=0.3, ffmsy=0.5, bbmsy=0.5),
-                                              breakpointB = 0, verbose = FALSE), silent = TRUE)
-                   if(class(tac) == "try-error"){
-                       tactmp <- conscat(inp, tacs=tacs)
-                   }else{
-                       tactmp <- data.frame(TAC=tac, id="spict-msy-c30", hitSC=NA,
-                                            red=NA, barID=NA, sd=NA, conv = NA)
-                       tactmp <- as.data.frame(c(tactmp, fmfmsy, bpbmsy, cp))
-                   }
-               }
-               if(is.null(tacs)){
-                   tacs <- tactmp
-               }else{
-                   tacs <- rbind(tacs, tactmp)
-               }
-               return(tacs)
-           },
-           "pbb065-msy025" = {
-               inp <- check.inp(inp)
-               rep <- try(fit.spict(inp), silent=TRUE)
-               if(class(rep) == "try-error" || rep$opt$convergence != 0 ||
-                  any(is.infinite(rep$sd))){
-                   inp$priors$logn <- c(log(2),1e-4,1)
-                   rep <- try(fit.spict(inp), silent=TRUE)
-                   if(class(rep) == "try-error" || rep$opt$convergence != 0 ||
-                      any(is.infinite(rep$sd))){
-                       tacs <- conscat(inp, tacs=tacs)
-                   }else{
-                       tacs <- spictPBB_MSY(rep, bfrac=1, prob = 0.65, stab=stab, tacs=tacs, tcv=0.25)
-                   }
-               }else{
-                   tacs <- spictPBB_MSY(rep, bfrac=1, prob = 0.65, stab=stab, tacs=tacs, tcv=0.25)
-               }
-               if(is.na(tacs$TAC[nrow(tacs)])){
-                   tactmp <- data.frame(TAC=inp$obsC[length(inp$obsC)], id="pbb_msy", hitSC=NA,
-                                      red=NA, barID=NA, sd=NA, conv=NA)
-                   if(nrow(tacs) == 1){
-                       tacs <- tactmp
-                   }else{
-                       tacs <- rbind(tacs, tactmp)
-                   }
-               }
-               return(tacs)
-           },
-           "pbb065-msy05" = {
-               inp <- check.inp(inp)
-               rep <- try(fit.spict(inp), silent=TRUE)
-               if(class(rep) == "try-error" || rep$opt$convergence != 0 ||
-                  any(is.infinite(rep$sd))){
-                   inp$priors$logn <- c(log(2),1e-4,1)
-                   rep <- try(fit.spict(inp), silent=TRUE)
-                   if(class(rep) == "try-error" || rep$opt$convergence != 0 ||
-                      any(is.infinite(rep$sd))){
-                       tacs <- conscat(inp, tacs=tacs)
-                   }else{
-                       tacs <- spictPBB_MSY(rep, bfrac=1, prob = 0.65, stab=stab, tacs=tacs, tcv=0.5)
-                   }
-               }else{
-                   tacs <- spictPBB_MSY(rep, bfrac=1, prob = 0.65, stab=stab, tacs=tacs, tcv=0.5)
-               }
-               if(is.na(tacs$TAC[nrow(tacs)])){
-                   tactmp <- data.frame(TAC=inp$obsC[length(inp$obsC)], id="pbb_msy", hitSC=NA,
-                                      red=NA, barID=NA, sd=NA, conv=NA)
-                   if(nrow(tacs) == 1){
-                       tacs <- tactmp
-                   }else{
-                       tacs <- rbind(tacs, tactmp)
-                   }
-               }
-               return(tacs)
-           },
-           "pbb065-msy10" = {
-               inp <- check.inp(inp)
-               rep <- try(fit.spict(inp), silent=TRUE)
-               if(class(rep) == "try-error" || rep$opt$convergence != 0 ||
-                  any(is.infinite(rep$sd))){
-                   inp$priors$logn <- c(log(2),1e-4,1)
-                   rep <- try(fit.spict(inp), silent=TRUE)
-                   if(class(rep) == "try-error" || rep$opt$convergence != 0 ||
-                      any(is.infinite(rep$sd))){
-                       tacs <- conscat(inp, tacs=tacs)
-                   }else{
-                       tacs <- spictPBB_MSY(rep, bfrac=1, prob = 0.65, stab=stab, tacs=tacs, tcv=1)
-                   }
-               }else{
-                   tacs <- spictPBB_MSY(rep, bfrac=1, prob = 0.65, stab=stab, tacs=tacs, tcv=1)
-               }
-               if(is.na(tacs$TAC[nrow(tacs)])){
-                   tactmp <- data.frame(TAC=inp$obsC[length(inp$obsC)], id="pbb_msy", hitSC=NA,
-                                      red=NA, barID=NA, sd=NA, conv=NA)
-                   if(nrow(tacs) == 1){
-                       tacs <- tactmp
-                   }else{
-                       tacs <- rbind(tacs, tactmp)
-                   }
-               }
-               return(tacs)
-           },
-           "pbb075-msy025" = {
-               inp <- check.inp(inp)
-               rep <- try(fit.spict(inp), silent=TRUE)
-               if(class(rep) == "try-error" || rep$opt$convergence != 0 ||
-                  any(is.infinite(rep$sd))){
-                   inp$priors$logn <- c(log(2),1e-4,1)
-                   rep <- try(fit.spict(inp), silent=TRUE)
-                   if(class(rep) == "try-error" || rep$opt$convergence != 0 ||
-                      any(is.infinite(rep$sd))){
-                       tacs <- conscat(inp, tacs=tacs)
-                   }else{
-                       tacs <- spictPBB_MSY(rep, bfrac=1, prob = 0.75, stab=stab, tacs=tacs, tcv=0.25)
-                   }
-               }else{
-                   tacs <- spictPBB_MSY(rep, bfrac=1, prob = 0.75, stab=stab, tacs=tacs, tcv=0.25)
-               }
-               if(is.na(tacs$TAC[nrow(tacs)])){
-                   tactmp <- data.frame(TAC=inp$obsC[length(inp$obsC)], id="pbb_msy", hitSC=NA,
-                                      red=NA, barID=NA, sd=NA, conv=NA)
-                   if(nrow(tacs) == 1){
-                       tacs <- tactmp
-                   }else{
-                       tacs <- rbind(tacs, tactmp)
-                   }
-               }
-               return(tacs)
-           },
-           "pbb075-msy05" = {
-               inp <- check.inp(inp)
-               rep <- try(fit.spict(inp), silent=TRUE)
-               if(class(rep) == "try-error" || rep$opt$convergence != 0 ||
-                  any(is.infinite(rep$sd))){
-                   inp$priors$logn <- c(log(2),1e-4,1)
-                   rep <- try(fit.spict(inp), silent=TRUE)
-                   if(class(rep) == "try-error" || rep$opt$convergence != 0 ||
-                      any(is.infinite(rep$sd))){
-                       tacs <- conscat(inp, tacs=tacs)
-                   }else{
-                       tacs <- spictPBB_MSY(rep, bfrac=1, prob = 0.75, stab=stab, tacs=tacs, tcv=0.5)
-                   }
-               }else{
-                   tacs <- spictPBB_MSY(rep, bfrac=1, prob = 0.75, stab=stab, tacs=tacs, tcv=0.5)
-               }
-               if(is.na(tacs$TAC[nrow(tacs)])){
-                   tactmp <- data.frame(TAC=inp$obsC[length(inp$obsC)], id="pbb_msy", hitSC=NA,
-                                      red=NA, barID=NA, sd=NA, conv=NA)
-                   if(nrow(tacs) == 1){
-                       tacs <- tactmp
-                   }else{
-                       tacs <- rbind(tacs, tactmp)
-                   }
-               }
-               return(tacs)
-           },
-           "pbb075-msy10" = {
-##               browser()
-               inp <- check.inp(inp)
-               rep <- try(fit.spict(inp), silent=TRUE)
-               ## plot(rep)
-               ## (flfmsy <- get.par("logFlFmsy", rep, exp=TRUE)[5])
-               ## (blbmsy <- get.par("logBlBmsy", rep, exp=TRUE)[5])
-               if(class(rep) == "try-error" || rep$opt$convergence != 0 ||
-                  any(is.infinite(rep$sd))){
-                   inp$priors$logn <- c(log(2),1e-4,1)
-                   rep <- try(fit.spict(inp), silent=TRUE)
-                   if(class(rep) == "try-error" || rep$opt$convergence != 0 ||
-                      any(is.infinite(rep$sd))){
-                       tacs <- conscat(inp, tacs=tacs)
-                   }else{
-                       tacs <- spictPBB_MSY(rep, bfrac=1, prob = 0.75, stab=stab, tacs=tacs, tcv=1)
-                   }
-               }else{
-                   tacs <- spictPBB_MSY(rep, bfrac=1, prob = 0.75, stab=stab, tacs=tacs, tcv=1)
-               }
-               if(is.na(tacs$TAC[nrow(tacs)])){
-                   tactmp <- data.frame(TAC=inp$obsC[length(inp$obsC)], id="pbb_msy", hitSC=NA,
-                                      red=NA, barID=NA, sd=NA, conv=NA)
-                   if(nrow(tacs) == 1){
-                       tacs <- tactmp
-                   }else{
-                       tacs <- rbind(tacs, tactmp)
-                   }
-               }
-               return(tacs)
-           },
-           "pbb05" = {
-               inp <- check.inp(inp)
-##               if(!is.null(tacs) && nrow(tacs) == 4) browser()
-##               inp$priors$logn <- c(0,0,0)
-##               inp$priors$logalpha <- c(0,0,0)
-##               inp$priors$logbeta <- c(0,0,0)
-               rep <- try(fit.spict(inp), silent=TRUE)
-               plot(rep)
-
-               if(class(rep) == "try-error" || rep$opt$convergence != 0 ||
-                  any(is.infinite(rep$sd))){
-                   inp$priors$logn <- c(log(2),1e-4,1)
-                   rep <- try(fit.spict(inp), silent=TRUE)
-                   if(class(rep) == "try-error" || rep$opt$convergence != 0 ||
-                      any(is.infinite(rep$sd))){
-                   tacs <- conscat(inp, tacs=tacs)
-                   }else{
-                   tacs <- spictPBB(rep, bfrac=1, prob = 0.5, stab=stab, tacs=tacs)
-                   }
-               }else{
-                   tacs <- spictPBB(rep, bfrac=1, prob = 0.5, stab=stab, tacs=tacs)
-               }
-               if(is.na(tacs$TAC[nrow(tacs)])){
-                   tactmp <- data.frame(TAC=inp$obsC[length(inp$obsC)], id="pbb05", hitSC=NA,
-                                        red=NA, barID=NA, sd=NA, conv=NA)
-                   if(nrow(tacs) == 1){
-                       tacs <- tactmp
-                   }else{
-                       tacs <- rbind(tacs, tactmp)
-                   }
-               }
-               return(tacs)
-           },
-           "pbb05S" = {
-##               if(!is.null(tacs) && nrow(tacs) == 2) browser()
-               inp <- check.inp(inp)
-               inp$priors$logn <- c(log(2),0.2,1)
-               rep <- try(fit.spict(inp), silent=TRUE)
-               btmp <- get.par("logB",rep,exp=TRUE)[,2]
-               print(tail(btmp,17))
-               print(tail(btmp,1) > tail(btmp,16)[1])
-               plot(rep)
-               if(class(rep) == "try-error" || rep$opt$convergence != 0 ||
-                  any(is.infinite(rep$sd))){
-                   inp$priors$logn <- c(log(2),1e-4,1)
-                   rep <- try(fit.spict(inp), silent=TRUE)
-                   if(class(rep) == "try-error" || rep$opt$convergence != 0 ||
-                      any(is.infinite(rep$sd))){
-                   tacs <- conscat(inp, tacs=tacs)
-                   }else{
-                   tacs <- spictPBB(rep, bfrac=1, prob = 0.5, stab=stab, tacs=tacs)
-                   }
-               }else{
-                   tacs <- spictPBB(rep, bfrac=1, prob = 0.5, stab=stab, tacs=tacs)
-               }
-               if(is.na(tacs$TAC[nrow(tacs)])){
-                   tactmp <- data.frame(TAC=inp$obsC[length(inp$obsC)], id="pbb05", hitSC=NA,
-                                        red=NA, barID=NA, sd=NA, conv=NA)
-                   if(nrow(tacs) == 1){
-                       tacs <- tactmp
-                   }else{
-                       tacs <- rbind(tacs, tactmp)
-                   }
-               }
-               return(tacs)
-           },
-           "pbb055" = {
-               inp <- check.inp(inp)
-               rep <- try(fit.spict(inp), silent=TRUE)
-               if(class(rep) == "try-error" || rep$opt$convergence != 0 ||
-                  any(is.infinite(rep$sd))){
-                   inp$priors$logn <- c(log(2),1e-4,1)
-                   rep <- try(fit.spict(inp), silent=TRUE)
-                   if(class(rep) == "try-error" || rep$opt$convergence != 0 ||
-                      any(is.infinite(rep$sd))){
-                   tacs <- conscat(inp, tacs=tacs)
-                   }else{
-                   tacs <- spictPBB(rep, bfrac=1, prob = 0.55, stab=stab, tacs=tacs)
-                   }
-               }else{
-                   tacs <- spictPBB(rep, bfrac=1, prob = 0.55, stab=stab, tacs=tacs)
-               }
-               if(is.na(tacs$TAC[nrow(tacs)])){
-                   tactmp <- data.frame(TAC=inp$obsC[length(inp$obsC)], id="pbb05", hitSC=NA,
-                                        red=NA, barID=NA, sd=NA, conv=NA)
-                   if(nrow(tacs) == 1){
-                       tacs <- tactmp
-                   }else{
-                       tacs <- rbind(tacs, tactmp)
-                   }
-               }
-               return(tacs)
-           },
-           "pbb06" = {
-               inp <- check.inp(inp)
-               rep <- try(fit.spict(inp), silent=TRUE)
-##               plot(rep)
-               if(class(rep) == "try-error" || rep$opt$convergence != 0 ||
-                  any(is.infinite(rep$sd))){
-                   inp$priors$logn <- c(log(2),1e-4,1)
-                   rep <- try(fit.spict(inp), silent=TRUE)
-                   if(class(rep) == "try-error" || rep$opt$convergence != 0 ||
-                      any(is.infinite(rep$sd))){
-                   tacs <- conscat(inp, tacs=tacs)
-                   }else{
-                   tacs <- spictPBB(rep, bfrac=1, prob = 0.6, stab=stab, tacs=tacs)
-                   }
-               }else{
-                   tacs <- spictPBB(rep, bfrac=1, prob = 0.6, stab=stab, tacs=tacs)
-               }
-               if(is.na(tacs$TAC[nrow(tacs)])){
-                   tactmp <- data.frame(TAC=inp$obsC[length(inp$obsC)], id="pbb06", hitSC=NA,
-                                      red=NA, barID=NA, sd=NA, conv=NA)
-                   if(nrow(tacs) == 1){
-                       tacs <- tactmp
-                   }else{
-                       tacs <- rbind(tacs, tactmp)
-                   }
-               }
-               return(tacs)
-           },
-           "pbb07" = {
-               inp <- check.inp(inp)
-               rep <- try(fit.spict(inp), silent=TRUE)
-               if(class(rep) == "try-error" || rep$opt$convergence != 0 ||
-                  any(is.infinite(rep$sd))){
-                   inp$priors$logn <- c(log(2),1e-4,1)
-                   rep <- try(fit.spict(inp), silent=TRUE)
-                   if(class(rep) == "try-error" || rep$opt$convergence != 0 ||
-                      any(is.infinite(rep$sd))){
-                   tacs <- conscat(inp, tacs=tacs)
-                   }else{
-                   tacs <- spictPBB(rep, bfrac=1, prob = 0.7, stab=stab, tacs=tacs)
-                   }
-               }else{
-                   tacs <- spictPBB(rep, bfrac=1, prob = 0.7, stab=stab, tacs=tacs)
-               }
-               if(is.na(tacs$TAC[nrow(tacs)])){
-                   tactmp <- data.frame(TAC=inp$obsC[length(inp$obsC)], id="pbb07", hitSC=NA,
-                                      red=NA, barID=NA, sd=NA, conv=NA)
-                   if(nrow(tacs) == 1){
-                       tacs <- tactmp
-                   }else{
-                       tacs <- rbind(tacs, tactmp)
-                   }
-               }
-               return(tacs)
-           },
-           "pbb08" = {
-               inp <- check.inp(inp)
-               rep <- try(fit.spict(inp), silent=TRUE)
-               if(class(rep) == "try-error" || rep$opt$convergence != 0 ||
-                  any(is.infinite(rep$sd))){
-                   inp$priors$logn <- c(log(2),1e-4,1)
-                   rep <- try(fit.spict(inp), silent=TRUE)
-                   if(class(rep) == "try-error" || rep$opt$convergence != 0 ||
-                      any(is.infinite(rep$sd))){
-                   tacs <- conscat(inp, tacs=tacs)
-                   }else{
-                   tacs <- spictPBB(rep, bfrac=1, prob = 0.8, stab=stab, tacs=tacs)
-                   }
-               }else{
-                   tacs <- spictPBB(rep, bfrac=1, prob = 0.8, stab=stab, tacs=tacs)
-               }
-               if(is.na(tacs$TAC[nrow(tacs)])){
-                   tactmp <- data.frame(TAC=inp$obsC[length(inp$obsC)], id="pbb08", hitSC=NA,
-                                        red=NA, barID=NA, sd=NA, conv=NA)
-                   if(nrow(tacs) == 1){
-                       tacs <- tactmp
-                   }else{
-                       tacs <- rbind(tacs, tactmp)
-                   }
-
-               }
-               return(tacs)
-           },
-           "pbb09" = {
-               inp <- check.inp(inp)
-               rep <- try(fit.spict(inp), silent=TRUE)
-               if(class(rep) == "try-error" || rep$opt$convergence != 0 ||
-                  any(is.infinite(rep$sd))){
-                   inp$priors$logn <- c(log(2),1e-4,1)
-                   rep <- try(fit.spict(inp), silent=TRUE)
-                   if(class(rep) == "try-error" || rep$opt$convergence != 0 ||
-                      any(is.infinite(rep$sd))){
-                   tacs <- conscat(inp, tacs=tacs)
-                   }else{
-                   tacs <- spictPBB(rep, bfrac=1, prob = 0.9, stab=stab, tacs=tacs)
-                   }
-               }else{
-                   tacs <- spictPBB(rep, bfrac=1, prob = 0.9, stab=stab, tacs=tacs)
-               }
-               if(is.na(tacs$TAC[nrow(tacs)])){
-                   tactmp <- data.frame(TAC=inp$obsC[length(inp$obsC)], id="pbb09", hitSC=NA,
-                                      red=NA, barID=NA, sd=NA, conv=NA)
-                   if(nrow(tacs) == 1){
-                       tacs <- tactmp
-                   }else{
-                       tacs <- rbind(tacs, tactmp)
-                   }
-               }
-               return(tacs)
-           },
-           "2/3" = {
-##               inp <- check.inp(inp)
-               tacs <- r23(inp, stab=stab, red = NA, tacs=tacs)
-               if(is.na(tacs$TAC[nrow(tacs)])){
-                   tactmp <- data.frame(TAC=inp$obsC[length(inp$obsC)], id="23", hitSC=NA,
-                                      red=NA, barID=NA, sd=NA, conv=NA)
-                   if(nrow(tacs) == 1){
-                       tacs <- tactmp
-                   }else{
-                       tacs <- rbind(tacs, tactmp)
-                   }
-               }
-               return(tacs)
-           },
-           "2/3_2red02" = {
-               inp <- check.inp(inp)
-               tacs <- r23(inp, stab=stab, red = 0.2, y_red = 2, tacs=tacs)
-               if(is.na(tacs$TAC[nrow(tacs)])){
-                   tactmp <- data.frame(TAC=inp$obsC[length(inp$obsC)], id="23", hitSC=NA,
-                                      red=NA, barID=NA, sd=NA, conv=NA)
-                   if(nrow(tacs) == 1){
-                       tacs <- tactmp
-                   }else{
-                       tacs <- rbind(tacs, tactmp)
-                   }
-               }
-               return(tacs)
-           },
-           "2/3_3red02" = {
-               inp <- check.inp(inp)
-               tacs <- r23(inp, stab=stab, red = 0.2, y_red = 3, tacs=tacs)
-               if(is.na(tacs$TAC[nrow(tacs)])){
-                   tactmp <- data.frame(TAC=inp$obsC[length(inp$obsC)], id="23", hitSC=NA,
-                                      red=NA, barID=NA, sd=NA, conv=NA)
-                   if(nrow(tacs) == 1){
-                       tacs <- tactmp
-                   }else{
-                       tacs <- rbind(tacs, tactmp)
-                   }
-               }
-               return(tacs)
-           },
-           "2/3_3red02_stab" = {
-               inp <- check.inp(inp)
-               tacs <- r23(inp, stab=TRUE, red = 0.2, y_red = 3, tacs=tacs)
-               if(is.na(tacs$TAC[nrow(tacs)])){
-                   tactmp <- data.frame(TAC=inp$obsC[length(inp$obsC)], id="23", hitSC=NA,
-                                      red=NA, barID=NA, sd=NA, conv=NA)
-                   if(nrow(tacs) == 1){
-                       tacs <- tactmp
-                   }else{
-                       tacs <- rbind(tacs, tactmp)
-                   }
-               }
-               return(tacs)
-           },
-           "2/3_stab" = {
-               inp <- check.inp(inp)
-               tacs <- r23(inp, stab=TRUE, red = NA, tacs=tacs)
-               if(is.na(tacs$TAC[nrow(tacs)])){
-                   tactmp <- data.frame(TAC=inp$obsC[length(inp$obsC)], id="23", hitSC=NA,
-                                      red=NA, barID=NA, sd=NA, conv=NA)
-                   if(nrow(tacs) == 1){
-                       tacs <- tactmp
-                   }else{
-                       tacs <- rbind(tacs, tactmp)
-                   }
-               }
-               return(tacs)
-           },
-           "1/2" = {
-##               inp <- check.inp(inp)
-               tacs <- r12(inp, stab=FALSE, red = NA, tacs=tacs)
-               if(is.na(tacs$TAC[nrow(tacs)])){
-                   tactmp <- data.frame(TAC=inp$obsC[length(inp$obsC)], id="12", hitSC=NA,
-                                      red=NA, barID=NA, sd=NA, conv=NA)
-                   if(nrow(tacs) == 1){
-                       tacs <- tactmp
-                   }else{
-                       tacs <- rbind(tacs, tactmp)
-                   }
-               }
-               return(tacs)
-           },
-           "1/2_stab" = {
-##               inp <- check.inp(inp)
-               tacs <- r12(inp, stab=TRUE, red = NA, tacs=tacs)
-               if(is.na(tacs$TAC[nrow(tacs)])){
-                   tactmp <- data.frame(TAC=inp$obsC[length(inp$obsC)], id="12", hitSC=NA,
-                                      red=NA, barID=NA, sd=NA, conv=NA)
-                   if(nrow(tacs) == 1){
-                       tacs <- tactmp
-                   }else{
-                       tacs <- rbind(tacs, tactmp)
-                   }
-               }
-               return(tacs)
-           },
-           "3/5" = {
-##               inp <- check.inp(inp)
-               tacs <- r35(inp, stab=FALSE, red = NA, tacs=tacs)
-               if(is.na(tacs$TAC[nrow(tacs)])){
-                   tactmp <- data.frame(TAC=inp$obsC[length(inp$obsC)], id="35", hitSC=NA,
-                                      red=NA, barID=NA, sd=NA, conv=NA)
-                   if(nrow(tacs) == 1){
-                       tacs <- tactmp
-                   }else{
-                       tacs <- rbind(tacs, tactmp)
-                   }
-               }
-               return(tacs)
-           },
-           "3/5_stab" = {
-               inp <- check.inp(inp)
-               tacs <- r35(inp, stab=TRUE, red = NA, tacs=tacs)
-               if(is.na(tacs$TAC[nrow(tacs)])){
-                   tactmp <- data.frame(TAC=inp$obsC[length(inp$obsC)], id="35", hitSC=NA,
-                                      red=NA, barID=NA, sd=NA, conv=NA)
-                   if(nrow(tacs) == 1){
-                       tacs <- tactmp
-                   }else{
-                       tacs <- rbind(tacs, tactmp)
-                   }
-               }
-               return(tacs)
-           },
-           "2/3_4red02" = {
-               inp <- check.inp(inp)
-               tacs <- r23(inp, stab=stab, red = 0.2, y_red = 4, tacs=tacs)
-               if(is.na(tacs$TAC[nrow(tacs)])){
-                   tactmp <- data.frame(TAC=inp$obsC[length(inp$obsC)], id="23", hitSC=NA,
-                                      red=NA, barID=NA, sd=NA, conv=NA)
-                   if(nrow(tacs) == 1){
-                       tacs <- tactmp
-                   }else{
-                       tacs <- rbind(tacs, tactmp)
-                   }
-               }
-               return(tacs)
-           },
-           "2/3_tarC" = {
-               inp <- check.inp(inp)
-               tacs <- r23(inp, stab=stab, red = NA, tacs=tacs, targetC = TRUE)
-               if(is.na(tacs$TAC[nrow(tacs)])){
-                   tactmp <- data.frame(TAC=inp$obsC[length(inp$obsC)], id="23", hitSC=NA,
-                                      red=NA, barID=NA, sd=NA, conv=NA)
-                   if(nrow(tacs) == 1){
-                       tacs <- tactmp
-                   }else{
-                       tacs <- rbind(tacs, tactmp)
-                   }
-               }
-               return(tacs)
-           },
-           "dm" = {
-               inp <- check.inp(inp)
-               tacs <- derimeth(inp, stab=stab, red = NA, tacs=tacs)
-               if(is.na(tacs$TAC[nrow(tacs)])){
-                   tactmp <- data.frame(TAC=inp$obsC[length(inp$obsC)], id="23", hitSC=NA,
-                                      red=NA, barID=NA, sd=NA, conv=NA)
-                   if(nrow(tacs) == 1){
-                       tacs <- tactmp
-                   }else{
-                       tacs <- rbind(tacs, tactmp)
-                   }
-               }
-               return(tacs)
-           },
-           "dm_tarC" = {
-               inp <- check.inp(inp)
-               tacs <- derimeth(inp, stab=stab, red = NA, tacs=tacs)##, targetC = TRUE)
-               if(is.na(tacs$TAC[nrow(tacs)])){
-                   tactmp <- data.frame(TAC=inp$obsC[length(inp$obsC)], id="23", hitSC=NA,
-                                      red=NA, barID=NA, sd=NA, conv=NA)
-                   if(nrow(tacs) == 1){
-                       tacs <- tactmp
-                   }else{
-                       tacs <- rbind(tacs, tactmp)
-                   }
-               }
-               return(tacs)
-           },
-           "conscat" = {
-               inp <- check.inp(inp)
-               tacs <- conscat(inp, tacs=tacs)
-               if(is.na(tacs$TAC[nrow(tacs)])){
-                   tactmp <- data.frame(TAC=inp$obsC[length(inp$obsC)], id="cc", hitSC=NA,
-                                      red=NA, barID=NA, sd=NA, conv=NA)
-                   if(nrow(tacs) == 1){
-                       tacs <- tactmp
-                   }else{
-                       tacs <- rbind(tacs, tactmp)
-                   }
-               }
-               return(tacs)
-           },
-           "refFmsy" = {
-               tactmp <- data.frame(TAC=NA, id="refFmsy", hitSC=NA,
-                                  red=NA, barID=NA, sd=NA, conv=NA)
-               if(is.null(tacs)){
-                   tacs <- tactmp
-               }else{
-                   tacs <- rbind(tacs, tactmp)
-               }
-               return(tacs)
-           },
-           "noF" = {
-               tactmp <- data.frame(TAC=0, id="noF", hitSC=NA,
-                                  red=NA, barID=NA, sd=NA, conv=NA)
-               if(is.null(tacs)){
-                   tacs <- tactmp
-               }else{
-                   tacs <- rbind(tacs, tactmp)
-               }
-               return(tacs)
-           },
-           stop("HCR not known!"))
+estTAC <- function(inp, hcr, tacs=NULL, pars=NULL){
+    func <- get(hcr)
+    tacs <- func(inp, tacs, pars)
+    return(tacs)
 }
