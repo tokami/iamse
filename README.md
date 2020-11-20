@@ -16,9 +16,6 @@ A vignette for the package will soon be available and will serve as an introduct
 
 The package also contains reasonable documentation in the form of help texts associated with each function (some may not be fully up-to-date). These can be accessed in the usual R manner by writing e.g. ```?checkDat```. A good place to start (in addition to reading the vignette) is to read ```?checkDat``` and ```?runMSE```.
 
-## Citation
-
-```citation("mse")```
 
 ## Package requirements
 
