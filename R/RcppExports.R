@@ -17,7 +17,7 @@
 #' @export
 NULL
 
-simpop <- function(FM, dat, set) {
-    .Call('_mse_simpop', PACKAGE = 'mse', FM, dat, set)
+simpop <- function(logFM, dat, set, out) {
+    .Call('_mse_simpop', PACKAGE = 'mse', logFM, dat, set, out)
 }
 

@@ -8,5 +8,5 @@ New features:
 
 Minor changes:
 
-* Updated documentation for check.inp and spict2DLMtool
+* Updated documentation for spict::check.inp and spict2DLMtool
 * Makefile now takes the version number from DESCRIPTION file

@@ -2,7 +2,9 @@
 
 #' @name plotmse.cw
 #' @export
-plotmse.cw <- function(dat, set, resMSE, trendline=TRUE, hcrs=NA){
+plotmse.cw <- function(dat, set, resMSE,
+                       trendline=TRUE, uncert = TRUE, med = TRUE,
+                       hcrs=NA, ylim = NULL){
     if(any(!is.na(hcrs))){
         resMSEnew <- vector("list",length(hcrs))
         for(i in 1:length(hcrs)){
@@ -21,15 +23,14 @@ plotmse.cw <- function(dat, set, resMSE, trendline=TRUE, hcrs=NA){
     idxsim <- (dat$ny):(dat$ny+set$nysim)
     idxhist <- 1:dat$ny
     xall <- 1:(dat$ny+set$nysim)
-    ylim <- c(0.8,1.2) * range(lapply(res,function(x) x$CW))
+    if(is.null(ylim)) ylim <- c(0.8,1.2) * range(lapply(res,function(x) x$CW))
     cols <- rainbow(nms)
     ## historic
     i <- 1 ## historic pattern the same between mss
     llhist <- res[[i]]$CW[1,idxhist]
     ulhist <- res[[i]]$CW[3,idxhist]
     medhist <- res[[i]]$CW[2,idxhist]
-    msy <- resMSE[[1]][[1]]$refs$MSY ## median(resMSE[[1]][[1]]$refdist$MSY) ##
-##    tmp <- quantile(resMSE[[1]][[1]]$refdist$MSY,probs = c(0.025,0.975))
+    if(!is.null(dat$ref$MSY)) msy <- dat$ref$MSY
     llmsy <- NA##tmp[1]
     ulmsy <- NA##tmp[2]
     ## plot
@@ -46,20 +47,28 @@ plotmse.cw <- function(dat, set, resMSE, trendline=TRUE, hcrs=NA){
     lines(xhist, medhist, lwd=2)
     polygon(x = c(-2,rep(1.2*max(xall),2),-2), y = c(rep(llmsy,2),rep(ulmsy,2)),
             border=NA, col=rgb(t(col2rgb("grey40"))/255,alpha=0.2))
-    abline(h=msy,lty=2)
+    if(!is.null(dat$ref$MSY)) abline(h=msy,lty=2)
     abline(h=0,lty=2)
     ## projection
+    if(uncert){
+        for(i in 1:nms){
+            llsim <- res[[i]]$CW[1,idxsim]
+            ulsim <- res[[i]]$CW[3,idxsim]
+            polygon(x = c(xsim,rev(xsim)), y = c(llsim,rev(ulsim)),
+                    border=NA, col=rgb(t(col2rgb(cols[i]))/255,alpha=0.2))
+        }
+    }
     for(i in 1:nms){
-        llsim <- res[[i]]$CW[1,idxsim]
-        ulsim <- res[[i]]$CW[3,idxsim]
         medsim <- res[[i]]$CW[2,idxsim]
-        polygon(x = c(xsim,rev(xsim)), y = c(llsim,rev(ulsim)),
-                border=NA, col=rgb(t(col2rgb(cols[i]))/255,alpha=0.2))
-        lines(xsim, medsim, lwd=2, col=cols[i])
-        if(trendline) lines(xsim, resMSE[[i]][[1]]$CW[idxsim], col=cols[i])
+        if(med) lines(xsim, medsim, lwd=2, col=cols[i])
+        if(is.numeric(trendline)){
+            for(j in 1:length(trendline))
+                lines(xsim, apply(resMSE[[i]][[trendline[j]]]$CW,1,sum)[idxsim], col=cols[i])
+        }else if(trendline)
+            lines(xsim, apply(resMSE[[i]][[1]]$CW,1,sum)[idxsim], col=cols[i])
     }
     abline(v=dat$ny, col="grey60",lwd=2)
-    abline(v=max(which(dat$Fvals==0)), col="grey60",lwd=2,lty=2)
+    abline(v=max(which(dat$FM==0)), col="grey60",lwd=2,lty=2)
     legend("topleft", legend=set$hcr,
            col=cols, bty="n", lwd=2,lty=1)
     title("Catch")
@@ -69,7 +78,9 @@ plotmse.cw <- function(dat, set, resMSE, trendline=TRUE, hcrs=NA){
 
 #' @name plotmse.b
 #' @export
-plotmse.b <- function(dat, set, resMSE, trendline=TRUE, hcrs=NA){
+plotmse.b <- function(dat, set, resMSE,
+                      trendline=TRUE, uncert = TRUE, med = TRUE,
+                      hcrs=NA, ylim = NULL){
     if(any(!is.na(hcrs))){
         resMSEnew <- vector("list",length(hcrs))
         for(i in 1:length(hcrs)){
@@ -88,15 +99,14 @@ plotmse.b <- function(dat, set, resMSE, trendline=TRUE, hcrs=NA){
     idxsim <- (dat$ny):(dat$ny+set$nysim)
     idxhist <- 1:dat$ny
     xall <- 1:(dat$ny+set$nysim)
-    ylim <- c(0.8,1.2) * range(lapply(res,function(x) x$TSB))
+    if(is.null(ylim)) ylim <- c(0.8,1.2) * range(lapply(res,function(x) x$TSBfinal))
     cols <- rainbow(nms)
     ## historic
     i <- 1 ## historic pattern the same between mss
-    llhist <- res[[i]]$TSB[1,idxhist]
-    ulhist <- res[[i]]$TSB[3,idxhist]
-    medhist <- res[[i]]$TSB[2,idxhist]
-    bmsy <- resMSE[[1]][[1]]$refs$Bmsy ##median(resMSE[[1]][[1]]$refdist$Bmsy) ##
-##    tmp <- quantile(resMSE[[1]][[1]]$refdist$Bmsy,probs = c(0.025,0.975))
+    llhist <- res[[i]]$TSBfinal[1,idxhist]
+    ulhist <- res[[i]]$TSBfinal[3,idxhist]
+    medhist <- res[[i]]$TSBfinal[2,idxhist]
+    if(!is.null(dat$ref$Bmsy)) bmsy <- dat$ref$Bmsy
     llbmsy <- NA ##tmp[1]
     ulbmsy <- NA ##tmp[2]
     ## plot
@@ -113,20 +123,28 @@ plotmse.b <- function(dat, set, resMSE, trendline=TRUE, hcrs=NA){
     lines(xhist, medhist, lwd=2)
     polygon(x = c(-2,rep(1.2*max(xall),2),-2), y = c(rep(llbmsy,2),rep(ulbmsy,2)),
             border=NA, col=rgb(t(col2rgb("grey40"))/255,alpha=0.2))
-    abline(h=bmsy,lty=2)
-    abline(h=resMSE[[1]][[1]]$refs$B0,lty=2)
+    if(!is.null(dat$ref$Bmsy)) abline(h=bmsy,lty=2)
+    if(!is.null(dat$ref$B0)) abline(h=dat$ref$B0,lty=2)
     ## projection
+    if(uncert){
+        for(i in 1:nms){
+            llsim <- res[[i]]$TSBfinal[1,idxsim]
+            ulsim <- res[[i]]$TSBfinal[3,idxsim]
+            polygon(x = c(xsim,rev(xsim)), y = c(llsim,rev(ulsim)),
+                    border=NA, col=rgb(t(col2rgb(cols[i]))/255,alpha=0.2))
+        }
+    }
     for(i in 1:nms){
-        llsim <- res[[i]]$TSB[1,idxsim]
-        ulsim <- res[[i]]$TSB[3,idxsim]
-        medsim <- res[[i]]$TSB[2,idxsim]
-        polygon(x = c(xsim,rev(xsim)), y = c(llsim,rev(ulsim)),
-                border=NA, col=rgb(t(col2rgb(cols[i]))/255,alpha=0.2))
-        lines(xsim, medsim, lwd=2, col=cols[i])
-        if(trendline) lines(xsim, resMSE[[i]][[1]]$TSB[idxsim], col=cols[i])
+        medsim <- res[[i]]$TSBfinal[2,idxsim]
+        if(med) lines(xsim, medsim, lwd=2, col=cols[i])
+        if(is.numeric(trendline)){
+            for(j in 1:length(trendline))
+                lines(xsim, resMSE[[i]][[trendline[j]]]$TSBfinal[idxsim], col=cols[i])
+        }else if(trendline)
+            lines(xsim, resMSE[[i]][[1]]$TSBfinal[idxsim], col=cols[i])
     }
     abline(v=dat$ny, col="grey60",lwd=2)
-    abline(v=max(which(dat$Fvals==0)), col="grey60",lwd=2,lty=2)
+    abline(v=max(which(dat$FM==0)), col="grey60",lwd=2,lty=2)
     legend("topleft", legend=set$hcr,
            col=cols, bty="n", lwd=2,lty=1)
     title("Biomass")
@@ -136,7 +154,9 @@ plotmse.b <- function(dat, set, resMSE, trendline=TRUE, hcrs=NA){
 
 #' @name plotmse.f
 #' @export
-plotmse.f <- function(dat, set, resMSE, trendline=TRUE, hcrs=NA, ylim=NULL){
+plotmse.f <- function(dat, set, resMSE,
+                      trendline=TRUE, uncert = TRUE, med = TRUE,
+                      hcrs=NA, ylim=NULL){
     if(any(!is.na(hcrs))){
         resMSEnew <- vector("list",length(hcrs))
         for(i in 1:length(hcrs)){
@@ -163,8 +183,7 @@ plotmse.f <- function(dat, set, resMSE, trendline=TRUE, hcrs=NA, ylim=NULL){
     llhist <- res[[i]]$FM[1,idxhist]
     ulhist <- res[[i]]$FM[3,idxhist]
     medhist <- res[[i]]$FM[2,idxhist]
-    fmsy <- resMSE[[1]][[1]]$refs$Fmsy ## median(resMSE[[1]][[1]]$refdist$Fmsy) ##
-##    tmp <- quantile(resMSE[[1]][[1]]$refdist$Fmsy,probs = c(0.025,0.975))
+    if(!is.null(dat$ref$Fmsy)) fmsy <- dat$ref$Fmsy
     llfmsy <- NA ## tmp[1]
     ulfmsy <- NA ##tmp[2]
     ## plot
@@ -181,20 +200,28 @@ plotmse.f <- function(dat, set, resMSE, trendline=TRUE, hcrs=NA, ylim=NULL){
     lines(xhist, medhist, lwd=2)
     polygon(x = c(-2,rep(1.2*max(xall),2),-2), y = c(rep(llfmsy,2),rep(ulfmsy,2)),
             border=NA, col=rgb(t(col2rgb("grey40"))/255,alpha=0.2))
-    abline(h=fmsy,lty=2)
+    if(!is.null(dat$ref$Fmsy)) abline(h=fmsy,lty=2)
     abline(h=0,lty=2)
     ## projection
+    if(uncert){
+        for(i in 1:nms){
+            llsim <- res[[i]]$FM[1,idxsim]
+            ulsim <- res[[i]]$FM[3,idxsim]
+            polygon(x = c(xsim,rev(xsim)), y = c(llsim,rev(ulsim)),
+                    border=NA, col=rgb(t(col2rgb(cols[i]))/255,alpha=0.2))
+        }
+    }
     for(i in 1:nms){
-        llsim <- res[[i]]$FM[1,idxsim]
-        ulsim <- res[[i]]$FM[3,idxsim]
         medsim <- res[[i]]$FM[2,idxsim]
-        polygon(x = c(xsim,rev(xsim)), y = c(llsim,rev(ulsim)),
-                border=NA, col=rgb(t(col2rgb(cols[i]))/255,alpha=0.2))
-        lines(xsim, medsim, lwd=2, col=cols[i])
-        if(trendline) lines(xsim, resMSE[[i]][[1]]$FM[idxsim], col=cols[i])
+        if(med) lines(xsim, medsim, lwd=2, col=cols[i])
+        if(is.numeric(trendline)){
+            for(j in 1:length(trendline))
+                lines(xsim, apply(resMSE[[i]][[trendline[j]]]$FM,1,sum)[idxsim], col=cols[i])
+        }else if(trendline)
+            lines(xsim, apply(resMSE[[i]][[1]]$FM,1,sum)[idxsim], col=cols[i])
     }
     abline(v=dat$ny, col="grey60",lwd=2)
-    abline(v=max(which(dat$Fvals==0)), col="grey60",lwd=2,lty=2)
+    abline(v=max(which(dat$FM==0)), col="grey60",lwd=2,lty=2)
     legend("topleft", legend=set$hcr,
            col=cols, bty="n", lwd=2,lty=1)
     title("Fishing mortality")
