@@ -103,12 +103,20 @@ estRefStoch <- function(dat, set=NULL,
     nyref <- set$refYears
     nrep <- set$refN
     nyrefmsy <- set$refYearsMSY
+    tvflag <- FALSE
 
+    ## Checks
     if(is.null(set)) set <- checkSet()
     dist <- NULL
     if(!(set$refMethod %in% c("mean","median"))){
         stop("'set$refMethod' not known! Has to be 'mean' or 'median'!")
     }
+    ## natural mortality
+    ntv <- length(unique(dat$Ms))
+    ms <- unique(dat$Ms)
+    mind <- match(dat$Ms, ms)
+    ##
+    refall <- c("Fmsy","MSY","Bmsy","ESBmsy","SSBmsy","B0")
 
     ## errors (have to be re-used for estimation of Bmsy)
     errs <- vector("list", nrep)
@@ -122,82 +130,141 @@ estRefStoch <- function(dat, set=NULL,
         errs[[i]]$eMat <- genNoise(nyref, set$noiseMat[1], set$noiseMat[2], set$noiseMat[3])
         errs[[i]]$eImp <- genNoise(nyref, set$noiseImp[1], set$noiseImp[2], set$noiseImp[3])
     }
+    ##
+    datx <- dat
 
     if(any(ref %in% c("Fmsy","Bmsy","MSY","ESBmsy","SSBmsy"))){
-
         ## Fmsy
         res <- parallel::mclapply(as.list(1:nrep), function(x){
             setx <- c(set, errs[[x]])
-            opt <- optimise(function(x) unlist(simpop(x, dat, setx, out=1)),
-                            log(c(0.001,10)), maximum = TRUE)
-            c(exp(opt$maximum))
+            tmp <- rep(NA, ntv)
+            for(i in 1:ntv){
+                datx$M <- rep(dat$M[i], nyref)
+                datx$Ms <- rep(dat$Ms[i], nyref)
+                opt <- optimise(function(x) unlist(simpop(x, datx, setx, out=1)),
+                                log(c(0.001,10)), maximum = TRUE)
+                tmp[i] <- exp(opt$maximum)
+            }
+            return(tmp)
         }, mc.cores = ncores)
-        dist <- do.call(rbind, res)
+        fmsys <- do.call(rbind, res)
 
-        ## Other ref points
+        ## MSY and Biomass reference points
         res <- parallel::mclapply(as.list(1:nrep), function(x){
             setx <- c(set, errs[[x]])
-            tmp <- simpop(log(dist[x,1]), dat, setx, out=0)
-            if(set$refMethod == "mean"){
-                c(mean(tail(tmp$CW,nyrefmsy)), mean(tail(tmp$TSB,nyrefmsy)),
-                  mean(tail(tmp$ESB,nyrefmsy)), mean(tail(tmp$SSB,nyrefmsy)))
-            }else if(set$refMethod == "median"){
-                c(median(tail(tmp$CW,nyrefmsy)), median(tail(tmp$TSB,nyrefmsy)),
-                  median(tail(tmp$ESB,nyrefmsy)), median(tail(tmp$SSB,nyrefmsy)))
+            tmp <- vector("list", ntv)
+            for(i in 1:ntv){
+                datx$M <- rep(dat$M[i], nyref)
+                datx$Ms <- rep(dat$Ms[i], nyref)
+                tmp0 <- simpop(log(fmsys[x,i]), datx, setx, out=0)
+                if(set$refMethod == "mean"){
+                    tmp[[i]] <- c(mean(tail(tmp0$CW,nyrefmsy)), mean(tail(tmp0$TSB,nyrefmsy)),
+                                  mean(tail(tmp0$ESB,nyrefmsy)), mean(tail(tmp0$SSB,nyrefmsy)))
+                }else if(set$refMethod == "median"){
+                    tmp[[i]] <- c(median(tail(tmp0$CW,nyrefmsy)), median(tail(tmp0$TSB,nyrefmsy)),
+                                  median(tail(tmp0$ESB,nyrefmsy)), median(tail(tmp0$SSB,nyrefmsy)))
+                }
             }
+            return(tmp)
         }, mc.cores = ncores)
-        dist <- cbind(dist, do.call(rbind, res))
-        colnames(dist) <- c("Fmsy","MSY","Bmsy","ESBmsy","SSBmsy")
+
+        ## sort in list by reference point with matrix (nrep, ntv)
+        brefs <- vector("list", 4) ## c("MSY","Bmsy","ESBmsy","SSBmsy")
+        for(i in 1:4){
+            brefs[[i]] <- do.call(rbind,
+                                  lapply(as.list(1:nrep),
+                                         function(x) sapply(1:ntv, function(j) res[[x]][[j]][[i]])))
+        }
 
     }
 
     ## B0
     if(any(ref == "B0")){
-        b0 <- sapply(1:nrep, function(x){
+
+        res <- parallel::mclapply(as.list(1:nrep), function(x){
             setx <- c(set, errs[[x]])
-            if(set$refMethod == "mean"){
-                mean(tail(simpop(log(1e-20), dat, setx, out = 0)$TSB, nyrefmsy))
-            }else if(set$refMethod == "median"){
-                median(tail(simpop(log(1e-20), dat, setx, out = 0)$TSB, nyrefmsy))
+            tmp <- rep(NA, ntv)
+            for(i in 1:ntv){
+                datx$M <- rep(dat$M[i], nyref)
+                datx$Ms <- rep(dat$Ms[i], nyref)
+                tmp0 <- simpop(log(1e-20), datx, setx, out=0)$TSB
+                if(set$refMethod == "mean"){
+                    tmp[i] <- mean(tail(tmp0,nyrefmsy))
+                }else if(set$refMethod == "median"){
+                    tmp[i] <- median(tail(tmp0,nyrefmsy))
+                }
             }
-        })
-        dist <- cbind(dist, b0)
-        colnames(dist) <- c(colnames(dist)[-ncol(dist)], "B0")
+            return(tmp)
+        }, mc.cores = ncores)
+
+        b0s <- do.call(rbind, res)
     }
+
+
+    ## all refs in one list
+    refs <- c(list(fmsys), brefs, list(b0s))
 
     ## remove runs where long-term SP is smaller or equal to 0
-    nami <- colnames(dist)
-    if("MSY" %in% nami){
-        dist2 <- dist[dist[,2] > 0,]
-    }else{
-        dist2 <- dist
+    for(i in 1:ntv){
+        ind <- which(brefs[[1]][,i] <= 0)
+        if(length(ind) > 0){
+            for(j in 1:6) refs[[j]][,i] <- refs[[j]][-ind,i]
+        }
     }
+
+    ## overall refs
     if(set$refMethod == "mean"){
-        meds <- apply(dist2, 2, mean)
+        meds <- lapply(refs, function(x){
+            tmp <- rep(NA, ntv)
+            for(i in 1:ntv) tmp[i] <- mean(x[,i])
+            return(tmp)
+        })
     }else if(set$refMethod == "median"){
-        meds <- apply(dist2, 2, median)
+        meds <- lapply(refs, function(x){
+            tmp <- rep(NA, ntv)
+            for(i in 1:ntv) tmp[i] <- median(x[,i])
+            return(tmp)
+        })
     }
 
-    refs <- list()
-    if(any(ref == "Fmsy")) refs$Fmsy = as.numeric(meds[which(nami == "Fmsy")])
-    if(any(ref == "MSY")) refs$MSY = as.numeric(meds[which(nami == "MSY")])
-    if(any(ref == "Bmsy")) refs$Bmsy = as.numeric(meds[which(nami == "Bmsy")])
-    if(any(ref == "ESBmsy")) refs$ESBmsy = as.numeric(meds[which(nami == "ESBmsy")])
-    if(any(ref == "SSBmsy")) refs$SSBmsy = as.numeric(meds[which(nami == "SSBmsy")])
-    if(any(ref == "B0")) refs$B0 = as.numeric(meds[which(nami == "B0")])
+    ind <- which(refall %in% ref)
+    refdist <- refs[ind]
+    names(refdist) <- refall[ind]
+    dat$refdist <- refdist
 
-    dat$ref <- refs
-    dat$refdist <- dist
+    refmed <- matrix(NA, ncol=length(ref), nrow=ny)
+    for(i in 1:length(ind)){
+        refmed[,i] <- meds[[ind[[i]]]][mind]
+    }
+    colnames(refmed) <- refall[ind]
+    dat$ref <- refmed
 
     if(plot){
-        nr <- floor(ncol(dist)/2)
-        par(mfrow=c(nr,2))
-        for(i in 1:ncol(dist)){
-            hist(dist[,i], main = colnames(dist)[i], breaks=50)
-            abline(v=mean(dist[,i]), lty=1, lwd=1.5, col=4)
-            abline(v=median(dist[,i]), lty=2, lwd=1.5, col=4)
-            if(i == 1) legend("topright", legend = c("mean","median"),
-                              col=4, lty=c(1,2),lwd=1.5)
+        if(ntv < 4){
+            cols <- c("dodgerblue2","darkorange","darkgreen","purple")
+            nr <- floor(length(refdist)/2)
+            par(mfrow=c(nr,2))
+            for(i in 1:length(refdist)){
+                hist(refdist[[i]][,1], main = names(refdist)[i],
+                     breaks=20, freq = TRUE, xlim = range(refdist[[i]]),
+                     xlab = "", col = rgb(t(col2rgb(cols[1]))/255,alpha=0.4))
+                if(ntv > 1){
+                    for(j in 2:ntv) hist(refdist[[i]][,j],
+                                         breaks=20, freq = TRUE,
+                                         add = TRUE, col = rgb(t(col2rgb(cols[j]))/255,alpha=0.4))
+                }
+                ## abline(v=mean(dist[,i]), lty=1, lwd=1.5, col=4)
+                ## abline(v=median(dist[,i]), lty=2, lwd=1.5, col=4)
+                ## if(i == 1) legend("topright", legend = c("mean","median"),
+                ##                   col=4, lty=c(1,2),lwd=1.5)
+            }
+        }else{
+            nr <- floor(length(refdist)/2)
+            par(mfrow=c(nr,2))
+            for(i in 1:length(refdist)){
+                plot(refmed[,i], main = colnames(refmed)[i],
+                     ty = 'l', lwd=1.5, xlab = "Time", ylab = colnames(refmed)[i])
+            }
         }
     }
 

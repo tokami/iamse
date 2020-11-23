@@ -17,9 +17,20 @@ runMSE <- function(dat, set, ncores=parallel::detectCores()-1, verbose=TRUE){
     nhcrs <- length(hcrs)
     nysim <- set$nysim
     nrep <- set$nrep
+    ns <- dat$ns
 
+    ## Checks
+    ## Reference points provided
     if(!any(names(dat) == "ref")) stop("Reference levels have to be part of dat. Use estRef to estimate them.")
     refs <- dat$ref
+    ## Natural mortality
+    if(length(dat$M) == dat$ny){
+        dat$M <- c(dat$M, rep(tail(dat$M,1), nysim))
+    }else if(length(dat$M) < (dat$ny + nysim)){
+        if(verbose) warning("Length of vector with natural mortality is shorter than sum of historical and projection period. Using last provided natural mortality value for missing years.")
+        dat$M <- c(dat$M, rep(tail(dat$M,1),dat$ny + nysim - length(dat$M)))
+    }
+    dat$Ms <- dat$M / ns
 
     ## parallel loop
     res <- parallel::mclapply(as.list(1:nrep), function(x){

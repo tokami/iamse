@@ -41,7 +41,8 @@ List simpop(double logFM, List dat, List set, int out) {
   NumericMatrix weights = as<NumericMatrix>(dat["weights"]);
   NumericVector weight = as<NumericVector>(dat["weight"]);
   NumericMatrix weightFs = as<NumericMatrix>(dat["weightFs"]);
-  NumericMatrix Ms = as<NumericMatrix>(dat["Ms"]);
+  NumericVector Ms = as<NumericVector>(dat["Ms"]);
+  NumericMatrix Msels = as<NumericMatrix>(dat["Msels"]);
   NumericMatrix mats = as<NumericMatrix>(dat["mats"]);
   NumericVector mat = as<NumericVector>(dat["mat"]);
   NumericMatrix sels = as<NumericMatrix>(dat["sels"]);
@@ -56,6 +57,7 @@ List simpop(double logFM, List dat, List set, int out) {
   NumericVector ESBage (amax);
   NumericVector CAA (amax);
   NumericVector NAA (amax);
+  NumericVector Mtot (amax);
   NumericMatrix FAA (amax, ns);
   NumericMatrix MAA (amax, ns);
   NumericMatrix ZAA (amax, ns);
@@ -83,13 +85,8 @@ List simpop(double logFM, List dat, List set, int out) {
   double Ctmp = 0.0;
 
   // Initialise
-  std::fill( Myear.begin(), Myear.end(), 0);
-  // yearly M
-  for(int a=0; a<amax; a++){
-    for(int s=0; s<ns; s++){
-      Myear(a) += Ms(a,s);
-    }
-  }
+  std::fill( Mtot.begin(), Mtot.end(), 0);
+  for(int a=0; a<amax; a++) for(int s=0; s<ns; s++) Mtot(a) = Mtot(a) + Ms(0) * Msels(a,s);
   std::fill( SPR.begin(), SPR.end(), 0);
   std::fill( CW.begin(), CW.end(), 0);
   std::fill( SP.begin(), SP.end(), 0);
@@ -99,7 +96,7 @@ List simpop(double logFM, List dat, List set, int out) {
   std::fill( TSB1plus.begin(), TSB1plus.end(), 0);
   std::fill( ESB.begin(), ESB.end(), 0);
   std::fill( SSBPR0.begin(), SSBPR0.end(), 0);
-  for(int a=0; a<amax; a++) ZAA(a,0) = Myear(a) + FM * sel(a);  // no noise on M
+  for(int a=0; a<amax; a++) ZAA(a,0) = Mtot(a) + FM * sel(a);  // no noise on M
   NAA(0) = exp(initN(0)) * R0;
   for(int a=1; a<amax; a++) NAA(a) = NAA(a-1) * exp(-ZAA(a-1,0)) * exp(initN(a));
 
@@ -116,7 +113,9 @@ List simpop(double logFM, List dat, List set, int out) {
   for(int y=0; y<ny; y++){
     // Adding noise
     hy = h * eH(y);
-    MAA = Ms * eM(y);
+    MAA = Ms(y) * Msels * eM(y);
+    std::fill( Mtot.begin(), Mtot.end(), 0);
+    for(int a=0; a<amax; a++) for(int s=0; s<ns; s++) Mtot(a) = Mtot(a) + Ms(y) * Msels(a,s);
     maty = mats * eMat(y);
     R0y = R0 * eR0(y);
     matyear = mat * eMat(y);
@@ -126,8 +125,8 @@ List simpop(double logFM, List dat, List set, int out) {
     // set SPR to zero each year
     std::fill( SPR.begin(), SPR.end(), 0);
     // cumulative M
-    Mcumsum(0) = Myear(0);
-    for(int a=1; a<amax; a++) Mcumsum(a) = Myear(a) * eM(y) + Mcumsum(a-1);
+    Mcumsum(0) = Mtot(0);
+    for(int a=1; a<amax; a++) Mcumsum(a) = Mtot(a) * eM(y) + Mcumsum(a-1);
     // pop
     NnatM(0,0) = R0y;
     for(int a=1; a<(amax-1); a++){

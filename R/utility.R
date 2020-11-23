@@ -642,6 +642,41 @@ getMat <- function(Lm50, Lm95, mids, plba){
     return(matA)
 }
 
+#' @name getMsel
+#' @description Function to estimate selectivity of natural mortality
+#' @param linf - Linf of vBGF
+#' @param k - K of vBGF
+#' @param mids - midlengths
+#' @param plba - probability of being in mids given age
+getMsel <- function(linf, k, mids, plba){
+    selL <- exp(0.55 - 1.61 * log(mids) + 1.44 * log(linf) + log(k))
+    selL[mids < 10] <- exp(0.55 - 1.61 * log(10) + 1.44 * log(linf) + log(k))
+    dims <- dim(plba)
+    selA <- matrix(NA, ncol = dims[3], nrow = dims[1])
+    for(i in 1:dim(plba)[3]){
+        selA[,i] <- apply(t(plba[,,i]) * selL, 2, sum)
+    }
+    maxM <- max(selA)
+    selA <- selA/maxM
+    return(selA)
+}
+
+
+#' @name getM
+#' @description Function to estimate selectivity of natural mortality
+#' @param linf - Linf of vBGF
+#' @param k - K of vBGF
+#' @param mids - midlengths
+getM <- function(linf, k, mids){
+    selL <- exp(0.55 - 1.61 * log(mids) + 1.44 * log(linf) + log(k))
+    selL[mids < 10] <- exp(0.55 - 1.61 * log(10) + 1.44 * log(linf) + log(k))
+    selL <- round(selL, 3)
+    maxM <- max(selL)
+    return(maxM)
+}
+
+
+
 
 #' @name getSSBPR
 #' @description Function to calculate spawners per recruit
@@ -691,7 +726,7 @@ getSSBPR2 <- function (Ms, mats, weights, fecun = 1, amax, R0 = 1, FMs = NULL, n
     MAA <- cumsum(Mtot)
     FAA <- cumsum(FMtot)
     ZAA <- MAA + FAA
-    NAA[2:(amax - 1),1] <- R0 * exp(-ZAA[1:(amax - 2)])
+    NAA[2:(amax  - 1),1] <- R0 * exp(-ZAA[1:(amax - 2)])
     NAA[amax,1] <- R0 * exp(-ZAA[amax - 1])/(1 - exp(-ZAA[amax]))
     ## other quarters
     if(ns > 1){

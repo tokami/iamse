@@ -45,6 +45,8 @@ initPop <- function(dat, set = NULL, out.opt = 1){
     mat <- dat$mat
     sels <- dat$sels
     sel <- dat$sel
+    Msels <- dat$Msels
+    Msel <- dat$Msel
     pzbm <- dat$pzbm
     R0 <- dat$R0
     h <- dat$h
@@ -111,13 +113,14 @@ initPop <- function(dat, set = NULL, out.opt = 1){
     if(is.numeric(burnin) && burnin > 0){
         NAAbi <- rep(NA, amax)
         NAAbi[1] <- R0 * exp(initN[1])
-        for(a in 2:amax) NAAbi[a] <- NAAbi[a-1] * exp(-(M[a-1]+sel[a-1]*Fy[1])) * exp(initN[a])
+        for(a in 2:amax) NAAbi[a] <- NAAbi[a-1] * exp(-(Msel[a-1]+M[1]+sel[a-1]*Fy[1])) * exp(initN[a])
         for(y in 1:burnin){
             ## recruitment
             Fbi <- sels * Fs[1]
-            Zbi <- Ms + Fbi
+            Mbi <- Msels * Ms[1]
+            Zbi <- Mbi + Fbi
             SSBtemp <- sum(NAAbi * weights[,1] * mats[,1] * exp(-pzbm * Zbi[,1])) ## pre-recruitment mort
-            SSBPR0 <- getSSBPR2(dat$Ms, dat$mats, dat$weights, fecun=1, amax, dat$R0,
+            SSBPR0 <- getSSBPR2(Mbi, dat$mats, dat$weights, fecun=1, amax, dat$R0,
                                 ns = ns, recruitmentTiming = set$recruitmentTiming)
             recbi <- recfunc(h = h, SSBPR0 = SSBPR0, SSB = SSBtemp,
                            R0 = R0, method = dat$SR, bp = dat$bp,
@@ -126,13 +129,14 @@ initPop <- function(dat, set = NULL, out.opt = 1){
             NAAbi[1] <- recbi
             for(s in 1:ns){
                 ## can't take more than what's there
-                Btemp <- sum(NAAbi * weights[,s] * sels[,s] * exp(-Ms[,s]/2))
-                CWbi <- sum(baranov(Fbi[,s], Ms[,s], NAAbi) * weightFs[,s])
+                Btemp <- sum(NAAbi * weights[,s] * sels[,s] * exp(-(Mbi[,s])/2))
+                CWbi <- sum(baranov(Fbi[,s], Mbi[,s], NAAbi) * weightFs[,s])
                 if(CWbi > 0.99 * Btemp){
-                    Fbi[,s] <- sels[,s] * getFM2(0.75 * Btemp, Btemp, 1/ns, Ms[,s], NAAbi,
+                    Fbi[,s] <- sels[,s] * getFM2(0.75 * Btemp, Btemp, 1/ns,
+                                                 Mbi[,s], NAAbi,
                                                  weights[,s], weightFs[,s], sels[,s],
                                                  fmax = set$maxF/ns)
-                    Zbi <- Ms + Fbi
+                    Zbi <- Mbi + Fbi
                 }
                 ## ageing by season or year
                 NAAbi <- Ntemp <- NAAbi * exp(-Zbi[,s])
@@ -148,7 +152,7 @@ initPop <- function(dat, set = NULL, out.opt = 1){
         NAA <- rep(NA, amax)
         NAA[1] <- exp(initN[1]) * R0
         for(a in 2:amax)
-            NAA[a] <- NAA[a-1] * exp(-(M[a-1] + Fy[1]*sel[a-1])) * exp(initN[a])
+            NAA[a] <- NAA[a-1] * exp(-(M[1]*Msel[a-1] + Fy[1]*sel[a-1])) * exp(initN[a])
     }
 
 
@@ -156,7 +160,7 @@ initPop <- function(dat, set = NULL, out.opt = 1){
     for(y in 1:ny){
         ## Adding noise
         FM[y,] <- Fs[y] * eF[y]
-        MAA <- Ms * eM[y]
+        MAA <- Msels * Ms[y] * eM[y]
         FAA <- FM[y,] * sels
         ZAA <- MAA + FAA
         maty <- mats * eMat[y]
@@ -319,9 +323,9 @@ advancePop <- function(dat, hist, set, hcr, year){
     if(length(q) < nsurv) q <- rep(q, nsurv)
     tacID <- hcr
     tacID2 <- unlist(strsplit(as.character(tacID), "-"))[1]
+    Ms <- dat$Ms
 
     ## parameters per age
-    Ms <- dat$Ms
     weight <- dat$weight
     weights <- dat$weights
     weightF <- dat$weightF
@@ -330,6 +334,8 @@ advancePop <- function(dat, hist, set, hcr, year){
     mats <- dat$mats
     sel <- dat$sel
     sels <- dat$sels
+    Msel <- dat$Msel
+    Msels <- dat$Msels
 
     ## errors
     eF <- set$eF[ysim]
@@ -399,7 +405,7 @@ advancePop <- function(dat, hist, set, hcr, year){
     ESBfinal <- c(hist$ESBfinal, NA)
 
     ## project forward
-    MAA <- Ms * eM
+    MAA <- Msels * Ms[y] * eM
     R0y <- R0 * eR0
     hy <- h * eH
     maty <- mats * eMat
@@ -435,7 +441,7 @@ advancePop <- function(dat, hist, set, hcr, year){
         if(s == set$recruitmentTiming){
             ## Survivors from previous season/year
             if(s == 1){
-                Ztemp <- hist$lastFAA + dat$Ms[,1]  ## i.e. FAA in s=1 is equal to last FAA (pot s=4)
+                Ztemp <- hist$lastFAA + MAA[,1]  ## i.e. FAA in s=1 is equal to last FAA (pot s=4)
             }else{
                 Ztemp <- ZAA[,s-1]
             }
