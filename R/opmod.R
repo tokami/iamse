@@ -16,8 +16,11 @@ initPop <- function(dat, set = NULL, out.opt = 1){
     ## indices
     if(is.null(set)) set <- checkSet()
     ny <- dat$ny
-    ns <- dat$nseason
+    ns <- dat$ns
     nt <- ny * ns
+    yvec <- dat$yvec
+    svec <- dat$svec
+    s1vec <- dat$s1vec
     nsC <- set$catchSeasons
     nyhist <- set$nyhist
     idx <- (ny - nyhist + 1):ny
@@ -103,6 +106,9 @@ initPop <- function(dat, set = NULL, out.opt = 1){
                  eC = eC,
                  eI = eI)
 
+    ## Flags
+    mselFlag <- inherits(Msels, "list") && length(Msels) > 1
+
     ## containers
     TSB <- TSB1plus <- ESB <- SSB <- CW <- FM <- matrix(0, nrow=ny, ncol=ns)
     TACs <- TSBfinal <- SSBfinal <- ESBfinal <- rec <- rep(NA, ny)
@@ -113,11 +119,11 @@ initPop <- function(dat, set = NULL, out.opt = 1){
     if(is.numeric(burnin) && burnin > 0){
         NAAbi <- rep(NA, amax)
         NAAbi[1] <- R0 * exp(initN[1])
-        for(a in 2:amax) NAAbi[a] <- NAAbi[a-1] * exp(-(Msel[a-1]+M[1]+sel[a-1]*Fy[1])) * exp(initN[a])
+        for(a in 2:amax) NAAbi[a] <- NAAbi[a-1] * exp(-(Msel[[1]][a-1]+M[1]+sel[a-1]*Fy[1])) * exp(initN[a])
         for(y in 1:burnin){
             ## recruitment
             Fbi <- sels * Fs[1]
-            Mbi <- Msels * Ms[1]
+            Mbi <- Msels[[1]] * Ms[1]
             Zbi <- Mbi + Fbi
             SSBtemp <- sum(NAAbi * weights[,1] * mats[,1] * exp(-pzbm * Zbi[,1])) ## pre-recruitment mort
             SSBPR0 <- getSSBPR2(Mbi, dat$mats, dat$weights, fecun=1, amax, dat$R0,
@@ -128,6 +134,9 @@ initPop <- function(dat, set = NULL, out.opt = 1){
             recbi[recbi<0] <- 1e-10
             NAAbi[1] <- recbi
             for(s in 1:ns){
+                mselsInd <- ifelse(mselFlag, s, 1)
+                Mbi <- Msels[[mselsInd]] * Ms[s]
+                Zbi <- Mbi + Fbi
                 ## can't take more than what's there
                 Btemp <- sum(NAAbi * weights[,s] * sels[,s] * exp(-(Mbi[,s])/2))
                 CWbi <- sum(baranov(Fbi[,s], Mbi[,s], NAAbi) * weightFs[,s])
@@ -152,15 +161,16 @@ initPop <- function(dat, set = NULL, out.opt = 1){
         NAA <- rep(NA, amax)
         NAA[1] <- exp(initN[1]) * R0
         for(a in 2:amax)
-            NAA[a] <- NAA[a-1] * exp(-(M[1]*Msel[a-1] + Fy[1]*sel[a-1])) * exp(initN[a])
+            NAA[a] <- NAA[a-1] * exp(-(M[1]*Msel[[1]][a-1] + Fy[1]*sel[a-1])) * exp(initN[a])
     }
 
 
     ## main loop
     for(y in 1:ny){
+        mselsInd <- ifelse(mselFlag, s1vec[y], 1)
         ## Adding noise
         FM[y,] <- Fs[y] * eF[y]
-        MAA <- Msels * Ms[y] * eM[y]
+        MAA <- Msels[[mselsInd]] * Ms[s1vec[y]] * eM[y]
         FAA <- FM[y,] * sels
         ZAA <- MAA + FAA
         maty <- mats * eMat[y]
@@ -177,6 +187,9 @@ initPop <- function(dat, set = NULL, out.opt = 1){
         NAA[1] <- rec[y] * eR[y]
         ## seasons
         for(s in 1:ns){
+            mselsInd <- ifelse(mselFlag, s1vec[y]+(s-1), 1)
+            MAA <- Msels[[mselsInd]] * Ms[s1vec[y]+(s-1)] * eM[y]
+            ZAA <- MAA + FAA
             ## can't take more than what's there
             Btemp <- sum(NAA * weights[,s] * sels[,s] * exp(-MAA[,s]/2))
             CAA <- baranov(FAA[,s], MAA[,s], NAA)
@@ -244,7 +257,7 @@ initPop <- function(dat, set = NULL, out.opt = 1){
             stop("Catch observation seasons and operating model seasons do not match. Not yet implemented!")
         }
     }else{
-        if(nsC > 1) writeLines("Set dat$nseasons to > 1 for seasonal catches. Generating annual catches!")
+        if(nsC > 1) writeLines("Set dat$ns to > 1 for seasonal catches. Generating annual catches!")
         obsC <- CW[idx,] * eC[idx]
         timeC <- idx
     }
@@ -296,7 +309,7 @@ advancePop <- function(dat, hist, set, hcr, year){
     ny <- nrow(hist$TSB)
     y <- ny + 1
     ysim <- y - dat$ny
-    ns <- dat$nseason
+    ns <- dat$ns
     nt <- ny * ns
     nsC <- set$catchSeasons
     nysim <- set$nysim
@@ -578,7 +591,7 @@ advancePop <- function(dat, hist, set, hcr, year){
             stop("Catch observation seasons and operating model seasons do not match. Not yet implemented!")
         }
     }else{
-        if(nsC > 1) writeLines("Set dat$nseasons to > 1 for seasonal catches. Generating annual catches!")
+        if(nsC > 1) writeLines("Set dat$ns to > 1 for seasonal catches. Generating annual catches!")
         inp$obsC <- c(inp$obsC, sum(CW[y,]) * eC)
         if(!is.null(inp$timeC)) timeCi <- tail(inp$timeC,1) else timeCi <- ny-nyhist+1
         inp$timeC <- c(inp$timeC, timeCi + 1)

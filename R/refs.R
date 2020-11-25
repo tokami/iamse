@@ -11,7 +11,7 @@ estRef <- function(dat, set=NULL, fvec = seq(0,5,0.1),
                    plot = FALSE){
 
     ny <- dat$ny
-    ns <- dat$nseasons
+    ns <- dat$ns
     nt <- ny * ns
 
     if(is.null(set)) set <- checkSet()
@@ -98,7 +98,7 @@ estRefStoch <- function(dat, set=NULL,
                         plot = FALSE){
 
     ny <- dat$ny
-    ns <- dat$nseasons
+    ns <- dat$ns
     nt <- ny * ns
     nyref <- set$refYears
     nrep <- set$refN

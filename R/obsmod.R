@@ -15,7 +15,7 @@ obsmod <- function(dat, hist, set, years = NULL){
         idx <- years
     }
     ny <- length(idx)
-    ns <- dat$nseasons
+    ns <- dat$ns
     nt <- ny * ns
     nsC <- set$catchSeasons
     seasonStart <- seq(0,1-1/ns,1/ns)
@@ -47,7 +47,7 @@ obsmod <- function(dat, hist, set, years = NULL){
                 stop("Seasons of catch observations and operating model do not match. This aggregation is not yet implemented!")
             }
         }else{
-            if(nsC > 1) writeLines("Set dat$nseasons to > 1 for seasonal catches. Generating annual catches!")
+            if(nsC > 1) writeLines("Set dat$ns to > 1 for seasonal catches. Generating annual catches!")
             obsC <- c(hist$obs$obsC, CW[y,] * eC[y-dat$ny])
             timeC <- c(hist$obs$timeC, tail(hist$obs$timeC,1)+1)
         }
@@ -87,7 +87,7 @@ obsmod <- function(dat, hist, set, years = NULL){
                 stop("Catch observation seasons and operating model seasons do not match. Not yet implemented!")
             }
         }else{
-            if(nsC > 1) writeLines("Set dat$nseasons to > 1 for seasonal catches. Generating annual catches!")
+            if(nsC > 1) writeLines("Set dat$ns to > 1 for seasonal catches. Generating annual catches!")
             obsC <- CW[idx,] * eC
             timeC <- 1:ny
         }

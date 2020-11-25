@@ -11,13 +11,20 @@ checkDat <- function(dat, verbose = TRUE){
     if(!any(names(dat) == "ny")){
         dat$ny <- 35
     }
+    ny <- dat$ny
 
     ## Number of seasons
     ##------------------
-    if(!any(names(dat) == "nseasons")){
-        dat$nseasons <- 1
+    if(!any(names(dat) == "ns")){
+        dat$ns <- 1
     }
-    ns <- dat$nseasons
+    ns <- dat$ns
+    nt <- ny * ns
+
+    dat$yvec <- rep(1:ny, each = ns)
+    dat$svec <- rep(1:ns, each = ny)
+    dat$s1vec <- seq(1, nt, ns)
+
 
     ## ages
     ##------------------
@@ -115,13 +122,20 @@ checkDat <- function(dat, verbose = TRUE){
     ##------------------
     if(!any(names(dat) == "M")){
         dat$M <- rep(getM(dat$linf, dat$k, dat$mids), dat$ny)
-        if(verbose) writeLines("No natural mortality provided. Setting time-invariant M.")
+        if(verbose) writeLines("No natural mortality (M) provided. Setting time-invariant M.")
     }else if(length(dat$M) == 1){
         dat$M <- rep(dat$M, dat$ny)
     }else if(length(dat$M) < dat$ny){
         stop(paste0("Natural mortality ('dat$M') has length ",length(dat$M),". It should either be a single numeric or correspond at least to the number of historical years ('dat$ny')."))
     }
-    dat$Ms <- dat$M / ns
+    if(!any(names(dat) == "Ms")){
+        dat$Ms <- rep(dat$M / ns, each = ns)
+        if(verbose) writeLines("No in-year natural mortality (Ms) provided. Setting time-invariant Ms corresponding to annual M (adjusted by in-year time steps).")
+    }else if(length(dat$Ms) == 1){
+        dat$Ms <- rep(dat$Ms, dat$ny * ns)
+    }else if(length(dat$Ms) < dat$ny * ns){
+        stop(paste0("In-year natural mortality ('dat$Ms') has length ",length(dat$Ms),". It should either be a single numeric or correspond at least to the number of historical time steps ('dat$ny' * 'dat$ns')."))
+    }
 
 
     ## natural mortality at length
@@ -129,11 +143,12 @@ checkDat <- function(dat, verbose = TRUE){
     if(!any(names(dat) == "Msel")){
         if(verbose) writeLines("No natural mortality at age provided. Setting M-at-age based on the Gislason's (2010) empirical formula.")
         dat$Msels <- getMsel(dat$linf, dat$k, dat$mids, dat$plba)
-        dat$Msel <- rowMeans(dat$Msels)
-    }else if(length(dat$Msel) == amax+1){
-        dat$Msel <- dat$Msel/max(dat$Msel)
+        dat$Msel <- lapply(dat$Msels, rowMeans)
+    }else if(!inherits(dat$Msel, "list") && length(dat$Msel) == amax+1){
+        dat$Msel <- list(dat$Msel/max(dat$Msel))
         dims <- dim(dat$plba)
-        dat$Msels <- matrix(dat$Msel, ncol=dims[3], nrow=dims[1])
+        dat$Msels <- list(matrix(dat$Msel, ncol=dims[3], nrow=dims[1]))
+    }else if(inherits(dat$Msel, "list") && (length(dat$Msel) == dat$ny || length(dat$Msel) == 1)){
     }else stop("Natural mortality at age ('dat$Msel') has incorrect length. Length has to be equal to maximum age + 1 (age 0)!")
     ## dat$Mtot <- matrix(NA, nrow=amax+1, ncol=dat$ny)
     ## for(y in 1:dat$ny){

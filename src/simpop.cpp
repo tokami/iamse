@@ -15,8 +15,8 @@
 
 #include <iostream>
 #include <Rcpp.h>
-using namespace Rcpp;
 
+using namespace Rcpp;
 
 // [[Rcpp::export]]
 List simpop(double logFM, List dat, List set, int out) {
@@ -25,7 +25,7 @@ List simpop(double logFM, List dat, List set, int out) {
 
   // Import
   int ny = as<int>(set["refYears"]);
-  int ns = as<int>(dat["nseasons"]);
+  int ns = as<int>(dat["ns"]);
   int amax = as<int>(dat["amax"]);
   amax = amax + 1;
   double R0 = as<double>(dat["R0"]);
@@ -42,7 +42,7 @@ List simpop(double logFM, List dat, List set, int out) {
   NumericVector weight = as<NumericVector>(dat["weight"]);
   NumericMatrix weightFs = as<NumericMatrix>(dat["weightFs"]);
   NumericVector Ms = as<NumericVector>(dat["Ms"]);
-  NumericMatrix Msels = as<NumericMatrix>(dat["Msels"]);
+  List Msels = as<List>(dat["Msels"]);
   NumericMatrix mats = as<NumericMatrix>(dat["mats"]);
   NumericVector mat = as<NumericVector>(dat["mat"]);
   NumericMatrix sels = as<NumericMatrix>(dat["sels"]);
@@ -83,10 +83,13 @@ List simpop(double logFM, List dat, List set, int out) {
   double hy = 0.0;
   double R0y = 0.0;
   double Ctmp = 0.0;
+  int mselsind = 0;
+  int nmsels = Msels.size();
 
   // Initialise
   std::fill( Mtot.begin(), Mtot.end(), 0);
-  for(int a=0; a<amax; a++) for(int s=0; s<ns; s++) Mtot(a) = Mtot(a) + Ms(0) * Msels(a,s);
+  NumericMatrix Mtmp = as<NumericMatrix>(Msels[0]);
+  for(int a=0; a<amax; a++) for(int s=0; s<ns; s++) Mtot(a) = Mtot(a) + Ms(0) * Mtmp(a,s);
   std::fill( SPR.begin(), SPR.end(), 0);
   std::fill( CW.begin(), CW.end(), 0);
   std::fill( SP.begin(), SP.end(), 0);
@@ -113,9 +116,11 @@ List simpop(double logFM, List dat, List set, int out) {
   for(int y=0; y<ny; y++){
     // Adding noise
     hy = h * eH(y);
-    MAA = Ms(y) * Msels * eM(y);
+    if(nmsels > 1) mselsind = y;
+    Mtmp = as<NumericMatrix>(Msels[mselsind]);
+    MAA = Ms(y) * Mtmp * eM(y);
     std::fill( Mtot.begin(), Mtot.end(), 0);
-    for(int a=0; a<amax; a++) for(int s=0; s<ns; s++) Mtot(a) = Mtot(a) + Ms(y) * Msels(a,s);
+    for(int a=0; a<amax; a++) for(int s=0; s<ns; s++) Mtot(a) = Mtot(a) + Ms(y) * Mtmp(a,s);
     maty = mats * eMat(y);
     R0y = R0 * eR0(y);
     matyear = mat * eMat(y);
