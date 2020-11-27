@@ -112,11 +112,20 @@ estRefStoch <- function(dat, set=NULL,
         stop("'set$refMethod' not known! Has to be 'mean' or 'median'!")
     }
     ## natural mortality
-    ntv <- length(unique(dat$Ms))
-    ms <- unique(dat$Ms)
-    mind <- match(dat$Ms, ms)
+    ntv <- length(unique(dat$M))
+    ms <- unique(dat$M)
+    mind <- match(dat$M, ms)
+    if(length(dat$Msel) > 1){
+        msels <- dat$Msels[!duplicated(dat$Msels)]
+        ntv2 <- length(msels)
+    }else{
+        msels <- dat$Msels[1]
+        ntv2 <- 1
+    }
+    if(ntv2 > 1 && ntv2 != ntv) stop("Msels differs differently than M. This is not yet implemented.")
     ##
     refall <- c("Fmsy","MSY","Bmsy","ESBmsy","SSBmsy","B0")
+    ##
 
     ## errors (have to be re-used for estimation of Bmsy)
     errs <- vector("list", nrep)
@@ -132,6 +141,11 @@ estRefStoch <- function(dat, set=NULL,
     }
     ##
     datx <- dat
+    ##
+    datx$yvec <- rep(1:nyref, each = ns)
+    datx$svec <- rep(1:ns, each = nyref)
+    datx$s1vec <- seq(1, nyref * ns, ns)
+
 
     if(any(ref %in% c("Fmsy","Bmsy","MSY","ESBmsy","SSBmsy"))){
         ## Fmsy
@@ -140,7 +154,11 @@ estRefStoch <- function(dat, set=NULL,
             tmp <- rep(NA, ntv)
             for(i in 1:ntv){
                 datx$M <- rep(dat$M[i], nyref)
-                datx$Ms <- rep(dat$Ms[i], nyref)
+                ind <- (i-1)*ns+1
+                datx$Ms <- rep(dat$Ms[ind:(ind+ns)], nyref)
+                ind2 <- ifelse(ntv2 > 1, i, 1)
+                datx$Msels <- msels[ind2]
+                datx$Msel <- lapply(datx$Msels, rowMeans)
                 opt <- optimise(function(x) unlist(simpop(x, datx, setx, out=1)),
                                 log(c(0.001,10)), maximum = TRUE)
                 tmp[i] <- exp(opt$maximum)
@@ -155,7 +173,11 @@ estRefStoch <- function(dat, set=NULL,
             tmp <- vector("list", ntv)
             for(i in 1:ntv){
                 datx$M <- rep(dat$M[i], nyref)
-                datx$Ms <- rep(dat$Ms[i], nyref)
+                ind <- (i-1)*ns+1
+                datx$Ms <- rep(dat$Ms[ind:(ind+ns)], nyref)
+                ind2 <- ifelse(ntv2 > 1, i, 1)
+                datx$Msels <- msels[ind2]
+                datx$Msel <- lapply(datx$Msels, rowMeans)
                 tmp0 <- simpop(log(fmsys[x,i]), datx, setx, out=0)
                 if(set$refMethod == "mean"){
                     tmp[[i]] <- c(mean(tail(tmp0$CW,nyrefmsy)), mean(tail(tmp0$TSB,nyrefmsy)),
@@ -186,7 +208,11 @@ estRefStoch <- function(dat, set=NULL,
             tmp <- rep(NA, ntv)
             for(i in 1:ntv){
                 datx$M <- rep(dat$M[i], nyref)
-                datx$Ms <- rep(dat$Ms[i], nyref)
+                ind <- (i-1)*ns+1
+                datx$Ms <- rep(dat$Ms[ind:(ind+ns)], nyref)
+                ind2 <- ifelse(ntv2 > 1, i, 1)
+                datx$Msels <- msels[ind2]
+                datx$Msel <- lapply(datx$Msels, rowMeans)
                 tmp0 <- simpop(log(1e-20), datx, setx, out=0)$TSB
                 if(set$refMethod == "mean"){
                     tmp[i] <- mean(tail(tmp0,nyrefmsy))

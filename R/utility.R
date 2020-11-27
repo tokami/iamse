@@ -492,6 +492,7 @@ checkSet <- function(set = NULL){
 
     ## Assessment
     if(is.null(set$assessmentTiming)) set$assessmentTiming <- 1
+    if(is.null(set$assessmentInterval)) set$assessmentInterval <- 1
 
     ## Index timing:
     ## North Sea - IBITS: the majority of countries have only carried
@@ -784,14 +785,4 @@ recfunc <- function(h, SSBPR0, SSB,  R0 = 1e6, method = "bevholt", bp = 0,
     }else print("Stock-recruitment method not known! Implemented methods: 'bevholt', 'ricker', 'average', and 'hockey-stick'.")
 
     return (rec)
-}
-
-
-
-#' @name estTAC
-#' @export
-estTAC <- function(inp, hcr, tacs=NULL, pars=NULL){
-    func <- get(hcr)
-    tacs <- func(inp, tacs, pars)
-    return(tacs)
 }

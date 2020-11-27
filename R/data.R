@@ -120,6 +120,7 @@ checkDat <- function(dat, verbose = TRUE){
 
     ## natural mortality over time
     ##------------------
+    ## per year
     if(!any(names(dat) == "M")){
         dat$M <- rep(getM(dat$linf, dat$k, dat$mids), dat$ny)
         if(verbose) writeLines("No natural mortality (M) provided. Setting time-invariant M.")
@@ -128,6 +129,7 @@ checkDat <- function(dat, verbose = TRUE){
     }else if(length(dat$M) < dat$ny){
         stop(paste0("Natural mortality ('dat$M') has length ",length(dat$M),". It should either be a single numeric or correspond at least to the number of historical years ('dat$ny')."))
     }
+    ## per season
     if(!any(names(dat) == "Ms")){
         dat$Ms <- rep(dat$M / ns, each = ns)
         if(verbose) writeLines("No in-year natural mortality (Ms) provided. Setting time-invariant Ms corresponding to annual M (adjusted by in-year time steps).")

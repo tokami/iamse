@@ -1,6 +1,14 @@
 ## Harvest control rules (HCRs)
 ##-----------------------------
 
+#' @name estTAC
+#' @export
+estTAC <- function(inp, hcr, tacs=NULL, pars=NULL){
+    func <- get(hcr)
+    tacs <- func(inp, tacs, pars)
+    return(tacs)
+}
+
 
 #' @name gettacs
 gettacs <- function(tacs=NULL, id="", TAC=NA, inp=NULL){

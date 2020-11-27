@@ -43,6 +43,7 @@ List simpop(double logFM, List dat, List set, int out) {
   NumericMatrix weightFs = as<NumericMatrix>(dat["weightFs"]);
   NumericVector Ms = as<NumericVector>(dat["Ms"]);
   List Msels = as<List>(dat["Msels"]);
+  IntegerVector s1vec = as<IntegerVector>(dat["s1vec"]);
   NumericMatrix mats = as<NumericMatrix>(dat["mats"]);
   NumericVector mat = as<NumericVector>(dat["mat"]);
   NumericMatrix sels = as<NumericMatrix>(dat["sels"]);
@@ -89,7 +90,7 @@ List simpop(double logFM, List dat, List set, int out) {
   // Initialise
   std::fill( Mtot.begin(), Mtot.end(), 0);
   NumericMatrix Mtmp = as<NumericMatrix>(Msels[0]);
-  for(int a=0; a<amax; a++) for(int s=0; s<ns; s++) Mtot(a) = Mtot(a) + Ms(0) * Mtmp(a,s);
+  for(int a=0; a<amax; a++) for(int s=0; s<ns; s++) Mtot(a) = Mtot(a) + Ms(s) * Mtmp(a,s);
   std::fill( SPR.begin(), SPR.end(), 0);
   std::fill( CW.begin(), CW.end(), 0);
   std::fill( SP.begin(), SP.end(), 0);
@@ -118,7 +119,8 @@ List simpop(double logFM, List dat, List set, int out) {
     hy = h * eH(y);
     if(nmsels > 1) mselsind = y;
     Mtmp = as<NumericMatrix>(Msels[mselsind]);
-    MAA = Ms(y) * Mtmp * eM(y);
+    for(int a=0; a<amax; a++) MAA(a,_) = Mtmp(a,_) * Ms[Rcpp::Range(s1vec(y), s1vec(y)+ns-1)];
+    MAA = MAA * eM(y);
     std::fill( Mtot.begin(), Mtot.end(), 0);
     for(int a=0; a<amax; a++) for(int s=0; s<ns; s++) Mtot(a) = Mtot(a) + Ms(y) * Mtmp(a,s);
     maty = mats * eMat(y);

@@ -1,4 +1,3 @@
-
 ## input data:
 ## Number of years (ny)
 ## Maximum age of species (amax)
@@ -123,7 +122,7 @@ initPop <- function(dat, set = NULL, out.opt = 1){
         for(y in 1:burnin){
             ## recruitment
             Fbi <- sels * Fs[1]
-            Mbi <- Msels[[1]] * Ms[1]
+            Mbi <- t(t(Msels[[1]]) * Ms[1:ns])
             Zbi <- Mbi + Fbi
             SSBtemp <- sum(NAAbi * weights[,1] * mats[,1] * exp(-pzbm * Zbi[,1])) ## pre-recruitment mort
             SSBPR0 <- getSSBPR2(Mbi, dat$mats, dat$weights, fecun=1, amax, dat$R0,
@@ -134,9 +133,6 @@ initPop <- function(dat, set = NULL, out.opt = 1){
             recbi[recbi<0] <- 1e-10
             NAAbi[1] <- recbi
             for(s in 1:ns){
-                mselsInd <- ifelse(mselFlag, s, 1)
-                Mbi <- Msels[[mselsInd]] * Ms[s]
-                Zbi <- Mbi + Fbi
                 ## can't take more than what's there
                 Btemp <- sum(NAAbi * weights[,s] * sels[,s] * exp(-(Mbi[,s])/2))
                 CWbi <- sum(baranov(Fbi[,s], Mbi[,s], NAAbi) * weightFs[,s])
@@ -167,11 +163,11 @@ initPop <- function(dat, set = NULL, out.opt = 1){
 
     ## main loop
     for(y in 1:ny){
-        mselsInd <- ifelse(mselFlag, s1vec[y], 1)
         ## Adding noise
         FM[y,] <- Fs[y] * eF[y]
-        MAA <- Msels[[mselsInd]] * Ms[s1vec[y]] * eM[y]
         FAA <- FM[y,] * sels
+        mselsInd <- ifelse(mselFlag, y, 1)
+        MAA <- t(t(Msels[[mselsInd]]) * Ms[s1vec[y]:(s1vec[y]+ns-1)]) * eM[y]
         ZAA <- MAA + FAA
         maty <- mats * eMat[y]
         hy <- h * eH[y]
@@ -187,9 +183,6 @@ initPop <- function(dat, set = NULL, out.opt = 1){
         NAA[1] <- rec[y] * eR[y]
         ## seasons
         for(s in 1:ns){
-            mselsInd <- ifelse(mselFlag, s1vec[y]+(s-1), 1)
-            MAA <- Msels[[mselsInd]] * Ms[s1vec[y]+(s-1)] * eM[y]
-            ZAA <- MAA + FAA
             ## can't take more than what's there
             Btemp <- sum(NAA * weights[,s] * sels[,s] * exp(-MAA[,s]/2))
             CAA <- baranov(FAA[,s], MAA[,s], NAA)
@@ -310,10 +303,11 @@ advancePop <- function(dat, hist, set, hcr, year){
     y <- ny + 1
     ysim <- y - dat$ny
     ns <- dat$ns
+    s1vec <- dat$s1vec
     nt <- ny * ns
     nsC <- set$catchSeasons
     nysim <- set$nysim
-    assessYears <- seq(1,nysim, set$assessmentInterval)
+    assessYears <- seq(1, nysim, set$assessmentInterval)
 
     ## survey
     nsurv <- length(set$surveyTimes)
@@ -402,6 +396,9 @@ advancePop <- function(dat, hist, set, hcr, year){
                      eI = eI)
     }
 
+    ## Flags
+    mselFlag <- inherits(Msels, "list") && length(Msels) > 1
+
     ## Containers
     tmp <- matrix(0, 1, ns)
     TSB <- rbind(hist$TSB,tmp)
@@ -418,8 +415,9 @@ advancePop <- function(dat, hist, set, hcr, year){
     ESBfinal <- c(hist$ESBfinal, NA)
 
     ## project forward
-    MAA <- Msels * Ms[y] * eM
     R0y <- R0 * eR0
+    mselsInd <- ifelse(mselFlag, y, 1)
+    MAA <- t(t(Msels[[mselsInd]]) * Ms[s1vec[y]:(s1vec[y]+ns-1)]) * eM
     hy <- h * eH
     maty <- mats * eMat
 
