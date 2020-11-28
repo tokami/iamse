@@ -214,6 +214,7 @@ estProd <- function(dat, set= NULL,
     set$noiseMat <- c(0,0,0)
     set$noiseImp <- c(0,0,0)
 
+
     ##
     len1 <- len3 <- floor(ny/tsSplit)
     len2 <- ny - len1 - len3
@@ -223,6 +224,10 @@ estProd <- function(dat, set= NULL,
                    seq(0, fmax, length.out = len2),
                 rep(fmax,len3))
     dat$Fs <- dat$FM / ns
+    ## CHECK: how to estimate productivity with time variant M?
+    dat$M <- mean(dat$M)
+    dat$Ms <- mean(dat$Ms)
+    dat <- checkDat(dat)
     pop1 <- initPop(dat, set)
     tsb1 <- pop1$TSBfinal
     esb1 <- pop1$ESBfinal
@@ -245,7 +250,11 @@ estProd <- function(dat, set= NULL,
     ## decreasing effort
     dat$FM <- c(rep(fmax, len1),
                    seq(fmax, 0, length.out = len2),
-                   rep(0, len3))
+                rep(0, len3))
+    dat$Fs <- dat$FM / ns
+    dat$M <- mean(dat$M)
+    dat$Ms <- mean(dat$Ms)
+    dat <- checkDat(dat)
     pop2 <- initPop(dat, set)
     dat$Fs <- dat$FM / ns
     tsb2 <- pop2$TSBfinal
