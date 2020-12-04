@@ -3,17 +3,17 @@
 
 #' @name estTAC
 #' @export
-estTAC <- function(inp, hcr, tacs=NULL, pars=NULL){
+estTAC <- function(obs, hcr, tacs=NULL, pars=NULL){
     func <- get(hcr)
-    tacs <- func(inp, tacs, pars)
+    tacs <- func(obs, tacs, pars)
     return(tacs)
 }
 
 
 #' @name gettacs
-gettacs <- function(tacs=NULL, id="", TAC=NA, inp=NULL){
-    if(!is.null(inp) && is.list(inp$obsI))
-        nis <- length(inp$obsI) else nis <- 1
+gettacs <- function(tacs=NULL, id="", TAC=NA, obs=NULL){
+    if(!is.null(obs) && is.list(obs$obsI))
+        nis <- length(obs$obsI) else nis <- 1
     tactmp <- data.frame(TAC=TAC, id=id,
                          hitSC=NA,
                          red=NA,
@@ -66,11 +66,11 @@ defHCRref <- function(consF = 0,
     if(!is.null(fracFmsy)){
         id <- paste0("refFmsy-", as.character(fracFmsy))
         template  <- expression(paste0(
-                '
+            '
 structure(
-    function(inp, tacs=NULL, pars=NULL){
-        inp <- spict::check.inp(inp, verbose = FALSE)
-        tacs <- gettacs(tacs, id="',id,'", TAC=NA, inp=inp)
+    function(obs, tacs=NULL, pars=NULL){
+        obs <- spict::check.inp(obs, verbose = FALSE)
+        tacs <- gettacs(tacs, id="',id,'", TAC=NA, obs=obs)
         return(tacs)
     },
     class="hcr"
@@ -86,9 +86,9 @@ structure(
             template  <- expression(paste0(
                 '
 structure(
-    function(inp, tacs=NULL, pars=NULL){
-        inp <- spict::check.inp(inp, verbose = FALSE)
-        tacs <- gettacs(tacs, id="',id,'", TAC=NA, inp=inp)
+    function(obs, tacs=NULL, pars=NULL){
+        obs <- spict::check.inp(obs, verbose = FALSE)
+        tacs <- gettacs(tacs, id="',id,'", TAC=NA, obs=obs)
         return(tacs)
     },
     class="hcr"
@@ -101,9 +101,9 @@ structure(
             template  <- expression(paste0(
                 '
 structure(
-    function(inp, tacs=NULL, pars=NULL){
-        inp <- spict::check.inp(inp, verbose = FALSE)
-        tacs <- gettacs(tacs, id="',id,'", TAC=NA, inp=inp)
+    function(obs, tacs=NULL, pars=NULL){
+        obs <- spict::check.inp(obs, verbose = FALSE)
+        tacs <- gettacs(tacs, id="',id,'", TAC=NA, obs=obs)
         return(tacs)
     },
     class="hcr"
@@ -116,9 +116,9 @@ structure(
             template  <- expression(paste0(
                 '
 structure(
-    function(inp, tacs=NULL, pars=NULL){
-        inp <- spict::check.inp(inp, verbose = FALSE)
-        tacs <- gettacs(tacs, id="',id,'", TAC=0, inp=inp)
+    function(obs, tacs=NULL, pars=NULL){
+        obs <- spict::check.inp(obs, verbose = FALSE)
+        tacs <- gettacs(tacs, id="',id,'", TAC=0, obs=obs)
         return(tacs)
     },
     class="hcr"
@@ -161,7 +161,7 @@ defHCRconscat <- function(id = "conscat",
     template  <- expression(paste0(
         '
 structure(
-    function(inp, tacs = NULL, pars=NULL){
+    function(obs, tacs = NULL, pars=NULL){
         red <- ',red,'
         redyears <- ',redyears,'
         assessInt <- ',assessmentInterval,'
@@ -173,16 +173,16 @@ structure(
         ## bbtrigger <- runif(1, pars$bbmsy*2, pars$bbmsy*2 * ',bbtriggerSD,')
         bbtrigger[bbtrigger < 0] <- 0
 
-        inp <- spict::check.inp(inp, verbose = FALSE)
+        obs <- spict::check.inp(obs, verbose = FALSE)
         if(is.null(tacs)){
-            indBref <- inp$indBref
+            indBref <- obs$indBref
         }else{
             indBref <- as.numeric(as.character(unlist(strsplit(as.character(tacs$indBref[nrow(tacs)]), "-"))))
         }
         indBref2 <- paste(indBref, collapse="-")
         tac <- ',constantC,'
         if(!is.numeric(tac)){
-            annualcatch <- spict:::annual(inp$timeC, inp$obsC/inp$dtc, type = "mean") ## CHECK: why not sum?
+            annualcatch <- spict:::annual(obs$timeC, obs$obsC/obs$dtc, type = "mean") ## CHECK: why not sum?
             tac <- mean(tail(annualcatch$annvec, ',clyears,'))
             ## Account for non-annual assessments
             tac <- tac * assessInt
@@ -217,7 +217,7 @@ structure(
         if(barID){
             tac <- tac * (1-red)
         }
-        tacs <- gettacs(tacs, id = "',id,'", TAC = tac, inp=inp)
+        tacs <- gettacs(tacs, id = "',id,'", TAC = tac, obs=obs)
         tacs$hitSC[nrow(tacs)] <- NA
         tacs$barID[nrow(tacs)] <- barID
         tacs$red[nrow(tacs)] <- red
@@ -279,7 +279,7 @@ defHCRindex <- function(id = "r23",
     template  <- expression(paste0(
         '
 structure(
-    function(inp, tacs = NULL, pars = NULL){
+    function(obs, tacs = NULL, pars = NULL){
         x <- ',x,'
         y <- ',y,'
         stab <- ',stab,'
@@ -298,16 +298,16 @@ structure(
         ## bbtrigger <- runif(1, pars$bbmsy*2, pars$bbmsy*2 * ',bbtriggerSD,')
         bbtrigger[bbtrigger < 0] <- 0
 
-        inp <- spict::check.inp(inp, verbose = FALSE)
+        obs <- spict::check.inp(obs, verbose = FALSE)
         if(is.null(tacs)){
-            indBref <- inp$indBref
+            indBref <- obs$indBref
         }else{
             indBref <- as.numeric(as.character(unlist(strsplit(as.character(tacs$indBref[nrow(tacs)]), "-"))))
         }
         indBref2 <- paste(indBref, collapse="-")
         ## benchmark (only benchmark in spict)
         bmID <- FALSE
-        inds <- inp$obsI
+        inds <- obs$obsI
         if(length(inds) > 1){
             ## WHAT TO DO IF SEVERAL INDICES AVAILABLE? ## for now: mean
             indtab <- do.call(rbind, inds)
@@ -320,14 +320,14 @@ structure(
         iden <- ind[(ninds-(x+y-1)):(ninds-x)]
         r <- r0 <- mean(inum, na.rm = TRUE)/mean(iden, na.rm = TRUE)
         ## account for seasonal and annual catches
-        ## cl <- sum(tail(inp$obsC, tail(1/inp$dtc,1))) ## CHECK: dtc required?
+        ## cl <- sum(tail(obs$obsC, tail(1/obs$dtc,1))) ## CHECK: dtc required?
         if(clType == "observed"){
-            cl <- mean(tail(inp$obsC, clyears))
+            cl <- mean(tail(obs$obsC, clyears))
             ## Account for non-annual assessments
             cl <- cl * assessInt
         }else if(clType == "TAC"){
             if(is.null(tacs)){
-                cl <- mean(tail(inp$obsC, 3))
+                cl <- mean(tail(obs$obsC, 3))
                 ## Account for non-annual assessments
                 cl <- cl * assessInt
             }else{
@@ -373,7 +373,7 @@ structure(
         if(barID){
             tac <- tac * (1-red)
         }
-        tacs <- gettacs(tacs, id = "',id,'", TAC = tac, inp = inp)
+        tacs <- gettacs(tacs, id = "',id,'", TAC = tac, obs = obs)
         tacs$hitSC[nrow(tacs)] <- hitSC
         tacs$barID[nrow(tacs)] <- barID
         tacs$red[nrow(tacs)] <- red
@@ -481,7 +481,9 @@ defHCRspict <- function(id = "spict-msy",
     template  <- expression(paste0(
         '
 structure(
-    function(inp, tacs = NULL, pars=NULL){
+    function(obs, tacs = NULL, pars=NULL){
+
+        inp <- obs[c("obsC","timeC","obsI","timeI")]
 
         func <- get(nonconvHCR)
         inp$reportmode <- ',reportmode,'
@@ -879,6 +881,128 @@ indBref <- which(floor(timeX) %in% ann2)
             tacs <- rbind(tacs, tactmp)
         }
 
+        return(tacs)
+    },
+    class="hcr")
+'))
+
+    ## create HCR as functions
+    templati <- eval(parse(text=paste(parse(text = eval(template)),collapse=" ")))
+    assign(value=templati, x=id, envir=env)
+
+    ## allow for assigning names
+    invisible(id)
+}
+
+
+#' @name defHCRsam
+#' @title Define harvest control rule for SAM
+#' @details This function allows to define harvest control rules (HCRs) which can be incorporated into a
+#' management strategy evaluation framework (DLMtool package). HCRs are saved with a
+#' generic name to the global environment and the names of the HCRs are returned if results of the
+#' function are assigned to an object. HCR runs a SPiCT assessment using catch and
+#' relative biomass index observations. Stock status estimates are used to set the TAC
+#' for the next year. TAC can be based on the distribution of predicted catches (percentileC)
+#' and/or the distribution of the Fmsy reference level (percentileFmsy).
+#' Additionally, a cap can be applied to account for low biomass levels (below Bmsy).
+#' Arguments of returned function are 'x' - the position in a data-limited mehods data object,
+#' 'Data' - the data-limited methods data object (see DLMtool), and 'reps' - the number of
+#' stochastic samples of the TAC recommendation (not used for this HCR).
+#' One or several arguments of the function can be provided as vectors to generate several
+#' HCRs at once (several vectors have to have same length).
+#'
+#'
+#' @export
+#'
+defHCRsam <- function(id = "sam",
+                        env = globalenv()
+                        ){
+
+    template  <- expression(paste0(
+        '
+structure(
+    function(obs, tacs = NULL, pars=NULL){
+
+        func <- get(nonconvHCR)
+        ## Check input data
+        ## -> obs
+
+        ## Write output files
+
+
+        ## fit SAM
+
+
+        ## exit if non-convergence
+
+
+        ## get TAC
+        tac = 10
+
+
+        ## write output object
+        tacs <- gettacs(tacs, id="',id,'", TAC=tac, obs=obs)
+        return(tacs)
+    },
+    class="hcr")
+'))
+
+    ## create HCR as functions
+    templati <- eval(parse(text=paste(parse(text = eval(template)),collapse=" ")))
+    assign(value=templati, x=id, envir=env)
+
+    ## allow for assigning names
+    invisible(id)
+}
+
+
+
+#' @name defHCRsms
+#' @title Define harvest control rule for SMS
+#' @details This function allows to define harvest control rules (HCRs) which can be incorporated into a
+#' management strategy evaluation framework (DLMtool package). HCRs are saved with a
+#' generic name to the global environment and the names of the HCRs are returned if results of the
+#' function are assigned to an object. HCR runs a SPiCT assessment using catch and
+#' relative biomass index observations. Stock status estimates are used to set the TAC
+#' for the next year. TAC can be based on the distribution of predicted catches (percentileC)
+#' and/or the distribution of the Fmsy reference level (percentileFmsy).
+#' Additionally, a cap can be applied to account for low biomass levels (below Bmsy).
+#' Arguments of returned function are 'x' - the position in a data-limited mehods data object,
+#' 'Data' - the data-limited methods data object (see DLMtool), and 'reps' - the number of
+#' stochastic samples of the TAC recommendation (not used for this HCR).
+#' One or several arguments of the function can be provided as vectors to generate several
+#' HCRs at once (several vectors have to have same length).
+#'
+#' @export
+#'
+defHCRsms <- function(id = "sms",
+                        env = globalenv()
+                        ){
+
+    template  <- expression(paste0(
+        '
+structure(
+    function(obs, tacs = NULL, pars=NULL){
+
+        func <- get(nonconvHCR)
+        ## Check input data
+        ## -> obs
+
+        ## Write output files
+
+
+        ## fit SMS
+
+
+        ## exit if non-convergence
+
+
+        ## get TAC
+        tac = 10
+
+
+        ## write output object
+        tacs <- gettacs(tacs, id="',id,'", TAC=tac, obs=obs)
         return(tacs)
     },
     class="hcr")

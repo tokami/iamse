@@ -104,30 +104,42 @@ muconv <- function(mu, sd) log(mu) - 0.5 * log(1 + ((sd^2)/(mu^2)))
 
 #' @name genNoise
 #' @export
-genNoise <- function(n, sd, rho=0, bias.cor = 0){
+genNoise <- function(n, sd, rho=0, bias.cor = 0, mv=FALSE, dat=NULL){
 
-    if(bias.cor == 0){
-        rnoise <- rnorm(n, 0, sd)
-    }else if(bias.cor == 1){
-        rnoise <- rnorm(n, 0, sd) - sd^2/2
-    }else if(bias.cor == 2){
-        rnoise <- log(rlnorm(n, muconv(1,sd), sdconv(1,sd)))
-    }
-
-    if(rho > 0){
-        res <- numeric(n)
-        res[1] <- rnoise[1]
-        if(n > 1){
-            for(i in 2:n) res[i] <- rho * res[i-1] + sqrt(1 - rho^2) * rnoise[i]
-        }
-
+    if(mv){
+        ## multivariate noise
+        stopifnot(!is.null(dat))
+        amax <- dat$amax + 1
+        Sigma <- matrix(NA, amax, amax)
+        for(i in 1:amax) for(j in 1:amax) Sigma[i,j] = rho^abs(i - j) * sd^2
+        res <- MASS::mvrnorm(n, rep(0,ncol(Sigma)), Sigma)
+        if(bias.cor == 1){
+            for(i in 1:amax) res[,i] <- res[,i] - Sigma[i,i] / 2
+        }else if(bias.cor != 0) stop("bias.cor has to be 0 or 1 for multivariate noise. Please check set$noiseCmult and set$noiseImult.")
         res <- exp(res)
-        res <- res/mean(res)
-
     }else{
-        res <- exp(rnoise)
-    }
+        if(bias.cor == 0){
+            rnoise <- rnorm(n, 0, sd)
+        }else if(bias.cor == 1){
+            rnoise <- rnorm(n, 0, sd) - sd^2/2
+        }else if(bias.cor == 2){
+            rnoise <- log(rlnorm(n, muconv(1,sd), sdconv(1,sd)))
+        }else stop("bias.cor has to be 0, 1, or 2. Please check the different set$noise* settings.")
 
+        if(rho > 0){
+            res <- numeric(n)
+            res[1] <- rnoise[1]
+            if(n > 1){
+                for(i in 2:n) res[i] <- rho * res[i-1] + sqrt(1 - rho^2) * rnoise[i]
+            }
+
+            res <- exp(res)
+            res <- res/mean(res)
+
+        }else{
+            res <- exp(rnoise)
+        }
+    }
     return(res)
 }
 
@@ -410,126 +422,6 @@ estProdStoch <- function(dat, set= NULL,
                 blims = blims)
     return(res)
 
-}
-
-
-#' @name checkSet
-#' @export
-checkSet <- function(set = NULL){
-
-    ## empty list
-    if(is.null(set)) set <- list()
-
-    ## noise vectors (SD, rho, bias correction)
-    if(is.null(set$noiseR)){
-        set$noiseR <- c(0,0,0)
-    }else if(length(set$noiseR) != 3){
-        writeLines("'set$noiseR' needs to be a vector with 3 values corresponding to: sd, rho, bias.corr (see genNoise). Setting to c(0,0,0)!")
-    }
-    if(is.null(set$noiseF)){
-        set$noiseF <- c(0,0,0)
-    }else if(length(set$noiseF) != 3){
-        writeLines("'set$noiseF' needs to be a vector with 3 values corresponding to: sd, rho, bias.corr (see genNoise). Setting to c(0,0,0)!")
-    }
-    if(is.null(set$noiseM)){
-        set$noiseM <- c(0,0,0)
-    }else if(length(set$noiseM) != 3){
-        writeLines("'set$noiseM' needs to be a vector with 3 values corresponding to: sd, rho, bias.corr (see genNoise). Setting to c(0,0,0)!")
-    }
-    if(is.null(set$noiseH)){
-        set$noiseH <- c(0,0,0)
-    }else if(length(set$noiseH) != 3){
-        writeLines("'set$noiseH' needs to be a vector with 3 values corresponding to: sd, rho, bias.corr (see genNoise). Setting to c(0,0,0)!")
-    }
-    if(is.null(set$noiseR0)){
-        set$noiseR0 <- c(0,0,0)
-    }else if(length(set$noiseR0) != 3){
-        writeLines("'set$noiseR0' needs to be a vector with 3 values corresponding to: sd, rho, bias.corr (see genNoise). Setting to c(0,0,0)!")
-    }
-    if(is.null(set$noiseMat)){
-        set$noiseMat <- c(0,0,0)
-    }else if(length(set$noiseMat) != 3){
-        writeLines("'set$noiseMat' needs to be a vector with 3 values corresponding to: sd, rho, bias.corr (see genNoise). Setting to c(0,0,0)!")
-    }
-    if(is.null(set$noiseImp)){
-        set$noiseImp <- c(0,0,0)
-    }else if(length(set$noiseImp) != 3){
-        writeLines("'set$noiseImp' needs to be a vector with 3 values corresponding to: sd, rho, bias.corr (see genNoise). Setting to c(0,0,0)!")
-    }
-    if(is.null(set$noiseC)){
-        set$noiseC <- c(0,0,0)
-    }else if(length(set$noiseC) != 3){
-        writeLines("'set$noiseC' needs to be a vector with 3 values corresponding to: sd, rho, bias.corr (see genNoise). Setting to c(0,0,0)!")
-    }
-    if(is.null(set$noiseI)){
-        set$noiseI <- c(0,0,0)
-    }else if(length(set$noiseI) != 3){
-        writeLines("'set$noiseI' needs to be a vector with 3 values corresponding to: sd, rho, bias.corr (see genNoise). Setting to c(0,0,0)!")
-    }
-
-    ## maximum F for baranov solution for F given TAC
-    if(is.null(set$maxF)) set$maxF <- 5
-
-    ## for estimation of ref levels
-    if(is.null(set$refN)) set$refN <- 1e3
-    if(is.null(set$refYears)){
-        set$refYears <- 300
-    }else if(set$refYears < 100){
-        writeLines("set$refYears has to be at least 100 years, as the median surplus production over the last 50 years are used for reference estimation. Setting to 100.")
-        set$refYears <- 100
-    }
-    if(is.null(set$refYearsMSY)){
-        set$refYearsMSY <- 100
-    }else if(set$refYearsMSY >= set$refYears){
-        writeLines("set$refYearsMSY cannot be longer than 'set$refYears'. Setting to half of 'set$refYears'.")
-        set$refYearsMSY <- floor(set$refYears / 2)
-    }
-    if(is.null(set$refMethod)){
-        set$refMethod <- "mean"
-    }else if(set$refYears < 100){
-        writeLines("'set$refMethod' has to be mean or median. Setting to 'mean'.")
-        set$refMethod <- "mean"
-    }
-
-    ## Recruitment
-    if(is.null(set$recruitmentTiming)) set$recruitmentTiming <- 1
-
-    ## number of years available to assessment method
-    if(is.null(set$nyhist)) set$nyhist <- 35
-    if(is.null(set$nysim)) set$nysim <- 35
-    if(is.null(set$nrep)) set$nrep <- 50
-
-    ## Assessment
-    if(is.null(set$assessmentTiming)) set$assessmentTiming <- 1
-    if(is.null(set$assessmentInterval)) set$assessmentInterval <- 1
-
-    ## Index timing:
-    ## North Sea - IBITS: the majority of countries have only carried
-    ## out a survey twice a year; a first quarter survey (January-February) and a
-    ## third quarter survey (August-September)
-    if(is.null(set$surveyTimes)) set$surveyTimes <- c(1/12,7/12)
-
-    ## HCR
-    if(is.null(set$hcr)) set$hcr <- c(defHCRref(),defHCRref(consF = "fmsy"))
-    ## define constant catch rule
-    defHCRconscat()
-    if(is.null(set$stab)) set$stab <- FALSE
-
-    ## Seasonal catch observations
-    if(is.null(set$catchSeasons)) set$catchSeasons <- 1
-
-    ## burn in period
-    if(is.null(set$burnin)) set$burnin <- 20
-
-    ## seed
-    if(is.null(set$seed)) set$seed <- NA
-
-    ## SP type used for estimation of reference levels (and porduction curve)
-    ## SP based on TSB (spType == 0) or on ESB (spType == 1)
-    if(is.null(set$spType)) set$spType <- 0
-
-    ## return
-    return(set)
 }
 
 

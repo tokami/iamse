@@ -67,6 +67,8 @@ initPop <- function(dat, set = NULL, out.opt = 1){
         eImp <- set$eImp
         eC <- set$eC
         eI <- set$eI
+        eCmv <- set$eCmv
+        eImv <- set$eImv
         if(is.null(eF)) eF <- genNoise(ny, set$noiseF[1], set$noiseF[2], bias.cor = set$noiseF[3])
         if(is.null(eR)) eR <- genNoise(ny, set$noiseR[1], set$noiseR[2], bias.cor = set$noiseR[3])
         if(is.null(eM)) eM <- genNoise(ny, set$noiseM[1], set$noiseM[2], bias.cor = set$noiseM[3])
@@ -79,6 +81,17 @@ initPop <- function(dat, set = NULL, out.opt = 1){
             eI <- list()
             for(i in 1:nsurv){
                 eI[[i]] <- genNoise(ny, set$noiseI[1], set$noiseI[2], bias.cor = set$noiseI[3])
+            }
+        }
+        if(is.null(eCmv)) eCmv <- genNoise(ny, set$noiseCmv[1], set$noiseCmv[2],
+                                               bias.cor = set$noiseCmv[3],
+                                               mv = TRUE, dat = dat)
+        if(is.null(eImv)){
+            eImv <- list()
+            for(i in 1:nsurv){
+                eImv[[i]] <- genNoise(ny, set$noiseImv[1], set$noiseImv[2],
+                                    bias.cor = set$noiseImv[3],
+                                    mv = TRUE, dat = dat)
             }
         }
     }else{
@@ -94,6 +107,11 @@ initPop <- function(dat, set = NULL, out.opt = 1){
         for(i in 1:nsurv){
             eI[[i]] <- rep(1, ny)
         }
+        eCmv <- matrix(1, nrow=ny, ncol=amax)
+        eImv <- list()
+        for(i in 1:nsurv){
+            eImv[[i]] <- matrix(1, nrow=ny, ncol=amax)
+        }
     }
     errs <- list(eF = eF,
                  eR = eR,
@@ -103,7 +121,9 @@ initPop <- function(dat, set = NULL, out.opt = 1){
                  eMat = eMat,
                  eImp = eImp,
                  eC = eC,
-                 eI = eI)
+                 eI = eI,
+                 eCmv = eCmv,
+                 eImv = eImv)
 
     ## Flags
     mselFlag <- inherits(Msels, "list") && length(Msels) > 1
@@ -111,8 +131,15 @@ initPop <- function(dat, set = NULL, out.opt = 1){
     ## containers
     TSB <- TSB1plus <- ESB <- SSB <- CW <- FM <- matrix(0, nrow=ny, ncol=ns)
     TACs <- TSBfinal <- SSBfinal <- ESBfinal <- rec <- rep(NA, ny)
-    obsI <- vector("list", nsurv)
-    timeI <- vector("list", nsurv)
+    CAA <- vector("list", ny)
+    for(i in 1:ny) CAA[[i]] <- matrix(NA, nrow = amax, ncol = ns)
+    ## observations
+    obsI <- timeI <- vector("list", nsurv)
+    ## observations at age
+    obsCA <- matrix(NA, nrow = length(idx), ncol = amax)
+    obsIA <- vector("list", nsurv)
+    for(i in 1:nsurv) obsIA[[i]] <- matrix(NA, nrow = ny, ncol = amax)
+
     ## burnin period
     if(is.null(set)) burnin <- 20 else burnin <- set$burnin
     if(is.numeric(burnin) && burnin > 0){
@@ -185,15 +212,15 @@ initPop <- function(dat, set = NULL, out.opt = 1){
         for(s in 1:ns){
             ## can't take more than what's there
             Btemp <- sum(NAA * weights[,s] * sels[,s] * exp(-MAA[,s]/2))
-            CAA <- baranov(FAA[,s], MAA[,s], NAA)
-            CW[y,s] <- sum(CAA * weightFs[,s])
+            CAA[[y]][,s] <- baranov(FAA[,s], MAA[,s], NAA)
+            CW[y,s] <- sum(CAA[[y]][,s] * weightFs[,s])
             if(CW[y,s] > 0.99 * Btemp){
                 FM[y,s] <- getFM2(0.75 * Btemp, Btemp, 1/ns, MAA[,s], NAA, weights[,s],
                                                  weightFs[,s], sels[,s], fmax = set$maxF/ns)
                 FAA[,s] <- FM[y,s] * sels[,s]
                 ZAA[,s] <- MAA[,s] + FAA[,s]
-                CAA <- baranov(FAA[,s], MAA[,s], NAA)
-                CW[y,s] <- sum(weightFs[,s] * CAA)
+                CAA[[y]][,s] <- baranov(FAA[,s], MAA[,s], NAA)
+                CW[y,s] <- sum(weightFs[,s] * CAA[[y]][,s])
             }
             ## TSB
             TSB[y,s] <- sum(NAA * weights[,s])
@@ -209,11 +236,14 @@ initPop <- function(dat, set = NULL, out.opt = 1){
                 for(i in 1:length(idxi)){
                     surveyTime <- surveyTimes[idxi[i]] - seasonStart[idxS[idxi[i]]]
                     NAAsurv <- exp(log(NAA) - ZAA[,s] * surveyTime)
-                    ESBsurv <- sum(NAAsurv * weightFs[,s] * sels[,s])
-                    obsI[[idxi[i]]] <- c(obsI[[idxi[i]]], q[idxi[i]] * ESBsurv * eI[[idxi[i]]][y])
+                    ESBsurv <- NAAsurv * weightFs[,s] * sels[,s]
+                    ## Total index (for spict)
+                    obsI[[idxi[i]]] <- c(obsI[[idxi[i]]], q[idxi[i]] * sum(ESBsurv) * eI[[idxi[i]]][y])
                     if(is.null(timeI[[idxi[i]]]))
                         timeIi <- 0 else timeIi <- floor(tail(timeI[[idxi[i]]],1))
                     timeI[[idxi[i]]] <- c(timeI[[idxi[i]]], timeIi + 1 + surveyTimes[idxi[i]])
+                    ## Index by age (sam, sms)
+                    obsIA[[idxi[i]]][y,] <- q[idxi[i]] * NAAsurv * sels[,s] * eImv[[idxi[[i]]]][y,]
                 }
             }
 
@@ -236,29 +266,48 @@ initPop <- function(dat, set = NULL, out.opt = 1){
     for(i in 1:nsurv){
         timeI[[i]] <- timeI[[i]][(ny-nyhist+1):ny]
         obsI[[i]] <- obsI[[i]][(ny-nyhist+1):ny]
+        obsIA[[i]] <- obsIA[[i]][(ny-nyhist+1):ny,]
     }
 
     ## catch observations
+    ## ----------------
     if(ns > 1){
+        ## seasonal OM
+        ## ----------------
         if(nsC == 1){
+            ## annual catches
+            ## ----------------
+            ## total catches (spict)
             obsC <- apply(CW[idx,], 1, sum) * eC[idx]
             timeC <- idx
+            ## catch observations at age (SAM, SMS)
+            for(y in 1:length(idx)) obsCA[y,] <- t(apply(CAA[[idx[y]]], 1, sum) * eCmv[y,])
         }else if(nsC == ns){
+            ## seasonal catches (for each season in OM)
+            ## ----------------
             obsC <- as.numeric(t(CW[idx,] * eC[idx]))
             timeC <- rep(idx, each = ns) + rep(seasonStart, nyhist)
+            ## catch observations at age (seasonal CAA observations not yet implemented, what is target format?)
+            for(y in 1:length(idx)) obsCA[y,] <- t(apply(CAA[[idx[y]]], 1, sum) * eCmv[y,])
         }else{
+            ## seasonal catches not aligning with seasones in OM (not implemented)
             stop("Catch observation seasons and operating model seasons do not match. Not yet implemented!")
         }
     }else{
+        ## annual OM
         if(nsC > 1) writeLines("Set dat$ns to > 1 for seasonal catches. Generating annual catches!")
         obsC <- CW[idx,] * eC[idx]
         timeC <- idx
+        ## catch observations at age
+        for(y in 1:length(idx)) obsCA[y,] <- t(CAA[[idx[y]]] * eCmv[y,])
     }
 
-    inp <- list(obsC = obsC,
+    obs <- list(obsC = obsC,
                 timeC = timeC,
                 obsI = obsI,
-                timeI = timeI)
+                timeI = timeI,
+                obsCA = obsCA,
+                obsIA = obsIA)
 
     ## return
     out <- NULL
@@ -277,7 +326,7 @@ initPop <- function(dat, set = NULL, out.opt = 1){
         out$CW <- CW
         out$TACs <- TACs
         out$errs <- errs
-        out$inp <- inp
+        out$obs <- obs
     }else if(out.opt %in% c(2,3)){
         refs <- dat$ref
         if(is.null(refs)){
@@ -320,7 +369,7 @@ advancePop <- function(dat, hist, set, hcr, year){
 
     ## parameters
     tacs <- hist$tacs
-    inp <- hist$inp
+    obs <- hist$obs
     refs <- dat$ref
     amax <- dat$amax + 1  ## age 0
     pzbm <- dat$pzbm
@@ -357,6 +406,8 @@ advancePop <- function(dat, hist, set, hcr, year){
     for(i in 1:nsurv){
         eI[[i]] <- set$eI[[i]][ysim]
     }
+    eCmv <- set$eCmv[ysim,]
+    eImv <- set$eImv[ysim,]
     if(is.null(eF)) eF <- genNoise(1, set$noiseF[1], set$noiseF[2], bias.cor = set$noiseF[3])
     if(is.null(eR)) eR <- genNoise(1, set$noiseR[1], set$noiseR[2], bias.cor = set$noiseR[3])
     if(is.null(eM)) eM <- genNoise(1, set$noiseM[1], set$noiseM[2], bias.cor = set$noiseM[3])
@@ -369,6 +420,17 @@ advancePop <- function(dat, hist, set, hcr, year){
         eI <- list()
         for(i in 1:nsurv){
             eI[[i]] <- genNoise(1, set$noiseI[1], set$noiseI[2], bias.cor = set$noiseI[3])
+        }
+    }
+    if(is.null(eCmv)) eCmv <- genNoise(1, set$noiseCmv[1], set$noiseCmv[2],
+                                       bias.cor = set$noiseCmv[3],
+                                       mv = TRUE, dat = dat)
+    if(is.null(eImv)){
+        eImv <- list()
+        for(i in 1:nsurv){
+            eImv[[i]] <- genNoise(1, set$noiseImv[1], set$noiseImv[2],
+                                  bias.cor = set$noiseImv[3],
+                                  mv = TRUE, dat = dat)
         }
     }
     if("errs" %in% names(hist)){
@@ -384,6 +446,11 @@ advancePop <- function(dat, hist, set, hcr, year){
         for(i in 1:nsurv){
             errs$eI[[i]] = c(hist$errs$eI[[i]], eI[[i]])
         }
+        errs$eCmv <- rbind(hist$errs$eCmv, eCmv)
+        errs$eImv <- list()
+        for(i in 1:nsurv){
+            errs$eImv[[i]] = rbind(hist$errs$eImv[[i]], eImv[[i]])
+        }
     }else{
         errs <- list(eF = eF,
                      eR = eR,
@@ -393,7 +460,9 @@ advancePop <- function(dat, hist, set, hcr, year){
                      eMat = eMat,
                      eImp = eImp,
                      eC = eC,
-                     eI = eI)
+                     eI = eI,
+                     eCmv = eCmv,
+                     eImv = eImv)
     }
 
     ## Flags
@@ -481,7 +550,7 @@ advancePop <- function(dat, hist, set, hcr, year){
                 FMtmp <- as.numeric(t(FM))
                 ffmsy <- sum(tail(FMtmp[1:((y*ns)-ns-(s-1))],4))/refs$Fmsy
                 ## TAC
-                tacs <- estTAC(inp = inp,
+                tacs <- estTAC(obs = obs,
                                hcr = hcr,
                                tacs = tacs,
                                pars =
@@ -548,16 +617,20 @@ advancePop <- function(dat, hist, set, hcr, year){
         if(s %in% idxS){
             idxi <- which(idxS == s)
             for(i in 1:length(idxi)){
+                ## survey observation: total catch in weight (spict)
                 surveyTime <- set$surveyTimes[idxi[i]] - seasonStart[idxS[idxi[i]]]
                 NAAsurv <- exp(log(NAA) - ZAA[,s] * surveyTime)
-                ESBsurv <- sum(NAAsurv * dat$weightFs[,s] * dat$sels[,s])
-                inp$obsI[[idxi[i]]] <-
-                    c(inp$obsI[[idxi[i]]], q[idxi[i]] * ESBsurv * eI[[idxi[i]]])
-                if(is.null(inp$timeI[[idxi[i]]])){
+                ESBsurv <- NAAsurv * dat$weightFs[,s] * dat$sels[,s]
+                obs$obsI[[idxi[i]]] <-
+                    c(obs$obsI[[idxi[i]]], q[idxi[i]] * sum(ESBsurv) * eI[[idxi[i]]])
+                if(is.null(obs$timeI[[idxi[i]]])){
                     timeIi <- ny-nyhist+1
-                }else timeIi <- floor(tail(inp$timeI[[idxi[i]]],1))
-                inp$timeI[[idxi[i]]] <-
-                    c(inp$timeI[[idxi[i]]], timeIi + 1 + set$surveyTimes[idxi[i]])
+                }else timeIi <- floor(tail(obs$timeI[[idxi[i]]],1))
+                obs$timeI[[idxi[i]]] <-
+                    c(obs$timeI[[idxi[i]]], timeIi + 1 + set$surveyTimes[idxi[i]])
+                ## survey observation: CAA
+                obs$obsIA[[idxi[i]]] <- rbind(obs$obsIA[[idxi[i]]],
+                                              q[idxi[i]] * NAAsurv * dat$sels[,s] * eImv[[idxi[[i]]]])
             }
         }
 
@@ -577,22 +650,28 @@ advancePop <- function(dat, hist, set, hcr, year){
     ## catch observations
     if(ns > 1){
         if(nsC == 1){
-            inp$obsC <- c(inp$obsC, sum(CW[y,]) * eC)
-            if(!is.null(inp$timeC)) timeCi <- tail(inp$timeC,1) else timeCi <- ny-nyhist+1
-            inp$timeC <- c(inp$timeC, timeCi + 1)
+            obs$obsC <- c(obs$obsC, sum(CW[y,]) * eC)
+            if(!is.null(obs$timeC)) timeCi <- tail(obs$timeC,1) else timeCi <- ny-nyhist+1
+            obs$timeC <- c(obs$timeC, timeCi + 1)
+            ## catch observations at age (SAM, SMS)
+            obs$obsCA <- rbind(obs$obsCA, t(apply(CAA, 1, sum) * eCmv))
         }else if(nsC == ns){
-            inp$obsC <- c(inp$obsC, CW[y,] * eC)
-            if(!is.null(inp$timeC))
-                timeCi <- floor(tail(inp$timeC,1)) else timeCi <- ny-nyhist+1
-            inp$timeC <- c(inp$timeC, timeCi + 1 + rep(seasonStart, ny))
+            obs$obsC <- c(obs$obsC, CW[y,] * eC)
+            if(!is.null(obs$timeC))
+                timeCi <- floor(tail(obs$timeC,1)) else timeCi <- ny-nyhist+1
+            obs$timeC <- c(obs$timeC, timeCi + 1 + rep(seasonStart, ny))
+            ## catch observations at age (SAM, SMS)
+            obs$obsCA <- rbind(obs$obsCA, t(apply(CAA, 1, sum) * eCmv))
         }else{
             stop("Catch observation seasons and operating model seasons do not match. Not yet implemented!")
         }
     }else{
         if(nsC > 1) writeLines("Set dat$ns to > 1 for seasonal catches. Generating annual catches!")
-        inp$obsC <- c(inp$obsC, sum(CW[y,]) * eC)
-        if(!is.null(inp$timeC)) timeCi <- tail(inp$timeC,1) else timeCi <- ny-nyhist+1
-        inp$timeC <- c(inp$timeC, timeCi + 1)
+        obs$obsC <- c(obs$obsC, sum(CW[y,]) * eC)
+        if(!is.null(obs$timeC)) timeCi <- tail(obs$timeC,1) else timeCi <- ny-nyhist+1
+        obs$timeC <- c(obs$timeC, timeCi + 1)
+        ## catch observations at age (SAM, SMS)
+        obs$obsCA <- rbind(obs$obsCA, t(CAA * eCmv))
     }
 
 
@@ -613,7 +692,7 @@ advancePop <- function(dat, hist, set, hcr, year){
     out$TACs <- TACs
     out$tacs <- tacs
     out$errs <- errs
-    out$inp <- inp
+    out$obs <- obs
     out$tacs <- tacs
     return(out)
 }
