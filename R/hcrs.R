@@ -405,19 +405,42 @@ structure(
 
 #' @name defHCRspict
 #' @title Define harvest control rule
-#' @details This function allows to define harvest control rules (HCRs) which can be incorporated into a
-#' management strategy evaluation framework (DLMtool package). HCRs are saved with a
-#' generic name to the global environment and the names of the HCRs are returned if results of the
-#' function are assigned to an object. HCR runs a SPiCT assessment using catch and
-#' relative biomass index observations. Stock status estimates are used to set the TAC
-#' for the next year. TAC can be based on the distribution of predicted catches (percentileC)
-#' and/or the distribution of the Fmsy reference level (percentileFmsy).
-#' Additionally, a cap can be applied to account for low biomass levels (below Bmsy).
-#' Arguments of returned function are 'x' - the position in a data-limited mehods data object,
-#' 'Data' - the data-limited methods data object (see DLMtool), and 'reps' - the number of
-#' stochastic samples of the TAC recommendation (not used for this HCR).
-#' One or several arguments of the function can be provided as vectors to generate several
-#' HCRs at once (several vectors have to have same length).
+#'
+#' @param id Name/ID of HCR. Default: "spict-msy"
+#' @param fractiles Fractiles. List
+#' @param breakpointB breakpointb
+#' @param safeguard safeguard. List
+#' @param dteuler Time step of Forward Euler scheme.
+#' @param reportmode Reportmode
+#' @param stabilise stabilise option of spict. Default: FALSE.
+#' @param priorlogn prior
+#' @param priorlogalpha prior
+#' @param priorlogbeta prior
+#' @param priorlogbkfrac prior
+#' @param fixn fixn
+#' @param bfac bfac
+#' @param bref bref
+#' @param brefType brefType
+#' @param nyBref nyBref
+#' @param btar btar
+#' @param probtar probtar
+#' @param brule Brule
+#' @param red Reduction
+#' @param redyears Reduction years
+#' @param redAlways Reduction always? Default: FALSE.
+#' @param rai Raising factor. Default: 0.2.
+#' @param manstartdY Management start year. Default: 0.
+#' @param assessmentInterval Assessment interval. Default: 1.
+#' @param intC Interval C. Default: NA.
+#' @param nonconvHCR HCR if SPiCT does not converge. Default: "conscat" (constant catch).
+#' @param clType Catch type for uncertainty cap. Default: "TAC".
+#' @param clyears Number of years for uncertainty cap. Default: 1.
+#' @param stab Uncertainty cap. Default: FALSE.
+#' @param lower Upper bound of uncertainty cap. Default: 0.8.
+#' @param upper Upper bound of uncertainty cap. Default: 1.2.
+#' @param bm Benchmark. Default: FALSE,  ## e.g. 5 => re-defining Bref at every benchmark
+#' @param env Environment. Default: globalenv()
+#'
 #'
 #' @importFrom doBy which.minn
 #'
@@ -485,7 +508,7 @@ structure(
 
         inp <- obs[c("obsC","timeC","obsI","timeI")]
 
-        func <- get(nonconvHCR)
+        func <- get("',nonconvHCR,'")
         inp$reportmode <- ',reportmode,'
         inp$dteuler <- ',dteuler,'
         inp$stabilise <- ',stabilise,'
@@ -549,6 +572,7 @@ structure(
         }
         ## fit spict
         fit <- try(fit.spict(inp), silent=TRUE)
+print(fit$opt$convergence)
         if(class(fit) == "try-error" || fit$opt$convergence != 0 || any(is.infinite(fit$sd))){
             tacs <- func(inp, tacs=tacs, pars=pars)
             tacs$conv[nrow(tacs)] <- FALSE
@@ -869,12 +893,12 @@ indBref <- which(floor(timeX) %in% ann2)
         if(barID){
             tac <- tac * (1-red)
         }
-        tactmp <- data.frame("TAC"=tac, "id"="',id,'", "hitSC"=hitSC,
-                             "red"=red, "barID"=barID, "sd"=NA, "conv" = TRUE)
+        tactmp <- data.frame(TAC=tac, id="',id,'", hitSC=hitSC,
+                             red=red, barID=barID, sd=NA, conv = TRUE)
         tactmp <- data.frame(c(tactmp, quantstmp,
-                               "indBref" = indBref2, "bmID"=bmID,
-                               "assessInt" = assessInt,
-                               "medbpbref" = medbpbref, "bpbref" = bpbref))
+                               indBref = indBref2, bmID=bmID,
+                               assessInt = assessInt,
+                               medbpbref = medbpbref, bpbref = bpbref))
         if(is.null(tacs)){
             tacs <- tactmp
         }else{
@@ -897,113 +921,81 @@ indBref <- which(floor(timeX) %in% ann2)
 
 #' @name defHCRsam
 #' @title Define harvest control rule for SAM
-#' @details This function allows to define harvest control rules (HCRs) which can be incorporated into a
-#' management strategy evaluation framework (DLMtool package). HCRs are saved with a
-#' generic name to the global environment and the names of the HCRs are returned if results of the
-#' function are assigned to an object. HCR runs a SPiCT assessment using catch and
-#' relative biomass index observations. Stock status estimates are used to set the TAC
-#' for the next year. TAC can be based on the distribution of predicted catches (percentileC)
-#' and/or the distribution of the Fmsy reference level (percentileFmsy).
-#' Additionally, a cap can be applied to account for low biomass levels (below Bmsy).
-#' Arguments of returned function are 'x' - the position in a data-limited mehods data object,
-#' 'Data' - the data-limited methods data object (see DLMtool), and 'reps' - the number of
-#' stochastic samples of the TAC recommendation (not used for this HCR).
-#' One or several arguments of the function can be provided as vectors to generate several
-#' HCRs at once (several vectors have to have same length).
+#'
+#' @param id Name/ID of HCR. Default: "sam"
+#' @param nonconvHCR HCR if SAM does not converge. Default: "conscat" (constant catch).
+#' @param silent silent
+#' @param verbose verbose
+#' @param env Environment. Default: globalenv()
 #'
 #'
 #' @export
 #'
 defHCRsam <- function(id = "sam",
-                        env = globalenv()
-                        ){
+                      nonconvHCR = "conscat",
+                      silent = TRUE,
+                      verbose = FALSE,
+                      env = globalenv()
+                      ){
 
-    template  <- expression(paste0(
-        '
-structure(
-    function(obs, tacs = NULL, pars=NULL){
+    template  <- expression(paste0(' structure(function(obs, tacs = NULL, pars=NULL){
+        silent <- ',silent,'
+        verbose <- ',verbose,'
+        func <- get("',nonconvHCR,'")
 
-        func <- get(nonconvHCR)
-        ## Check input data
-        ## -> obs
+        ## setup SAM data
+        dat <- stockassessment::setup.sam.data(surveys = obs$obsIA,
+                                               residual.fleet = obs$obsCA,
+                                               prop.mature = obs$propMature,
+                                               stock.mean.weight = obs$WAAs,
+                                               catch.mean.weight = obs$WAAc,
+                                               dis.mean.weight = obs$WAAc,
+                                               land.mean.weight = obs$WAAc,
+                                               prop.f = obs$propFemale,
+                                               prop.m = obs$propFemale,
+                                               natural.mortality = obs$obsMAA,
+                                               land.frac = obs$landFrac)
 
-        ## Write output files
+        ## configurations
+        conf <- stockassessment::defcon(dat)
 
+        ## starting values
+        par <- stockassessment::defpar(dat, conf)
 
-        ## fit SAM
+        ## fit SAM (to make faster re-code sam.fit)
+        fit <- try(stockassessment::sam.fit(dat, conf, par, ignore.parm.uncertainty = TRUE,
+                                            rel.tol = 1e-6,
+                                            silent=silent),
+                   silent=TRUE)
 
+        if(class(fit) == "try-error"){
+            if(verbose) cat("Error in model fitting.\n")
+            tacs <- func(obs, tacs=tacs, pars=pars)
+            tacs$conv[nrow(tacs)] <- FALSE
+            return(tacs)
+        }else{
+            ## reference levels (using simEQ)
+            ## estimating fval
+            ## fval = Fmsy based on simEQ
 
-        ## exit if non-convergence
+            ## sam forecast given Fval
+            ## fore = forecast(fit, nextssb = c(NA,ssbref), fval = c(1,NA))  ## doesnt work
+            fore <- stockassessment::forecast(fit, fval = c(1,1))
 
+            ## predicted catches
+            shorttab <- attr(fore,"shorttab")
+            tac <- shorttab[4,2]
 
-        ## get TAC
-        tac = 10
+            ## plots
+            ## ssbplot(fit)
+            ## catchplot(fit)
+            ## dataplot(fit)
+            ## fitplot(fit)
 
-
-        ## write output object
-        tacs <- gettacs(tacs, id="',id,'", TAC=tac, obs=obs)
-        return(tacs)
-    },
-    class="hcr")
-'))
-
-    ## create HCR as functions
-    templati <- eval(parse(text=paste(parse(text = eval(template)),collapse=" ")))
-    assign(value=templati, x=id, envir=env)
-
-    ## allow for assigning names
-    invisible(id)
-}
-
-
-
-#' @name defHCRsms
-#' @title Define harvest control rule for SMS
-#' @details This function allows to define harvest control rules (HCRs) which can be incorporated into a
-#' management strategy evaluation framework (DLMtool package). HCRs are saved with a
-#' generic name to the global environment and the names of the HCRs are returned if results of the
-#' function are assigned to an object. HCR runs a SPiCT assessment using catch and
-#' relative biomass index observations. Stock status estimates are used to set the TAC
-#' for the next year. TAC can be based on the distribution of predicted catches (percentileC)
-#' and/or the distribution of the Fmsy reference level (percentileFmsy).
-#' Additionally, a cap can be applied to account for low biomass levels (below Bmsy).
-#' Arguments of returned function are 'x' - the position in a data-limited mehods data object,
-#' 'Data' - the data-limited methods data object (see DLMtool), and 'reps' - the number of
-#' stochastic samples of the TAC recommendation (not used for this HCR).
-#' One or several arguments of the function can be provided as vectors to generate several
-#' HCRs at once (several vectors have to have same length).
-#'
-#' @export
-#'
-defHCRsms <- function(id = "sms",
-                        env = globalenv()
-                        ){
-
-    template  <- expression(paste0(
-        '
-structure(
-    function(obs, tacs = NULL, pars=NULL){
-
-        func <- get(nonconvHCR)
-        ## Check input data
-        ## -> obs
-
-        ## Write output files
-
-
-        ## fit SMS
-
-
-        ## exit if non-convergence
-
-
-        ## get TAC
-        tac = 10
-
-
-        ## write output object
-        tacs <- gettacs(tacs, id="',id,'", TAC=tac, obs=obs)
-        return(tacs)
+            ## write output object
+            tacs <- gettacs(tacs, id="',id,'", TAC=tac, obs=obs)
+            return(tacs)
+        }
     },
     class="hcr")
 '))

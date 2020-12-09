@@ -11,7 +11,6 @@
 #'
 #' @export
 initPop <- function(dat, set = NULL, out.opt = 1){
-
     ## indices
     if(is.null(set)) set <- checkSet()
     ny <- dat$ny
@@ -261,12 +260,14 @@ initPop <- function(dat, set = NULL, out.opt = 1){
         }
     }
 
-
     ## account for nyhist
     for(i in 1:nsurv){
         timeI[[i]] <- timeI[[i]][(ny-nyhist+1):ny]
         obsI[[i]] <- obsI[[i]][(ny-nyhist+1):ny]
         obsIA[[i]] <- obsIA[[i]][(ny-nyhist+1):ny,]
+        rownames(obsIA[[i]]) <- as.character((ny-nyhist+1):ny)
+        colnames(obsIA[[i]]) <- as.character(0:dat$amax)
+        attributes(obsIA[[i]]) <- c(attributes(obsIA[[i]]), list(time = set$surveyTimes))
     }
 
     ## catch observations
@@ -301,13 +302,55 @@ initPop <- function(dat, set = NULL, out.opt = 1){
         ## catch observations at age
         for(y in 1:length(idx)) obsCA[y,] <- t(CAA[[idx[y]]] * eCmv[y,])
     }
+    rownames(obsCA) = as.character((ny-nyhist+1):ny)
+    colnames(obsCA) <- as.character(0:dat$amax)
+
+    ## other observations (required by SAM)
+    ## ----------------
+
+    ## natural mortality
+    obsMAA <- as.matrix(dat$M[idx]) %*% t(as.matrix(dat$Msel[[1]]))
+    rownames(obsMAA) = as.character((ny-nyhist+1):ny)
+    colnames(obsMAA) = as.character(0:dat$amax)
+
+    ## proportion mature
+    propMature <- matrix(dat$mat, length(idx), amax, byrow = TRUE)
+    rownames(propMature) = as.character((ny-nyhist+1):ny)
+    colnames(propMature) = as.character(0:dat$amax)
+
+    ## mean stock weight
+    WAAs <- matrix(dat$weight, length(idx), amax, byrow = TRUE)
+    rownames(WAAs) = as.character((ny-nyhist+1):ny)
+    colnames(WAAs) = as.character(0:dat$amax)
+
+    ## mean catch weight
+    WAAc <- matrix(dat$weight, length(idx), amax, byrow = TRUE)
+    rownames(WAAc) = as.character((ny-nyhist+1):ny)
+    colnames(WAAc) = as.character(0:dat$amax)
+
+    ## proportion females
+    propFemale <- matrix(0.0, length(idx), amax)
+    rownames(propFemale) <- as.character((ny-nyhist+1):ny)
+    colnames(propFemale) <- as.character(0:dat$amax)
+
+    ## landing fraction
+    landFrac = matrix(1.0, length(idx), amax)
+    rownames(landFrac) <- as.character((ny-nyhist+1):ny)
+    colnames(landFrac) <- as.character(0:dat$amax)
 
     obs <- list(obsC = obsC,
                 timeC = timeC,
                 obsI = obsI,
                 timeI = timeI,
                 obsCA = obsCA,
-                obsIA = obsIA)
+                obsIA = obsIA,
+                obsMAA = obsMAA,
+                propMature = propMature,
+                WAAs = WAAs,
+                WAAc = WAAc,
+                propFemale = propFemale,
+                landFrac = landFrac)
+
 
     ## return
     out <- NULL
@@ -631,6 +674,8 @@ advancePop <- function(dat, hist, set, hcr, year){
                 ## survey observation: CAA
                 obs$obsIA[[idxi[i]]] <- rbind(obs$obsIA[[idxi[i]]],
                                               q[idxi[i]] * NAAsurv * dat$sels[,s] * eImv[[idxi[[i]]]])
+                rownames(obs$obsIA[[idxi[i]]])[nrow(obs$obsIA[[idxi[i]]])] <- as.character(y)  ## CHECK: instead of 1 (assuming one survey a year) this should allow for s surveys
+                attributes(obs$obsIA[[i]]) <- c(attributes(obs$obsIA[[i]]), list(time = set$surveyTimes))
             }
         }
 
@@ -673,7 +718,32 @@ advancePop <- function(dat, hist, set, hcr, year){
         ## catch observations at age (SAM, SMS)
         obs$obsCA <- rbind(obs$obsCA, t(CAA * eCmv))
     }
+    rownames(obs$obsCA)[nrow(obs$obsCA)] <- as.character(y)
 
+    ## natural mortalityp
+    obs$obsMAA <- rbind(obs$obsMAA, y =
+                    as.matrix(dat$M[y]) %*% t(as.matrix(dat$Msel[[1]])))
+    rownames(obs$obsMAA)[nrow(obs$obsMAA)] = as.character(y)
+
+    ## proportion mature
+    obs$propMature <- rbind(obs$propMature, matrix(dat$mat, 1, amax, byrow = TRUE))
+    rownames(obs$propMature)[nrow(obs$propMature)] = as.character(y)
+
+    ## mean stock weight
+    obs$WAAs <- rbind(obs$WAAs, matrix(dat$weight, 1, amax, byrow = TRUE))
+    rownames(obs$WAAs)[nrow(obs$WAAs)] = as.character(y)
+
+    ## mean catch weight
+    obs$WAAc <- rbind(obs$WAAc, matrix(dat$weight, 1, amax, byrow = TRUE))
+    rownames(obs$WAAc)[nrow(obs$WAAc)] = as.character(y)
+
+    ## proportion females
+    obs$propFemale <- rbind(obs$propFemale, matrix(0.0, 1, amax))
+    rownames(obs$propFemale)[nrow(obs$propFemale)] <- as.character(y)
+
+    ## landing fraction
+    obs$landFrac = rbind(obs$landFrac, matrix(1.0, 1, amax))
+    rownames(obs$landFrac)[nrow(obs$landFrac)] <- as.character(y)
 
     ## return
     out <- NULL

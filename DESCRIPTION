@@ -10,7 +10,10 @@ License: GPL (>=3)
 Encoding: UTF-8
 Copyright: Tobias K. Mildenberger <t.k.mildenberger@gmail.com>
 Depends:
-    R (>= 3.0)
+    R (>= 3.0),
+    TMB,
+    spict,
+    stockassessment
 Imports: Rcpp (>= 1.0.3)
 LinkingTo: Rcpp
 Suggests:

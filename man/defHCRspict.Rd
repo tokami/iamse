@@ -41,21 +41,75 @@ defHCRspict(
   env = globalenv()
 )
 }
+\arguments{
+\item{id}{Name/ID of HCR. Default: "spict-msy"}
+
+\item{fractiles}{Fractiles. List}
+
+\item{breakpointB}{breakpointb}
+
+\item{safeguard}{safeguard. List}
+
+\item{dteuler}{Time step of Forward Euler scheme.}
+
+\item{reportmode}{Reportmode}
+
+\item{stabilise}{stabilise option of spict. Default: FALSE.}
+
+\item{priorlogn}{prior}
+
+\item{priorlogalpha}{prior}
+
+\item{priorlogbeta}{prior}
+
+\item{priorlogbkfrac}{prior}
+
+\item{fixn}{fixn}
+
+\item{bfac}{bfac}
+
+\item{bref}{bref}
+
+\item{brefType}{brefType}
+
+\item{nyBref}{nyBref}
+
+\item{btar}{btar}
+
+\item{probtar}{probtar}
+
+\item{brule}{Brule}
+
+\item{red}{Reduction}
+
+\item{redyears}{Reduction years}
+
+\item{redAlways}{Reduction always? Default: FALSE.}
+
+\item{rai}{Raising factor. Default: 0.2.}
+
+\item{manstartdY}{Management start year. Default: 0.}
+
+\item{assessmentInterval}{Assessment interval. Default: 1.}
+
+\item{intC}{Interval C. Default: NA.}
+
+\item{nonconvHCR}{HCR if SPiCT does not converge. Default: "conscat" (constant catch).}
+
+\item{clType}{Catch type for uncertainty cap. Default: "TAC".}
+
+\item{clyears}{Number of years for uncertainty cap. Default: 1.}
+
+\item{stab}{Uncertainty cap. Default: FALSE.}
+
+\item{lower}{Upper bound of uncertainty cap. Default: 0.8.}
+
+\item{upper}{Upper bound of uncertainty cap. Default: 1.2.}
+
+\item{bm}{Benchmark. Default: FALSE,  ## e.g. 5 => re-defining Bref at every benchmark}
+
+\item{env}{Environment. Default: globalenv()}
+}
 \description{
 Define harvest control rule
-}
-\details{
-This function allows to define harvest control rules (HCRs) which can be incorporated into a
-management strategy evaluation framework (DLMtool package). HCRs are saved with a
-generic name to the global environment and the names of the HCRs are returned if results of the
-function are assigned to an object. HCR runs a SPiCT assessment using catch and
-relative biomass index observations. Stock status estimates are used to set the TAC
-for the next year. TAC can be based on the distribution of predicted catches (percentileC)
-and/or the distribution of the Fmsy reference level (percentileFmsy).
-Additionally, a cap can be applied to account for low biomass levels (below Bmsy).
-Arguments of returned function are 'x' - the position in a data-limited mehods data object,
-'Data' - the data-limited methods data object (see DLMtool), and 'reps' - the number of
-stochastic samples of the TAC recommendation (not used for this HCR).
-One or several arguments of the function can be provided as vectors to generate several
-HCRs at once (several vectors have to have same length).
 }

@@ -4,23 +4,25 @@
 \alias{defHCRsam}
 \title{Define harvest control rule for SAM}
 \usage{
-defHCRsam(id = "sam", env = globalenv())
+defHCRsam(
+  id = "sam",
+  nonconvHCR = "conscat",
+  silent = TRUE,
+  verbose = FALSE,
+  env = globalenv()
+)
+}
+\arguments{
+\item{id}{Name/ID of HCR. Default: "sam"}
+
+\item{nonconvHCR}{HCR if SAM does not converge. Default: "conscat" (constant catch).}
+
+\item{silent}{silent}
+
+\item{verbose}{verbose}
+
+\item{env}{Environment. Default: globalenv()}
 }
 \description{
 Define harvest control rule for SAM
-}
-\details{
-This function allows to define harvest control rules (HCRs) which can be incorporated into a
-management strategy evaluation framework (DLMtool package). HCRs are saved with a
-generic name to the global environment and the names of the HCRs are returned if results of the
-function are assigned to an object. HCR runs a SPiCT assessment using catch and
-relative biomass index observations. Stock status estimates are used to set the TAC
-for the next year. TAC can be based on the distribution of predicted catches (percentileC)
-and/or the distribution of the Fmsy reference level (percentileFmsy).
-Additionally, a cap can be applied to account for low biomass levels (below Bmsy).
-Arguments of returned function are 'x' - the position in a data-limited mehods data object,
-'Data' - the data-limited methods data object (see DLMtool), and 'reps' - the number of
-stochastic samples of the TAC recommendation (not used for this HCR).
-One or several arguments of the function can be provided as vectors to generate several
-HCRs at once (several vectors have to have same length).
 }
