@@ -31,9 +31,10 @@ checkDat <- function(dat, verbose = TRUE){
     if(!any(names(dat) == "amax")) stop("Maximum age missing: amax")
     amax <- (dat$amax)
     ages <- 0:amax
-    ages <- t(t(matrix(rep(ages,ns),ncol=ns,nrow=amax+1)) + seq(0, 1-1/ns, 1/ns))
+    ## OLD: ages <- t(t(matrix(rep(ages,ns),ncol=ns,nrow=amax+1)) + seq(0, 1-1/ns, 1/ns))
+    ds05 <- 1/ns/2
+    ages <- t(t(matrix(rep(ages,each = ns),ncol=ns,nrow=amax+1, byrow=TRUE)) + seq(ds05, 1-ds05, length.out=ns))
     dat$ages <- ages
-
 
     ## growth at age
     ##------------------
@@ -76,7 +77,8 @@ checkDat <- function(dat, verbose = TRUE){
     if(!any(names(dat) == "lwa")) stop("Length-weight coefficient missing: lwa")
     if(!any(names(dat) == "lwb")) stop("Length-weight exponent missing: lwb")
     dat$weights <- dat$lwa * dat$LA ^ dat$lwb
-    dat$weight <- dat$lwa * dat$LA[,1] ^ dat$lwb ## or rowMeans
+    dat$weight <- rowMeans(dat$weights)
+
 
     ## weight at age (fishery)
     ##------------------
@@ -87,7 +89,7 @@ checkDat <- function(dat, verbose = TRUE){
         dat$lwbF <- dat$lwb
     }
     dat$weightFs <- dat$lwaF * dat$LA ^ dat$lwbF
-    dat$weightF <- dat$lwaF * dat$LA[,1] ^ dat$lwbF ## or rowMeans
+    dat$weightF <- rowMeans(dat$weightF)
 
 
 
