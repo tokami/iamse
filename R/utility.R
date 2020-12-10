@@ -463,11 +463,31 @@ baranov <- function(FAA,M,NAA){
 #' @name getFM
 #' @export
 getFM <- function(TAC, NAA, M, weight, sel){
-    tacEst <- function(FM, NAA, M, sel, weight, TAC){
-        (TAC - sum(baranov(exp(FM) * sel, M, NAA*exp(-M/2)) * weight))^2
+    tacEst <- function(logFM, NAA, M, sel, weight, TAC){
+##        (TAC - sum(baranov(exp(logFM) * sel, M, NAA*exp(-M/2)) * weight))^2
+        (TAC - sum(baranov(exp(logFM) * sel, M, NAA) * weight))^2
     }
     opt <- optimise(tacEst, c(-10,10), NAA = NAA, M = M, TAC = TAC,
                     weight = weight, sel = sel)
+    return(exp(opt$minimum))
+}
+
+
+#' @name getFM3
+#' @details get FM accounting for seasons
+#' @export
+getFM3 <- function(TAC, NAA, MAA, weight, sel, ns){
+    tacEst <- function(logFM, NAA, MAA, sel, weight, TAC, ns){
+        Ctmp <- 0
+        for(s in 1:ns){
+            FAA <- exp(logFM) * sel[,s]
+            Ctmp <- Ctmp + sum(baranov(FAA, MAA[,s], NAA) * weight[,s])
+            NAA <- NAA * exp(-(MAA[,s] + FAA))
+        }
+        (TAC - Ctmp)^2
+    }
+    opt <- optimise(tacEst, c(-10,10), NAA = NAA, MAA = MAA, TAC = TAC,
+                    weight = weight, sel = sel, ns = ns, tol = 1e-10)
     return(exp(opt$minimum))
 }
 

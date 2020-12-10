@@ -519,7 +519,7 @@ advancePop <- function(dat, hist, set, hcr, year){
     CW  <- rbind(hist$CW,tmp)
     FM  <- rbind(hist$FM,tmp)
     NAA <- rep(0, amax)
-    FAA <- ZAA <- MAA <- matrix(NA, amax, ns)
+    FAA <- ZAA <- MAA <- CAA <- matrix(NA, amax, ns)
     TACs <- c(hist$TACs, NA)
     rec <- c(hist$rec, NA)
     TSBfinal <- c(hist$TSBfinal, NA)
@@ -603,50 +603,62 @@ advancePop <- function(dat, hist, set, hcr, year){
                 TACs[y] <- as.numeric(as.character(tacs$TAC[nrow(tacs)])) * eImp
                 TACreal <- rep(TACs[y] / ntac, ntac)
             }
-        }
 
-        ## Find F given TAC
-        if(tacID2 == "refFmsy"){
-            if(tacID == "refFmsy"){
-                ## Fishing at Fmsy
-                FMtac <- refs$Fmsy / ns
+            ## Find F given TAC
+            if(tacID2 == "refFmsy"){
+                if(tacID == "refFmsy"){
+                    ## Fishing at Fmsy
+                    FMtac <- refs$Fmsy / ns
+                }else{
+                    fraci <- as.numeric(unlist(strsplit(as.character(tacID), "-"))[2])
+                    ## Fishing at fraction of Fmsy
+                    FMtac <- (fraci * refs$Fmsy) / ns
+                }
+            }else if(tacID2 == "noF"){
+                ## noF
+                FMtac <- 0
             }else{
-                fraci <- as.numeric(unlist(strsplit(as.character(tacID), "-"))[2])
-                ## Fishing at fraction of Fmsy
-                FMtac <- (fraci * refs$Fmsy) / ns
+                ## any other HCR
+                ## FMtac <- min(set$maxF/ns,
+                ##              getFM(TACreal[indtac], NAA = NAA, M = MAA[,s],
+                ##                     weight = weightFs[,s], sel = sels[,s]))
+                ## FMtac <- min(set$maxF/ns,
+                ##              getFM2(TAC = TACreal[indtac],
+                ##                     TSB = sum(NAA * weights[,s] * sels[,s] * exp(-MAA[,s])),
+                ##                     ds = 1/ns, M = MAA[,s],
+                ##                     NAA = NAA, weight = weights[,s],
+                ##                     weightF = weightFs[,s], sel = sels[,s]))
+                FMtac <- min(set$maxF/ns,
+                             getFM3(TACs[y], NAA = NAA, M = MAA,
+                                    weight = weights, sel = sels, ns = ns))
             }
-        }else if(tacID2 == "noF"){
-            ## noF
-            FMtac <- 0
-        }else{
-            ## any other HCR
-            FMtac <- min(set$maxF/ns,
-                         getFM(TACreal[indtac], NAA = NAA, M = MAA[,s],
-                               weight = weightFs[,s], sel = sels[,s]))
         }
 
         ## Population dynamics
         FM[y,s] <- FMtac
         FAA[,s] <- FM[y,s] * sels[,s]
         ZAA[,s] <- MAA[,s] + FAA[,s]
+        CAA[,s] <- baranov(FAA[,s], MAA[,s], NAA)
+        CW[y,s] <- sum(CAA[,s] * weightFs[,s])
         ## can't take more than what's there
         Btemp <- sum(NAA * weights[,s] * sels[,s] * exp(-MAA[,s]/2))
-        CAA <- baranov(FAA[,s], MAA[,s], NAA)
-        CW[y,s] <- sum(CAA * weightFs[,s])
         if(CW[y,s] > 0.99 * Btemp){
-            FM[y,s] <- getFM2(0.75 * Btemp, Btemp, 1/ns, MAA[,s], NAA, weights[,s],
-                              weightFs[,s], sels[,s], fmax = set$maxF/ns)
+            print("NOW")
+            ## FM[y,s] <- getFM2(0.75 * Btemp, Btemp, 1/ns, MAA[,s], NAA, weights[,s],
+            ##                   weightFs[,s], sels[,s], fmax = set$maxF/ns)
+            FM[y,s] <- getFM(0.75 * Btemp, NAA, MAA[,s], weights[,s],
+                             sels[,s])
             FAA[,s] <- FM[y,s] * sels[,s]
             ZAA[,s] <- MAA[,s] + FAA[,s]
-            CAA <- baranov(FAA[,s], MAA[,s], NAA)
-            CW[y,s] <- sum(CAA * weightFs[,s])
+            CAA[,s] <- baranov(FAA[,s], MAA[,s], NAA)
+            CW[y,s] <- sum(CAA[,s] * weightFs[,s])
             if(indtac < ntac){
                 TACreal[indtac+1] <- TACreal[indtac+1] + TACreal[indtac] - CW[y,s]
             }else writeLines("Could not get full annual TAC.")
             TACreal[indtac] <- CW[y,s]
         }
         if(tacID2 == "refFmsy"){
-            TACreal[indtac] <- sum(CAA * weightFs[,s], na.rm = TRUE)
+            TACreal[indtac] <- sum(CAA[,s] * weightFs[,s], na.rm = TRUE)
             if(indtac == ntac) TACs[y] <- tacs$TAC[nrow(tacs)] <- sum(TACreal)
         }
         ## TSB
@@ -671,7 +683,7 @@ advancePop <- function(dat, hist, set, hcr, year){
                 }else timeIi <- floor(tail(obs$timeI[[idxi[i]]],1))
                 obs$timeI[[idxi[i]]] <-
                     c(obs$timeI[[idxi[i]]], timeIi + 1 + set$surveyTimes[idxi[i]])
-                ## survey observation: CAA
+                ## survey observation at age
                 obs$obsIA[[idxi[i]]] <- rbind(obs$obsIA[[idxi[i]]],
                                               q[idxi[i]] * NAAsurv * dat$sels[,s] * eImv[[idxi[[i]]]])
                 rownames(obs$obsIA[[idxi[i]]])[nrow(obs$obsIA[[idxi[i]]])] <- as.character(y)  ## CHECK: instead of 1 (assuming one survey a year) this should allow for s surveys
@@ -679,9 +691,12 @@ advancePop <- function(dat, hist, set, hcr, year){
             }
         }
 
-        ## ageing by season
+        ## Eponential decay
         NAA <- Ntemp <- NAA * exp(-ZAA[,s])
+        ## ageing by season
         if(s == ns){
+        print(TACs[y])
+        print(sum(CW[y,]))
             ## end of year biomass for risk P(B/Blim)
             TSBfinal[y] <- sum(NAA * weights[,ns])
             ESBfinal[y] <- sum(NAA * weights[,ns] * sels[,ns])
