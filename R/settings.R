@@ -87,9 +87,6 @@ checkSet <- function(set = NULL){
         set$refMethod <- "mean"
     }
 
-    ## Recruitment
-    if(is.null(set$recruitmentTiming)) set$recruitmentTiming <- 1
-
     ## number of years available to assessment method
     if(is.null(set$nyhist)) set$nyhist <- 35
     if(is.null(set$nysim)) set$nysim <- 35

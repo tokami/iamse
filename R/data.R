@@ -89,7 +89,7 @@ checkDat <- function(dat, verbose = TRUE){
         dat$lwbF <- dat$lwb
     }
     dat$weightFs <- dat$lwaF * dat$LA ^ dat$lwbF
-    dat$weightF <- rowMeans(dat$weightF)
+    dat$weightF <- rowMeans(dat$weightFs)
 
 
 
@@ -229,6 +229,22 @@ checkDat <- function(dat, verbose = TRUE){
     if(!"recGamma" %in% names(dat)){
         dat$recGamma <- 0  ## measure of the radius of curvature near the breakpoint (as gamma -> 0 = sharp bent like hockey-stick)
     }
+    if(is.null(dat$spawning)){
+        if(ns == 1){
+            dat$spawning <- 1
+        }else{
+            dat$spawning <- c(1, rep(0, ns))
+        }
+    }else if(length(dat$spawning) != ns){
+        writeLines("The length of 'dat$spawning' is not equal to number of seasons (dat$ns). Assuming spawning in first season.")
+        if(ns == 1){
+            dat$spawning <- 1
+        }else{
+            dat$spawning <- c(1, rep(0, ns))
+        }
+    }
+    dat$spawning <- dat$spawning / sum(dat$spawning)
+
 
     ## pzbm
     ##------------------

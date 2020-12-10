@@ -476,12 +476,31 @@ getFM <- function(TAC, NAA, M, weight, sel){
 #' @name getFM3
 #' @details get FM accounting for seasons
 #' @export
-getFM3 <- function(TAC, NAA, MAA, weights, sels, ns, lastFM = 0.1){
+getFM3 <- function(TAC, NAA, MAA, weights, sels, ns, spawning,
+                   lastFM = 0.1){
     tacEst <- function(logFM, NAA, MAA, sels, weights, TAC, ns){
         Ctmp <- 0
         NAAtmp <- NAA
         for(s in 1:ns){
-            FAA <- exp(logFM) * sels[,s]
+            ## recruitment
+            if(spawning[s] > 0){
+                ## Survivors from previous season/year
+                FAA <- exp(logFM) * sels[,s]
+                Ztemp <- ZAA[,s-1]
+
+                ## HERE: incorporate spawning in this funtion
+                ## TODO: allow to have any TAC intervals here (starting in middle of year being 2 years long)
+                ##
+
+                SSB[y,1] <- sum(NAA * weights[,1] * maty[,1] * exp(-pzbm * Ztemp)) ## pre-recruitment mort
+                SSBPR0 <- getSSBPR2(MAA, maty, weights, fecun=1, amax, R0y, ns = ns,
+                                    season = s)
+                rec[y] <- recfunc(h = hy, SSBPR0 = SSBPR0, SSB = SSB[y,1],
+                                  R0 = R0y, method = dat$SR, bp = dat$bp,
+                                  beta = dat$recBeta, gamma = dat$recGamma)
+                rec[y] <- ifelse(rec[y] < 0, 1e-10, rec[y])
+                NAA[1] <- NAA[1] + spawning[s] * rec[y] * eR[y]
+            }
             Ctmp <- Ctmp + sum(baranov(FAA, MAA[,s], NAAtmp) * weights[,s])
             NAAtmp <- NAAtmp * exp(-(MAA[,s] + FAA))
         }
@@ -636,7 +655,7 @@ getSSBPR <- function(M, mat, weight, fecun=1, amax, R0 = 1, FM = NULL){
 #' @param amax - number of age classes
 #' @return spawning biomass per recruit
 #' @export
-getSSBPR2 <- function (Ms, mats, weights, fecun = 1, amax, R0 = 1, FMs = NULL, ns, recruitmentTiming){
+getSSBPR2 <- function (Ms, mats, weights, fecun = 1, amax, R0 = 1, FMs = NULL, ns, season){
     ## account for seasonal natural mortalities
     if(inherits(Ms, "matrix")){
         Mtot <- apply(Ms, 1, sum)
@@ -667,8 +686,8 @@ getSSBPR2 <- function (Ms, mats, weights, fecun = 1, amax, R0 = 1, FMs = NULL, n
         }
     }
     SBPR_per_season <- apply(NAA * mats * weights * fecun, 2, sum)
-    ## season before spawning? season_before_spawning <- c(ns,(1:(ns-1)))[recruitmentTiming]
-    SBPR <- SBPR_per_season[recruitmentTiming]
+    ## season before spawning? season_before_spawning <- c(ns,(1:(ns-1)))[season]
+    SBPR <- SBPR_per_season[season]
     return(SBPR)
 }
 

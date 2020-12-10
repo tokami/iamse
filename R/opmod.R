@@ -54,6 +54,7 @@ initPop <- function(dat, set = NULL, out.opt = 1){
     initN <- dat$initN
     q <- dat$q
     if(length(q) < nsurv) q <- rep(q, nsurv)
+    spawning <- dat$spawning
 
     ## errors
     if(!is.null(set)){
@@ -146,22 +147,24 @@ initPop <- function(dat, set = NULL, out.opt = 1){
         NAAbi[1] <- R0 * exp(initN[1])
         for(a in 2:amax) NAAbi[a] <- NAAbi[a-1] * exp(-(Msel[[1]][a-1]+M[1]+sel[a-1]*Fy[1])) * exp(initN[a])
         for(y in 1:burnin){
-            ## recruitment
             Fbi <- sels * Fs[1]
             Mbi <- t(t(Msels[[1]]) * Ms[1:ns])
             Zbi <- Mbi + Fbi
-            SSBtemp <- sum(NAAbi * weights[,1] * mats[,1] * exp(-pzbm * Zbi[,1])) ## pre-recruitment mort
-            SSBPR0 <- getSSBPR2(Mbi, dat$mats, dat$weights, fecun=1, amax, dat$R0,
-                                ns = ns, recruitmentTiming = set$recruitmentTiming)
-            recbi <- recfunc(h = h, SSBPR0 = SSBPR0, SSB = SSBtemp,
-                           R0 = R0, method = dat$SR, bp = dat$bp,
-                           beta = dat$recBeta, gamma = dat$recGamma)
-            recbi[recbi<0] <- 1e-10
-            NAAbi[1] <- recbi
             for(s in 1:ns){
+                ## recruitment
+                if(spawning[s] > 0){
+                    SSBtemp <- sum(NAAbi * weights[,1] * mats[,1] * exp(-pzbm * Zbi[,1])) ## pre-recruitment mort
+                    SSBPR0 <- getSSBPR2(Mbi, dat$mats, dat$weights, fecun=1, amax, dat$R0,
+                                        ns = ns, season = s)
+                    recbi <- recfunc(h = h, SSBPR0 = SSBPR0, SSB = SSBtemp,
+                                     R0 = R0, method = dat$SR, bp = dat$bp,
+                                     beta = dat$recBeta, gamma = dat$recGamma)
+                    recbi[recbi<0] <- 1e-10
+                    NAAbi[1] <- NAAbi[1] + spawning[s] * recbi
+                }
+                CWbi <- sum(baranov(Fbi[,s], Mbi[,s], NAAbi) * weightFs[,s])
                 ## can't take more than what's there
                 Btemp <- sum(NAAbi * weights[,s] * sels[,s] * exp(-(Mbi[,s])/2))
-                CWbi <- sum(baranov(Fbi[,s], Mbi[,s], NAAbi) * weightFs[,s])
                 if(CWbi > 0.99 * Btemp){
                     Fbi[,s] <- sels[,s] * getFM2(0.75 * Btemp, Btemp, 1/ns,
                                                  Mbi[,s], NAAbi,
@@ -174,6 +177,7 @@ initPop <- function(dat, set = NULL, out.opt = 1){
                 if(s == ns){
                     NAAbi[amax] <- Ntemp[amax] + Ntemp[amax-1]
                     for(a in 2:(amax-1)) NAAbi[a] <- Ntemp[a-1]
+                    NAAbi[1] <- 0
                 }
             }
         }
@@ -186,9 +190,9 @@ initPop <- function(dat, set = NULL, out.opt = 1){
             NAA[a] <- NAA[a-1] * exp(-(M[1]*Msel[[1]][a-1] + Fy[1]*sel[a-1])) * exp(initN[a])
     }
 
-
     ## main loop
     for(y in 1:ny){
+
         ## Adding noise
         FM[y,] <- Fs[y] * eF[y]
         FAA <- FM[y,] * sels
@@ -198,21 +202,34 @@ initPop <- function(dat, set = NULL, out.opt = 1){
         maty <- mats * eMat[y]
         hy <- h * eH[y]
         R0y <- R0 * eR0[y]
-        ## recruitment
-        SSB[y,1] <- sum(NAA * weights[,1] * maty[,1] * exp(-pzbm * ZAA[,1])) ## pre-recruitment mort
-        SSBPR0 <- getSSBPR2(MAA, maty, weights, fecun=1, amax, R0y, ns = ns,
-                            recruitmentTiming = set$recruitmentTiming)
-        rec[y] <- recfunc(h = hy, SSBPR0 = SSBPR0, SSB = SSB[y,1],
-                       R0 = R0y, method = dat$SR, bp = dat$bp,
-                       beta = dat$recBeta, gamma = dat$recGamma)
-        rec[y]  <- ifelse(rec[y] < 0, 1e-10, rec[y])
-        NAA[1] <- rec[y] * eR[y]
+
         ## seasons
         for(s in 1:ns){
-            ## can't take more than what's there
-            Btemp <- sum(NAA * weights[,s] * sels[,s] * exp(-MAA[,s]/2))
+
+            ## recruitment
+            if(spawning[s] > 0){
+                ## Survivors from previous season/year
+                if(s == 1){
+                    Ztemp <- ZAA[,s]
+                }else{
+                    Ztemp <- ZAA[,s-1]
+                }
+                SSB[y,1] <- sum(NAA * weights[,1] * maty[,1] * exp(-pzbm * Ztemp)) ## pre-recruitment mort
+                SSBPR0 <- getSSBPR2(MAA, maty, weights, fecun=1, amax, R0y, ns = ns,
+                                    season = s)
+                rec[y] <- recfunc(h = hy, SSBPR0 = SSBPR0, SSB = SSB[y,1],
+                                  R0 = R0y, method = dat$SR, bp = dat$bp,
+                                  beta = dat$recBeta, gamma = dat$recGamma)
+                rec[y] <- ifelse(rec[y] < 0, 1e-10, rec[y])
+                NAA[1] <- NAA[1] + spawning[s] * rec[y] * eR[y]
+            }
+
+            ## catch
             CAA[[y]][,s] <- baranov(FAA[,s], MAA[,s], NAA)
             CW[y,s] <- sum(CAA[[y]][,s] * weightFs[,s])
+
+            ## can't take more than what's there
+            Btemp <- sum(NAA * weights[,s] * sels[,s] * exp(-MAA[,s]/2))
             if(CW[y,s] > 0.99 * Btemp){
                 FM[y,s] <- getFM2(0.75 * Btemp, Btemp, 1/ns, MAA[,s], NAA, weights[,s],
                                                  weightFs[,s], sels[,s], fmax = set$maxF/ns)
@@ -256,6 +273,7 @@ initPop <- function(dat, set = NULL, out.opt = 1){
                 ## Ageing by year
                 NAA[amax] <- Ntemp[amax] + Ntemp[amax-1]
                 for(a in 2:(amax-1)) NAA[a] <- Ntemp[a-1]
+                NAA[1] <- 0
             }
         }
     }
@@ -423,6 +441,7 @@ advancePop <- function(dat, hist, set, hcr, year){
     tacID <- hcr
     tacID2 <- unlist(strsplit(as.character(tacID), "_"))[1]
     Ms <- dat$Ms
+    spawning <- dat$spawning
 
     ## parameters per age
     weight <- dat$weight
@@ -561,7 +580,7 @@ advancePop <- function(dat, hist, set, hcr, year){
         indtac <- (year - assessYears[max(which(assessYears <= year))]) * ns + s
 
         ## Recruitment
-        if(s == set$recruitmentTiming){
+        if(spawning[s] > 0){
             ## Survivors from previous season/year
             if(s == 1){
                 Ztemp <- hist$lastFAA + MAA[,1]  ## i.e. FAA in s=1 is equal to last FAA (pot s=4)
@@ -571,12 +590,12 @@ advancePop <- function(dat, hist, set, hcr, year){
             NAAtemp <- NAA
             SSBtemp <- sum(NAAtemp * weights[,1] * maty[,1] * exp(-pzbm * Ztemp)) ## pre-recruitment mort
             SSBPR0 <- getSSBPR2(MAA, maty, weights, fecun=1, amax, R0y,
-                                ns = ns, recruitmentTiming = set$recruitmentTiming)
+                                ns = ns, season = s)
             rec[y] <- recfunc(h = hy, SSBPR0 = SSBPR0, SSB = SSBtemp, R0 = R0y,
                               method = dat$SR, bp = dat$bp,
                               beta = dat$recBeta, gamma = dat$recGamma)
             rec[rec<0] <- 1e-10
-            NAA[1] <- rec[y] * eR
+            NAA[1] <- NAA[1] + spawning[s] * rec[y] * eR
         }
 
         ## Assessment
@@ -708,6 +727,7 @@ advancePop <- function(dat, hist, set, hcr, year){
             ## Ageing by year
             NAA[amax] <- Ntemp[amax] + Ntemp[amax-1]
             for(a in 2:(amax-1)) NAA[a] <- Ntemp[a-1]
+            NAA[1] <- 0
         }
     }
 
