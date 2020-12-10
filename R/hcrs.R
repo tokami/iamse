@@ -64,7 +64,7 @@ defHCRref <- function(consF = 0,
     id <- NULL
 
     if(!is.null(fracFmsy)){
-        id <- paste0("refFmsy-", as.character(fracFmsy))
+        id <- paste0("refFmsy_", as.character(fracFmsy))
         template  <- expression(paste0(
             '
 structure(
@@ -82,7 +82,7 @@ structure(
 
         if(is.numeric(consF)){
             ## TODO: don't think this is implemented, check mse.R
-            id <- paste0("consF-",consF)
+            id <- paste0("consF_",consF)
             template  <- expression(paste0(
                 '
 structure(
