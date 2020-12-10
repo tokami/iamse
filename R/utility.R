@@ -476,19 +476,20 @@ getFM <- function(TAC, NAA, M, weight, sel){
 #' @name getFM3
 #' @details get FM accounting for seasons
 #' @export
-getFM3 <- function(TAC, NAA, MAA, weight, sel, ns){
-    tacEst <- function(logFM, NAA, MAA, sel, weight, TAC, ns){
+getFM3 <- function(TAC, NAA, MAA, weights, sels, ns, lastFM = 0.1){
+    tacEst <- function(logFM, NAA, MAA, sels, weights, TAC, ns){
         Ctmp <- 0
+        NAAtmp <- NAA
         for(s in 1:ns){
-            FAA <- exp(logFM) * sel[,s]
-            Ctmp <- Ctmp + sum(baranov(FAA, MAA[,s], NAA) * weight[,s])
-            NAA <- NAA * exp(-(MAA[,s] + FAA))
+            FAA <- exp(logFM) * sels[,s]
+            Ctmp <- Ctmp + sum(baranov(FAA, MAA[,s], NAAtmp) * weights[,s])
+            NAAtmp <- NAAtmp * exp(-(MAA[,s] + FAA))
         }
         (TAC - Ctmp)^2
     }
-    opt <- optimise(tacEst, c(-10,10), NAA = NAA, MAA = MAA, TAC = TAC,
-                    weight = weight, sel = sel, ns = ns, tol = 1e-10)
-    return(exp(opt$minimum))
+    opt <- nlminb(log(lastFM), tacEst, lower = -10, upper = 10, NAA = NAA, MAA = MAA, TAC = TAC,
+                  weights = weights, sels = sels, ns = ns, control = list(rel.tol = 1e-15))
+    return(exp(opt$par))
 }
 
 
