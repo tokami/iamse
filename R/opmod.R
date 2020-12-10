@@ -421,7 +421,7 @@ advancePop <- function(dat, hist, set, hcr, year){
     q <- dat$q
     if(length(q) < nsurv) q <- rep(q, nsurv)
     tacID <- hcr
-    tacID2 <- unlist(strsplit(as.character(tacID), "-"))[1]
+    tacID2 <- unlist(strsplit(as.character(tacID), "_"))[1]
     Ms <- dat$Ms
 
     ## parameters per age
@@ -583,7 +583,7 @@ advancePop <- function(dat, hist, set, hcr, year){
         if(year %in% assessYears && s == set$assessmentTiming){
 
             ## Estimate TAC
-            if(hcr %in% c("refFmsy","consF")){
+            if(tacID2 %in% c("refFmsy","consF")){
                 ## Reference rule Fmsy
                 tacs <- gettacs(tacs = tacs, id = hcr, TAC=NA)
             }else{
@@ -610,13 +610,17 @@ advancePop <- function(dat, hist, set, hcr, year){
                     ## Fishing at Fmsy
                     FMtac <- refs$Fmsy / ns
                 }else{
-                    fraci <- as.numeric(unlist(strsplit(as.character(tacID), "-"))[2])
+                    fraci <- as.numeric(unlist(strsplit(as.character(tacID), "_"))[2])
                     ## Fishing at fraction of Fmsy
                     FMtac <- (fraci * refs$Fmsy) / ns
                 }
             }else if(tacID2 == "noF"){
                 ## noF
                 FMtac <- 0
+            }else if(tacID2 == "consF"){
+                ## constant F
+                fraci <- as.numeric(unlist(strsplit(as.character(tacID), "_"))[2])
+                FMtac <- fraci / ns
             }else{
                 ## any other HCR
                 ## FMtac <- min(set$maxF/ns,
@@ -695,8 +699,8 @@ advancePop <- function(dat, hist, set, hcr, year){
         NAA <- Ntemp <- NAA * exp(-ZAA[,s])
         ## ageing by season
         if(s == ns){
-        print(TACs[y])
-        print(sum(CW[y,]))
+        ## print(TACs[y])
+        ## print(sum(CW[y,]))
             ## end of year biomass for risk P(B/Blim)
             TSBfinal[y] <- sum(NAA * weights[,ns])
             ESBfinal[y] <- sum(NAA * weights[,ns] * sels[,ns])
