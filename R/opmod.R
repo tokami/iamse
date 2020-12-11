@@ -153,7 +153,7 @@ initPop <- function(dat, set = NULL, out.opt = 1){
             for(s in 1:ns){
                 ## recruitment
                 if(spawning[s] > 0){
-                    SSBtemp <- sum(NAAbi * weights[,1] * mats[,1] * exp(-pzbm * Zbi[,1])) ## pre-recruitment mort
+                    SSBtemp <- sum(NAAbi * weights[,s] * mats[,s] * exp(-pzbm * Zbi[,s])) ## pre-recruitment mort
                     SSBPR0 <- getSSBPR2(Mbi, dat$mats, dat$weights, fecun=1, amax, dat$R0,
                                         ns = ns, season = s)
                     recbi <- recfunc(h = h, SSBPR0 = SSBPR0, SSB = SSBtemp,
@@ -214,10 +214,10 @@ initPop <- function(dat, set = NULL, out.opt = 1){
                 }else{
                     Ztemp <- ZAA[,s-1]
                 }
-                SSB[y,1] <- sum(NAA * weights[,1] * maty[,1] * exp(-pzbm * Ztemp)) ## pre-recruitment mort
+                SSB[y,s] <- sum(NAA * weights[,s] * maty[,s] * exp(-pzbm * Ztemp)) ## pre-recruitment mort
                 SSBPR0 <- getSSBPR2(MAA, maty, weights, fecun=1, amax, R0y, ns = ns,
                                     season = s)
-                rec[y] <- recfunc(h = hy, SSBPR0 = SSBPR0, SSB = SSB[y,1],
+                rec[y] <- recfunc(h = hy, SSBPR0 = SSBPR0, SSB = SSB[y,s],
                                   R0 = R0y, method = dat$SR, bp = dat$bp,
                                   beta = dat$recBeta, gamma = dat$recGamma)
                 rec[y] <- ifelse(rec[y] < 0, 1e-10, rec[y])
@@ -442,6 +442,12 @@ advancePop <- function(dat, hist, set, hcr, year){
     tacID2 <- unlist(strsplit(as.character(tacID), "_"))[1]
     Ms <- dat$Ms
     spawning <- dat$spawning
+    assessmentTiming <- set$assessmentTiming
+    if(ns == 1){
+        assessSeasons <- assessmentTiming
+    }else{
+        assessSeasons <- rep(1:ns, 20)[assessmentTiming:(assessmentTiming+ns-1)]
+    }
 
     ## parameters per age
     weight <- dat$weight
@@ -583,12 +589,12 @@ advancePop <- function(dat, hist, set, hcr, year){
         if(spawning[s] > 0){
             ## Survivors from previous season/year
             if(s == 1){
-                Ztemp <- hist$lastFAA + MAA[,1]  ## i.e. FAA in s=1 is equal to last FAA (pot s=4)
+                Ztemp <- hist$lastFAA + MAA[,s]  ## i.e. FAA in s=1 is equal to last FAA (pot s=4)
             }else{
                 Ztemp <- ZAA[,s-1]
             }
             NAAtemp <- NAA
-            SSBtemp <- sum(NAAtemp * weights[,1] * maty[,1] * exp(-pzbm * Ztemp)) ## pre-recruitment mort
+            SSBtemp <- sum(NAAtemp * weights[,s] * maty[,s] * exp(-pzbm * Ztemp)) ## pre-recruitment mort
             SSBPR0 <- getSSBPR2(MAA, maty, weights, fecun=1, amax, R0y,
                                 ns = ns, season = s)
             rec[y] <- recfunc(h = hy, SSBPR0 = SSBPR0, SSB = SSBtemp, R0 = R0y,
@@ -599,7 +605,7 @@ advancePop <- function(dat, hist, set, hcr, year){
         }
 
         ## Assessment
-        if(year %in% assessYears && s == set$assessmentTiming){
+        if(year %in% assessYears && s == assessmentTiming){
 
             ## Estimate TAC
             if(tacID2 %in% c("refFmsy","consF")){
@@ -652,8 +658,17 @@ advancePop <- function(dat, hist, set, hcr, year){
                 ##                     NAA = NAA, weight = weights[,s],
                 ##                     weightF = weightFs[,s], sel = sels[,s]))
                 FMtac <- min(set$maxF/ns,
-                             getFM3(TACs[y], NAA = NAA, M = MAA,
-                                    weight = weights, sel = sels, ns = ns))
+                             getFM3(TACs[y],
+                                    NAA = NAA, MAA = MAA,
+                                    sels = sels, weights = weights,
+                                    seasons = assessSeasons, ns = ns, y = y,
+                                    hy = hy, amax = amax, maty = maty,
+                                    pzbm = pzbm, spawning = spawning,
+                                    R0y = R0y, SR = dat$SR, bp = dat$pb, recBeta = dat$recBeta,
+                                    recGamma = dat$recGamma, eR = eR,
+                                    lastFM = FM[y-1,s]
+                                    )
+                             )
             }
         }
 

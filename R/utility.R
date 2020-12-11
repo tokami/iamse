@@ -472,42 +472,80 @@ getFM <- function(TAC, NAA, M, weight, sel){
     return(exp(opt$minimum))
 }
 
+#' @name predCatch
+#'
+#' @param seasons vector with season indices
+#' @param ns number of seasons
+#'
+#' @details get predicted catch for TAC period or difference between provided
+#'     and predicted catch
+predCatch <- function(logFM,
+                      NAA, MAA,
+                      sels, weights,
+                      seasons, ns, y,
+                      hy, amax, maty, pzbm, spawning,
+                      R0y, SR, bp, recBeta, recGamma, eR,
+                      TAC = NULL,
+                      out = 0){
+
+    Ctmp <- 0
+    NAAtmp <- NAA
+    for(s in seasons){
+        FAA <- exp(logFM) * sels[,s]
+        ## recruitment
+        if(spawning[s] > 0 && s > 1){
+            ## Survivors from previous season/year
+            Ztmp <- FAA + MAA[,s]
+            rec <- recfunc(h = hy,
+                           SSBPR0 = getSSBPR2(MAA, maty, weights, fecun=1, amax,
+                                              R0y, ns = ns, season = s),
+                           SSB = sum(NAAtmp * weights[,s] * maty[,s] * exp(-pzbm * Ztmp)),
+                           R0 = R0y, method = SR, bp = bp,
+                           beta = recBeta, gamma = recGamma)
+            rec <- ifelse(rec < 0, 1e-10, rec)
+            NAAtmp[1] <- NAAtmp[1] + spawning[s] * rec * eR
+        }
+        Ctmp <- Ctmp + sum(baranov(FAA, MAA[,s], NAAtmp) * weights[,s])
+        NAAtmp <- NAAtmp * exp(-(MAA[,s] + FAA))
+        if(s == ns){
+            ## Ageing by year
+            NAAtmp[amax] <- NAAtmp[amax] + NAAtmp[amax-1]
+            for(a in 2:(amax-1)) NAAtmp[a] <- NAAtmp[a-1]
+            NAAtmp[1] <- 0
+        }
+    }
+    if(out == 0){
+        return(Ctmp)
+    }else{
+        return((TAC - Ctmp)^2)
+    }
+}
 
 #' @name getFM3
 #' @details get FM accounting for seasons
 #' @export
-getFM3 <- function(TAC, NAA, MAA, weights, sels, ns, spawning,
-                   lastFM = 0.1){
-    tacEst <- function(logFM, NAA, MAA, sels, weights, TAC, ns){
-        Ctmp <- 0
-        NAAtmp <- NAA
-        for(s in 1:ns){
-            ## recruitment
-            if(spawning[s] > 0){
-                ## Survivors from previous season/year
-                FAA <- exp(logFM) * sels[,s]
-                Ztemp <- ZAA[,s-1]
+getFM3 <- function(TAC,
+                  NAA, MAA,
+                  sels, weights,
+                  seasons, ns, y,
+                  hy, amax, maty,
+                  pzbm, spawning,
+                  R0y, SR, bp, recBeta = recBeta,
+                  recGamma = recGamma, eR = eR,
+                  lastFM = 0.1){
 
-                ## HERE: incorporate spawning in this funtion
-                ## TODO: allow to have any TAC intervals here (starting in middle of year being 2 years long)
-                ##
-
-                SSB[y,1] <- sum(NAA * weights[,1] * maty[,1] * exp(-pzbm * Ztemp)) ## pre-recruitment mort
-                SSBPR0 <- getSSBPR2(MAA, maty, weights, fecun=1, amax, R0y, ns = ns,
-                                    season = s)
-                rec[y] <- recfunc(h = hy, SSBPR0 = SSBPR0, SSB = SSB[y,1],
-                                  R0 = R0y, method = dat$SR, bp = dat$bp,
-                                  beta = dat$recBeta, gamma = dat$recGamma)
-                rec[y] <- ifelse(rec[y] < 0, 1e-10, rec[y])
-                NAA[1] <- NAA[1] + spawning[s] * rec[y] * eR[y]
-            }
-            Ctmp <- Ctmp + sum(baranov(FAA, MAA[,s], NAAtmp) * weights[,s])
-            NAAtmp <- NAAtmp * exp(-(MAA[,s] + FAA))
-        }
-        (TAC - Ctmp)^2
-    }
-    opt <- nlminb(log(lastFM), tacEst, lower = -10, upper = 10, NAA = NAA, MAA = MAA, TAC = TAC,
-                  weights = weights, sels = sels, ns = ns, control = list(rel.tol = 1e-15))
+    opt <- nlminb(start = log(lastFM), objective = predCatch,
+                  NAA = NAA, MAA = MAA,
+                  sels = sels, weights = weights,
+                  seasons = seasons, ns = ns, y = y,
+                  hy = hy, amax = amax, maty = maty,
+                  pzbm = pzbm, spawning = spawning,
+                  R0y = R0y, SR = SR, bp = bp, recBeta = recBeta,
+                  recGamma = recGamma, eR = eR,
+                  TAC = TAC,
+                  out = 1,
+                  lower = -10, upper = 10,
+                  control = list(rel.tol = 1e-15))
     return(exp(opt$par))
 }
 
