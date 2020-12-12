@@ -36,6 +36,11 @@ checkSet <- function(set = NULL){
     }else if(length(set$noiseMat) != 3){
         writeLines("'set$noiseMat' needs to be a vector with 3 values corresponding to: sd, rho, bias.cor (see genNoise). Setting to c(0,0,0)!")
     }
+    if(is.null(set$noiseW)){
+        set$noiseW <- c(0,0,0)
+    }else if(length(set$noiseW) != 3){
+        writeLines("'set$noiseW' needs to be a vector with 3 values corresponding to: sd, rho, bias.cor (see genNoise). Setting to c(0,0,0)!")
+    }
     if(is.null(set$noiseImp)){
         set$noiseImp <- c(0,0,0)
     }else if(length(set$noiseImp) != 3){
@@ -112,7 +117,7 @@ checkSet <- function(set = NULL){
     if(is.null(set$catchSeasons)) set$catchSeasons <- 1
 
     ## burn in period
-    if(is.null(set$burnin)) set$burnin <- 20
+    if(is.null(set$burnin)) set$burnin <- 1e3  ## CHECK: until initial distribution is better
 
     ## seed
     if(is.null(set$seed)) set$seed <- NA

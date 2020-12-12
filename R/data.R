@@ -21,20 +21,23 @@ checkDat <- function(dat, verbose = TRUE){
     ns <- dat$ns
     nt <- ny * ns
 
-    dat$yvec <- rep(1:ny, each = ns)
-    dat$svec <- rep(1:ns, each = ny)
-    dat$s1vec <- seq(1, nt, ns)
-
-
     ## ages
     ##------------------
     if(!any(names(dat) == "amax")) stop("Maximum age missing: amax")
     amax <- (dat$amax)
+    asmax <- (amax+1) * ns
     ages <- 0:amax
     ## OLD: ages <- t(t(matrix(rep(ages,ns),ncol=ns,nrow=amax+1)) + seq(0, 1-1/ns, 1/ns))
     ds05 <- 1/ns/2
     ages <- t(t(matrix(rep(ages,each = ns),ncol=ns,nrow=amax+1, byrow=TRUE)) + seq(ds05, 1-ds05, length.out=ns))
     dat$ages <- ages
+
+    dat$yvec <- rep(1:ny, each = ns)
+    dat$svec <- rep(1:ns, ny)
+    dat$savec <- rep(1:ns, amax+1)
+    dat$asvec <- rep(1:(amax+1), each = ns)
+    dat$s1vec <- seq(1, nt, ns)
+    dat$s1avec <- seq(1, asmax, ns)
 
     ## growth at age
     ##------------------
@@ -172,12 +175,12 @@ checkDat <- function(dat, verbose = TRUE){
     mod <- smooth.spline(x=timeseries, y=effrel)
     if(!"FM" %in% names(dat)){
         dat$FM <- predict(mod, x = seq(1970, 2019, length.out = dat$ny))$y
-    }else if(length(dat$FM) != dat$ny){
+    }else if(length(dat$FM) < dat$ny){
         warning("Length of FM not equal to ny. Overwriting FM.")
         dat$FM <- predict(mod, x = seq(1970, 2019, length.out = dat$ny))$y
     }
     ## account for seasons
-    dat$Fs <- dat$FM / ns
+    dat$Fs <- rep(dat$FM / ns, each = ns)
 
     ## Depletion level final year
     ##------------------
@@ -233,14 +236,14 @@ checkDat <- function(dat, verbose = TRUE){
         if(ns == 1){
             dat$spawning <- 1
         }else{
-            dat$spawning <- c(1, rep(0, ns))
+            dat$spawning <- c(1, rep(0, ns-1))
         }
     }else if(length(dat$spawning) != ns){
         writeLines("The length of 'dat$spawning' is not equal to number of seasons (dat$ns). Assuming spawning in first season.")
         if(ns == 1){
             dat$spawning <- 1
         }else{
-            dat$spawning <- c(1, rep(0, ns))
+            dat$spawning <- c(1, rep(0, ns-1))
         }
     }
     dat$spawning <- dat$spawning / sum(dat$spawning)

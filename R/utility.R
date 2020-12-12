@@ -454,9 +454,9 @@ fpat <- function(fmax, fscen = 1){
 
 #' @name baranov
 #' @export
-baranov <- function(FAA,M,NAA){
-    Z <- FAA + M
-    return(FAA/Z * NAA * (1 - exp(-Z)))
+baranov <- function(F, M, N){
+    Z <- F + M
+    return(F/Z * N * (1 - exp(-Z)))
 }
 
 
@@ -726,6 +726,34 @@ getSSBPR2 <- function (Ms, mats, weights, fecun = 1, amax, R0 = 1, FMs = NULL, n
     SBPR_per_season <- apply(NAA * mats * weights * fecun, 2, sum)
     ## season before spawning? season_before_spawning <- c(ns,(1:(ns-1)))[season]
     SBPR <- SBPR_per_season[season]
+    return(SBPR)
+}
+
+
+#' @name getSSBPR3
+#' @description Function to calculate spawners per recruit
+#' @param Z - total mortality
+#' @param mat - maturity ogive
+#' @param fecun - fecundity matrix
+#' @param amax - number of age classes
+#' @return spawning biomass per recruit
+#' @export
+getSSBPR3 <- function (Ms, mats, weights, fecun = 1, asmax,
+                       R0 = 1, FMs = NULL){
+
+    if(is.null(FMs)){
+        FMs <- 0
+    }
+
+    NAA <- rep(0, asmax)
+    NAA[1] <- R0
+    ZAA <-  Ms + FMs
+    for(as in 2:asmax)
+        NAA[as] <- NAA[as-1] * exp(-ZAA[as-1])
+    NAA[asmax] <- NAA[asmax] / (1-exp(-ZAA[asmax]))
+
+    SBPR <- sum(NAA * mats * weights * fecun)
+
     return(SBPR)
 }
 
