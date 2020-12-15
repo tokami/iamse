@@ -483,37 +483,36 @@ predCatch <- function(logFM,
                       NAA, MAA,
                       sels, weights,
                       seasons, ns, y,
-                      hy, amax, maty, pzbm, spawning,
-                      R0y, SR, bp, recBeta, recGamma, eR,
+                      h, asmax, mats, pzbm, spawning,
+                      R0, SR, bp, recBeta, recGamma, eR,
                       TAC = NULL,
                       out = 0){
-
     Ctmp <- 0
     NAAtmp <- NAA
+
     for(s in seasons){
-        FAA <- exp(logFM) * sels[,s]
+        FAA <- exp(logFM) * sels
+        Ztmp <- FAA + MAA
         ## recruitment
         if(spawning[s] > 0 && s > 1){
             ## Survivors from previous season/year
-            Ztmp <- FAA + MAA[,s]
-            rec <- recfunc(h = hy,
-                           SSBPR0 = getSSBPR2(MAA, maty, weights, fecun=1, amax,
-                                              R0y, ns = ns, season = s),
-                           SSB = sum(NAAtmp * weights[,s] * maty[,s] * exp(-pzbm * Ztmp)),
-                           R0 = R0y, method = SR, bp = bp,
-                           beta = recBeta, gamma = recGamma)
-            rec <- ifelse(rec < 0, 1e-10, rec)
-            NAAtmp[1] <- NAAtmp[1] + spawning[s] * rec * eR
+            SSBPR0 <- getSSBPR4(Ztmp, mats, weights,
+                                fecun=1, asmax, ns, spawning)
+            SSBtmp <- sum(NAA * weights * mats * exp(-pzbm * Zbi))
+            rec <- recfunc(h = hy, SSBPR0 = SSBPR0, SSB = SSBtmp,
+                             R0 = R0, method = SR, bp = bp,
+                             beta = recBeta, gamma = recGamma)
+            rec[rec<0] <- 1e-10
+            NAAtmp[1] <- rec * spawning[s] * eR
         }
-        Ctmp <- Ctmp + sum(baranov(FAA, MAA[,s], NAAtmp) * weights[,s])
-        NAAtmp <- NAAtmp * exp(-(MAA[,s] + FAA))
-        if(s == ns){
-            ## Ageing by year
-            NAAtmp[amax] <- NAAtmp[amax] + NAAtmp[amax-1]
-            for(a in 2:(amax-1)) NAAtmp[a] <- NAAtmp[a-1]
-            NAAtmp[1] <- 0
-        }
+        Ctmp <- Ctmp + sum(baranov(FAA, MAA, NAAtmp) * weights)
+        ## Aging
+        NAAtmp <- NAAtmp * exp(-Ztmp)
+        NAAtmp[asmax] <- NAAtmp[asmax] + NAAtmp[asmax-1]
+        for(as in (asmax-1):2) NAAtmp[as] <- NAAtmp[as-1]
+        NAAtmp[1] <- 0
     }
+
     if(out == 0){
         return(Ctmp)
     }else{
@@ -525,22 +524,22 @@ predCatch <- function(logFM,
 #' @details get FM accounting for seasons
 #' @export
 getFM3 <- function(TAC,
-                  NAA, MAA,
-                  sels, weights,
-                  seasons, ns, y,
-                  hy, amax, maty,
-                  pzbm, spawning,
-                  R0y, SR, bp, recBeta = recBeta,
-                  recGamma = recGamma, eR = eR,
-                  lastFM = 0.1){
+                   NAA, MAA,
+                   sels, weights,
+                   seasons, ns, y,
+                   h, asmax, mats,
+                   pzbm, spawning,
+                   R0, SR, bp, recBeta = recBeta,
+                   recGamma = recGamma, eR = eR,
+                   lastFM = 0.1){
 
     opt <- nlminb(start = log(lastFM), objective = predCatch,
                   NAA = NAA, MAA = MAA,
                   sels = sels, weights = weights,
                   seasons = seasons, ns = ns, y = y,
-                  hy = hy, amax = amax, maty = maty,
+                  h = h, asmax = asmax, mat = mat,
                   pzbm = pzbm, spawning = spawning,
-                  R0y = R0y, SR = SR, bp = bp, recBeta = recBeta,
+                  R0 = R0, SR = SR, bp = bp, recBeta = recBeta,
                   recGamma = recGamma, eR = eR,
                   TAC = TAC,
                   out = 1,
@@ -750,9 +749,57 @@ getSSBPR3 <- function (Ms, mats, weights, fecun = 1, asmax,
     ZAA <-  Ms + FMs
     for(as in 2:asmax)
         NAA[as] <- NAA[as-1] * exp(-ZAA[as-1])
-    NAA[asmax] <- NAA[asmax] / (1-exp(-ZAA[asmax]))
+    NAA[asmax] <- NAA[asmax-1] / (1-exp(-ZAA[asmax]))
 
     SBPR <- sum(NAA * mats * weights * fecun)
+
+    return(SBPR)
+}
+
+
+#' @name getSSBPR4
+#' @description Function to calculate spawners per recruit
+#' @param Z - total mortality
+#' @param mat - maturity ogive
+#' @param fecun - fecundity matrix
+#' @param amax - number of age classes
+#' @return spawning biomass per recruit
+#' @export
+getSSBPR4 <- function (Ms, mats, weights, fecun = 1,
+                       asmax, ns, spawning,
+                       R0 = 1, FMs = NULL){
+
+    if(is.null(FMs)){
+        FMs <- 0
+    }
+
+    NAAS <- NAA <- matrix(0, asmax, ns)
+    NAA[1,] <- spawning
+    ZAA <-  Ms + FMs
+    ## each season
+    for(as in 2:asmax)
+        NAA[as,] <- NAA[as-1,] * exp(-ZAA[as-1])
+    ## annual total mortality for plus group
+    if(ns > 1){
+        for(s in 1:ns){
+            s2 <- s
+            while(s2 < ns){
+                NAA[asmax,s] <- NAA[asmax,s] * exp(-ZAA[asmax])
+                s2 <- s2 + 1
+            }
+        }
+    }
+    plusgroup <- NAA[asmax,] / (1 - exp(-sum(ZAA[(asmax-ns+1):asmax])))
+    ## all seasons combined
+    for(s in 1:ns){
+        NAAS[seq(s,asmax,ns),s] <- NAA[seq(s,asmax,ns),s]
+    }
+
+    NAAS <- rowSums(NAAS)
+##   NAAS[1] <- 0
+    NAAS[asmax] <- sum(plusgroup)
+
+    SBPR <- sum(NAAS * mats * weights * fecun)
 
     return(SBPR)
 }
@@ -776,7 +823,7 @@ recfunc <- function(h, SSBPR0, SSB,  R0 = 1e6, method = "bevholt", bp = 0,
         ## beta <- (5*h-1)/(4*h*R0)
         ## rec <- SSB / (alpha + beta * SSB)
 
-        rec <- (4 * h * R0 * SSB / (SSBPR0 * (1-h) + SSB * (5*h-1)))
+        rec <- (4 * h * R0 * SSB / (SSBPR0 * R0 * (1-h) + SSB * (5*h-1)))
 
     }else if(method == "ricker"){
         ## beta <- log(5 * h) / (0.8 * R0)

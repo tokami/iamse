@@ -117,7 +117,7 @@ checkSet <- function(set = NULL){
     if(is.null(set$catchSeasons)) set$catchSeasons <- 1
 
     ## burn in period
-    if(is.null(set$burnin)) set$burnin <- 1e3  ## CHECK: until initial distribution is better
+    if(is.null(set$burnin)) set$burnin <- 5e2  ## CHECK: until initial distribution is better
 
     ## seed
     if(is.null(set$seed)) set$seed <- NA

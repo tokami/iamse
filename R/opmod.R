@@ -153,76 +153,74 @@ initPop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){
     obsIA <- vector("list", nsurv)
     for(i in 1:nsurv) obsIA[[i]] <- matrix(NA, nrow = ny, ncol = amax)
 
-    ## HERE:
     ## Initialise NAA
+    hy <- h * eH[1]
+    R0y <- R0 * eR0[1]
+    maty <- as.numeric(t(mats)) * eMat[1]
+    weighty <- as.numeric(t(weights)) * eW[1]
+    sely <- as.numeric(t(sels))
+    msely <- as.numeric(t(Msels[[1]]))
     NAAbi2 <- NAAbi <- matrix(0, asmax, ns)
-    NAAbi[1,] <- R0 * spawning ## * exp(initN[1])  ## TODO: use R0y?
-    ZAA <-  Ms[1:ns] * as.numeric(t(Msels[[1]])) + Fs[1:ns] * as.numeric(t(sels))
+    NAAbi[1,] <- R0y * spawning ## * exp(initN[1])
+    ZAA <-  Ms[1:ns] * msely + Fs[1:ns] * sely
+    ## each season
     for(as in 2:asmax)
         NAAbi[as,] <- NAAbi[as-1,] * exp(-ZAA[as-1])
-    plusgroup <- NAAbi[asmax,] / (1-exp(-ZAA[asmax]))
-    ##    NAAbi <- NAAbi / 0.9961352 ## for n==1
-    ##    NAAbi <- NAAbi / 1.195929 ## for n==2
-    ##    NAAbi <- NAAbi / 1.996079 ## for n==2
-
-    ## alternative:
+    ## annual total mortality for plus group
+    if(ns > 1){
+        for(s in 1:ns){
+            s2 <- s
+            while(s2 < ns){
+                NAAbi[asmax,s] <- NAAbi[asmax,s] * exp(-ZAA[asmax])
+                s2 <- s2 + 1
+            }
+        }
+    }
+    plusgroup <- NAAbi[asmax,] / (1 - exp(-sum(ZAA[(asmax-ns+1):asmax])))
+    ## all seasons combined
     for(s in 1:ns){
         NAAbi2[seq(s,asmax,ns),s] <- NAAbi[seq(s,asmax,ns),s]
     }
     NAASbi <- rowSums(NAAbi2)
     NAASbi[1] <- 0
-    NAASbi[asmax] <- mean(plusgroup)
-    NAASbi2 <- NAASbi
-
-    ## NAASbi <- rep(0, asmax)
-    ## slastvec <- seq(1, asmax, ns)
-    ## for(s in 1:ns){
-    ##     ind2 <- slastvec+s
-    ##     ind2 <- ind2[ind2<=asmax]
-    ##     ind <- seq(ns+2-s,asmax,ns)
-    ##     ind <- ind[ind<=asmax]
-    ##     if(s == 1) ind <- c(1,ind)
-    ##     if(s == ns) ind2 <- c(1,ind2)
-    ##     NAASbi[ind] <- NAAbi[ind2,s]
-    ## }
-    ## NAASbi[1] <- 0
-    ## NAASbi[asmax] <- sum(plusgroup)
-    ## NAASbi2 <- NAASbi
-    ## TODO: improve initial distribution
-    ## TODO: for annual model really good!
-    ## TODO: gets worse the more seasons included (too high, account for additional mortality through seasons)!
-    ## IDEA: for all recruits born in a specific season, get NAA at end of last season then let all age into next season
+    ## plusgroup
+    NAASbi[asmax] <- sum(plusgroup)
 
     ## Burn-in period
-    if(is.null(set)) burnin <- 1e3 else burnin <- set$burnin  ## CHECK: until initial distribution is better
+    if(is.null(set)) burnin <- 5e2 else burnin <- set$burnin
     if(is.numeric(burnin) && burnin > 0){
         for(y in 1:burnin){
-            Fbi <- Fs[1:ns] * as.numeric(t(sels))
-            Mbi <- Ms[1:ns] * as.numeric(t(Msels[[1]]))
+            Fbi <- Fs[1:ns] * sely
+            Mbi <- Ms[1:ns] * msely
             Zbi <- Mbi + Fbi
             for(s in 1:ns){
                 ## recruitment
                 if(spawning[s] > 0){
-                    SSBtmp <- sum(NAASbi * as.numeric(t(weights)) * as.numeric(t(mats)) *
-                                  exp(-pzbm * Zbi)) ## pre-recruitment mortality
-                    SSBPR0 <- getSSBPR3(Mbi, as.numeric(t(dat$mats)),
-                                        as.numeric(t(dat$weights)), fecun=1, asmax, dat$R0) / ns ## CHECK: still difference of: 1.015002
-                    print(SSBPR0)
-                    recbi <- recfunc(h = h, SSBPR0 = SSBPR0, SSB = SSBtmp,
-                                     R0 = R0, method = dat$SR, bp = dat$bp,
+                    SSBtmp <- sum(NAASbi * weighty * maty * exp(-pzbm * Zbi))
+                    SSBPR0 <- getSSBPR4(Zbi, maty, weighty, fecun=1, asmax, ns,
+                                        spawning)
+                    recbi <- recfunc(h = hy, SSBPR0 = SSBPR0, SSB = SSBtmp,
+                                     R0 = R0y, method = dat$SR, bp = dat$bp,
                                      beta = dat$recBeta, gamma = dat$recGamma)
                     recbi[recbi<0] <- 1e-10
-                    NAASbi[1] <- spawning[s] * recbi
+                    NAASbi[1] <- recbi * spawning[s]
                 }
                 CWbi <- sum(baranov(Fbi, Mbi, NAASbi) * as.numeric(t(weightFs)))
                 ## can't take more than what's there
                 Btmp <- sum(NAASbi * as.numeric(t(weights)) * as.numeric(t(sels)) * exp(-Mbi/2))
+                if(is.na(CWbi) || is.na(Btmp)) stop("Somthing went wrong in the burnin period. Catch or biomass is NA.")
                 if(CWbi > 0.99 * Btmp){
-                    browser()
-                    Fbi[,s] <- sels[,s] * getFM2(0.75 * Btmp, Btmp, 1/ns,
-                                                 Mbi[,s], NAAbi,
-                                                 weights[,s], weightFs[,s], sels[,s],
-                                                 fmax = set$maxF/ns)
+                    Fbi <- sely * min(getFM3(0.75 * Btmp,
+                                             NAA = NAASbi, MAA = Mbi,
+                                             sels = sely,
+                                             weights = weighty,
+                                             seasons = s, ns = ns, y = y,
+                                             h = hy, asmax = asmax, mats = maty,
+                                             pzbm = pzbm, spawning = spawning,
+                                             R0 = R0y, SR = dat$SR, bp = dat$pb, recBeta = dat$recBeta,
+                                             recGamma = dat$recGamma, eR = eR,
+                                             lastFM = 0.001),
+                                      set$maxF/ns)
                     Zbi <- Mbi + Fbi
                 }
                 ## ageing by season or year
@@ -235,13 +233,10 @@ initPop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){
     }
     NAAS <- NAASbi
 
-    print(cbind(NAAbi2,NAASbi2,NAAS,NAASbi2/NAAS))
-
     ## main loop
     for(y in 1:ny){
 
         ## Adding noise
-        ## OLD: FM[y,] <- Fs[y] * eF[y] ## CHECK: needed?
         sely <- as.numeric(t(sels))
         FAA <- Fs[yvec==y] * eF[y] * sely
         mselsInd <- ifelse(mselFlag, y, 1)
@@ -259,12 +254,13 @@ initPop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){
             if(spawning[s] > 0){
                 ## Survivors from previous season/year
                 SSB[y,s] <- sum(NAAS * weighty * maty * exp(-pzbm * ZAA)) ## pre-recruitment mort
-                SSBPR0 <- getSSBPR3(MAA, maty, weighty, fecun=1, asmax, R0y) / ns ## CHECK: why divided by ns?
+                SSBPR0 <- getSSBPR4(ZAA, maty, weighty, fecun=1, asmax,
+                                    ns, spawning)
                 rec[y,s] <- recfunc(h = hy, SSBPR0 = SSBPR0, SSB = SSB[y,s],
                                     R0 = R0y, method = dat$SR, bp = dat$bp,
                                     beta = dat$recBeta, gamma = dat$recGamma)
                 rec[rec<0] <- 1e-10
-                NAAS[1] <- spawning[s] * rec[y,s] * eR[y]
+                NAAS[1] <- rec[y,s] * eR[y] * spawning[s]
             }
 
             ## catch
@@ -274,13 +270,21 @@ initPop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){
             ## can't take more than what's there
             Btmp <- sum(NAAS * weighty * sely * exp(-MAA/2))
             if(CW[y,s] > 0.99 * Btmp){
-                browser()
-                FM[y,s] <- getFM2(0.75 * Btmp, Btmp, 1/ns, MAA[,s], NAA, weights[,s],
-                                                 weightFs[,s], sels[,s], fmax = set$maxF/ns)
-                FAA[,s] <- FM[y,s] * sels[,s]
-                ZAA[,s] <- MAA[,s] + FAA[,s]
-                CAA[[y]][,s] <- baranov(FAA[,s], MAA[,s], NAA)
-                CW[y,s] <- sum(weightFs[,s] * CAA[[y]][,s])
+                Fs[yvec==y][s] <- min(getFM3(0.75 * Btmp,
+                                             NAA = NAAS, MAA = MAA,
+                                             sels = sely,
+                                             weights = weighty,
+                                             seasons = s, ns = ns, y = y,
+                                             h = hy, asmax = asmax, mats = maty,
+                                             pzbm = pzbm, spawning = spawning,
+                                             R0 = R0y, SR = dat$SR, bp = dat$pb, recBeta = dat$recBeta,
+                                             recGamma = dat$recGamma, eR = eR,
+                                             lastFM = FM[y,s]),
+                                      set$maxF/ns)
+                FAA <- Fs[yvec==y] * sely
+                ZAA <- MAA + FAA
+                CAA[[y]][,s] <- baranov(FAA, MAA, NAAS)
+                CW[y,s] <- sum(weightFy * CAA[[y]][,s])
             }
             ## TSB
             TSB[y,s] <- sum(NAAS * weighty)
