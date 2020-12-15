@@ -24,18 +24,18 @@ checkDat <- function(dat, verbose = TRUE){
     ## ages
     ##------------------
     if(!any(names(dat) == "amax")) stop("Maximum age missing: amax")
-    amax <- (dat$amax)
-    asmax <- (amax+1) * ns
-    ages <- 0:amax
-    ## OLD: ages <- t(t(matrix(rep(ages,ns),ncol=ns,nrow=amax+1)) + seq(0, 1-1/ns, 1/ns))
+    amax <- dat$amax + 1
+    asmax <- amax * ns
+    ages <- 0:(amax-1)
+    ## OLD: ages <- t(t(matrix(rep(ages,ns),ncol=ns,nrow=amax)) + seq(0, 1-1/ns, 1/ns))
     ds05 <- 1/ns/2
-    ages <- t(t(matrix(rep(ages,each = ns),ncol=ns,nrow=amax+1, byrow=TRUE)) + seq(ds05, 1-ds05, length.out=ns))
+    ages <- t(t(matrix(rep(ages,each = ns),ncol=ns,nrow=amax, byrow=TRUE)) + seq(ds05, 1-ds05, length.out=ns))
     dat$ages <- ages
 
     dat$yvec <- rep(1:ny, each = ns)
     dat$svec <- rep(1:ns, ny)
-    dat$savec <- rep(1:ns, amax+1)
-    dat$asvec <- rep(1:(amax+1), each = ns)
+    dat$savec <- rep(1:ns, amax)
+    dat$asvec <- rep(1:(amax), each = ns)
     dat$s1vec <- seq(1, nt, ns)
     dat$s1avec <- seq(1, asmax, ns)
 
@@ -63,7 +63,7 @@ checkDat <- function(dat, verbose = TRUE){
     if(!any(names(dat) == "CVlen")){
         dat$CVlen <- 0.1
     }
-    LA <- array(LA, dim = c(amax+1,1,ns))
+    LA <- array(LA, dim = c(amax,1,ns))
     plba <- apply(apply(LA, c(1,3), function(x) vlprobs(x, x * dat$CVlen)), c(1,3), t)
     for(i in 1:dim(plba)[3]){
         tmp <- rowSums(plba[,,i])
@@ -151,13 +151,13 @@ checkDat <- function(dat, verbose = TRUE){
         if(verbose) writeLines("No natural mortality at age provided. Setting M-at-age based on the Gislason's (2010) empirical formula.")
         dat$Msels <- getMsel(dat$linf, dat$k, dat$mids, dat$plba)
         dat$Msel <- lapply(dat$Msels, rowMeans)
-    }else if(!inherits(dat$Msel, "list") && length(dat$Msel) == amax+1){
+    }else if(!inherits(dat$Msel, "list") && length(dat$Msel) == amax){
         dat$Msel <- list(dat$Msel/max(dat$Msel))
         dims <- dim(dat$plba)
         dat$Msels <- list(matrix(dat$Msel, ncol=dims[3], nrow=dims[1]))
     }else if(inherits(dat$Msel, "list") && (length(dat$Msel) == dat$ny || length(dat$Msel) == 1)){
     }else stop("Natural mortality at age ('dat$Msel') has incorrect length. Length has to be equal to maximum age + 1 (age 0)!")
-    ## dat$Mtot <- matrix(NA, nrow=amax+1, ncol=dat$ny)
+    ## dat$Mtot <- matrix(NA, nrow=amax, ncol=dat$ny)
     ## for(y in 1:dat$ny){
     ##     dat$Mtot[,y] <- rowSums(dat$Ms[y] * dat$Msels)
     ## }
@@ -180,7 +180,9 @@ checkDat <- function(dat, verbose = TRUE){
         dat$FM <- predict(mod, x = seq(1970, 2019, length.out = dat$ny))$y
     }
     ## account for seasons
-    dat$Fs <- rep(dat$FM / ns, each = ns)
+    ##     dat$Fs <- rep(dat$FM / ns, each = ns)  ## REMOVE:
+    dat$Fs <- matrix(rep(dat$FM / ns, each = ns), nrow = ny, ncol = ns, byrow = TRUE)
+
 
     ## Depletion level final year
     ##------------------
@@ -203,7 +205,7 @@ checkDat <- function(dat, verbose = TRUE){
     ## initial pop size
     ##------------------
     if(!"initN" %in% names(dat)){
-        dat$initN <- rep(0, amax + 1)
+        dat$initN <- rep(0, amax)
     }
 
     ## Fishing
