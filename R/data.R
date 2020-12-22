@@ -44,15 +44,15 @@ checkDat <- function(dat, verbose = TRUE){
     if(!any(names(dat) == "a0")){
         dat$a0 <- 0
     }
-    if(!any(names(dat) == "linf")) stop("Asymptotic length missing: linf")
-    if(!any(names(dat) == "k")) stop("Growth coefficient missing: k")
-    LA <- dat$linf * (1 - exp(-dat$k * (ages - dat$a0)))
+    if(!any(names(dat) == "Linf")) stop("Asymptotic length missing: Linf")
+    if(!any(names(dat) == "K")) stop("Growth coefficient missing: K")
+    LA <- dat$Linf * (1 - exp(-dat$K * (ages - dat$a0)))
     dat$LA <- LA
     if(!any(names(dat) == "binwidth")){
         dat$binwidth <- 1
     }
     binwidth <- dat$binwidth
-    mids <- seq((binwidth/2), dat$linf * 1.2, by = binwidth)
+    mids <- seq((binwidth/2), dat$Linf * 1.2, by = binwidth)
     dat$mids <- mids
     highs <- mids + binwidth/2
     lows <- mids - binwidth/2
@@ -117,6 +117,10 @@ checkDat <- function(dat, verbose = TRUE){
         dat$sel <- rowMeans(dat$sels)
     }
 
+    ## catchability
+    ##------------------
+    if(!any(names(dat) == "q")) dat$q <- 0.005
+
 
     ## fecundity
     ##------------------
@@ -127,7 +131,7 @@ checkDat <- function(dat, verbose = TRUE){
     ##------------------
     ## per year
     if(!any(names(dat) == "M")){
-        dat$M <- rep(getM(dat$linf, dat$k, dat$mids), dat$ny)
+        dat$M <- rep(getM(dat$Linf, dat$K, dat$mids), dat$ny)
         if(verbose) writeLines("No natural mortality (M) provided. Setting time-invariant M.")
     }else if(length(dat$M) == 1){
         dat$M <- rep(dat$M, dat$ny)
@@ -149,7 +153,7 @@ checkDat <- function(dat, verbose = TRUE){
     ##------------------
     if(!any(names(dat) == "Msel")){
         if(verbose) writeLines("No natural mortality at age provided. Setting M-at-age based on the Gislason's (2010) empirical formula.")
-        dat$Msels <- getMsel(dat$linf, dat$k, dat$mids, dat$plba)
+        dat$Msels <- getMsel(dat$Linf, dat$K, dat$mids, dat$plba)
         dat$Msel <- lapply(dat$Msels, rowMeans)
     }else if(!inherits(dat$Msel, "list") && length(dat$Msel) == amax){
         dat$Msel <- list(dat$Msel/max(dat$Msel))

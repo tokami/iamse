@@ -578,15 +578,15 @@ getMat <- function(Lm50, Lm95, mids, plba){
 
 #' @name getM
 #' @description Function to estimate selectivity of natural mortality
-#' @param linf - Linf of vBGF
-#' @param k - K of vBGF
+#' @param Linf - Linf of vBGF
+#' @param K - K of vBGF
 #' @param mids - midlengths
-getM <- function(linf, k, mids, a = 0.55, b = 1.61, c = 1.44){
+getM <- function(Linf, K, mids, a = 0.55, b = 1.61, c = 1.44){
     n <- max(c(length(a),length(b),length(c)))
     maxM <- rep(NA, n)
     for(i in 1:n){
-        selL <- exp(a[i] - b[i] * log(mids) + c[i] * log(linf) + log(k))
-        selL[mids < 10] <- exp(a[i] - b[i] * log(10) + c[i] * log(linf) + log(k))
+        selL <- exp(a[i] - b[i] * log(mids) + c[i] * log(Linf) + log(K))
+        selL[mids < 10] <- exp(a[i] - b[i] * log(10) + c[i] * log(Linf) + log(K))
         selL <- round(selL, 3)
         maxM[i] <- max(selL)
     }
@@ -596,16 +596,16 @@ getM <- function(linf, k, mids, a = 0.55, b = 1.61, c = 1.44){
 
 #' @name getMsel
 #' @description Function to estimate selectivity of natural mortality
-#' @param linf - Linf of vBGF
-#' @param k - K of vBGF
+#' @param Linf - Linf of vBGF
+#' @param K - K of vBGF
 #' @param mids - midlengths
 #' @param plba - probability of being in mids given age
-getMsel <- function(linf, k, mids, plba, a = 0.55, b = 1.61, c = 1.44){
+getMsel <- function(Linf, K, mids, plba, a = 0.55, b = 1.61, c = 1.44){
     n <- max(c(length(a),length(b),length(c)))
     sels <- vector("list", n)
     for(i in 1:n){
-        selL <- exp(a[i] - b[i] * log(mids) + c[i] * log(linf) + log(k))
-        selL[mids < 10] <- exp(a[i] - b[i] * log(10) + c[i] * log(linf) + log(k))
+        selL <- exp(a[i] - b[i] * log(mids) + c[i] * log(Linf) + log(K))
+        selL[mids < 10] <- exp(a[i] - b[i] * log(10) + c[i] * log(Linf) + log(K))
         dims <- dim(plba)
         selA <- matrix(NA, ncol = dims[3], nrow = dims[1])
         for(j in 1:dim(plba)[3]){

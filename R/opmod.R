@@ -217,8 +217,9 @@ initPop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){
                 CWbi <- sum(baranov(Fbi, Mbi, NAASbi) * as.numeric(t(weightFs)))
                 ## can't take more than what's there
                 Btmp <- sum(NAASbi * as.numeric(t(weights)) * as.numeric(t(sels)) * exp(-Mbi/2))
-                if(is.na(CWbi) || is.na(Btmp))
-                    stop("Somthing went wrong in the burnin period. Catch or biomass is NA.")
+                if(is.na(CWbi) || is.na(Btmp)){
+                    stop("Something went wrong in the burnin period. Catch or biomass is NA.")
+                }
                 if(CWbi > 0.99 * Btmp){
                     Fbi <- sely * min(getFM(0.75 * Btmp,
                                              NAA = NAASbi, MAA = Mbi,
