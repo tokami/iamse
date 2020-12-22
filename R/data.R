@@ -111,11 +111,17 @@ checkDat <- function(dat, verbose = TRUE){
     ##------------------
     if(!any(names(dat) == "L50")) dat$L50 <- dat$Lm50
     if(!any(names(dat) == "L95")) dat$L95 <- dat$Lm95
-    if(!is.na(dat$L50) && !is.na(dat$L95)){
+    if(!names(dat) == "sels"){
         dat$sels <- getSel(dat$L50, dat$L95, dat$mids, dat$plba)
 ##        dat$sel <- getSel(dat$L50, dat$L95, dat$mids, dat$plba[,,1, drop=FALSE]) ## or rowMeans?
-        dat$sel <- rowMeans(dat$sels)
-    }
+        dat$sel <- lapply(dat$sels, rowMeans)
+    }else if(!inherits(dat$sel, "list") && length(dat$sel) == amax){
+        dat$sel <- list(dat$sel/max(dat$sel))
+        dims <- dim(dat$plba)
+        dat$sels <- list(matrix(dat$sel, ncol=dims[3], nrow=dims[1]))
+    }else if(inherits(dat$sel, "list") &&
+             (length(dat$sel) == dat$ny || length(dat$sel) == 1)){
+    }else stop("Selectivity at age ('dat$sel') has incorrect length. Length has to be equal to maximum age + 1 (age 0)!")
 
     ## catchability
     ##------------------

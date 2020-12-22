@@ -36,6 +36,11 @@ checkSet <- function(set = NULL){
     }else if(length(set$noiseMat) != 3){
         writeLines("'set$noiseMat' needs to be a vector with 3 values corresponding to: sd, rho, bias.cor (see genNoise). Setting to c(0,0,0)!")
     }
+    if(is.null(set$noiseSel)){
+        set$noiseSel <- c(0,0,0)
+    }else if(length(set$noiseSel) != 3){
+        writeLines("'set$noiseSel' needs to be a vector with 3 values corresponding to: sd, rho, bias.cor (see genNoise). Setting to c(0,0,0)!")
+    }
     if(is.null(set$noiseW)){
         set$noiseW <- c(0,0,0)
     }else if(length(set$noiseW) != 3){

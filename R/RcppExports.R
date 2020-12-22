@@ -10,12 +10,17 @@
 #' @param logF fishing mortality
 #' @param dat List with species data
 #' @param set List with MSE settings
+#' @param tvy year index for all time-variant (tv) processes (so far: Msels, Ms, sels)
 #' @param opt If 1 the function returns the yield in the last year,
 #' if 2 the function returns a list with yield, TSB, SSB, and ESB over
 #' the whole simulation period.
 #'
 #' @export
 NULL
+
+initdist <- function(MAA, FAA, R0, spawning, inds) {
+    .Call('_mse_initdist', PACKAGE = 'mse', MAA, FAA, R0, spawning, inds)
+}
 
 simpop <- function(logFM, dat, set, out) {
     .Call('_mse_simpop', PACKAGE = 'mse', logFM, dat, set, out)

@@ -80,6 +80,7 @@ runMSE <- function(dat, set, ncores=parallel::detectCores()-1, verbose=TRUE){
         setx$eH <- genNoise(nysim, set$noiseH[1], set$noiseH[2], set$noiseH[3])
         setx$eR0 <- genNoise(nysim, set$noiseR0[1], set$noiseR0[2], set$noiseR0[3])
         setx$eMat <- genNoise(nysim, set$noiseMat[1], set$noiseMat[2], set$noiseMat[3])
+        setx$eSel <- genNoise(nysim, set$noiseSel[1], set$noiseSel[2], set$noiseSel[3])
         setx$eImp <- genNoise(nysim, set$noiseImp[1], set$noiseImp[2], set$noiseImp[3])
         setx$eC <- genNoise(nysim, set$noiseC[1], set$noiseC[2], set$noiseC[3])
         setx$eI <- list()

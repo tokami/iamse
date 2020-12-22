@@ -223,7 +223,9 @@ estProd <- function(dat, set= NULL,
     set$noiseR0 <- c(0,0,0)
     set$noiseH <- c(0,0,0)
     set$noiseM <- c(0,0,0)
+    set$noiseW <- c(0,0,0)
     set$noiseMat <- c(0,0,0)
+    set$noiseSel <- c(0,0,0)
     set$noiseImp <- c(0,0,0)
 
 
@@ -374,6 +376,7 @@ estProdStoch <- function(dat, set= NULL,
         errs[[i]]$eH <- genNoise(nyref, set$noiseH[1], set$noiseH[2], set$noiseH[3])
         errs[[i]]$eR0 <- genNoise(nyref, set$noiseR0[1], set$noiseR0[2], set$noiseR0[3])
         errs[[i]]$eMat <- genNoise(nyref, set$noiseMat[1], set$noiseMat[2], set$noiseMat[3])
+        errs[[i]]$eSel <- genNoise(nyref, set$noiseSel[1], set$noiseSel[2], set$noiseSel[3])
         errs[[i]]$eImp <- genNoise(nyref, set$noiseImp[1], set$noiseImp[2], set$noiseImp[3])
     }
 
@@ -543,15 +546,20 @@ getFM <- function(TAC,
 #' @param mids - midlengths
 #' @param plba - probability of being in mids given age
 getSel <- function(L50, L95, mids, plba){
-    selL <- (1 /(1 + exp(-log(19)*(mids - L50)/(L95 - L50))))
-    dims <- dim(plba)
-    selA <- matrix(NA, ncol = dims[3], nrow = dims[1])
-    for(i in 1:dim(plba)[3]){
-        selA[,i] <- apply(t(plba[,,i]) * selL, 2, sum)
+    n <- max(c(length(L50),length(L95)))
+    sels <- vector("list", n)
+    for(i in 1:n){
+        selL <- (1 /(1 + exp(-log(19)*(mids - L50[i])/(L95[i] - L50[i]))))
+        dims <- dim(plba)
+        selA <- matrix(NA, ncol = dims[3], nrow = dims[1])
+        for(j in 1:dim(plba)[3]){
+            selA[,j] <- apply(t(plba[,,j]) * selL, 2, sum)
+        }
+        ##    selA <- apply(t(plba) * selL, 2, sum)
+        ##    selA[1] <- 1e-9 # it should be zero for age 0
+        sels[[i]] <- selA
     }
-##    selA <- apply(t(plba) * selL, 2, sum)
-##    selA[1] <- 1e-9 # it should be zero for age 0
-    return(selA)
+    return(sels)
 }
 
 

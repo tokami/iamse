@@ -13,6 +13,8 @@ estRef <- function(dat, set=NULL, fvec = seq(0,5,0.1),
     ny <- dat$ny
     ns <- dat$ns
     nt <- ny * ns
+    asmax <- dat$asmax
+    amax <- dat$amax
 
     if(is.null(set)) set <- checkSet()
     ## Remove variability
@@ -20,16 +22,20 @@ estRef <- function(dat, set=NULL, fvec = seq(0,5,0.1),
     set$noiseR <- c(0,0,0)
     set$noiseM <- c(0,0,0)
     set$noiseH <- c(0,0,0)
+    set$noiseW <- c(0,0,0)
     set$noiseR0 <- c(0,0,0)
     set$noiseMat <- c(0,0,0)
+    set$noiseSel <- c(0,0,0)
     set$noiseImp <- c(0,0,0)
     errs <- vector("list", 7)
     errs$eF <- genNoise(nyref, set$noiseF[1], set$noiseF[2], set$noiseF[3])
     errs$eR <- genNoise(nyref, set$noiseR[1], set$noiseR[2], set$noiseR[3])
     errs$eM <- genNoise(nyref, set$noiseM[1], set$noiseM[2], set$noiseM[3])
     errs$eH <- genNoise(nyref, set$noiseH[1], set$noiseH[2], set$noiseH[3])
+    errs$eW <- genNoise(nyref, set$noiseW[1], set$noiseW[2], set$noiseW[3])
     errs$eR0 <- genNoise(nyref, set$noiseR0[1], set$noiseR0[2], set$noiseR0[3])
     errs$eMat <- genNoise(nyref, set$noiseMat[1], set$noiseMat[2], set$noiseMat[3])
+    errs$eSel <- genNoise(nyref, set$noiseSel[1], set$noiseSel[2], set$noiseSel[3])
     errs$eImp <- genNoise(nyref, set$noiseImp[1], set$noiseImp[2], set$noiseImp[3])
     setx <- c(set, errs)
 
@@ -97,32 +103,47 @@ estRefStoch <- function(dat, set=NULL,
                         ref = c("Fmsy","Bmsy","MSY","B0","ESBmsy","SSBmsy"),
                         plot = FALSE){
 
-    ny <- dat$ny
-    ns <- dat$ns
-    nt <- ny * ns
-    nyref <- set$refYears
-    nrep <- set$refN
-    nyrefmsy <- set$refYearsMSY
-    tvflag <- FALSE
-
     ## Checks
     if(is.null(set)) set <- checkSet()
     dist <- NULL
     if(!(set$refMethod %in% c("mean","median"))){
         stop("'set$refMethod' not known! Has to be 'mean' or 'median'!")
     }
+
+    ny <- dat$ny
+    ns <- dat$ns
+    nt <- ny * ns
+    amax <- dat$amax + 1
+    asmax <- amax * ns
+    nyref <- set$refYears
+    nrep <- set$refN
+    nyrefmsy <- set$refYearsMSY
+    tvflag <- FALSE
+
+    ## Time-variant processes
     ## natural mortality
-    ntv <- length(unique(dat$M))
+    mtv <- length(unique(dat$M))
     ms <- unique(dat$M)
     mind <- match(dat$M, ms)
-    if(length(dat$Msel) > 1){
+    if(length(dat$Msels) > 1){
         msels <- dat$Msels[!duplicated(dat$Msels)]
-        ntv2 <- length(msels)
+        mseltv <- length(msels)
     }else{
         msels <- dat$Msels[1]
-        ntv2 <- 1
+        mseltv <- 1
     }
-    if(ntv2 > 1 && ntv2 != ntv) stop("Msels differs differently than M. This is not yet implemented.")
+    if(mseltv > 1 && mseltv != mtv) stop("Both natural mortality over time (dat$Ms) and over age (dat$Msels) are time-variant, but do not have the same dimensions. This is not yet implemented, please let both vary equally or keep one of them constant.")
+    alltv <- max(c(mtv, mseltv))
+    ## selectivity
+    if(length(dat$sels) > 1){
+        sels <- dat$sels[!duplicated(dat$sels)]
+        seltv <- length(sels)
+    }else{
+        sels <- dat$sels[1]
+        seltv <- 1
+    }
+    if(seltv > 1 && alltv > 1 && seltv != alltv) stop("Both gear selectivity (dat$sels) and natural mortality (dat$Ms or dat$Msels) are time-variant, but do not have the same dimensions. This is not yet implemented, please let both vary equally or keep one of them constant.")
+    alltv <- max(c(alltv,seltv))
     ##
     refall <- c("Fmsy","MSY","Bmsy","ESBmsy","SSBmsy","B0")
     ##
@@ -130,13 +151,15 @@ estRefStoch <- function(dat, set=NULL,
     ## errors (have to be re-used for estimation of Bmsy)
     errs <- vector("list", nrep)
     for(i in 1:nrep){
-        errs[[i]] <- vector("list", 7)
+        errs[[i]] <- vector("list", 9)
         errs[[i]]$eF <- genNoise(nyref, set$noiseF[1], set$noiseF[2], set$noiseF[3])
         errs[[i]]$eR <- genNoise(nyref, set$noiseR[1], set$noiseR[2], set$noiseR[3])
         errs[[i]]$eM <- genNoise(nyref, set$noiseM[1], set$noiseM[2], set$noiseM[3])
         errs[[i]]$eH <- genNoise(nyref, set$noiseH[1], set$noiseH[2], set$noiseH[3])
+        errs[[i]]$eW <- genNoise(nyref, set$noiseW[1], set$noiseW[2], set$noiseW[3])
         errs[[i]]$eR0 <- genNoise(nyref, set$noiseR0[1], set$noiseR0[2], set$noiseR0[3])
         errs[[i]]$eMat <- genNoise(nyref, set$noiseMat[1], set$noiseMat[2], set$noiseMat[3])
+        errs[[i]]$eSel <- genNoise(nyref, set$noiseSel[1], set$noiseSel[2], set$noiseSel[3])
         errs[[i]]$eImp <- genNoise(nyref, set$noiseImp[1], set$noiseImp[2], set$noiseImp[3])
     }
     ##
@@ -145,22 +168,33 @@ estRefStoch <- function(dat, set=NULL,
     datx$yvec <- rep(1:nyref, each = ns)
     datx$svec <- rep(1:ns, each = nyref)
     datx$s1vec <- seq(1, nyref * ns, ns)
-
+    datx$as2a <- rep(1:amax, each = ns)
+    datx$as2s <- rep(1:ns, each = amax)
+    datx$inds <- seq(1,asmax,ns)
 
     if(any(ref %in% c("Fmsy","Bmsy","MSY","ESBmsy","SSBmsy"))){
         ## Fmsy
         res <- parallel::mclapply(as.list(1:nrep), function(x){
             setx <- c(set, errs[[x]])
-            tmp <- rep(NA, ntv)
-            for(i in 1:ntv){
-                datx$M <- rep(dat$M[i], nyref)
-                ind <- (i-1)*ns+1
-                datx$Ms <- rep(dat$Ms[ind:(ind+ns)], nyref)
-                ind2 <- ifelse(ntv2 > 1, i, 1)
-                datx$Msels <- msels[ind2]
-                datx$Msel <- lapply(datx$Msels, rowMeans)
+            tmp <- rep(NA, alltv)
+            for(i in 1:alltv){
+
+                setx$tvm <- 1
+                setx$tvmsel <- 1
+                setx$tvsel <- 1
+
+                ## datx$M <- rep(dat$M[i], nyref)
+                ## ind <- (i-1)*ns+1
+                ## datx$Ms <- rep(dat$Ms[ind:(ind+ns)], nyref)
+                ## ind2 <- ifelse(ntv2 > 1, i, 1)
+                ## datx$Msels <- msels[ind2]
+                ## datx$Msel <- lapply(datx$Msels, rowMeans)
+
                 opt <- optimise(function(x) unlist(simpop(x, datx, setx, out=1)),
                                 log(c(0.001,10)), maximum = TRUE)
+
+
+
                 tmp[i] <- exp(opt$maximum)
             }
             return(tmp)
@@ -170,14 +204,19 @@ estRefStoch <- function(dat, set=NULL,
         ## MSY and Biomass reference points
         res <- parallel::mclapply(as.list(1:nrep), function(x){
             setx <- c(set, errs[[x]])
-            tmp <- vector("list", ntv)
-            for(i in 1:ntv){
-                datx$M <- rep(dat$M[i], nyref)
-                ind <- (i-1)*ns+1
-                datx$Ms <- rep(dat$Ms[ind:(ind+ns)], nyref)
-                ind2 <- ifelse(ntv2 > 1, i, 1)
-                datx$Msels <- msels[ind2]
-                datx$Msel <- lapply(datx$Msels, rowMeans)
+            tmp <- vector("list", alltv)
+            for(i in 1:alltv){
+                ## datx$M <- rep(dat$M[i], nyref)
+                ## ind <- (i-1)*ns+1
+                ## datx$Ms <- rep(dat$Ms[ind:(ind+ns)], nyref)
+                ## ind2 <- ifelse(ntv2 > 1, i, 1)
+                ## datx$Msels <- msels[ind2]
+                ## datx$Msel <- lapply(datx$Msels, rowMeans)
+
+                setx$tvm <- 1
+                setx$tvmsel <- 1
+                setx$tvsel <- 1
+
                 tmp0 <- simpop(log(fmsys[x,i]), datx, setx, out=0)
                 if(set$refMethod == "mean"){
                     tmp[[i]] <- c(mean(tail(tmp0$CW,nyrefmsy)), mean(tail(tmp0$TSB,nyrefmsy)),
@@ -195,7 +234,7 @@ estRefStoch <- function(dat, set=NULL,
         for(i in 1:4){
             brefs[[i]] <- do.call(rbind,
                                   lapply(as.list(1:nrep),
-                                         function(x) sapply(1:ntv, function(j) res[[x]][[j]][[i]])))
+                                         function(x) sapply(1:alltv, function(j) res[[x]][[j]][[i]])))
         }
 
     }
@@ -205,14 +244,19 @@ estRefStoch <- function(dat, set=NULL,
 
         res <- parallel::mclapply(as.list(1:nrep), function(x){
             setx <- c(set, errs[[x]])
-            tmp <- rep(NA, ntv)
-            for(i in 1:ntv){
-                datx$M <- rep(dat$M[i], nyref)
-                ind <- (i-1)*ns+1
-                datx$Ms <- rep(dat$Ms[ind:(ind+ns)], nyref)
-                ind2 <- ifelse(ntv2 > 1, i, 1)
-                datx$Msels <- msels[ind2]
-                datx$Msel <- lapply(datx$Msels, rowMeans)
+            tmp <- rep(NA, alltv)
+            for(i in 1:alltv){
+                ## datx$M <- rep(dat$M[i], nyref)
+                ## ind <- (i-1)*ns+1
+                ## datx$Ms <- rep(dat$Ms[ind:(ind+ns)], nyref)
+                ## ind2 <- ifelse(ntv2 > 1, i, 1)
+                ## datx$Msels <- msels[ind2]
+                ## datx$Msel <- lapply(datx$Msels, rowMeans)
+
+                setx$tvm <- 1
+                setx$tvmsel <- 1
+                setx$tvsel <- 1
+
                 tmp0 <- simpop(log(1e-20), datx, setx, out=0)$TSB
                 if(set$refMethod == "mean"){
                     tmp[i] <- mean(tail(tmp0,nyrefmsy))
@@ -231,7 +275,7 @@ estRefStoch <- function(dat, set=NULL,
     refs <- c(list(fmsys), brefs, list(b0s))
 
     ## remove runs where long-term SP is smaller or equal to 0
-    for(i in 1:ntv){
+    for(i in 1:alltv){
         ind <- which(brefs[[1]][,i] <= 0)
         if(length(ind) > 0){
             for(j in 1:6) refs[[j]][,i] <- refs[[j]][-ind,i]
@@ -241,14 +285,14 @@ estRefStoch <- function(dat, set=NULL,
     ## overall refs
     if(set$refMethod == "mean"){
         meds <- lapply(refs, function(x){
-            tmp <- rep(NA, ntv)
-            for(i in 1:ntv) tmp[i] <- mean(x[,i])
+            tmp <- rep(NA, alltv)
+            for(i in 1:alltv) tmp[i] <- mean(x[,i])
             return(tmp)
         })
     }else if(set$refMethod == "median"){
         meds <- lapply(refs, function(x){
-            tmp <- rep(NA, ntv)
-            for(i in 1:ntv) tmp[i] <- median(x[,i])
+            tmp <- rep(NA, alltv)
+            for(i in 1:alltv) tmp[i] <- median(x[,i])
             return(tmp)
         })
     }
@@ -266,7 +310,7 @@ estRefStoch <- function(dat, set=NULL,
     dat$ref <- refmed
 
     if(plot){
-        if(ntv < 4){
+        if(alltv < 4){
             cols <- c("dodgerblue2","darkorange","darkgreen","purple")
             nr <- floor(length(refdist)/2)
             par(mfrow=c(nr,2))
@@ -274,8 +318,8 @@ estRefStoch <- function(dat, set=NULL,
                 hist(refdist[[i]][,1], main = names(refdist)[i],
                      breaks=20, freq = TRUE, xlim = range(refdist[[i]]),
                      xlab = "", col = rgb(t(col2rgb(cols[1]))/255,alpha=0.4))
-                if(ntv > 1){
-                    for(j in 2:ntv) hist(refdist[[i]][,j],
+                if(alltv > 1){
+                    for(j in 2:alltv) hist(refdist[[i]][,j],
                                          breaks=20, freq = TRUE,
                                          add = TRUE, col = rgb(t(col2rgb(cols[j]))/255,alpha=0.4))
                 }

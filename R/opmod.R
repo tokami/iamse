@@ -73,6 +73,7 @@ initPop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){
         eH <- set$eH
         eR0 <- set$eR0
         eMat <- set$eMat
+        eSel <- set$eSel
         eW <- set$eW
         eImp <- set$eImp
         eC <- set$eC
@@ -85,6 +86,7 @@ initPop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){
         if(is.null(eH)) eH <- genNoise(ny, set$noiseH[1], set$noiseH[2], bias.cor = set$noiseH[3])
         if(is.null(eR0)) eR0 <- genNoise(ny, set$noiseR0[1], set$noiseR0[2], bias.cor = set$noiseR0[3])
         if(is.null(eMat)) eMat <- genNoise(ny, set$noiseMat[1], set$noiseMat[2], bias.cor = set$noiseMat[3])
+        if(is.null(eSel)) eSel <- genNoise(ny, set$noiseSel[1], set$noiseSel[2], bias.cor = set$noiseSel[3])
         if(is.null(eW)) eW <- genNoise(ny, set$noiseW[1], set$noiseW[2], bias.cor = set$noiseW[3])
         if(is.null(eImp)) eImp <- genNoise(ny, set$noiseImp[1], set$noiseImp[2], bias.cor = set$noiseImp[3])
         if(is.null(eC)) eC <- genNoise(ny, set$noiseC[1], set$noiseC[2], bias.cor = set$noiseC[3])
@@ -112,6 +114,7 @@ initPop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){
         eH <- rep(1, ny)
         eR0 <- rep(1, ny)
         eMat <- rep(1, ny)
+        eSel <- rep(1, ny)
         eW <- rep(1, ny)
         eImp <- rep(1, ny)
         eC <- rep(1, ny)
@@ -131,6 +134,7 @@ initPop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){
                  eH = eH,
                  eR0 = eR0,
                  eMat = eMat,
+                 eSel = eSel,
                  eW = eW,
                  eImp = eImp,
                  eC = eC,
@@ -140,6 +144,7 @@ initPop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){
 
     ## Flags
     mselFlag <- inherits(Msels, "list") && length(Msels) > 1
+    selFlag <- inherits(sels, "list") && length(sels) > 1
 
     ## containers
     TSB <- TSB1plus <- ESB <- SSB <- CW <- rec <- matrix(0, nrow=ny, ncol=ns)
@@ -158,7 +163,7 @@ initPop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){
     R0y <- R0 * eR0[1]
     maty <- as.numeric(t(mats)) * eMat[1]
     weighty <- as.numeric(t(weights)) * eW[1]
-    sely <- as.numeric(t(sels))
+    sely <- as.numeric(t(sels[[1]])) * eSel[1]
     msely <- as.numeric(t(Msels[[1]]))
     NAAbi2 <- NAAbi <- matrix(0, asmax, ns)
     NAAbi[1,] <- R0y * spawning ## * exp(initN[1])
@@ -216,7 +221,7 @@ initPop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){
                 }
                 CWbi <- sum(baranov(Fbi, Mbi, NAASbi) * as.numeric(t(weightFs)))
                 ## can't take more than what's there
-                Btmp <- sum(NAASbi * as.numeric(t(weights)) * as.numeric(t(sels)) * exp(-Mbi/2))
+                Btmp <- sum(NAASbi * weighty * sely * exp(-Mbi/2))
                 if(is.na(CWbi) || is.na(Btmp)){
                     stop("Something went wrong in the burnin period. Catch or biomass is NA.")
                 }
@@ -250,7 +255,8 @@ initPop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){
     for(y in 1:ny){
 
         ## Adding noise
-        sely <- as.numeric(t(sels))
+        selsInd <- ifelse(selFlag, y, 1)
+        sely <- as.numeric(t(sels[[selsInd]])) * eSel[y]
         FAA <- Fs[y,] * eF[y] * sely
         mselsInd <- ifelse(mselFlag, y, 1)
         MAA <- Ms[yvec==y] * as.numeric(t(Msels[[mselsInd]])) * eM[y]
@@ -531,6 +537,7 @@ advancePop <- function(dat, hist, set, hcr, year){
     eH <- set$eH[ysim]
     eR0 <- set$eR0[ysim]
     eMat <- set$eMat[ysim]
+    eSel <- set$eSel[ysim]
     eW <- set$eW[ysim]
     eImp <- set$eImp[ysim]
     eC <- set$eC[ysim]
@@ -546,6 +553,7 @@ advancePop <- function(dat, hist, set, hcr, year){
     if(is.null(eH)) eH <- genNoise(1, set$noiseH[1], set$noiseH[2], bias.cor = set$noiseH[3])
     if(is.null(eR0)) eR0 <- genNoise(1, set$noiseR0[1], set$noiseR0[2], bias.cor = set$noiseR0[3])
     if(is.null(eMat)) eMat <- genNoise(1, set$noiseMat[1], set$noiseMat[2], bias.cor = set$noiseMat[3])
+    if(is.null(eSel)) eSel <- genNoise(1, set$noiseSel[1], set$noiseSel[2], bias.cor = set$noiseSel[3])
     if(is.null(eW)) eW <- genNoise(1, set$noiseW[1], set$noiseW[2], bias.cor = set$noiseW[3])
     if(is.null(eImp)) eImp <- genNoise(1, set$noiseImp[1], set$noiseImp[2], bias.cor = set$noiseImp[3])
     if(is.null(eC)) eC <- genNoise(1, set$noiseC[1], set$noiseC[2], bias.cor = set$noiseC[3])
@@ -573,6 +581,7 @@ advancePop <- function(dat, hist, set, hcr, year){
                      eH = c(hist$errs$eH, eH),
                      eR0 = c(hist$errs$eR0,eR0),
                      eMat = c(hist$errs$eMat, eMat),
+                     eSel = c(hist$errs$eSel, eSel),
                      eW = c(hist$errs$eW, eW),
                      eImp = c(hist$errs$eImp, eImp),
                      eC = c(hist$errs$eC, eC))
@@ -592,6 +601,7 @@ advancePop <- function(dat, hist, set, hcr, year){
                      eH = eH,
                      eR0 = eR0,
                      eMat = eMat,
+                     eSel = eSel,
                      eW = eW,
                      eImp = eImp,
                      eC = eC,
@@ -602,6 +612,7 @@ advancePop <- function(dat, hist, set, hcr, year){
 
     ## Flags
     mselFlag <- inherits(Msels, "list") && length(Msels) > 1
+    selFlag <- inherits(sels, "list") && length(sels) > 1
 
     ## Containers
     tmp <- matrix(0, 1, ns)
@@ -624,7 +635,8 @@ advancePop <- function(dat, hist, set, hcr, year){
     MAA <- Ms[s1vec[y]:(s1vec[y]+ns-1)] * as.numeric(t(Msels[[mselsInd]])) * eM
     hy <- dat$h * eH
     maty <- as.numeric(t(mats)) * eMat
-    sely <- as.numeric(t(sels))
+    selsInd <- ifelse(selFlag, y, 1)
+    sely <- as.numeric(t(sels[[selsInd]])) * eSel
     weighty <- as.numeric(t(weights)) * eW
     weightFy <- as.numeric(t(weightFs)) * eW
 
@@ -779,7 +791,7 @@ advancePop <- function(dat, hist, set, hcr, year){
                 ## survey observation: total catch in weight (spict)
                 surveyTime <- set$surveyTimes[idxi[i]] - seasonStart[idxS[idxi[i]]]
                 NAAsurv <- exp(log(NAAS) - ZAA * surveyTime)
-                ESBsurv <- NAAsurv * dat$weightFs[,s] * dat$sels[,s]
+                ESBsurv <- NAAsurv * weightFy[,s] * sely[,s]
                 obs$obsI[[idxi[i]]] <-
                     c(obs$obsI[[idxi[i]]], q[idxi[i]] * sum(ESBsurv) * eI[[idxi[i]]])
                 if(is.null(obs$timeI[[idxi[i]]])){
