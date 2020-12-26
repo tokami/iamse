@@ -56,7 +56,7 @@ NumericVector initdist(NumericVector MAA, NumericVector FAA, double R0, NumericV
 //' @param logF fishing mortality
 //' @param dat List with species data
 //' @param set List with MSE settings
-//' @param tvy year index for all time-variant (tv) processes (so far: Msels, Ms, sels)
+//' @param tvy year index for all time-variant (tv) processes (so far: Msel, Ms, sel)
 //' @param opt If 1 the function returns the yield in the last year,
 //' if 2 the function returns a list with yield, TSB, SSB, and ESB over
 //' the whole simulation period.
@@ -85,13 +85,13 @@ List simpop(double logFM, List dat, List set, int out) {
   double maxF = as<double>(set["maxF"]);
   std::string refmethod = as<std::string>(set["refMethod"]);
   int nyrefmsy = as<int>(set["refYearsMSY"]);
-  NumericMatrix weights = as<NumericMatrix>(dat["weights"]);
-  NumericMatrix weightFs = as<NumericMatrix>(dat["weightFs"]);
-  NumericVector Ms = as<NumericVector>(dat["Ms"]);
-  List MselsList = as<List>(dat["Msels"]);
-  List selsList = as<List>(dat["sels"]);
+  NumericMatrix weight = as<NumericMatrix>(dat["weight"]);
+  NumericMatrix weightF = as<NumericMatrix>(dat["weightF"]);
+  NumericVector M = as<NumericVector>(dat["M"]);
+  List MselList = as<List>(dat["Msel"]);
+  List selList = as<List>(dat["sel"]);
   IntegerVector s1vec = as<IntegerVector>(dat["s1vec"]);
-  NumericMatrix mats = as<NumericMatrix>(dat["mats"]);
+  NumericMatrix mat = as<NumericMatrix>(dat["mat"]);
   NumericVector initN = as<NumericVector>(dat["initN"]);
   int sptype = as<int>(set["spType"]);
   NumericVector spawning = as<NumericVector>(dat["spawning"]);
@@ -151,13 +151,13 @@ List simpop(double logFM, List dat, List set, int out) {
   std::fill( SSB2.begin(), SSB2.end(), 0);
   std::fill( TSB.begin(), TSB.end(), 0);
   std::fill( ESB.begin(), ESB.end(), 0);
-  NumericMatrix Msels = as<NumericMatrix>(MselsList[tvmsel-1]);
-  NumericMatrix sels = as<NumericMatrix>(selsList[tvsel-1]);
+  NumericMatrix Msel = as<NumericMatrix>(MselList[tvmsel-1]);
+  NumericMatrix sel = as<NumericMatrix>(selList[tvsel-1]);
 
   for(int a=0; a<asmax; a++){
-    MAA0(a) = Ms(as2s(a) + tvm-1) * Msels(as2a(a),as2s(a));
-    //     for(int a=0; a<asmax; a++) MAA(a,_) = Mtmp(a,_) * Ms[Rcpp::Range(s1vec(y), s1vec(y)+ns-1)];
-    FAA(a) = fs * sels(as2a(a),as2s(a));
+    MAA0(a) = M(as2s(a) + tvm-1) * Msel(as2a(a),as2s(a));
+    //     for(int a=0; a<asmax; a++) MAA(a,_) = Mtmp(a,_) * M[Rcpp::Range(s1vec(y), s1vec(y)+ns-1)];
+    FAA(a) = fs * sel(as2a(a),as2s(a));
   }
 
   NumericVector NAAS = initdist(MAA0 * eM(1), FAA, R0 * eR0(1), spawning, inds);
@@ -168,10 +168,10 @@ List simpop(double logFM, List dat, List set, int out) {
     hy = h * eH(y);
     R0y = R0 * eR0(y);
     for(int a=0; a<asmax; a++){
-      maty(a) = mats(as2a(a),as2s(a)) * eMat(y);
-      sely(a) = sels(as2a(a),as2s(a)) * eSel(y);
-      weighty(a) = weights(as2a(a),as2s(a)) * eW(y);
-      weightFy(a) = weightFs(as2a(a),as2s(a)) * eW(y);
+      maty(a) = mat(as2a(a),as2s(a)) * eMat(y);
+      sely(a) = sel(as2a(a),as2s(a)) * eSel(y);
+      weighty(a) = weight(as2a(a),as2s(a)) * eW(y);
+      weightFy(a) = weightF(as2a(a),as2s(a)) * eW(y);
     }
     MAA = MAA0 * eM(y);
     ZAA = MAA + FAA;
@@ -190,7 +190,7 @@ List simpop(double logFM, List dat, List set, int out) {
         NAAStmp = initdist(MAA, FAA, 1, spawning, inds);
         SPR = 0.0;
         for(int a=0; a<asmax; a++){
-          SPR += NAAStmp(a) * maty(a) * weighty(a) * fecun; // SPR(s) += NnatM(a,s) * maty(a,s) * weights(a,s) * fecun;
+          SPR += NAAStmp(a) * maty(a) * weighty(a) * fecun; // SPR(s) += NnatM(a,s) * maty(a,s) * weighty(a,s) * fecun;
         }
         rec = 4 * hy * R0y * SSB / (SPR * R0y * (1-hy) + SSB * (5*hy-1));
       }else if(SR == "ricker"){

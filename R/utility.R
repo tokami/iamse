@@ -171,7 +171,6 @@ estDepl <- function(dat, set=NULL, fmax = 10, nrep = 100, verbose = TRUE, method
         datx <- dat
         fpat <- frel * exp(logfabs)
         datx$FM <- fpat
-        datx$Fs <- fpat / datx$ns
         dreal <- sapply(1:nrep, function(x) initPop(datx, set, out.opt = outopt))
         if(method == "mean"){
             drealQ <- mean(dreal)
@@ -197,7 +196,6 @@ estDepl <- function(dat, set=NULL, fmax = 10, nrep = 100, verbose = TRUE, method
     }
 
     dat$FM <- fvals
-    dat$Fs <- fvals / dat$ns
 
     return(dat)
 }
@@ -236,11 +234,9 @@ estProd <- function(dat, set= NULL,
     ## increasing effort
     dat$FM <- c(rep(0,len1),
                    seq(0, fmax, length.out = len2),
-                rep(fmax,len3))
-    dat$Fs <- dat$FM / ns
+                rep(fmax,len3)) / ns
     ## CHECK: how to estimate productivity with time variant M?
     dat$M <- mean(dat$M)
-    dat$Ms <- mean(dat$Ms)
     dat <- checkDat(dat)
     pop1 <- initPop(dat, set)
     tsb1 <- pop1$TSBfinal
@@ -264,13 +260,10 @@ estProd <- function(dat, set= NULL,
     ## decreasing effort
     dat$FM <- c(rep(fmax, len1),
                    seq(fmax, 0, length.out = len2),
-                rep(0, len3))
-    dat$Fs <- dat$FM / ns
+                rep(0, len3)) / ns
     dat$M <- mean(dat$M)
-    dat$Ms <- mean(dat$Ms)
     dat <- checkDat(dat)
     pop2 <- initPop(dat, set)
-    dat$Fs <- dat$FM / ns
     tsb2 <- pop2$TSBfinal
     esb2 <- pop2$ESBfinal
     cw2 <- apply(pop2$CW,1,sum)
@@ -473,8 +466,8 @@ baranov <- function(F, M, N){
 #'     and predicted catch
 predCatch <- function(logFM,
                       NAA, MAA,
-                      sels, weights,
-                      seasons, ns, y, h2, asmax, mats, pzbm, spawning,
+                      sel, weight,
+                      seasons, ns, y, h2, asmax, mat, pzbm, spawning,
                       R0, SR, bp, recBeta, recGamma, eR,
                       TAC = NULL,
                       out = 0){
@@ -482,21 +475,21 @@ predCatch <- function(logFM,
     NAAtmp <- NAA
 
     for(s in seasons){
-        FAA <- exp(logFM) * sels
+        FAA <- exp(logFM) * sel
         Ztmp <- FAA + MAA
         ## recruitment
         if(spawning[s] > 0 && s > 1){
             ## Survivors from previous season/year
-            SSBPR0 <- getSSBPR(Ztmp, mats, weights,
+            SSBPR0 <- getSSBPR(Ztmp, mat , weight ,
                                 fecun=1, asmax, ns, spawning)
-            SSBtmp <- sum(NAA * weights * mats * exp(-pzbm * Ztmp))
+            SSBtmp <- sum(NAA * weight  * mat  * exp(-pzbm * Ztmp))
             rec <- recfunc(h = h2, SSBPR0 = SSBPR0, SSB = SSBtmp,
                              R0 = R0, method = SR, bp = bp,
                              beta = recBeta, gamma = recGamma)
             rec[rec<0] <- 1e-10
             NAAtmp[1] <- rec * spawning[s] * eR
         }
-        Ctmp <- Ctmp + sum(baranov(FAA, MAA, NAAtmp) * weights)
+        Ctmp <- Ctmp + sum(baranov(FAA, MAA, NAAtmp) * weight )
         ## Aging
         NAAtmp <- NAAtmp * exp(-Ztmp)
         NAAtmp[asmax] <- NAAtmp[asmax] + NAAtmp[asmax-1]
@@ -516,8 +509,8 @@ predCatch <- function(logFM,
 #' @export
 getFM <- function(TAC,
                    NAA, MAA,
-                   sels, weights,
-                   seasons, ns, y, h, asmax, mats,
+                   sel, weight,
+                   seasons, ns, y, h, asmax, mat,
                    pzbm, spawning,
                    R0, SR, bp, recBeta = recBeta,
                    recGamma = recGamma, eR = eR,
@@ -525,9 +518,9 @@ getFM <- function(TAC,
 
     opt <- nlminb(start = log(lastFM), objective = predCatch,
                   NAA = NAA, MAA = MAA,
-                  sels = sels, weights = weights,
+                  sel = sel, weight = weight,
                   seasons = seasons, ns = ns, y = y,
-                  h2 = h, asmax = asmax, mats = mats,
+                  h2 = h, asmax = asmax, mat = mat,
                   pzbm = pzbm, spawning = spawning,
                   R0 = R0, SR = SR, bp = bp, recBeta = recBeta,
                   recGamma = recGamma, eR = eR,
@@ -547,7 +540,7 @@ getFM <- function(TAC,
 #' @param plba - probability of being in mids given age
 getSel <- function(L50, L95, mids, plba){
     n <- max(c(length(L50),length(L95)))
-    sels <- vector("list", n)
+    sel <- vector("list", n)
     for(i in 1:n){
         selL <- (1 /(1 + exp(-log(19)*(mids - L50[i])/(L95[i] - L50[i]))))
         dims <- dim(plba)
@@ -557,9 +550,9 @@ getSel <- function(L50, L95, mids, plba){
         }
         ##    selA <- apply(t(plba) * selL, 2, sum)
         ##    selA[1] <- 1e-9 # it should be zero for age 0
-        sels[[i]] <- selA
+        sel[[i]] <- selA
     }
-    return(sels)
+    return(sel)
 }
 
 
@@ -610,7 +603,7 @@ getM <- function(Linf, K, mids, a = 0.55, b = 1.61, c = 1.44){
 #' @param plba - probability of being in mids given age
 getMsel <- function(Linf, K, mids, plba, a = 0.55, b = 1.61, c = 1.44){
     n <- max(c(length(a),length(b),length(c)))
-    sels <- vector("list", n)
+    sel <- vector("list", n)
     for(i in 1:n){
         selL <- exp(a[i] - b[i] * log(mids) + c[i] * log(Linf) + log(K))
         selL[mids < 10] <- exp(a[i] - b[i] * log(10) + c[i] * log(Linf) + log(K))
@@ -620,9 +613,9 @@ getMsel <- function(Linf, K, mids, plba, a = 0.55, b = 1.61, c = 1.44){
             selA[,j] <- apply(t(plba[,,j]) * selL, 2, sum)
         }
         maxM <- max(selA)
-        sels[[i]] <- selA/maxM
+        sel[[i]] <- selA/maxM
     }
-    return(sels)
+    return(sel)
 }
 
 
@@ -636,31 +629,20 @@ getMsel <- function(Linf, K, mids, plba, a = 0.55, b = 1.61, c = 1.44){
 #' @param amax - number of age classes
 #' @return spawning biomass per recruit
 #' @export
-getSSBPR <- function (Ms, mats, weights, fecun = 1,
+getSSBPR <- function (M, mat, weight, fecun = 1,
                        asmax, ns, spawning,
-                       R0 = 1, FMs = NULL){
+                       R0 = 1, FM = NULL){
 
-    if(is.null(FMs)){
-        FMs <- 0
+    if(is.null(FM)){
+        FM <- 0
     }
 
     NAAS <- NAA <- matrix(0, asmax, ns)
     NAA[1,] <- spawning
-    ZAA <-  Ms + FMs
+    ZAA <-  M + FM
     ## each season
     for(as in 2:asmax)
         NAA[as,] <- NAA[as-1,] * exp(-ZAA[as-1])
-    ## annual total mortality for plus group
-    ## if(ns > 1){
-    ##     for(s in 1:ns){
-    ##         s2 <- s
-    ##         while(s2 < ns){
-    ##             NAA[asmax,s] <- NAA[asmax,s] * exp(-ZAA[asmax])
-    ##             s2 <- s2 + 1
-    ##         }
-    ##     }
-    ## }
-    ## plusgroup <- NAA[asmax,] / (1 - exp(-sum(ZAA[(asmax-ns+1):asmax])))
     ## all seasons combined
     for(s in 1:ns){
         NAAS[seq(s,asmax,ns),s] <- NAA[seq(s,asmax,ns),s]
@@ -675,8 +657,7 @@ getSSBPR <- function (Ms, mats, weights, fecun = 1,
     }
 ##    NAAS[asmax] <- sum(plusgroup)
 
-
-    SBPR <- sum(NAAS * mats * weights * fecun)
+    SBPR <- sum(NAAS * mat * weight * fecun)
 
     return(SBPR)
 }

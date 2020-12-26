@@ -10,7 +10,7 @@
 #' @param logF fishing mortality
 #' @param dat List with species data
 #' @param set List with MSE settings
-#' @param tvy year index for all time-variant (tv) processes (so far: Msels, Ms, sels)
+#' @param tvy year index for all time-variant (tv) processes (so far: Msel, Ms, sel)
 #' @param opt If 1 the function returns the yield in the last year,
 #' if 2 the function returns a list with yield, TSB, SSB, and ESB over
 #' the whole simulation period.

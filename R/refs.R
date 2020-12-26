@@ -125,25 +125,26 @@ estRefStoch <- function(dat, set=NULL,
     mtv <- length(unique(dat$M))
     ms <- unique(dat$M)
     mind <- match(dat$M, ms)
-    if(length(dat$Msels) > 1){
-        msels <- dat$Msels[!duplicated(dat$Msels)]
-        mseltv <- length(msels)
+    if(length(dat$Msel) > 1){
+        msel <- dat$Msel[!duplicated(dat$Msel)]
+        mseltv <- length(msel)
     }else{
-        msels <- dat$Msels[1]
+        msel <- dat$Msel[1]
         mseltv <- 1
     }
-    if(mseltv > 1 && mseltv != mtv) stop("Both natural mortality over time (dat$Ms) and over age (dat$Msels) are time-variant, but do not have the same dimensions. This is not yet implemented, please let both vary equally or keep one of them constant.")
+    if(mseltv > 1 && mseltv != mtv) stop("Both natural mortality over time (dat$M) and over age (dat$Msel) are time-variant, but do not have the same dimensions. This is not yet implemented, please let both vary equally or keep one of them constant.")
     alltv <- max(c(mtv, mseltv))
     ## selectivity
-    if(length(dat$sels) > 1){
-        sels <- dat$sels[!duplicated(dat$sels)]
-        seltv <- length(sels)
+    if(length(dat$sel) > 1){
+        sel <- dat$sel[!duplicated(dat$sel)]
+        seltv <- length(sel)
     }else{
-        sels <- dat$sels[1]
+        sel <- dat$sel[1]
         seltv <- 1
     }
-    if(seltv > 1 && alltv > 1 && seltv != alltv) stop("Both gear selectivity (dat$sels) and natural mortality (dat$Ms or dat$Msels) are time-variant, but do not have the same dimensions. This is not yet implemented, please let both vary equally or keep one of them constant.")
+    if(seltv > 1 && alltv > 1 && seltv != alltv) stop("Both gear selectivity (dat$sel) and natural mortality (dat$M or dat$Msel) are time-variant, but do not have the same dimensions. This is not yet implemented, please let both vary equally or keep one of them constant.")
     alltv <- max(c(alltv,seltv))
+
     ##
     refall <- c("Fmsy","MSY","Bmsy","ESBmsy","SSBmsy","B0")
     ##
@@ -172,29 +173,24 @@ estRefStoch <- function(dat, set=NULL,
     datx$as2s <- rep(1:ns, each = amax)
     datx$inds <- seq(1,asmax,ns)
 
+
     if(any(ref %in% c("Fmsy","Bmsy","MSY","ESBmsy","SSBmsy"))){
         ## Fmsy
         res <- parallel::mclapply(as.list(1:nrep), function(x){
             setx <- c(set, errs[[x]])
             tmp <- rep(NA, alltv)
             for(i in 1:alltv){
-
                 setx$tvm <- 1
                 setx$tvmsel <- 1
                 setx$tvsel <- 1
-
                 ## datx$M <- rep(dat$M[i], nyref)
                 ## ind <- (i-1)*ns+1
                 ## datx$Ms <- rep(dat$Ms[ind:(ind+ns)], nyref)
                 ## ind2 <- ifelse(ntv2 > 1, i, 1)
                 ## datx$Msels <- msels[ind2]
                 ## datx$Msel <- lapply(datx$Msels, rowMeans)
-
                 opt <- optimise(function(x) unlist(simpop(x, datx, setx, out=1)),
                                 log(c(0.001,10)), maximum = TRUE)
-
-
-
                 tmp[i] <- exp(opt$maximum)
             }
             return(tmp)
@@ -212,11 +208,9 @@ estRefStoch <- function(dat, set=NULL,
                 ## ind2 <- ifelse(ntv2 > 1, i, 1)
                 ## datx$Msels <- msels[ind2]
                 ## datx$Msel <- lapply(datx$Msels, rowMeans)
-
                 setx$tvm <- 1
                 setx$tvmsel <- 1
                 setx$tvsel <- 1
-
                 tmp0 <- simpop(log(fmsys[x,i]), datx, setx, out=0)
                 if(set$refMethod == "mean"){
                     tmp[[i]] <- c(mean(tail(tmp0$CW,nyrefmsy)), mean(tail(tmp0$TSB,nyrefmsy)),
@@ -236,7 +230,6 @@ estRefStoch <- function(dat, set=NULL,
                                   lapply(as.list(1:nrep),
                                          function(x) sapply(1:alltv, function(j) res[[x]][[j]][[i]])))
         }
-
     }
 
     ## B0
@@ -252,11 +245,9 @@ estRefStoch <- function(dat, set=NULL,
                 ## ind2 <- ifelse(ntv2 > 1, i, 1)
                 ## datx$Msels <- msels[ind2]
                 ## datx$Msel <- lapply(datx$Msels, rowMeans)
-
                 setx$tvm <- 1
                 setx$tvmsel <- 1
                 setx$tvsel <- 1
-
                 tmp0 <- simpop(log(1e-20), datx, setx, out=0)$TSB
                 if(set$refMethod == "mean"){
                     tmp[i] <- mean(tail(tmp0,nyrefmsy))
@@ -302,12 +293,12 @@ estRefStoch <- function(dat, set=NULL,
     names(refdist) <- refall[ind]
     dat$refdist <- refdist
 
-    refmed <- matrix(NA, ncol=length(ref), nrow=ny)
+    refmed <- matrix(NA, ncol=length(ref), nrow=nt)
     for(i in 1:length(ind)){
         refmed[,i] <- meds[[ind[[i]]]][mind]
     }
     colnames(refmed) <- refall[ind]
-    dat$ref <- refmed
+    dat$ref <- as.data.frame(refmed)
 
     if(plot){
         if(alltv < 4){

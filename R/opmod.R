@@ -42,19 +42,12 @@ initPop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){
     ## species data
     amax <- dat$amax + 1  ## age 0
     asmax <- amax * ns ## continuous max age
-    Ms <- dat$Ms
     M <- dat$M
-    Fs <- dat$Fs
-    Fy <- dat$FM
-    weights <- dat$weights
+    FM <- dat$FM
     weight <- dat$weight
-    weightFs <- dat$weightFs
     weightF <- dat$weightF
-    mats <- dat$mats
     mat <- dat$mat
-    sels <- dat$sels
     sel <- dat$sel
-    Msels <- dat$Msels
     Msel <- dat$Msel
     pzbm <- dat$pzbm
     R0 <- dat$R0
@@ -143,8 +136,8 @@ initPop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){
                  eImv = eImv)
 
     ## Flags
-    mselFlag <- inherits(Msels, "list") && length(Msels) > 1
-    selFlag <- inherits(sels, "list") && length(sels) > 1
+    mselFlag <- inherits(Msel, "list") && length(Msel) > 1
+    selFlag <- inherits(sel, "list") && length(sel) > 1
 
     ## containers
     TSB <- TSB1plus <- ESB <- SSB <- CW <- rec <- matrix(0, nrow=ny, ncol=ns)
@@ -154,36 +147,25 @@ initPop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){
     ## observations
     obsI <- timeI <- vector("list", nsurv)
     ## observations at age
-    obsCA <- matrix(NA, nrow = length(idx), ncol = amax)
+    obsMAA <- obsCA <- matrix(0, nrow = ny, ncol = amax)
+    obsCA <- matrix(0, nrow = length(idx), ncol = amax)
     obsIA <- vector("list", nsurv)
-    for(i in 1:nsurv) obsIA[[i]] <- matrix(NA, nrow = ny, ncol = amax)
+    for(i in 1:nsurv) obsIA[[i]] <- matrix(0, nrow = ny, ncol = amax)
 
     ## Initialise NAA
     hy <- h * eH[1]
     R0y <- R0 * eR0[1]
-    maty <- as.numeric(t(mats)) * eMat[1]
-    weighty <- as.numeric(t(weights)) * eW[1]
-    sely <- as.numeric(t(sels[[1]])) * eSel[1]
-    msely <- as.numeric(t(Msels[[1]]))
+    maty <- as.numeric(t(mat)) * eMat[1]
+    weighty <- as.numeric(t(weight)) * eW[1]
+    weightFy <- as.numeric(t(weightF)) * eW[1]
+    sely <- as.numeric(t(sel[[1]])) * eSel[1]
+    msely <- as.numeric(t(Msel[[1]]))
     NAAbi2 <- NAAbi <- matrix(0, asmax, ns)
     NAAbi[1,] <- R0y * spawning ## * exp(initN[1])
-    ZAA <-  Ms[1:ns] * msely + Fs[1,] * sely
+    ZAA <-  M[1:ns] * msely + FM[1,] * sely
     ## each season
     for(as in 2:asmax)
         NAAbi[as,] <- NAAbi[as-1,] * exp(-ZAA[as-1])
-    ## annual total mortality for plus group
-    ## if(ns > 1){
-    ##     for(s in 1:ns){
-    ##         NAAtmp <- NAAbi[asmax,s]
-    ##         s2 <- s
-    ##         while(s2 < ns){
-    ##             NAAtmp <- NAAtmp * exp(-ZAA[asmax-ns+s2])
-    ##             s2 <- s2 + 1
-    ##         }
-    ##         NAAbi[asmax,s] <- NAAtmp
-    ##     }
-    ## }
-    ## plusgroup <- NAAbi[asmax,] / (1 - exp(-sum(ZAA[(asmax-ns+1):asmax])))
     ## all seasons combined
     for(s in 1:ns){
         NAAbi2[seq(s,asmax,ns),s] <- NAAbi[seq(s,asmax,ns),s]
@@ -191,21 +173,19 @@ initPop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){
     NAASbi <- rowSums(NAAbi2)
     NAASbi[1] <- 0
     ## plusgroup
-## OLD:    NAASbi[asmax] <- sum(plusgroup)  ## REMOVE:
     plusgroup <- NAASbi[(asmax-ns+1):asmax] / (1 - exp(-sum(ZAA[(asmax-ns+1):asmax])))
     if(ns == 1){
         NAASbi[asmax] <- sum(plusgroup)
     }else{
         NAASbi[asmax] <- sum(plusgroup) - sum(NAASbi[(asmax-ns+1):asmax])
     }
-    NAASbi2 <- NAASbi ## REMOVE:
 
     ## Burn-in period
     if(is.null(set)) burnin <- 5e2 else burnin <- set$burnin
     if(is.numeric(burnin) && burnin > 0){
         for(y in 1:burnin){
-            Fbi <- Fs[1,] * sely
-            Mbi <- Ms[1:ns] * msely
+            Fbi <- FM[1,] * sely
+            Mbi <- M[1:ns] * msely
             Zbi <- Mbi + Fbi
             for(s in 1:ns){
                 ## recruitment
@@ -219,7 +199,7 @@ initPop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){
                     recbi[recbi<0] <- 1e-10
                     NAASbi[1] <- recbi
                 }
-                CWbi <- sum(baranov(Fbi, Mbi, NAASbi) * as.numeric(t(weightFs)))
+                CWbi <- sum(baranov(Fbi, Mbi, NAASbi) * as.numeric(t(weightFy)))
                 ## can't take more than what's there
                 Btmp <- sum(NAASbi * weighty * sely * exp(-Mbi/2))
                 if(is.na(CWbi) || is.na(Btmp)){
@@ -228,10 +208,10 @@ initPop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){
                 if(CWbi > 0.99 * Btmp){
                     Fbi <- sely * min(getFM(0.75 * Btmp,
                                              NAA = NAASbi, MAA = Mbi,
-                                             sels = sely,
-                                             weights = weighty,
+                                             sel = sely,
+                                             weight = weighty,
                                              seasons = s, ns = ns, y = y,
-                                             h = hy, asmax = asmax, mats = maty,
+                                             h = hy, asmax = asmax, mat = maty,
                                              pzbm = pzbm, spawning = spawning,
                                              R0 = R0y, SR = dat$SR, bp = dat$pb, recBeta = dat$recBeta,
                                              recGamma = dat$recGamma, eR = eR,
@@ -249,21 +229,19 @@ initPop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){
     }
     NAAS <- NAASbi
 
-##    print(cbind(NAAbi,NAASbi2,NAASbi))
-
     ## main loop
     for(y in 1:ny){
 
         ## Adding noise
-        selsInd <- ifelse(selFlag, y, 1)
-        sely <- as.numeric(t(sels[[selsInd]])) * eSel[y]
-        FAA <- Fs[y,] * eF[y] * sely
-        mselsInd <- ifelse(mselFlag, y, 1)
-        MAA <- Ms[yvec==y] * as.numeric(t(Msels[[mselsInd]])) * eM[y]
+        selInd <- ifelse(selFlag, y, 1)
+        sely <- as.numeric(t(sel[[selInd]])) * eSel[y]
+        FAA <- FM[y,] * eF[y] * sely
+        mselInd <- ifelse(mselFlag, y, 1)
+        MAA <- M[yvec==y] * as.numeric(t(Msel[[mselInd]])) * eM[y]
         ZAA <- MAA + FAA
-        maty <- as.numeric(t(mats)) * eMat[y]
-        weighty <- as.numeric(t(weights)) * eW[y]
-        weightFy <- as.numeric(t(weightFs)) * eW[y]
+        maty <- as.numeric(t(mat)) * eMat[y]
+        weighty <- as.numeric(t(weight)) * eW[y]
+        weightFy <- as.numeric(t(weightF)) * eW[y]
         hy <- h * eH[y]
         R0y <- R0 * eR0[y]
 
@@ -289,18 +267,18 @@ initPop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){
             ## can't take more than what's there
             Btmp <- sum(NAAS * weighty * sely * exp(-MAA/2))
             if(CW[y,s] > 0.99 * Btmp){
-                Fs[y,s] <- min(getFM(0.75 * Btmp,
+                FM[y,s] <- min(getFM(0.75 * Btmp,
                                              NAA = NAAS, MAA = MAA,
-                                             sels = sely,
-                                             weights = weighty,
+                                             sel = sely,
+                                             weight = weighty,
                                              seasons = s, ns = ns, y = y,
-                                             h = hy, asmax = asmax, mats = maty,
+                                             h = hy, asmax = asmax, mat = maty,
                                              pzbm = pzbm, spawning = spawning,
                                              R0 = R0y, SR = dat$SR, bp = dat$pb, recBeta = dat$recBeta,
                                              recGamma = dat$recGamma, eR = eR,
                                              lastFM = FM[y,s]),
                                       set$maxF/ns)
-                FAA <- Fs[y,] * sely
+                FAA <- FM[y,] * sely
                 ZAA <- MAA + FAA
                 CAA[[y]][,s] <- baranov(FAA, MAA, NAAS)
                 CW[y,s] <- sum(weightFy * CAA[[y]][,s])
@@ -330,6 +308,8 @@ initPop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){
                         eImv[[idxi[[i]]]][y,]
                 }
             }
+            ## observing annual M
+            obsMAA[y,] <- obsMAA[y,] + MAA[seq(s,asmax,ns)]
 
             ## Exponential decay
             NAAS <- NAAS * exp(-ZAA)
@@ -355,6 +335,9 @@ initPop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){
         colnames(obsIA[[i]]) <- as.character(0:dat$amax)
         attributes(obsIA[[i]]) <- c(attributes(obsIA[[i]]), list(time = set$surveyTimes))
     }
+    obsMAA <- obsMAA[(ny-nyhist+1):ny,]
+    rownames(obsMAA) <- as.character((ny-nyhist+1):ny)
+    colnames(obsMAA) <- as.character(0:dat$amax)
 
     ## catch observations
     ## ----------------
@@ -393,24 +376,23 @@ initPop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){
 
     ## other observations (required by SAM)
     ## ----------------
-
     ## natural mortality
-    obsMAA <- as.matrix(dat$M[idx]) %*% t(as.matrix(dat$Msel[[1]]))
-    rownames(obsMAA) = as.character((ny-nyhist+1):ny)
-    colnames(obsMAA) = as.character(0:dat$amax)
+    ## obsMAA <- as.matrix(dat$M[idx]) %*% t(dat$Msel[[1]])
+    ## rownames(obsMAA) = as.character((ny-nyhist+1):ny)
+    ## colnames(obsMAA) = as.character(0:dat$amax)
 
     ## proportion mature
-    propMature <- matrix(dat$mat, length(idx), amax, byrow = TRUE)
+    propMature <- matrix(rowSums(dat$mat), length(idx), amax, byrow = TRUE)
     rownames(propMature) = as.character((ny-nyhist+1):ny)
     colnames(propMature) = as.character(0:dat$amax)
 
     ## mean stock weight
-    WAAs <- matrix(dat$weight, length(idx), amax, byrow = TRUE)
+    WAAs <- matrix(rowSums(dat$weight), length(idx), amax, byrow = TRUE)
     rownames(WAAs) = as.character((ny-nyhist+1):ny)
     colnames(WAAs) = as.character(0:dat$amax)
 
     ## mean catch weight
-    WAAc <- matrix(dat$weight, length(idx), amax, byrow = TRUE)
+    WAAc <- matrix(rowSums(dat$weightF), length(idx), amax, byrow = TRUE)
     rownames(WAAc) = as.character((ny-nyhist+1):ny)
     colnames(WAAc) = as.character(0:dat$amax)
 
@@ -451,7 +433,7 @@ initPop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){
         out$TSB1plus <- TSB1plus
         out$ESB <- ESB
         out$SSB <- SSB
-        out$Fs <- Fs
+        out$FM <- FM
         out$CW <- CW
         out$TACs <- TACs
         out$errs <- errs
@@ -475,7 +457,6 @@ initPop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){
 #' @name advancePop
 #' @export
 advancePop <- function(dat, hist, set, hcr, year){
-
     ## indices
     ny <- nrow(hist$TSB)
     y <- ny + 1
@@ -508,7 +489,7 @@ advancePop <- function(dat, hist, set, hcr, year){
     if(length(q) < nsurv) q <- rep(q, nsurv)
     tacID <- hcr
     tacID2 <- unlist(strsplit(as.character(tacID), "_"))[1]
-    Ms <- dat$Ms
+    M <- dat$M
     spawning <- dat$spawning
     assessmentTiming <- set$assessmentTiming
     if(ns == 1){
@@ -519,15 +500,10 @@ advancePop <- function(dat, hist, set, hcr, year){
 
     ## parameters per age
     weight <- dat$weight
-    weights <- dat$weights
     weightF <- dat$weightF
-    weightFs <- dat$weightFs
     mat <- dat$mat
-    mats <- dat$mats
     sel <- dat$sel
-    sels <- dat$sels
     Msel <- dat$Msel
-    Msels <- dat$Msels
 
     ## errors
     ## TODO: put this in external wrapper function
@@ -611,8 +587,8 @@ advancePop <- function(dat, hist, set, hcr, year){
     }
 
     ## Flags
-    mselFlag <- inherits(Msels, "list") && length(Msels) > 1
-    selFlag <- inherits(sels, "list") && length(sels) > 1
+    mselFlag <- inherits(Msel, "list") && length(Msel) > 1
+    selFlag <- inherits(sel, "list") && length(sel) > 1
 
     ## Containers
     tmp <- matrix(0, 1, ns)
@@ -620,8 +596,8 @@ advancePop <- function(dat, hist, set, hcr, year){
     SSB <- rbind(hist$SSB,tmp)
     ESB <- rbind(hist$ESB,tmp)
     CW  <- rbind(hist$CW,tmp)
-    Fs  <- rbind(hist$Fs,tmp)
-    NAA <- rep(0, amax)
+    FM  <- rbind(hist$FM,tmp)
+    NAA <- obsMAAtmp <- rep(0, amax)
     FAA <- ZAA <- MAA <- CAA <- matrix(NA, asmax, ns)
     TACs <- c(hist$TACs, NA)
     rec <- rbind(hist$rec, tmp)
@@ -631,14 +607,14 @@ advancePop <- function(dat, hist, set, hcr, year){
 
     ## project forward
     R0y <- dat$R0 * eR0
-    mselsInd <- ifelse(mselFlag, y, 1)
-    MAA <- Ms[s1vec[y]:(s1vec[y]+ns-1)] * as.numeric(t(Msels[[mselsInd]])) * eM
+    mselInd <- ifelse(mselFlag, y, 1)
+    MAA <- M[s1vec[y]:(s1vec[y]+ns-1)] * as.numeric(t(Msel[[mselInd]])) * eM
     hy <- dat$h * eH
-    maty <- as.numeric(t(mats)) * eMat
-    selsInd <- ifelse(selFlag, y, 1)
-    sely <- as.numeric(t(sels[[selsInd]])) * eSel
-    weighty <- as.numeric(t(weights)) * eW
-    weightFy <- as.numeric(t(weightFs)) * eW
+    maty <- as.numeric(t(mat)) * eMat
+    selInd <- ifelse(selFlag, y, 1)
+    sely <- as.numeric(t(sel[[selInd]])) * eSel
+    weighty <- as.numeric(t(weight)) * eW
+    weightFy <- as.numeric(t(weightF)) * eW
 
     ## TAC from previous year (if e.g. interim advice)
     ntac <- ns * set$assessmentInterval
@@ -696,9 +672,9 @@ advancePop <- function(dat, hist, set, hcr, year){
             }else{
                 ## True stock status
                 TSBtmp <- sum(NAAS * weighty)
-                bbmsy <- TSBtmp / refs$Bmsy
-                FMtmp <- as.numeric(t(Fs))
-                ffmsy <- sum(tail(FMtmp[1:((y*ns)-ns-(s-1))],ns)) / refs$Fmsy
+                bbmsy <- TSBtmp / refs$Bmsy[y]
+                FMtmp <- as.numeric(t(FM))
+                ffmsy <- sum(tail(FMtmp[1:((y*ns)-ns-(s-1))],ns)) / refs$Fmsy[y]
                 ## TAC
                 tacs <- estTAC(obs = obs,
                                hcr = hcr,
@@ -713,11 +689,11 @@ advancePop <- function(dat, hist, set, hcr, year){
             if(tacID2 == "refFmsy"){
                 if(tacID == "refFmsy"){
                     ## Fishing at Fmsy
-                    FMtac <- refs$Fmsy / ns
+                    FMtac <- refs$Fmsy[y] / ns
                 }else{
                     fraci <- as.numeric(unlist(strsplit(as.character(tacID), "_"))[2])
                     ## Fishing at fraction of Fmsy
-                    FMtac <- (fraci * refs$Fmsy) / ns
+                    FMtac <- (fraci * refs$Fmsy[y]) / ns
                 }
             }else if(tacID2 == "noF"){
                 ## noF
@@ -731,21 +707,21 @@ advancePop <- function(dat, hist, set, hcr, year){
                 FMtac <- min(set$maxF/ns,
                              getFM(TACs[y],
                                     NAA = NAAS, MAA = MAA,
-                                    sels = sely, weights = weighty,
+                                    sel = sely, weight = weighty,
                                     seasons = assessSeasons, ns = ns, y = y,
-                                    h = hy, asmax = asmax, mats = maty,
+                                    h = hy, asmax = asmax, mat = maty,
                                     pzbm = pzbm, spawning = spawning,
                                     R0 = R0y, SR = dat$SR, bp = dat$pb, recBeta = dat$recBeta,
                                     recGamma = dat$recGamma, eR = eR,
-                                    lastFM = Fs[y-1,s]
+                                    lastFM = FM[y-1,s]
                                     )
                              )
             }
-            Fs[y,] <- FMtac
+            FM[y,] <- FMtac
         }
 
         ## Population dynamics
-        FAA <- Fs[y,] * sely
+        FAA <- FM[y,] * sely
         ZAA <- MAA + FAA
         CAA[,s] <- baranov(FAA, MAA, NAAS)
         CW[y,s] <- sum(CAA[,s] * weightFy)
@@ -753,18 +729,18 @@ advancePop <- function(dat, hist, set, hcr, year){
         Btmp <- sum(NAAS * weighty * sely * exp(-MAA/2))
         if(CW[y,s] > 0.99 * Btmp){
             print("NOW")
-            Fs[y,s] <- min(getFM(0.75 * Btmp,
+            FM[y,s] <- min(getFM(0.75 * Btmp,
                                          NAA = NAAS, MAA = MAA,
-                                         sels = sely,
-                                         weights = weighty,
+                                         sel = sely,
+                                         weight = weighty,
                                          seasons = s, ns = ns, y = y,
-                                         h = hy, asmax = asmax, mats = maty,
+                                         h = hy, asmax = asmax, mat = maty,
                                          pzbm = pzbm, spawning = spawning,
                                          R0 = R0y, SR = dat$SR, bp = dat$pb, recBeta = dat$recBeta,
                                          recGamma = dat$recGamma, eR = eR,
                                          lastFM = FM[y,s]),
                                   set$maxF/ns)
-            FAA <- Fs[y,] * sely
+            FAA <- FM[y,] * sely
             ZAA <- MAA + FAA
             CAA[,s] <- baranov(FAA, MAA, NAAS)
             CW[y,s] <- sum(CAA[,s] * weightFy)
@@ -774,7 +750,7 @@ advancePop <- function(dat, hist, set, hcr, year){
             TACreal[indtac] <- CW[y,s]
         }
         if(tacID2 == "refFmsy"){
-            TACreal[indtac] <- sum(CAA[,s] * weightFs[,s], na.rm = TRUE)
+            TACreal[indtac] <- sum(CAA[,s] * weightF[,s], na.rm = TRUE)
             if(indtac == ntac) TACs[y] <- tacs$TAC[nrow(tacs)] <- sum(TACreal)
         }
         ## TSB
@@ -791,7 +767,7 @@ advancePop <- function(dat, hist, set, hcr, year){
                 ## survey observation: total catch in weight (spict)
                 surveyTime <- set$surveyTimes[idxi[i]] - seasonStart[idxS[idxi[i]]]
                 NAAsurv <- exp(log(NAAS) - ZAA * surveyTime)
-                ESBsurv <- NAAsurv * weightFy[,s] * sely[,s]
+                ESBsurv <- NAAsurv * weightFy * sely
                 obs$obsI[[idxi[i]]] <-
                     c(obs$obsI[[idxi[i]]], q[idxi[i]] * sum(ESBsurv) * eI[[idxi[i]]])
                 if(is.null(obs$timeI[[idxi[i]]])){
@@ -807,6 +783,8 @@ advancePop <- function(dat, hist, set, hcr, year){
                 attributes(obs$obsIA[[i]]) <- c(attributes(obs$obsIA[[i]]), list(time = set$surveyTimes))
             }
         }
+        ## observing annual M
+        obsMAAtmp <- obsMAAtmp + MAA[seq(s,asmax,ns)]
 
         ## Eponential decay
         NAAS <- NAAS * exp(-ZAA)
@@ -850,21 +828,20 @@ advancePop <- function(dat, hist, set, hcr, year){
     }
     rownames(obs$obsCA)[nrow(obs$obsCA)] <- as.character(y)
 
-    ## natural mortalityp
-    obs$obsMAA <- rbind(obs$obsMAA, y =
-                    as.matrix(dat$M[y]) %*% t(as.matrix(dat$Msel[[1]])))
+    ## natural mortality
+    obs$obsMAA <- rbind(obs$obsMAA, y = obsMAAtmp)
     rownames(obs$obsMAA)[nrow(obs$obsMAA)] = as.character(y)
 
     ## proportion mature
-    obs$propMature <- rbind(obs$propMature, matrix(dat$mat, 1, amax, byrow = TRUE))
+    obs$propMature <- rbind(obs$propMature, matrix(rowSums(dat$mat), 1, amax, byrow = TRUE))
     rownames(obs$propMature)[nrow(obs$propMature)] = as.character(y)
 
     ## mean stock weight
-    obs$WAAs <- rbind(obs$WAAs, matrix(dat$weight, 1, amax, byrow = TRUE))
+    obs$WAAs <- rbind(obs$WAAs, matrix(rowSums(dat$weight), 1, amax, byrow = TRUE))
     rownames(obs$WAAs)[nrow(obs$WAAs)] = as.character(y)
 
     ## mean catch weight
-    obs$WAAc <- rbind(obs$WAAc, matrix(dat$weight, 1, amax, byrow = TRUE))
+    obs$WAAc <- rbind(obs$WAAc, matrix(rowSums(dat$weightF), 1, amax, byrow = TRUE))
     rownames(obs$WAAc)[nrow(obs$WAAc)] = as.character(y)
 
     ## proportion females
@@ -887,7 +864,7 @@ advancePop <- function(dat, hist, set, hcr, year){
     out$ESB <- ESB
     out$SSB <- SSB
     out$rec <- rec
-    out$Fs <- Fs
+    out$FM <- FM
     out$CW <- CW
     out$TACs <- TACs
     out$tacs <- tacs

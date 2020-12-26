@@ -79,8 +79,7 @@ checkDat <- function(dat, verbose = TRUE){
     ##------------------
     if(!any(names(dat) == "lwa")) stop("Length-weight coefficient missing: lwa")
     if(!any(names(dat) == "lwb")) stop("Length-weight exponent missing: lwb")
-    dat$weights <- dat$lwa * dat$LA ^ dat$lwb
-    dat$weight <- rowMeans(dat$weights)
+    dat$weight <- dat$lwa * dat$LA ^ dat$lwb
 
 
     ## weight at age (fishery)
@@ -91,8 +90,7 @@ checkDat <- function(dat, verbose = TRUE){
     if(!any(names(dat) == "lwbF")){
         dat$lwbF <- dat$lwb
     }
-    dat$weightFs <- dat$lwaF * dat$LA ^ dat$lwbF
-    dat$weightF <- rowMeans(dat$weightFs)
+    dat$weightF <- dat$lwaF * dat$LA ^ dat$lwbF
 
 
 
@@ -101,9 +99,7 @@ checkDat <- function(dat, verbose = TRUE){
     if(!any(names(dat) == "Lm50")) stop("Length at 50% maturity missing: Lm50")
     if(!any(names(dat) == "Lm95")) stop("Length at 95% maturity missing: Lm95")
     if(!is.na(dat$Lm50) && !is.na(dat$Lm95)){
-        dat$mats <- getMat(dat$Lm50, dat$Lm95, dat$mids, dat$plba)
-        ##        dat$mat <- getMat(dat$Lm50, dat$Lm95, dat$mids, dat$plba[,,1, drop=FALSE]) ## or rowMeans?
-        dat$mat <- rowMeans(dat$mats)
+        dat$mat <- getMat(dat$Lm50, dat$Lm95, dat$mids, dat$plba)
     }
 
 
@@ -111,14 +107,10 @@ checkDat <- function(dat, verbose = TRUE){
     ##------------------
     if(!any(names(dat) == "L50")) dat$L50 <- dat$Lm50
     if(!any(names(dat) == "L95")) dat$L95 <- dat$Lm95
-    if(!names(dat) == "sels"){
-        dat$sels <- getSel(dat$L50, dat$L95, dat$mids, dat$plba)
-##        dat$sel <- getSel(dat$L50, dat$L95, dat$mids, dat$plba[,,1, drop=FALSE]) ## or rowMeans?
-        dat$sel <- lapply(dat$sels, rowMeans)
-    }else if(!inherits(dat$sel, "list") && length(dat$sel) == amax){
+    if(!names(dat) == "sel"){
+        dat$sel <- getSel(dat$L50, dat$L95, dat$mids, dat$plba)
+    }else if(!inherits(dat$sel, "list") && dim(dat$sel) == c(amax,ns)){
         dat$sel <- list(dat$sel/max(dat$sel))
-        dims <- dim(dat$plba)
-        dat$sels <- list(matrix(dat$sel, ncol=dims[3], nrow=dims[1]))
     }else if(inherits(dat$sel, "list") &&
              (length(dat$sel) == dat$ny || length(dat$sel) == 1)){
     }else stop("Selectivity at age ('dat$sel') has incorrect length. Length has to be equal to maximum age + 1 (age 0)!")
@@ -135,42 +127,24 @@ checkDat <- function(dat, verbose = TRUE){
 
     ## natural mortality over time
     ##------------------
-    ## per year
     if(!any(names(dat) == "M")){
-        dat$M <- rep(getM(dat$Linf, dat$K, dat$mids), dat$ny)
-        if(verbose) writeLines("No natural mortality (M) provided. Setting time-invariant M.")
+        dat$M <- rep(getM(dat$Linf, dat$K, dat$mids) / ns, each = nt)
+        if(verbose) writeLines("No natural mortality provided. Setting time-invariant M corresponding to annual M.")
     }else if(length(dat$M) == 1){
-        dat$M <- rep(dat$M, dat$ny)
-    }else if(length(dat$M) < dat$ny){
-        stop(paste0("Natural mortality ('dat$M') has length ",length(dat$M),". It should either be a single numeric or correspond at least to the number of historical years ('dat$ny')."))
+        dat$M <- rep(dat$M, nt)
+    }else if(length(dat$M) < nta){
+        stop(paste0("Intra-annual natural mortality ('dat$M') has length ",length(dat$M),". It should either be a single numeric or correspond at least to the number of historical time steps ('dat$ny' * 'dat$ns')."))
     }
-    ## per season
-    if(!any(names(dat) == "Ms")){
-        dat$Ms <- rep(dat$M / ns, each = ns)
-        if(verbose) writeLines("No in-year natural mortality (Ms) provided. Setting time-invariant Ms corresponding to annual M (adjusted by in-year time steps).")
-    }else if(length(dat$Ms) == 1){
-        dat$Ms <- rep(dat$Ms, dat$ny * ns)
-    }else if(length(dat$Ms) < dat$ny * ns){
-        stop(paste0("In-year natural mortality ('dat$Ms') has length ",length(dat$Ms),". It should either be a single numeric or correspond at least to the number of historical time steps ('dat$ny' * 'dat$ns')."))
-    }
-
 
     ## natural mortality at length
     ##------------------
     if(!any(names(dat) == "Msel")){
         if(verbose) writeLines("No natural mortality at age provided. Setting M-at-age based on the Gislason's (2010) empirical formula.")
-        dat$Msels <- getMsel(dat$Linf, dat$K, dat$mids, dat$plba)
-        dat$Msel <- lapply(dat$Msels, rowMeans)
-    }else if(!inherits(dat$Msel, "list") && length(dat$Msel) == amax){
+        dat$Msel <- getMsel(dat$Linf, dat$K, dat$mids, dat$plba)
+    }else if(!inherits(dat$Msel, "list") && dim(dat$Msel) == c(amax,ns)){
         dat$Msel <- list(dat$Msel/max(dat$Msel))
-        dims <- dim(dat$plba)
-        dat$Msels <- list(matrix(dat$Msel, ncol=dims[3], nrow=dims[1]))
     }else if(inherits(dat$Msel, "list") && (length(dat$Msel) == dat$ny || length(dat$Msel) == 1)){
-    }else stop("Natural mortality at age ('dat$Msel') has incorrect length. Length has to be equal to maximum age + 1 (age 0)!")
-    ## dat$Mtot <- matrix(NA, nrow=amax, ncol=dat$ny)
-    ## for(y in 1:dat$ny){
-    ##     dat$Mtot[,y] <- rowSums(dat$Ms[y] * dat$Msels)
-    ## }
+    }else stop("Natural mortality at age ('dat$Msel') has incorrect dimensions. 'dat$Msel' has to be a matrix with dim = c(dat$amax + 1 [age 0], dat$ns)!")
 
 
     ## historic fishing mortality
@@ -184,14 +158,12 @@ checkDat <- function(dat, verbose = TRUE){
     effrel <- eff/max(eff)
     mod <- smooth.spline(x=timeseries, y=effrel)
     if(!"FM" %in% names(dat)){
-        dat$FM <- predict(mod, x = seq(1970, 2019, length.out = dat$ny))$y
+        tmp <- predict(mod, x = seq(1970, 2019, length.out = dat$ny))$y
     }else if(length(dat$FM) < dat$ny){
         warning("Length of FM not equal to ny. Overwriting FM.")
-        dat$FM <- predict(mod, x = seq(1970, 2019, length.out = dat$ny))$y
+        tmp <- predict(mod, x = seq(1970, 2019, length.out = dat$ny))$y
     }
-    ## account for seasons
-    ##     dat$Fs <- rep(dat$FM / ns, each = ns)  ## REMOVE:
-    dat$Fs <- matrix(rep(dat$FM / ns, each = ns), nrow = ny, ncol = ns, byrow = TRUE)
+    dat$FM <- matrix(rep(tmp / ns, each = ns), nrow = ny, ncol = ns, byrow = TRUE)
 
 
     ## Depletion level final year
