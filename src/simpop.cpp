@@ -34,11 +34,10 @@ NumericVector initdist(NumericVector MAA, NumericVector FAA, double R0, NumericV
   }
   NAAS(0) = 0;
   // plusgroup
-  pg = NAAS[Rcpp::Range(ind2, asmax-1)] / (1 - exp(-sum(ZAA[Rcpp::Range(ind2, asmax-1)])));
-  // std::cout << "pg: " << sum(pg) << "ind2: " << ind2 << std::endl;
   if(ns == 1){
-    NAAS(asmax-1) = sum(pg);
+    NAAS(asmax-1) = NAAS[asmax-1] / (1 - exp(-ZAA[asmax-1]));
   }else{
+    pg = NAAS[Rcpp::Range(ind2, asmax-1)] / (1 - exp(-sum(ZAA[Rcpp::Range(ind2, asmax-1)])));
     NAAS(asmax-1) = sum(pg) - sum(NAAS[Rcpp::Range(ind2, asmax-1)]);
   }
 

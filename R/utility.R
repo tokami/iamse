@@ -148,7 +148,7 @@ genNoise <- function(n, sd, rho=0, bias.cor = 0, mv=FALSE, dat=NULL){
 #' @export
 estDepl <- function(dat, set=NULL, fmax = 10, nrep = 100, verbose = TRUE, method = "percentile"){
 
-    if(!any(names(dat) == "ref")) stop("Reference points are missing in dat. Use estRef to estimate reference points.")
+    if(!any(names(dat) == "ref")) stop("Reference points are missing in dat. Use estRefStoch to estimate reference points.")
 
     if(is.null(set)){
         set <- checkSet()
@@ -344,9 +344,11 @@ estProdStoch <- function(dat, set= NULL,
                          ncores = parallel::detectCores()-1,
                          plot = TRUE){
 
+    amax <- dat$amax + 1
     ny <- dat$ny
     ns <- dat$ns
     nt <- ny * ns
+    asmax <- amax * ns
     ## noise
     if(is.null(set)) set <- checkSet()
     nyref <- set$refYears
@@ -367,11 +369,21 @@ estProdStoch <- function(dat, set= NULL,
         errs[[i]]$eR <- genNoise(nyref, set$noiseR[1], set$noiseR[2], set$noiseR[3])
         errs[[i]]$eM <- genNoise(nyref, set$noiseM[1], set$noiseM[2], set$noiseM[3])
         errs[[i]]$eH <- genNoise(nyref, set$noiseH[1], set$noiseH[2], set$noiseH[3])
+        errs[[i]]$eW <- genNoise(nyref, set$noiseW[1], set$noiseW[2], set$noiseW[3])
         errs[[i]]$eR0 <- genNoise(nyref, set$noiseR0[1], set$noiseR0[2], set$noiseR0[3])
         errs[[i]]$eMat <- genNoise(nyref, set$noiseMat[1], set$noiseMat[2], set$noiseMat[3])
         errs[[i]]$eSel <- genNoise(nyref, set$noiseSel[1], set$noiseSel[2], set$noiseSel[3])
         errs[[i]]$eImp <- genNoise(nyref, set$noiseImp[1], set$noiseImp[2], set$noiseImp[3])
     }
+
+    datx <- dat
+    ##
+    datx$yvec <- rep(1:nyref, each = ns)
+    datx$svec <- rep(1:ns, each = nyref)
+    datx$s1vec <- seq(1, nyref * ns, ns)
+    datx$as2a <- rep(1:amax, each = ns)
+    datx$as2s <- rep(1:ns, each = amax)
+    datx$inds <- seq(1,asmax,ns)
 
     ##
     fms <- seq(0, fmax, length.out = nf)
@@ -379,7 +391,11 @@ estProdStoch <- function(dat, set= NULL,
     for(fx in 1:nf){
         tmp0 <- parallel::mclapply(as.list(1:nrep), function(x){
             setx <- c(set, errs[[x]])
-            pop <- simpop(log(fms[fx]), dat, setx, out=0)
+            ## CHECK:
+            setx$tvm <- 1
+            setx$tvmsel <- 1
+            setx$tvsel <- 1
+            pop <- simpop(log(fms[fx]), datx, setx, out=0)
             tsb <- tail(pop$TSB,1)
             esb <- tail(pop$ESB,1)
             ssb <- tail(pop$SSB,1)

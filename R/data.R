@@ -107,7 +107,7 @@ checkDat <- function(dat, verbose = TRUE){
     ##------------------
     if(!any(names(dat) == "L50")) dat$L50 <- dat$Lm50
     if(!any(names(dat) == "L95")) dat$L95 <- dat$Lm95
-    if(!names(dat) == "sel"){
+    if(!any(names(dat) == "sel")){
         dat$sel <- getSel(dat$L50, dat$L95, dat$mids, dat$plba)
     }else if(!inherits(dat$sel, "list") && dim(dat$sel) == c(amax,ns)){
         dat$sel <- list(dat$sel/max(dat$sel))
@@ -159,11 +159,12 @@ checkDat <- function(dat, verbose = TRUE){
     mod <- smooth.spline(x=timeseries, y=effrel)
     if(!"FM" %in% names(dat)){
         tmp <- predict(mod, x = seq(1970, 2019, length.out = dat$ny))$y
-    }else if(length(dat$FM) < dat$ny){
-        warning("Length of FM not equal to ny. Overwriting FM.")
+        dat$FM <- matrix(rep(tmp / ns, each = ns), nrow = ny, ncol = ns, byrow = TRUE)
+    }else if(length(dat$FM) < nt){
+        if(verbose) writeLines("Length of FM not equal to number of time steps (dat$ny * dat$ns). Overwriting FM.")
         tmp <- predict(mod, x = seq(1970, 2019, length.out = dat$ny))$y
+        dat$FM <- matrix(rep(tmp / ns, each = ns), nrow = ny, ncol = ns, byrow = TRUE)
     }
-    dat$FM <- matrix(rep(tmp / ns, each = ns), nrow = ny, ncol = ns, byrow = TRUE)
 
 
     ## Depletion level final year

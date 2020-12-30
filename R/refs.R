@@ -165,6 +165,7 @@ estRefStoch <- function(dat, set=NULL,
     }
     ##
     datx <- dat
+
     ##
     datx$yvec <- rep(1:nyref, each = ns)
     datx$svec <- rep(1:ns, each = nyref)
