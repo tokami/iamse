@@ -4,7 +4,8 @@
 #' @export
 plotmse.cw <- function(dat, set, resMSE,
                        trendline=TRUE, uncert = TRUE, med = TRUE,
-                       hcrs=NA, ylim = NULL){
+                       hcrs=NA, ylim = NULL, plot.legend = TRUE,
+                       ylab="Catch", xlab = ""){
     if(any(!is.na(hcrs))){
         resMSEnew <- vector("list",length(hcrs))
         for(i in 1:length(hcrs)){
@@ -38,7 +39,7 @@ plotmse.cw <- function(dat, set, resMSE,
          xlim = c(0, dat$ny+set$nysim),
          ylim = ylim,
          ty='n', lwd=2,
-         ylab="Catch", xlab = "")
+         ylab=ylab, xlab = xlab)
     polygon(x = c((dat$ny-(set$nyhist-1)):dat$ny,rev((dat$ny-(set$nyhist-1)):dat$ny)),
             y = c(rep(ylim[1]-1e4,set$nyhist),rep(1.5*ylim[2],set$nyhist)),
             border=NA, col="grey95")
@@ -69,7 +70,7 @@ plotmse.cw <- function(dat, set, resMSE,
     }
     abline(v=dat$ny, col="grey60",lwd=2)
     abline(v=max(which(dat$FM==0)), col="grey60",lwd=2,lty=2)
-    legend("topleft", legend=set$hcr,
+    if(plot.legend) legend("topright", legend=set$hcr,
            col=cols, bty="n", lwd=2,lty=1)
     title("Catch")
     box()
@@ -80,7 +81,8 @@ plotmse.cw <- function(dat, set, resMSE,
 #' @export
 plotmse.b <- function(dat, set, resMSE,
                       trendline=TRUE, uncert = TRUE, med = TRUE,
-                      hcrs=NA, ylim = NULL){
+                      hcrs=NA, ylim = NULL, plot.legend = TRUE,
+                      ylab="Total biomass", xlab = ""){
     if(any(!is.na(hcrs))){
         resMSEnew <- vector("list",length(hcrs))
         for(i in 1:length(hcrs)){
@@ -114,7 +116,7 @@ plotmse.b <- function(dat, set, resMSE,
          xlim = c(0, dat$ny+set$nysim),
          ylim = ylim,
          ty='n', lwd=2,
-         ylab="Total biomass", xlab = "")
+         ylab=ylab, xlab = xlab)
     polygon(x = c((dat$ny-(set$nyhist-1)):dat$ny,rev((dat$ny-(set$nyhist-1)):dat$ny)),
             y = c(rep(ylim[1]-1e4,set$nyhist),rep(1.5*ylim[2],set$nyhist)),
             border=NA, col="grey95")
@@ -145,8 +147,8 @@ plotmse.b <- function(dat, set, resMSE,
     }
     abline(v=dat$ny, col="grey60",lwd=2)
     abline(v=max(which(dat$FM==0)), col="grey60",lwd=2,lty=2)
-    legend("topleft", legend=set$hcr,
-           col=cols, bty="n", lwd=2,lty=1)
+    if(plot.legend) legend("topright", legend=set$hcr,
+                           col=cols, bty="n", lwd=2,lty=1)
     title("Biomass")
     box()
 }
@@ -156,7 +158,8 @@ plotmse.b <- function(dat, set, resMSE,
 #' @export
 plotmse.f <- function(dat, set, resMSE,
                       trendline=TRUE, uncert = TRUE, med = TRUE,
-                      hcrs=NA, ylim=NULL){
+                      hcrs=NA, ylim=NULL, plot.legend = TRUE,
+                      ylab="Fishing mortality", xlab = ""){
     if(any(!is.na(hcrs))){
         resMSEnew <- vector("list",length(hcrs))
         for(i in 1:length(hcrs)){
@@ -191,7 +194,7 @@ plotmse.f <- function(dat, set, resMSE,
          xlim = c(0, dat$ny+set$nysim),
          ylim = ylim,
          ty='n', lwd=2,
-         ylab="Fishing mortality", xlab = "")
+         ylab=ylab, xlab = xlab)
     polygon(x = c((dat$ny-(set$nyhist-1)):dat$ny,rev((dat$ny-(set$nyhist-1)):dat$ny)),
             y = c(rep(ylim[1]-10,set$nyhist),rep(1.5*ylim[2],set$nyhist)),
             border=NA, col="grey95")
@@ -222,7 +225,7 @@ plotmse.f <- function(dat, set, resMSE,
     }
     abline(v=dat$ny, col="grey60",lwd=2)
     abline(v=max(which(dat$FM==0)), col="grey60",lwd=2,lty=2)
-    legend("topleft", legend=set$hcr,
+    if(plot.legend) legend("topright", legend=set$hcr,
            col=cols, bty="n", lwd=2,lty=1)
     title("Fishing mortality")
     box()
@@ -232,7 +235,8 @@ plotmse.f <- function(dat, set, resMSE,
 
 #' @name plotmse.tradeoff
 #' @export
-plotmse.tradeoff <- function(mets, metrics = c("avRelCatch","PBBlim"), hcrs=NA){
+plotmse.tradeoff <- function(mets, metrics = c("avRelCatch","PBBlim"),
+                             hcrs=NA, plot.legend = TRUE){
     if(any(!is.na(hcrs))){
         metsnew <- vector("list",length(hcrs))
         for(i in 1:length(hcrs)){
@@ -274,7 +278,7 @@ plotmse.tradeoff <- function(mets, metrics = c("avRelCatch","PBBlim"), hcrs=NA){
         segments(x0 = xs[2], y0 = ys[1], x1 = xs[2], y1 = ys[3], col=cols[i], lwd=1.5)
         points(xs[2],ys[2], col=cols[i], pch=16, cex=1.5)
     }
-    legend("topright", legend=set$hcr,
+    if(plot.legend) legend("topright", legend=set$hcr,
            col=cols, bty="n", lwd=2,lty=1)
     box()
 }
@@ -284,7 +288,7 @@ plotmse.tradeoff <- function(mets, metrics = c("avRelCatch","PBBlim"), hcrs=NA){
 #' @export
 plotmse.quant <- function(dat, set, resMSE, hcrs=NULL,
                           quants = c("bpbmsy.sd","fmfmsy.sd","cp.sd"),
-                          hline=NULL){
+                          hline=NULL, plot.legend = TRUE){
 
     if(is.null(hcrs)){
         hcr <- set$hcr

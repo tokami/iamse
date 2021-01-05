@@ -355,7 +355,7 @@ estProdStoch <- function(dat, set= NULL,
     nrep <- set$refN
     nyrefmsy <- set$refYearsMSY
 
-    set$noiseR <- c(dat$sigmaR, dat$rhoR, 1)
+    ##CHECK: set$noiseR <- c(dat$sigmaR, dat$rhoR, 1)
     dist <- NULL
     if(!(set$refMethod %in% c("mean","median"))){
         stop("'set$refMethod' not known! Has to be 'mean' or 'median'!")
@@ -382,7 +382,7 @@ estProdStoch <- function(dat, set= NULL,
     datx$svec <- rep(1:ns, each = nyref)
     datx$s1vec <- seq(1, nyref * ns, ns)
     datx$as2a <- rep(1:amax, each = ns)
-    datx$as2s <- rep(1:ns, each = amax)
+    datx$as2s <- rep(1:ns, amax)
     datx$inds <- seq(1,asmax,ns)
 
     ##
@@ -505,7 +505,7 @@ predCatch <- function(logFM,
             rec[rec<0] <- 1e-10
             NAAtmp[1] <- rec * spawning[s] * eR
         }
-        Ctmp <- Ctmp + sum(baranov(FAA, MAA, NAAtmp) * weight )
+        Ctmp <- Ctmp + sum(baranov(FAA, MAA, NAAtmp) * weight)
         ## Aging
         NAAtmp <- NAAtmp * exp(-Ztmp)
         NAAtmp[asmax] <- NAAtmp[asmax] + NAAtmp[asmax-1]
@@ -543,7 +543,7 @@ getFM <- function(TAC,
                   TAC = TAC,
                   out = 1,
                   lower = -10, upper = 10,
-                  control = list(rel.tol = 1e-18))
+                  control = list(rel.tol = 1e-10))
     return(exp(opt$par))
 }
 

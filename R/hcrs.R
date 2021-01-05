@@ -572,7 +572,6 @@ structure(
         }
         ## fit spict
         fit <- try(fit.spict(inp), silent=TRUE)
-print(fit$opt$convergence)
         if(class(fit) == "try-error" || fit$opt$convergence != 0 || any(is.infinite(fit$sd))){
             tacs <- func(inp, tacs=tacs, pars=pars)
             tacs$conv[nrow(tacs)] <- FALSE
@@ -938,49 +937,58 @@ defHCRsam <- function(id = "sam",
                       env = globalenv()
                       ){
 
-    template  <- expression(paste0(' structure(function(obs, tacs = NULL, pars=NULL){
-        silent <- ',silent,'
-        verbose <- ',verbose,'
-        func <- get("',nonconvHCR,'")
+    template  <- expression(paste0('
+structure(function(obs, tacs = NULL, pars=NULL){
+    silent <- ',silent,'
+    verbose <- ',verbose,'
+    func <- get("',nonconvHCR,'")
 
-        ## setup SAM data
-        dat <- stockassessment::setup.sam.data(surveys = obs$obsIA,
-                                               residual.fleet = obs$obsCA,
-                                               prop.mature = obs$propMature,
-                                               stock.mean.weight = obs$WAAs,
-                                               catch.mean.weight = obs$WAAc,
-                                               dis.mean.weight = obs$WAAc,
-                                               land.mean.weight = obs$WAAc,
-                                               prop.f = obs$propFemale,
-                                               prop.m = obs$propFemale,
-                                               natural.mortality = obs$obsMAA,
-                                               land.frac = obs$landFrac)
+    ## setup SAM data
+    dat <- stockassessment::setup.sam.data(surveys = obs$obsIA,
+                                           residual.fleet = obs$obsCA,
+                                           prop.mature = obs$propMature,
+                                           stock.mean.weight = obs$WAAs,
+                                           catch.mean.weight = obs$WAAc,
+                                           dis.mean.weight = obs$WAAc,
+                                           land.mean.weight = obs$WAAc,
+                                           prop.f = obs$propFemale,
+                                           prop.m = obs$propFemale,
+                                           natural.mortality = obs$obsMAA,
+                                           land.frac = obs$landFrac)
 
-        ## configurations
-        conf <- stockassessment::defcon(dat)
+    ## configurations
+    conf <- stockassessment::defcon(dat)
 
-        ## starting values
-        par <- stockassessment::defpar(dat, conf)
+    ## starting values
+    par <- stockassessment::defpar(dat, conf)
 
-        ## fit SAM (to make faster re-code sam.fit)
-        fit <- try(stockassessment::sam.fit(dat, conf, par, ignore.parm.uncertainty = TRUE,
-                                            rel.tol = 1e-6,
-                                            silent=silent),
-                   silent=TRUE)
+    ## fit SAM (to make faster re-code sam.fit)
+    fit <- try(stockassessment::sam.fit(dat, conf, par, ignore.parm.uncertainty = TRUE,
+                                        rel.tol = 1e-6,
+                                        silent=silent),
+               silent=TRUE)
 
-        if(class(fit) == "try-error"){
+    if(class(fit) == "try-error"){
+        if(verbose) cat("Error in model fitting.\n")
+        tacs <- func(obs, tacs=tacs, pars=pars)
+        tacs$conv[nrow(tacs)] <- FALSE
+        return(tacs)
+    }else{
+        ## reference levels (using simEQ)
+        ## estimating fval
+        ## fval = Fmsy based on simEQ
+
+        ## sam forecast given Fval
+        ## fore = forecast(fit, nextssb = c(NA,ssbref), fval = c(1,NA))  ## doesnt work
+        fore <- try(stockassessment::forecast(fit, fval = c(1,1)), silent = TRUE)
+
+        if(class(fore) == "try-error"){
             if(verbose) cat("Error in model fitting.\n")
             tacs <- func(obs, tacs=tacs, pars=pars)
             tacs$conv[nrow(tacs)] <- FALSE
             return(tacs)
-        }else{
-            ## reference levels (using simEQ)
-            ## estimating fval
-            ## fval = Fmsy based on simEQ
 
-            ## sam forecast given Fval
-            ## fore = forecast(fit, nextssb = c(NA,ssbref), fval = c(1,NA))  ## doesnt work
-            fore <- stockassessment::forecast(fit, fval = c(1,1))
+        }else{
 
             ## predicted catches
             shorttab <- attr(fore,"shorttab")
@@ -994,10 +1002,12 @@ defHCRsam <- function(id = "sam",
 
             ## write output object
             tacs <- gettacs(tacs, id="',id,'", TAC=tac, obs=obs)
+            tacs$conv[nrow(tacs)] <- TRUE
             return(tacs)
         }
-    },
-    class="hcr")
+    }
+},
+class="hcr")
 '))
 
     ## create HCR as functions

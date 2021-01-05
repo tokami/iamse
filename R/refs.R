@@ -171,8 +171,31 @@ estRefStoch <- function(dat, set=NULL,
     datx$svec <- rep(1:ns, each = nyref)
     datx$s1vec <- seq(1, nyref * ns, ns)
     datx$as2a <- rep(1:amax, each = ns)
-    datx$as2s <- rep(1:ns, each = amax)
+    datx$as2s <- rep(1:ns, amax)
     datx$inds <- seq(1,asmax,ns)
+
+##     browser()
+
+##     x <- i <- 1
+##     setx <- c(set, errs[[x]])
+##     tmp <- rep(NA, alltv)
+##     setx$tvm <- 1
+##     setx$tvmsel <- 1
+##     setx$tvsel <- 1
+##     simpop(log(datx$ref$Fmsy[1]), datx, setx, out=1)
+
+## ## SSB(0): 281 449
+## ## Ctmp(0): 278 097
+## ## SSB(1): 141 846
+## ## Ctmp(1): 143 626
+## ## SSB(2): 99 720.1
+## ## Ctmp(2): 104 795
+## ## SSB(3): 70 258.6
+
+
+##     datx$FM <- matrix(datx$ref$Fmsy/ns, ncol = ns, nrow=ny)
+##     pop <- initPop(datx, setx)
+##     pop$CW
 
 
     if(any(ref %in% c("Fmsy","Bmsy","MSY","ESBmsy","SSBmsy"))){
@@ -197,6 +220,14 @@ estRefStoch <- function(dat, set=NULL,
             return(tmp)
         }, mc.cores = ncores)
         fmsys <- do.call(rbind, res)
+
+        ## browser()
+        ## x <- 1
+        ## i <- 1
+        ## tmp0$CW
+        ## tmp0$TSB
+        ## rowSums(initPop(datx,setx)$TSB)
+
 
         ## MSY and Biomass reference points
         res <- parallel::mclapply(as.list(1:nrep), function(x){

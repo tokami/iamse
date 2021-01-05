@@ -163,6 +163,7 @@ initPop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){
     NAAbi2 <- NAAbi <- matrix(0, asmax, ns)
     NAAbi[1,] <- R0y * spawning ## * exp(initN[1])
     ZAA <-  M[1:ns] * msely + FM[1,] * sely
+
     ## each season
     for(as in 2:asmax)
         NAAbi[as,] <- NAAbi[as-1,] * exp(-ZAA[as-1])
@@ -201,24 +202,24 @@ initPop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){
                 }
                 CWbi <- sum(baranov(Fbi, Mbi, NAASbi) * as.numeric(t(weightFy)))
                 ## can't take more than what's there
-                Btmp <- sum(NAASbi * weighty * sely * exp(-Mbi/2))
-                if(is.na(CWbi) || is.na(Btmp)){
-                    stop("Something went wrong in the burnin period. Catch or biomass is NA.")
-                }
-                if(CWbi > 0.99 * Btmp){
-                    Fbi <- sely * min(getFM(0.75 * Btmp,
-                                             NAA = NAASbi, MAA = Mbi,
-                                             sel = sely,
-                                             weight = weighty,
-                                             seasons = s, ns = ns, y = y,
-                                             h = hy, asmax = asmax, mat = maty,
-                                             pzbm = pzbm, spawning = spawning,
-                                             R0 = R0y, SR = dat$SR, bp = dat$pb, recBeta = dat$recBeta,
-                                             recGamma = dat$recGamma, eR = eR,
-                                             lastFM = 0.001),
-                                      set$maxF/ns)
-                    Zbi <- Mbi + Fbi
-                }
+                ## Btmp <- sum(NAASbi * weighty * sely * exp(-Mbi/2))
+                ## if(is.na(CWbi) || is.na(Btmp)){
+                ##     stop("Something went wrong in the burnin period. Catch or biomass is NA.")
+                ## }
+                ## if(CWbi > 0.99 * Btmp){
+                ##     Fbi <- sely * min(getFM(0.75 * Btmp,
+                ##                              NAA = NAASbi, MAA = Mbi,
+                ##                              sel = sely,
+                ##                              weight = weighty,
+                ##                              seasons = s, ns = ns, y = y,
+                ##                              h = hy, asmax = asmax, mat = maty,
+                ##                              pzbm = pzbm, spawning = spawning,
+                ##                              R0 = R0y, SR = dat$SR, bp = dat$pb, recBeta = dat$recBeta,
+                ##                              recGamma = dat$recGamma, eR = eR,
+                ##                              lastFM = 0.001),
+                ##                       set$maxF/ns)
+                ##     Zbi <- Mbi + Fbi
+                ## }
                 ## ageing by season or year
                 NAASbi <- NAASbi * exp(-Zbi)
                 NAASbi[asmax] <- NAASbi[asmax] + NAASbi[asmax-1]
@@ -228,6 +229,7 @@ initPop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){
         }
     }
     NAAS <- NAASbi
+
 
     ## main loop
     for(y in 1:ny){
@@ -251,6 +253,7 @@ initPop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){
             if(spawning[s] > 0){
                 ## Survivors from previous season/year
                 SSB[y,s] <- sum(NAAS * weighty * maty * exp(-pzbm * ZAA)) ## pre-recruitment mort
+##                print(SSB[y,s])
                 SSBPR0 <- getSSBPR(ZAA, maty, weighty, fecun=1, asmax,
                                    ns, spawning)
                 rec[y,s] <-  spawning[s] * recfunc(h = hy, SSBPR0 = SSBPR0, SSB = SSB[y,s],
@@ -265,24 +268,24 @@ initPop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){
             CW[y,s] <- sum(CAA[[y]][,s] * weightFy)
 
             ## can't take more than what's there
-            Btmp <- sum(NAAS * weighty * sely * exp(-MAA/2))
-            if(CW[y,s] > 0.99 * Btmp){
-                FM[y,s] <- min(getFM(0.75 * Btmp,
-                                             NAA = NAAS, MAA = MAA,
-                                             sel = sely,
-                                             weight = weighty,
-                                             seasons = s, ns = ns, y = y,
-                                             h = hy, asmax = asmax, mat = maty,
-                                             pzbm = pzbm, spawning = spawning,
-                                             R0 = R0y, SR = dat$SR, bp = dat$pb, recBeta = dat$recBeta,
-                                             recGamma = dat$recGamma, eR = eR,
-                                             lastFM = FM[y,s]),
-                                      set$maxF/ns)
-                FAA <- FM[y,] * sely
-                ZAA <- MAA + FAA
-                CAA[[y]][,s] <- baranov(FAA, MAA, NAAS)
-                CW[y,s] <- sum(weightFy * CAA[[y]][,s])
-            }
+            ## Btmp <- sum(NAAS * weighty * sely * exp(-MAA/2))
+            ## if(CW[y,s] > 0.99 * Btmp){
+            ##     FM[y,s] <- min(getFM(0.75 * Btmp,
+            ##                                  NAA = NAAS, MAA = MAA,
+            ##                                  sel = sely,
+            ##                                  weight = weighty,
+            ##                                  seasons = s, ns = ns, y = y,
+            ##                                  h = hy, asmax = asmax, mat = maty,
+            ##                                  pzbm = pzbm, spawning = spawning,
+            ##                                  R0 = R0y, SR = dat$SR, bp = dat$pb, recBeta = dat$recBeta,
+            ##                                  recGamma = dat$recGamma, eR = eR,
+            ##                                  lastFM = FM[y,s]),
+            ##                           set$maxF/ns)
+            ##     FAA <- FM[y,] * sely
+            ##     ZAA <- MAA + FAA
+            ##     CAA[[y]][,s] <- baranov(FAA, MAA, NAAS)
+            ##     CW[y,s] <- sum(weightFy * CAA[[y]][,s])
+            ## }
             ## TSB
             TSB[y,s] <- sum(NAAS * weighty)
             TSB1plus[y,s] <- sum(NAAS[-1] * weighty[-1])
@@ -704,17 +707,22 @@ advancePop <- function(dat, hist, set, hcr, year){
                 FMtac <- fraci / ns
             }else{
                 ## any other HCR
+
+                ## CHECK: shouldn't this give a vector FM of length ns?
+                ## what if F cannot be assumed to be constant throughout the year? seasonal fishing effort?
+                ## but which pattern to use? from last year? or in sel?
+
                 FMtac <- min(set$maxF/ns,
                              getFM(TACs[y],
-                                    NAA = NAAS, MAA = MAA,
-                                    sel = sely, weight = weighty,
-                                    seasons = assessSeasons, ns = ns, y = y,
-                                    h = hy, asmax = asmax, mat = maty,
-                                    pzbm = pzbm, spawning = spawning,
-                                    R0 = R0y, SR = dat$SR, bp = dat$pb, recBeta = dat$recBeta,
-                                    recGamma = dat$recGamma, eR = eR,
-                                    lastFM = FM[y-1,s]
-                                    )
+                                   NAA = NAAS, MAA = MAA,
+                                   sel = sely, weight = weighty,
+                                   seasons = assessSeasons, ns = ns, y = y,
+                                   h = hy, asmax = asmax, mat = maty,
+                                   pzbm = pzbm, spawning = spawning,
+                                   R0 = R0y, SR = dat$SR, bp = dat$pb, recBeta = dat$recBeta,
+                                   recGamma = dat$recGamma, eR = eR,
+                                   lastFM = FM[y-1,s]
+                                   )
                              )
             }
             FM[y,] <- FMtac
@@ -727,28 +735,27 @@ advancePop <- function(dat, hist, set, hcr, year){
         CW[y,s] <- sum(CAA[,s] * weightFy)
         ## can't take more than what's there
         Btmp <- sum(NAAS * weighty * sely * exp(-MAA/2))
-        if(CW[y,s] > 0.99 * Btmp){
-            print("NOW")
-            FM[y,s] <- min(getFM(0.75 * Btmp,
-                                         NAA = NAAS, MAA = MAA,
-                                         sel = sely,
-                                         weight = weighty,
-                                         seasons = s, ns = ns, y = y,
-                                         h = hy, asmax = asmax, mat = maty,
-                                         pzbm = pzbm, spawning = spawning,
-                                         R0 = R0y, SR = dat$SR, bp = dat$pb, recBeta = dat$recBeta,
-                                         recGamma = dat$recGamma, eR = eR,
-                                         lastFM = FM[y,s]),
-                                  set$maxF/ns)
-            FAA <- FM[y,] * sely
-            ZAA <- MAA + FAA
-            CAA[,s] <- baranov(FAA, MAA, NAAS)
-            CW[y,s] <- sum(CAA[,s] * weightFy)
-            if(indtac < ntac){
-                TACreal[indtac+1] <- TACreal[indtac+1] + TACreal[indtac] - CW[y,s]
-            }else writeLines("Could not get full annual TAC.")
-            TACreal[indtac] <- CW[y,s]
-        }
+        ## if(CW[y,s] > 0.99 * Btmp){
+        ##     FM[y,s] <- min(getFM(0.75 * Btmp,
+        ##                                  NAA = NAAS, MAA = MAA,
+        ##                                  sel = sely,
+        ##                                  weight = weighty,
+        ##                                  seasons = s, ns = ns, y = y,
+        ##                                  h = hy, asmax = asmax, mat = maty,
+        ##                                  pzbm = pzbm, spawning = spawning,
+        ##                                  R0 = R0y, SR = dat$SR, bp = dat$pb, recBeta = dat$recBeta,
+        ##                                  recGamma = dat$recGamma, eR = eR,
+        ##                                  lastFM = FM[y,s]),
+        ##                           set$maxF/ns)
+        ##     FAA <- FM[y,] * sely
+        ##     ZAA <- MAA + FAA
+        ##     CAA[,s] <- baranov(FAA, MAA, NAAS)
+        ##     CW[y,s] <- sum(CAA[,s] * weightFy)
+        ##     if(indtac < ntac){
+        ##         TACreal[indtac+1] <- TACreal[indtac+1] + TACreal[indtac] - CW[y,s]
+        ##     }else writeLines("Could not get full annual TAC.")
+        ##     TACreal[indtac] <- CW[y,s]
+        ## }
         if(tacID2 == "refFmsy"){
             TACreal[indtac] <- sum(CAA[,s] * weightF[,s], na.rm = TRUE)
             if(indtac == ntac) TACs[y] <- tacs$TAC[nrow(tacs)] <- sum(TACreal)
@@ -780,11 +787,12 @@ advancePop <- function(dat, hist, set, hcr, year){
                                               q[idxi[i]] *
                                               as.numeric(by(NAAsurv * sely, asvec, sum)) * eImv[[idxi[[i]]]])
                 rownames(obs$obsIA[[idxi[i]]])[nrow(obs$obsIA[[idxi[i]]])] <- as.character(y)  ## CHECK: instead of 1 (assuming one survey a year) this should allow for s surveys
-                attributes(obs$obsIA[[i]]) <- c(attributes(obs$obsIA[[i]]), list(time = set$surveyTimes))
             }
         }
+        for(i in 1:length(idxS)) attributes(obs$obsIA[[i]]) <- c(attributes(obs$obsIA[[i]]), list(time = set$surveyTimes))
         ## observing annual M
         obsMAAtmp <- obsMAAtmp + MAA[seq(s,asmax,ns)]
+
 
         ## Eponential decay
         NAAS <- NAAS * exp(-ZAA)

@@ -5,15 +5,14 @@
 using namespace Rcpp;
 
 // [[Rcpp::export]]
-NumericVector initdist(NumericVector MAA, NumericVector FAA, double R0, NumericVector spawning, IntegerVector inds){
+NumericVector initdist(NumericVector MAA, NumericVector FAA, double R0, NumericVector spawning){
 
   int asmax = MAA.size();
   int ns = spawning.size();
   NumericMatrix NAA(asmax, ns);
   NumericVector NAAS(asmax);
   NumericVector ZAA(asmax);
-  int ind1 = 0;
-  int ind2 = asmax - ns + 1;
+  int ind2 = (asmax-1) - ns + 1;
   // std::cout << asmax << "ns: " << ns << std::endl;
   NumericVector pg(ns);
 
@@ -21,15 +20,17 @@ NumericVector initdist(NumericVector MAA, NumericVector FAA, double R0, NumericV
     ZAA(a) = MAA(a) + FAA(a);
   }
   // Initial distribution
-  NAA(0,_) = R0 * spawning;
-  for(int a=1; a<asmax; a++){
-    NAA(a,_) = NAA(a-1,_) * exp(-ZAA(a-1));
+  for(int s=0; s<ns; s++){
+    NAA(0,s) = R0 * spawning(s);
+    for(int a=1; a<asmax; a++){
+      NAA(a,s) = NAA(a-1,s) * exp(-ZAA(a-1));
+    }
   }
   for(int s=0; s<ns; s++){
-    for(int i=0; i<inds.size(); i++){
-      ind1 = inds(i) + s;
-//      std::cout << ind1 << std::endl;
-      NAAS(ind1) += NAA(ind1,s);
+    int j=s;
+    while(j < asmax){
+      NAAS(j) += NAA(j,s);
+      j += ns;
     }
   }
   NAAS(0) = 0;
@@ -95,7 +96,6 @@ List simpop(double logFM, List dat, List set, int out) {
   int sptype = as<int>(set["spType"]);
   NumericVector spawning = as<NumericVector>(dat["spawning"]);
   // temporary entries
-  IntegerVector inds = as<IntegerVector>(dat["inds"]) - 1;
   int tvm = as<int>(set["tvm"]);
   int tvmsel = as<int>(set["tvmsel"]);
   int tvsel = as<int>(set["tvsel"]);
@@ -124,7 +124,6 @@ List simpop(double logFM, List dat, List set, int out) {
   NumericVector weightFy(asmax);
   double rec = 0.0;
   double fecun = 1.0;
-  double beta = 0.0;
   double hy = 0.0;
   double R0y = 0.0;
   double Ctmp = 0.0;
@@ -159,7 +158,19 @@ List simpop(double logFM, List dat, List set, int out) {
     FAA(a) = fs * sel(as2a(a),as2s(a));
   }
 
-  NumericVector NAAS = initdist(MAA0 * eM(1), FAA, R0 * eR0(1), spawning, inds);
+  // for(int a=0; a<asmax; a++){
+  //   std::cout << "MAA0(" << a << "): " << MAA0(a) << std::endl;
+  // }
+
+  // for(int a=0; a<asmax; a++){
+  //   std::cout << "FAA(" << a << "): " << FAA(a) << std::endl;
+  // }
+
+  NumericVector NAAS = initdist(MAA0 * eM(0), FAA, R0 * eR0(0), spawning);
+
+  // for(int a=0; a<asmax; a++){
+  //   std::cout << "NAAS(" << a << "): " << NAAS(a) << std::endl;
+  // }
 
   // Years
   for(int y=0; y<ny; y++){
@@ -184,16 +195,17 @@ List simpop(double logFM, List dat, List set, int out) {
       for(int a=0; a<asmax; a++){
         SSB += NAAS(a) * maty(a) * weighty(a) * exp(-pzbm * ZAA(a));
       }
+      //    std::cout << "SSB(" << s << "): " << SSB << std::endl;
       // SR
       if(SR == "bevholt"){
-        NAAStmp = initdist(MAA, FAA, 1, spawning, inds);
+        NAAStmp = initdist(MAA, FAA, 1, spawning);
         SPR = 0.0;
         for(int a=0; a<asmax; a++){
           SPR += NAAStmp(a) * maty(a) * weighty(a) * fecun; // SPR(s) += NnatM(a,s) * maty(a,s) * weighty(a,s) * fecun;
         }
         rec = 4 * hy * R0y * SSB / (SPR * R0y * (1-hy) + SSB * (5*hy-1));
       }else if(SR == "ricker"){
-        rec = bp * SSB * exp(-beta * SSB);
+        rec = bp * SSB * exp(-recBeta * SSB);
       }else if(SR == "average"){
         rec = R0y;
       }else if(SR == "hockey-stick"){
@@ -215,9 +227,10 @@ List simpop(double logFM, List dat, List set, int out) {
       for(int a=0; a<asmax; a++){
         Ctmp += CAA(a) * weightFy(a);
       }
+      // std::cout << "Ctmp(" << s << "): " << Ctmp << std::endl;
       CW(y) += Ctmp;
 
-      // Expenential decay
+      // Exponential decay
       NAAS = NAAS * exp(-ZAA);
       if(s == (ns-1)){
         for(int a=0; a<asmax; a++){
