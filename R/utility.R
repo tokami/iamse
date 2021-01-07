@@ -425,7 +425,17 @@ estProdStoch <- function(dat, set= NULL,
                                                                         na.rm=TRUE))))
     up <- as.data.frame(do.call(rbind,lapply(resList,
                                              function(x) apply(x,2, quantile, prob=max(prob),
-                                                          na.rm=TRUE))))
+                                                               na.rm=TRUE))))
+
+    if(plot){
+        plot(meds$TSB, meds$SP, ty = 'n',
+             ylim = range(up$SP,lo$SP,meds$SP),
+             xlim = range(up$TSB,lo$TSB,meds$TSB),
+             xlab = "TSB", ylab = "SP")
+        polygon(c(lo$TSB, rev(up$TSB)), c(lo$SP, rev(up$SP)), border = NA,
+                col = rgb(t(col2rgb("darkred")/255), alpha = 0.2))
+        lines(meds$TSB, meds$SP, col="darkred", lwd=2)
+    }
 
     res <- list(meds = meds,
                 means = means,
@@ -705,7 +715,7 @@ recfunc <- function(h, SSBPR0, SSB,  R0 = 1e6, method = "bevholt", bp = 0,
         ## rec <- alpha * SSB * exp(-beta * SSB)
         rec <- bp * SSB * exp(-beta * SSB)
     }else if(method == "average"){
-        rec <- R0
+        rec <- rep(R0, length(SSB))
     }else if(method == "hockey-stick"){
         rec <- ifelse(SSB > bp, R0, SSB * R0/bp)
     }else if(method == "bent-hyperbola"){  ## Watts-Bacon bent hyperbola

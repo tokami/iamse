@@ -26,6 +26,7 @@ checkDat <- function(dat, verbose = TRUE){
     if(!any(names(dat) == "amax")) stop("Maximum age missing: amax")
     amax <- dat$amax + 1
     asmax <- amax * ns
+    dat$asmax <- asmax
     ages <- 0:(amax-1)
     ## OLD: ages <- t(t(matrix(rep(ages,ns),ncol=ns,nrow=amax)) + seq(0, 1-1/ns, 1/ns))
     ds05 <- 1/ns/2
@@ -34,90 +35,146 @@ checkDat <- function(dat, verbose = TRUE){
 
     dat$yvec <- rep(1:ny, each = ns)
     dat$svec <- rep(1:ns, ny)
-    dat$savec <- rep(1:ns, amax)
-    dat$asvec <- rep(1:(amax), each = ns)
     dat$s1vec <- seq(1, nt, ns)
     dat$s1avec <- seq(1, asmax, ns)
+    dat$as2a <- rep(1:amax, each = ns)
+    dat$as2s <- rep(1:ns, amax)
 
-    ## growth at age
+
+    ## Parameterisation on life history parameters
     ##------------------
+    if(!any(names(dat) == "Linf")){
+        dat$Linf <- NULL
+    }else Linf <- dat$Linf
+    if(!any(names(dat) == "K")){
+        dat$K <- NULL
+    }else K <- dat$K
     if(!any(names(dat) == "a0")){
-        dat$a0 <- 0
+        dat$a0 <- NULL
+    }else a0 <- dat$a0
+    if(is.null(dat$Linf) && any(!is.null(dat$K), !is.null(dat$a0))) stop("dat$Linf not provided.")
+    if(is.null(dat$K) && any(!is.null(dat$Linf), !is.null(dat$a0))) stop("dat$K not provided.")
+    if(is.null(dat$a0) && any(!is.null(dat$Linf), !is.null(dat$K))) stop("dat$a0 not provided.")
+    if(!any(is.null(dat$a0), is.null(dat$Linf), is.null(dat$K))){
+        LA <- dat$Linf * (1 - exp(-dat$K * (ages - dat$a0)))
+    }else{
+        LA <- NULL
     }
-    if(!any(names(dat) == "Linf")) stop("Asymptotic length missing: Linf")
-    if(!any(names(dat) == "K")) stop("Growth coefficient missing: K")
-    LA <- dat$Linf * (1 - exp(-dat$K * (ages - dat$a0)))
     dat$LA <- LA
     if(!any(names(dat) == "binwidth")){
-        dat$binwidth <- 1
+        if(is.null(LA)){
+            dat$binwidth <- NULL
+        }else dat$binwidth <- 1
     }
     binwidth <- dat$binwidth
-    mids <- seq((binwidth/2), dat$Linf * 1.2, by = binwidth)
-    dat$mids <- mids
-    highs <- mids + binwidth/2
-    lows <- mids - binwidth/2
-    lbprobs <- function(mnl, sdl){
-        return(pnorm(highs, mnl, sdl) - pnorm(lows, mnl, sdl))
-    }
-    vlprobs <- Vectorize(lbprobs, vectorize.args=c("mnl","sdl"))
-    if(!any(names(dat) == "CVlen")){
-        dat$CVlen <- 0.1
-    }
-    LA <- array(LA, dim = c(amax,1,ns))
-    plba <- apply(apply(LA, c(1,3), function(x) vlprobs(x, x * dat$CVlen)), c(1,3), t)
-    for(i in 1:dim(plba)[3]){
-        tmp <- rowSums(plba[,,i])
-        plba[,,i] <- plba[,,i] / tmp
-        plba[tmp == 0,,i] <- 0
-    }
-    ## plba <- t(vlprobs(LA, LA * dat$CVlen))
-    ## plba <- plba / rowSums(plba)
+    if(!is.null(LA)){
+        mids <- seq((binwidth/2), dat$Linf * 1.2, by = binwidth)
+        dat$mids <- mids
+        highs <- mids + binwidth/2
+        lows <- mids - binwidth/2
+        lbprobs <- function(mnl, sdl){
+            return(pnorm(highs, mnl, sdl) - pnorm(lows, mnl, sdl))
+        }
+        vlprobs <- Vectorize(lbprobs, vectorize.args=c("mnl","sdl"))
+        if(!any(names(dat) == "CVlen")){
+            dat$CVlen <- 0.1
+        }
+        LA2 <- array(LA, dim = c(amax,1,ns))
+        plba <- apply(apply(LA2, c(1,3), function(x) vlprobs(x, x * dat$CVlen)), c(1,3), t)
+        for(i in 1:dim(plba)[3]){
+            tmp <- rowSums(plba[,,i])
+            plba[,,i] <- plba[,,i] / tmp
+            plba[tmp == 0,,i] <- 0
+        }
+        ## plba <- t(vlprobs(LA, LA * dat$CVlen))
+        ## plba <- plba / rowSums(plba)
+    }else plba <- NULL
     dat$plba <- plba
+
 
 
     ## weight at age
     ##------------------
-    if(!any(names(dat) == "lwa")) stop("Length-weight coefficient missing: lwa")
-    if(!any(names(dat) == "lwb")) stop("Length-weight exponent missing: lwb")
-    dat$weight <- dat$lwa * dat$LA ^ dat$lwb
+    if(!any(names(dat) == "lwa")){
+        lwa <- NULL
+    }else lwa <- dat$lwa
+    if(!any(names(dat) == "lwb")){
+        lwb <- NULL
+    }else lwb <- dat$lwb
+    if(is.null(lwa) && !is.null(lwb)) stop("Length-weight coefficient missing: dat$lwa")
+    if(is.null(lwb) && !is.null(lwa)) stop("Length-weight exponent missing: dat$lwb")
+    if(is.null(LA) && !is.null(lwa) && verbose) writeLines("Parameters of the length-weight relationship not used because growth parameters for the age-length key not provided.")
+    if(any(is.null(LA),is.null(lwb),is.null(lwa))){
+        if(!any(names(dat) == "weight")) dat$weight <- matrix(NA, nrow = amax, ncol = ns)
+    }else dat$weight <- lwa * LA ^ lwb
+
 
 
     ## weight at age (fishery)
     ##------------------
     if(!any(names(dat) == "lwaF")){
-        dat$lwaF <- dat$lwa
-    }
+        lwaF <- NULL
+    }else lwaF <- dat$lwaF
     if(!any(names(dat) == "lwbF")){
-        dat$lwbF <- dat$lwb
+        lwbF <- NULL
+    }else lwbF <- dat$lwbF
+    if(is.null(lwaF) && !is.null(lwbF)) stop("Length-weight coefficient for catch weight-at-age missing: dat$lwaF")
+    if(is.null(lwbF) && !is.null(lwaF)) stop("Length-weight exponent for catch weight-at-age missing: dat$lwbF")
+    if(is.null(lwaF) && !is.null(lwa)){
+        lwaF <- lwa
+        if(verbose) writeLines("Length-weight coefficient for catch weight-at-age missing: dat$lwaF. Setting dat$lwaF equal to stock length-weight coefficient: dat$lwa")
     }
-    dat$weightF <- dat$lwaF * dat$LA ^ dat$lwbF
-
+    if(is.null(lwbF) && !is.null(lwb)){
+        lwbF <- lwb
+        if(verbose) writeLines("Length-weight exponent for catch weight-at-age missing: dat$lwbF. Setting dat$lwbF equal to stock length-weight exponent: dat$lwb")
+    }
+    dat$lwaF <- lwaF
+    dat$lwbF <- lwbF
+    if(any(is.null(LA),is.null(lwbF),is.null(lwaF))){
+        if(!any(names(dat) == "weightF")) dat$weightF <- matrix(NA, nrow = amax, ncol = ns)
+    }else dat$weightF <- lwaF * LA ^ lwbF
 
 
     ## maturity
     ##------------------
-    if(!any(names(dat) == "Lm50")) stop("Length at 50% maturity missing: Lm50")
-    if(!any(names(dat) == "Lm95")) stop("Length at 95% maturity missing: Lm95")
-    if(!is.na(dat$Lm50) && !is.na(dat$Lm95)){
-        dat$mat <- getMat(dat$Lm50, dat$Lm95, dat$mids, dat$plba)
-    }
+    if(!any(names(dat) == "Lm50")){
+        Lm50 <- NULL
+    }else Lm50 <- dat$Lm50
+    if(!any(names(dat) == "Lm95")){
+        Lm95 <- NULL
+    }else Lm95 <- dat$Lm95
+    if(is.null(Lm50) && !is.null(Lm95)) stop("Length at 95% maturity missing: dat$Lm95")
+    if(is.null(Lm95) && !is.null(Lm50)) stop("Length at 50% maturity missing: dat$Lm50")
+    if(any(is.null(LA),is.null(Lm50),is.null(Lm95))){
+        if(!any(names(dat) == "mat")) dat$mat <- matrix(NA, nrow = amax, ncol = ns)
+    }else dat$mat <- getMat(Lm50, Lm95, mids, plba)
 
 
     ## selectivity
     ##------------------
-    if(!any(names(dat) == "L50")) dat$L50 <- dat$Lm50
-    if(!any(names(dat) == "L95")) dat$L95 <- dat$Lm95
-    if(!any(names(dat) == "sel")){
-        dat$sel <- getSel(dat$L50, dat$L95, dat$mids, dat$plba)
-    }else if(!inherits(dat$sel, "list") && dim(dat$sel) == c(amax,ns)){
-        dat$sel <- list(dat$sel/max(dat$sel))
-    }else if(inherits(dat$sel, "list") &&
-             (length(dat$sel) == dat$ny || length(dat$sel) == 1)){
-    }else stop("Selectivity at age ('dat$sel') has incorrect length. Length has to be equal to maximum age + 1 (age 0)!")
+    if(!any(names(dat) == "Ls50")){
+        Ls50 <- NULL
+    }else Ls50 <- dat$Ls50
+    if(!any(names(dat) == "Ls95")){
+        Ls95 <- NULL
+    }else Ls95 <- dat$Ls95
+    if(is.null(Ls50) && !is.null(Ls95)) stop("Length at 50% selectivity missing: dat$Ls50")
+    if(is.null(Ls95) && !is.null(Ls50)) stop("Length at 95% selectivity missing: dat$Ls95")
+    if(is.null(Ls50) && !is.null(Lm50)){
+        Ls50 <- Lm50
+        if(verbose) writeLines("Length at 50% selectivity missing: dat$Ls50. Setting dat$Ls50 equal to maturity parameter: dat$Lm50.")
+    }
+    if(is.null(Ls95) && !is.null(Lm95)){
+        Ls95 <- Lm95
+        if(verbose) writeLines("Length at 95% selectivity missing: dat$Ls95. Setting dat$Ls95 equal to maturity parameter: dat$Lm95.")
+    }
+    if(any(is.null(LA),is.null(Ls50),is.null(Ls95))){
+        if(!any(names(dat) == "sel")) dat$sel <- list(matrix(NA, nrow = amax, ncol = ns))
+    }else dat$sel <- getSel(Lm50, Lm95, mids, plba)
 
-    ## catchability
-    ##------------------
-    if(!any(names(dat) == "q")) dat$q <- 0.005
+    if(!inherits(dat$sel, "list") && dim(dat$sel) == c(amax,ns)){
+        dat$sel <- list(dat$sel/max(dat$sel))
+    }else if(inherits(dat$sel, "list") && length(dat$sel) != ny && length(dat$sel) != 1) stop("Selectivity at age ('dat$sel') has incorrect dimensions. dat$sel has to be a matrix with dimensions: maximum age + 1 (age 0) x the number of seasons (rows x columns)!")
 
 
     ## fecundity
@@ -127,24 +184,38 @@ checkDat <- function(dat, verbose = TRUE){
 
     ## natural mortality over time
     ##------------------
-    if(!any(names(dat) == "M")){
-        dat$M <- rep(getM(dat$Linf, dat$K, dat$mids) / ns, each = nt)
-        if(verbose) writeLines("No natural mortality provided. Setting time-invariant M corresponding to annual M.")
-    }else if(length(dat$M) == 1){
-        dat$M <- rep(dat$M, nt)
-    }else if(length(dat$M) < nta){
-        stop(paste0("Intra-annual natural mortality ('dat$M') has length ",length(dat$M),". It should either be a single numeric or correspond at least to the number of historical time steps ('dat$ny' * 'dat$ns')."))
+    if(is.null(LA)){
+        if(!any(names(dat) == "M")){
+            dat$M <- matrix(NA, nrow = ny, ncol = ns)
+        }else if(any(dim(dat$M) != c(ny,ns))){
+            writeLines("dat$M does not have the correct dimensions. dat$M has to be a matrix with dimensions: number of years x the number of seasons (rows x columns). Extending M matrix.")
+            dat$M <- rbind(dat$M, matrix(rep(dat$M[dim(dat$M)[1]],ny-dim(dat$M)[1]),
+                                         nrow=ny-dim(dat$M)[1],ncol=ns))
+            }
+    }else{
+        if(!any(names(dat) == "M")){
+            if(verbose) writeLines("No natural mortality provided. Setting time-invariant M corresponding to annual M based Gislason's formula and growth parameters.")
+            dat$M <- matrix(getM(Linf, K, mids) / ns, nrow = ny, ncol = ns)
+        }else if(length(dat$M) == 1){
+            dat$M <- matrix(dat$M, nrow = ny, ncol = ns)
+        }else if(length(dat$M) < nta){
+            stop(paste0("Intra-annual natural mortality ('dat$M') has dimensions ",dim(dat$M),". It should either be a single numeric or correspond to a matrix with dimensions: dat$ny x dat$ns."))
+        }
     }
+
 
     ## natural mortality at length
     ##------------------
-    if(!any(names(dat) == "Msel")){
-        if(verbose) writeLines("No natural mortality at age provided. Setting M-at-age based on the Gislason's (2010) empirical formula.")
-        dat$Msel <- getMsel(dat$Linf, dat$K, dat$mids, dat$plba)
-    }else if(!inherits(dat$Msel, "list") && dim(dat$Msel) == c(amax,ns)){
-        dat$Msel <- list(dat$Msel/max(dat$Msel))
-    }else if(inherits(dat$Msel, "list") && (length(dat$Msel) == dat$ny || length(dat$Msel) == 1)){
-    }else stop("Natural mortality at age ('dat$Msel') has incorrect dimensions. 'dat$Msel' has to be a matrix with dim = c(dat$amax + 1 [age 0], dat$ns)!")
+    if(is.null(LA)){
+        if(!any(names(dat) == "Msel")) dat$Msel <- list(matrix(NA, nrow = amax, ncol = ns))
+    }else{
+        if(!any(names(dat) == "Msel")){
+            if(verbose) writeLines("No natural mortality at age provided. Setting M-at-age based on the Gislason's (2010) empirical formula.")
+            dat$Msel <- getMsel(Linf, K, mids, plba)
+        }else if(!inherits(dat$Msel, "list") && dim(dat$Msel) == c(amax,ns)){
+            dat$Msel <- list(dat$Msel/max(dat$Msel))
+        }else if(inherits(dat$Msel, "list") && length(dat$Msel) != ny && length(dat$Msel) != 1) stop("Natural mortality at age (dat$Msel) has incorrect dimensions. dat$Msel has to be a matrix with dimensions: maximum age + 1 (age 0) x the number of seasons (rows x columns)!")
+    }
 
 
     ## historic fishing mortality
@@ -153,16 +224,16 @@ checkDat <- function(dat, verbose = TRUE){
     ## otter <- c(2400, 2500, 1900, 1600, 1000, 700, 500, 500)
     ## beam <- c(200, 1200, 1500, 1300, 1200, 1300, 900, 900)
     ## eff <- beam  + otter
-    timeseries <- c(seq(1970,2015,5),2019)
+    timeseries <- c(seq(1970,2015,5), 2019)
     eff <- c(0.1, 0.2, 0.35, 0.55, 0.7, 0.8, 0.9, 0.97, 1.0, 1.0, 0.9)
     effrel <- eff/max(eff)
     mod <- smooth.spline(x=timeseries, y=effrel)
-    if(!"FM" %in% names(dat)){
-        tmp <- predict(mod, x = seq(1970, 2019, length.out = dat$ny))$y
+    if(!any(names(dat) == "FM")){
+        tmp <- predict(mod, x = seq(1970, 2019, length.out = ny))$y
         dat$FM <- matrix(rep(tmp / ns, each = ns), nrow = ny, ncol = ns, byrow = TRUE)
-    }else if(length(dat$FM) < nt){
-        if(verbose) writeLines("Length of FM not equal to number of time steps (dat$ny * dat$ns). Overwriting FM.")
-        tmp <- predict(mod, x = seq(1970, 2019, length.out = dat$ny))$y
+    }else if(any(dim(dat$FM) != c(ny,ns))){
+        writeLines("dat$FM does not have the correct dimensions. dat$FM has to be a matrix with dimensions: number of years x the number of seasons (rows x columns). Overwriting FM with default values.")
+        tmp <- predict(mod, x = seq(1970, 2019, length.out = ny))$y
         dat$FM <- matrix(rep(tmp / ns, each = ns), nrow = ny, ncol = ns, byrow = TRUE)
     }
 
@@ -173,7 +244,7 @@ checkDat <- function(dat, verbose = TRUE){
         dat$depl <- 0.5
     }
 
-    ## Depletion relative to:
+    ## Depletion relative to
     ##------------------
     if(!"depl.quant" %in% names(dat)){
         dat$depl.quant <- "B0"
@@ -240,6 +311,31 @@ checkDat <- function(dat, verbose = TRUE){
         dat$pzbm <- 0
     }
 
+
+    ## Survey information
+    ##------------------
+    ## North Sea - IBITS: the majority of countries have only carried
+    ## out a survey twice a year; a first quarter survey (January-February) and a
+    ## third quarter survey (August-September)
+    if(is.null(dat$surveyTimes)) dat$surveyTimes <- c(1/12, 7/12)
+    nsurv <- length(dat$surveyTimes)
+
+    ## survey selectivities and timings
+    if(is.null(dat$selI)){
+        dat$selI <- list()
+        for(i in 1:nsurv){
+            dat$selI[[i]] <- dat$sel[[1]]
+        }
+    }
+
+    ## catchability
+    if(!any(names(dat) == "q")) dat$q <- 0.005
+
+    if(is.null(dat$nyC)) dat$nyC <- ny
+    if(is.null(dat$nyI)) dat$nyI <- rep(ny, nsurv)
+
+    ## Seasonal catch observations
+    if(is.null(dat$catchSeasons)) dat$catchSeasons <- 1
 
     ## return
     return(dat)

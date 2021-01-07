@@ -98,7 +98,7 @@ estRef <- function(dat, set=NULL, fvec = seq(0,5,0.1),
 #'
 #' @export
 #'
-estRefStoch <- function(dat, set=NULL,
+estRefStoch <- function(dat, set=NULL, fmax = 10,
                         ncores = parallel::detectCores()-1,
                         ref = c("Fmsy","Bmsy","MSY","B0","ESBmsy","SSBmsy"),
                         plot = FALSE){
@@ -214,7 +214,7 @@ estRefStoch <- function(dat, set=NULL,
                 ## datx$Msels <- msels[ind2]
                 ## datx$Msel <- lapply(datx$Msels, rowMeans)
                 opt <- optimise(function(x) unlist(simpop(x, datx, setx, out=1)),
-                                log(c(0.001,10)), maximum = TRUE)
+                                log(c(0.001,fmax)), maximum = TRUE)
                 tmp[i] <- exp(opt$maximum)
             }
             return(tmp)

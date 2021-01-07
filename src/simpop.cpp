@@ -87,7 +87,7 @@ List simpop(double logFM, List dat, List set, int out) {
   int nyrefmsy = as<int>(set["refYearsMSY"]);
   NumericMatrix weight = as<NumericMatrix>(dat["weight"]);
   NumericMatrix weightF = as<NumericMatrix>(dat["weightF"]);
-  NumericVector M = as<NumericVector>(dat["M"]);
+  NumericMatrix M = as<NumericMatrix>(dat["M"]);
   List MselList = as<List>(dat["Msel"]);
   List selList = as<List>(dat["sel"]);
   IntegerVector s1vec = as<IntegerVector>(dat["s1vec"]);
@@ -153,7 +153,7 @@ List simpop(double logFM, List dat, List set, int out) {
   NumericMatrix sel = as<NumericMatrix>(selList[tvsel-1]);
 
   for(int a=0; a<asmax; a++){
-    MAA0(a) = M(as2s(a) + tvm-1) * Msel(as2a(a),as2s(a));
+    MAA0(a) = M(tvm-1,as2s(a)) * Msel(as2a(a),as2s(a));
     //     for(int a=0; a<asmax; a++) MAA(a,_) = Mtmp(a,_) * M[Rcpp::Range(s1vec(y), s1vec(y)+ns-1)];
     FAA(a) = fs * sel(as2a(a),as2s(a));
   }
