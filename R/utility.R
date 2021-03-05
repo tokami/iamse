@@ -377,64 +377,129 @@ estProdStoch <- function(dat, set= NULL,
     }
 
     datx <- dat
-    ##
-    datx$yvec <- rep(1:nyref, each = ns)
-    datx$svec <- rep(1:ns, each = nyref)
-    datx$s1vec <- seq(1, nyref * ns, ns)
-    datx$as2a <- rep(1:amax, each = ns)
-    datx$as2s <- rep(1:ns, amax)
-    datx$inds <- seq(1,asmax,ns)
+    ## ##
+    ## datx$yvec <- rep(1:nyref, each = ns)
+    ## datx$svec <- rep(1:ns, each = nyref)
+    ## datx$s1vec <- seq(1, nyref * ns, ns)
+    ## datx$as2a <- rep(1:amax, each = ns)
+    ## datx$as2s <- rep(1:ns, amax)
+    ## datx$inds <- seq(1,asmax,ns)
 
-    ##
-    fms <- seq(0, fmax, length.out = nf)
-    resList <- vector("list", nf)
-    for(fx in 1:nf){
-        tmp0 <- parallel::mclapply(as.list(1:nrep), function(x){
-            setx <- c(set, errs[[x]])
-            ## CHECK:
-            setx$tvm <- 1
-            setx$tvmsel <- 1
-            setx$tvsel <- 1
-            pop <- simpop(log(fms[fx]), datx, setx, out=0)
-            tsb <- tail(pop$TSB,1)
-            esb <- tail(pop$ESB,1)
-            ssb <- tail(pop$SSB,1)
-            cw <- tail(pop$CW,1)
-            sp <- tail(pop$SP,1)
-            return(c(TSB = tsb, SSB = ssb, ESB = esb, CW = cw, SP = sp))
-        }, mc.cores = ncores)
-        tmp <- do.call(rbind, tmp0)
-        resList[[fx]] <- cbind(f = rep(fms[fx],nrep), tmp)
+    ## natural mortality
+    ms <- NULL
+    for(i in 1:ns){
+        tmp0 <- unique(dat$M[,i])
+        if(is.null(ms) || length(tmp0) == nrow(ms)){
+            ms <- cbind(ms,tmp0)
+        }else if(length(tmp0) == 1){
+            ms <- cbind(ms,rep(tmp0, length.out = ns))
+        }else stop("You are natural mortality (M) is time-variant but M does not vary consitently among seasons. Please review dat$M or contact the package maintainer.")
+    }
+    mtv <- nrow(ms)
+    mind <- match(dat$M[,1], ms[,1])
+    ## M selectivity
+    if(length(dat$Msel) > 1){
+        msels <- dat$Msel[!duplicated(dat$Msel)]
+        mseltv <- length(msel)
+    }else{
+        msels <- dat$Msel[1]
+        mseltv <- 1
+    }
+    if(mseltv > 1 && mseltv != mtv) stop("Both natural mortality over time (dat$M) and over age (dat$Msel) are time-variant, but do not have the same dimensions. This is not yet implemented, please let both vary equally or keep one of them constant.")
+    alltv <- max(c(mtv, mseltv))
+    ## selectivity
+    if(length(dat$sel) > 1){
+        sels <- dat$sel[!duplicated(dat$sel)]
+        seltv <- length(sel)
+    }else{
+        sels <- dat$sel[1]
+        seltv <- 1
+    }
+    if(seltv > 1 && alltv > 1 && seltv != alltv) stop("Both gear selectivity (dat$sel) and natural mortality (dat$M or dat$Msel) are time-variant, but do not have the same dimensions. This is not yet implemented, please let both vary equally or keep one of them constant.")
+    alltv <- max(c(alltv,seltv))
+
+    if(alltv > 1){
+        if(mtv == alltv){
+            mtv <- 1:mtv
+        }else mtv <- rep(mtv, length.out = alltv)
+        if(mseltv == alltv){
+            mseltv <- 1:mseltv
+        }else mseltv <- rep(mseltv, length.out = alltv)
+        if(seltv == alltv){
+            seltv <- 1:seltv
+        }else seltv <- rep(seltv, length.out = alltv)
     }
 
-    ## est blim as fraction of B corresponding to 0.5 MSY (ICES WKBUT 2013, Cadrin 1999)
-    bs <- do.call(rbind, lapply(resList, function(x) x[,2]))
-    sps <- do.call(rbind, lapply(resList, function(x) x[,6]))
-    blims <- rep(NA, nrep)
-    for(i in 1:nrep){
-        msy <- max(sps[,i], na.rm=TRUE)
-        blims[i] <- bs[which.min(abs(sps[,i] - msy/2)),i]
+    ##
+    blims <- vector("list",alltv)
+    means <- vector("list",alltv)
+    meds <- vector("list",alltv)
+    lo <- vector("list",alltv)
+    up <- vector("list",alltv)
+    for(i in 1:alltv){
+        datx$M <- as.matrix(ms[mtv[i],])
+        datx$Msel <- msels[mseltv[i]]
+        datx$sel <- sels[seltv[i]]
+        fms <- seq(0, fmax, length.out = nf)
+        tmp2 <- vector("list", nf)
+        for(fx in 1:nf){
+            tmp0 <- parallel::mclapply(as.list(1:nrep), function(x){
+                setx <- c(set, errs[[x]])
+                pop <- simpop(log(fms[fx]), datx, setx, out=0)
+                tsb <- tail(pop$TSB,1)
+                esb <- tail(pop$ESB,1)
+                ssb <- tail(pop$SSB,1)
+                cw <- tail(pop$CW,1)
+                sp <- tail(pop$SP,1)
+                return(c(TSB = tsb, SSB = ssb, ESB = esb, CW = cw, SP = sp))
+            }, mc.cores = ncores)
+            tmp1 <- do.call(rbind, tmp0)
+            tmp2[[fx]] <- cbind(f = rep(fms[fx],nrep), tmp1)
+        }
+
+        ## est blim as fraction of B corresponding to 0.5 MSY (ICES WKBUT 2013, Cadrin 1999)
+        bs <- do.call(rbind, lapply(tmp2, function(x) x[,2]))
+        sps <- do.call(rbind, lapply(tmp2, function(x) x[,6]))
+        blims[[i]] <- rep(NA, nrep)
+        for(j in 1:nrep){
+            msy <- max(sps[,j], na.rm=TRUE)
+            blims[[i]][j] <- bs[which.min(abs(sps[,j] - msy/2)),i]
+        }
+
+        means[[i]] <- as.data.frame(do.call(rbind,lapply(tmp2,
+                                                    function(x) apply(x,2, mean, na.rm=TRUE))))
+        meds[[i]] <- as.data.frame(do.call(rbind,lapply(tmp2,
+                                                   function(x) apply(x,2, median, na.rm=TRUE))))
+        lo[[i]] <- as.data.frame(do.call(rbind,lapply(tmp2,
+                                                 function(x) apply(x,2, quantile, prob=min(prob),
+                                                                   na.rm=TRUE))))
+        up[[i]] <- as.data.frame(do.call(rbind,lapply(tmp2,
+                                                 function(x) apply(x,2, quantile, prob=max(prob),
+                                                                   na.rm=TRUE))))
     }
 
-    means <- as.data.frame(do.call(rbind,lapply(resList,
-                                                function(x) apply(x,2, mean, na.rm=TRUE))))
-    meds <- as.data.frame(do.call(rbind,lapply(resList,
-                                               function(x) apply(x,2, median, na.rm=TRUE))))
-    lo <- as.data.frame(do.call(rbind,lapply(resList,
-                                             function(x) apply(x,2, quantile, prob=min(prob),
-                                                                        na.rm=TRUE))))
-    up <- as.data.frame(do.call(rbind,lapply(resList,
-                                             function(x) apply(x,2, quantile, prob=max(prob),
-                                                               na.rm=TRUE))))
 
     if(plot){
-        plot(meds$TSB, meds$SP, ty = 'n',
-             ylim = range(up$SP,lo$SP,meds$SP),
-             xlim = range(up$TSB,lo$TSB,meds$TSB),
+        cols <- rep(c("darkred","dodgerblue","darkgreen","darkorange","purple","gray","black","goldenrod"),100)
+        plot(meds[[1]]$TSB, meds[[1]]$SP, ty = 'n',
+             ylim = range(sapply(meds,function(x) x$SP),
+                          sapply(lo,function(x) x$SP),
+                          sapply(up,function(x) x$SP), na.rm =TRUE),
+             xlim = range(sapply(meds,function(x) x$TSB),
+                          sapply(lo,function(x) x$TSB),
+                          sapply(up,function(x) x$TSB), na.rm =TRUE),
              xlab = "TSB", ylab = "SP")
-        polygon(c(lo$TSB, rev(up$TSB)), c(lo$SP, rev(up$SP)), border = NA,
-                col = rgb(t(col2rgb("darkred")/255), alpha = 0.2))
-        lines(meds$TSB, meds$SP, col="darkred", lwd=2)
+        for(i in 1:alltv){
+            if(i <= 3){
+                polygon(c(lo[[i]]$TSB, rev(up[[i]]$TSB)), c(lo[[i]]$SP, rev(up[[i]]$SP)), border = NA,
+                        col = rgb(t(col2rgb(cols[i])/255), alpha = 0.2))
+            }
+            lines(meds[[i]]$TSB, meds[[i]]$SP, col=cols[i], lwd=2)
+        }
+        legend("topright",
+               legend = c("M = 0.2", "M = 0.3"),  ## CHECK: adjust
+               col = cols[1:alltv],
+               lwd = 1.5)
     }
 
     res <- list(meds = meds,
@@ -506,7 +571,7 @@ predCatch <- function(logFM,
         ## recruitment
         if(spawning[s] > 0 && s > 1){
             ## Survivors from previous season/year
-            SSBPR0 <- getSSBPR(Ztmp, mat , weight ,
+            SSBPR0 <- getSSBPR(Ztmp, mat, weight,
                                 fecun=1, asmax, ns, spawning)
             SSBtmp <- sum(NAA * weight  * mat  * exp(-pzbm * Ztmp))
             rec <- recfunc(h = h2, SSBPR0 = SSBPR0, SSB = SSBtmp,

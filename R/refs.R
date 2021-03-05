@@ -195,7 +195,12 @@ estRefStoch <- function(dat, set=NULL, fmax = 10,
 
 ##     datx$FM <- matrix(datx$ref$Fmsy/ns, ncol = ns, nrow=ny)
 ##     pop <- initPop(datx, setx)
-##     pop$CW
+    ##     pop$CW
+
+    ## browser()
+    ## x <- 1
+    ## i=1
+    ## simpop(log(0.1), datx, setx, out=1)
 
 
     if(any(ref %in% c("Fmsy","Bmsy","MSY","ESBmsy","SSBmsy"))){

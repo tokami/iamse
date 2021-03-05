@@ -168,7 +168,7 @@ initPop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){
     msely <- as.numeric(t(Msel[[1]]))
     NAAbi2 <- NAAbi <- matrix(0, asmax, ns)
     NAAbi[1,] <- R0y * spawning ## * exp(initN[1])
-    ZAA <-  M[1,] * msely + FM[1,] * sely
+    ZAA <-  M[1,] * eM[1] * msely + FM[1,] * eF[1] * sely
 
     ## each season
     for(as in 2:asmax)
@@ -191,8 +191,8 @@ initPop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){
     if(is.null(set)) burnin <- 5e2 else burnin <- set$burnin
     if(is.numeric(burnin) && burnin > 0){
         for(y in 1:burnin){
-            Fbi <- FM[1,] * sely
-            Mbi <- M[1,] * msely
+            Fbi <- FM[1,] * eF[1] * sely
+            Mbi <- M[1,] * eM[1] * msely
             Zbi <- Mbi + Fbi
             for(s in 1:ns){
                 ## recruitment
@@ -445,7 +445,7 @@ initPop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){
         out$TSB1plus <- TSB1plus
         out$ESB <- ESB
         out$SSB <- SSB
-        out$FM <- FM
+        out$FM <- FM * eF
         out$CW <- CW
         out$TACs <- TACs
         out$errs <- errs
@@ -468,7 +468,8 @@ initPop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){
 ## advance population
 #' @name advancePop
 #' @export
-advancePop <- function(dat, hist, set, hcr, year){
+advancePop <- function(dat, hist, set, hcr, year, verbose = TRUE){
+
     ## indices
     ny <- nrow(hist$TSB)
     y <- ny + 1
@@ -505,9 +506,15 @@ advancePop <- function(dat, hist, set, hcr, year){
     spawning <- dat$spawning
     assessmentTiming <- set$assessmentTiming
     if(ns == 1){
-        assessSeasons <- assessmentTiming
+        assessSeasons <- as.list(1)
     }else{
-        assessSeasons <- rep(1:ns, 20)[assessmentTiming:(assessmentTiming+ns-1)]
+        if(length(assessmentTiming) == 1){
+            assessSeasons <- list(rep(1:ns, 20)[assessmentTiming:(assessmentTiming+ns-1)])
+        }else{
+            if(verbose) writeLines("You specified several assessmentTimings. I hope you know what you are doing!")
+            assessSeasons <- as.list(assessmentTiming)
+        }
+
     }
 
     ## parameters per age
@@ -638,8 +645,8 @@ advancePop <- function(dat, hist, set, hcr, year){
     ## Use only part before assessment from previous TAC in assessment year
     if(year %in% assessYears){
         TACreal <- rep(NA, ntac)
-        if(set$assessmentTiming > 1){
-            ind <- 1:(set$assessmentTiming-1)
+        if(min(set$assessmentTiming) > 1){
+            ind <- 1:(min(set$assessmentTiming)-1)
             TACreal[ind] <- tail(TACprev, length(ind))
         }
     }else{
@@ -647,10 +654,8 @@ advancePop <- function(dat, hist, set, hcr, year){
         TACreal <- TACprev
     }
 
-
     NAAS <- hist$lastNAA
 
-##    if(y == 22) browser()
 
     ## seasons
     for(s in 1:ns){
@@ -676,7 +681,7 @@ advancePop <- function(dat, hist, set, hcr, year){
         }
 
         ## Assessment
-        if(year %in% assessYears && s == assessmentTiming){
+        if(year %in% assessYears && s %in% assessmentTiming){
 
             ## Estimate TAC
             if(tacID2 %in% c("refFmsy","consF")){
@@ -685,6 +690,7 @@ advancePop <- function(dat, hist, set, hcr, year){
             }else{
                 ## True stock status
                 TSBtmp <- sum(NAAS * weighty)
+                ESBtmp <- sum(NAAS * weighty * sely)
                 bbmsy <- TSBtmp / refs$Bmsy[y]
                 FMtmp <- as.numeric(t(FM))
                 ffmsy <- sum(tail(FMtmp[1:((y*ns)-ns-(s-1))],ns)) / refs$Fmsy[y]
@@ -693,7 +699,16 @@ advancePop <- function(dat, hist, set, hcr, year){
                                hcr = hcr,
                                tacs = tacs,
                                pars = list("ffmsy" = ffmsy,
-                                           "bbmsy" = bbmsy))
+                                           "bbmsy" = bbmsy,
+                                           "f" = FMtmp,
+                                           "b" = TSBtmp,
+                                           "fmsy" = refs$Fmsy[y],
+                                           "bmsy" = refs$Bmsy[y],
+                                           "sel" = sely,
+                                           "weight" = weightFy,
+                                           "m" = MAA,
+                                           "n" = NAAS
+                                           ))
                 TACs[y] <- as.numeric(as.character(tacs$TAC[nrow(tacs)])) * eImp
                 TACreal <- rep(TACs[y] / ntac, ntac)  ## CHECK: do not equally split tac among time steps!
             }
@@ -707,6 +722,16 @@ advancePop <- function(dat, hist, set, hcr, year){
                     fraci <- as.numeric(unlist(strsplit(as.character(tacID), "_"))[2])
                     ## Fishing at fraction of Fmsy
                     FMtac <- (fraci * refs$Fmsy[y]) / ns
+                    ## ## percentile
+                    ## fraci <- as.numeric(unlist(strsplit(as.character(tacID), "_"))[2])
+                    ## ## uncertainty
+                    ## fraci2 <- as.numeric(unlist(strsplit(as.character(tacID), "_"))[3])
+                    ## ## bias
+                    ## fraci3 <- as.numeric(unlist(strsplit(as.character(tacID), "_"))[4])
+                    ## ## Fishing at fraction of Fmsy
+                    ## ## FMtac <- (fraci * refs$Fmsy[y]) / ns
+                    ## FMtac <- exp(qnorm(fraci,log((refs$Fmsy[y] * fraci3)/ns), sd = fraci2))
+
                 }
             }else if(tacID2 == "noF"){
                 ## noF
@@ -726,7 +751,7 @@ advancePop <- function(dat, hist, set, hcr, year){
                              getFM(TACs[y],
                                    NAA = NAAS, MAA = MAA,
                                    sel = sely, weight = weighty,
-                                   seasons = assessSeasons, ns = ns, y = y,
+                                   seasons = assessSeasons[[s]], ns = ns, y = y,
                                    h = hy, asmax = asmax, mat = maty,
                                    pzbm = pzbm, spawning = spawning,
                                    R0 = R0y, SR = dat$SR, bp = dat$pb, recBeta = dat$recBeta,
@@ -795,7 +820,8 @@ advancePop <- function(dat, hist, set, hcr, year){
                 ## survey observation at age
                 obs$obsIA[[idxi[i]]] <- rbind(obs$obsIA[[idxi[i]]],
                                               q[idxi[i]] *
-                                              as.numeric(by(NAAsurv * dat$selI[[idxi[i]]], as2a, sum)) *
+                                              as.numeric(by(NAAsurv * as.numeric(t(dat$selI[[idxi[i]]])), as2a,
+                                                            sum)) *
                                               eImv[[idxi[[i]]]])
                 rownames(obs$obsIA[[idxi[i]]])[nrow(obs$obsIA[[idxi[i]]])] <- as.character(y)  ## CHECK: instead of 1 (assuming one survey a year) this should allow for s surveys
             }

@@ -4,7 +4,13 @@
 #' @param verbose - print informative messages
 #' @return Updated data list
 #' @export
-checkDat <- function(dat, verbose = TRUE){
+checkDat <- function(dat = NULL, verbose = TRUE){
+
+    if(is.null(dat)) dat <- list()
+
+    ## Do not change processes (sel, mat, weight, weightF) when re-running checkDat()
+    if(is.null(dat$fixProcs)) dat$fixProcs <- FALSE
+
 
     ## Number of historic years
     ##------------------
@@ -23,7 +29,7 @@ checkDat <- function(dat, verbose = TRUE){
 
     ## ages
     ##------------------
-    if(!any(names(dat) == "amax")) stop("Maximum age missing: amax")
+    if(!any(names(dat) == "amax")) dat$amax <- 10 ## stop("Maximum age missing: amax")
     amax <- dat$amax + 1
     asmax <- amax * ns
     dat$asmax <- asmax
@@ -52,9 +58,9 @@ checkDat <- function(dat, verbose = TRUE){
     if(!any(names(dat) == "a0")){
         dat$a0 <- NULL
     }else a0 <- dat$a0
-    if(is.null(dat$Linf) && any(!is.null(dat$K), !is.null(dat$a0))) stop("dat$Linf not provided.")
-    if(is.null(dat$K) && any(!is.null(dat$Linf), !is.null(dat$a0))) stop("dat$K not provided.")
-    if(is.null(dat$a0) && any(!is.null(dat$Linf), !is.null(dat$K))) stop("dat$a0 not provided.")
+    if(is.null(dat$Linf) && any(!is.null(dat$K), !is.null(dat$a0))) dat$Linf <- 100 ## stop("dat$Linf not provided.")
+    if(is.null(dat$K) && any(!is.null(dat$Linf), !is.null(dat$a0))) dat$K <- 0.1 ## stop("dat$K not provided.")
+    if(is.null(dat$a0) && any(!is.null(dat$Linf), !is.null(dat$K))) dat$a0 <- -0.1 ## stop("dat$a0 not provided.")
     if(!any(is.null(dat$a0), is.null(dat$Linf), is.null(dat$K))){
         LA <- dat$Linf * (1 - exp(-dat$K * (ages - dat$a0)))
     }else{
@@ -147,7 +153,7 @@ checkDat <- function(dat, verbose = TRUE){
     if(is.null(Lm95) && !is.null(Lm50)) stop("Length at 50% maturity missing: dat$Lm50")
     if(any(is.null(LA),is.null(Lm50),is.null(Lm95))){
         if(!any(names(dat) == "mat")) dat$mat <- matrix(NA, nrow = amax, ncol = ns)
-    }else dat$mat <- getMat(Lm50, Lm95, mids, plba)
+    }else if(!dat$fixProcs) dat$mat <- getMat(Lm50, Lm95, mids, plba)
 
 
     ## selectivity
@@ -170,7 +176,7 @@ checkDat <- function(dat, verbose = TRUE){
     }
     if(any(is.null(LA),is.null(Ls50),is.null(Ls95))){
         if(!any(names(dat) == "sel")) dat$sel <- list(matrix(NA, nrow = amax, ncol = ns))
-    }else dat$sel <- getSel(Lm50, Lm95, mids, plba)
+    }else if(!dat$fixProcs) dat$sel <- getSel(Lm50, Lm95, mids, plba)
 
     if(!inherits(dat$sel, "list") && dim(dat$sel) == c(amax,ns)){
         dat$sel <- list(dat$sel/max(dat$sel))
@@ -196,10 +202,12 @@ checkDat <- function(dat, verbose = TRUE){
         if(!any(names(dat) == "M")){
             if(verbose) writeLines("No natural mortality provided. Setting time-invariant M corresponding to annual M based Gislason's formula and growth parameters.")
             dat$M <- matrix(getM(Linf, K, mids) / ns, nrow = ny, ncol = ns)
-        }else if(length(dat$M) == 1){
-            dat$M <- matrix(dat$M, nrow = ny, ncol = ns)
-        }else if(length(dat$M) < nta){
-            stop(paste0("Intra-annual natural mortality ('dat$M') has dimensions ",dim(dat$M),". It should either be a single numeric or correspond to a matrix with dimensions: dat$ny x dat$ns."))
+        }else if(nrow(dat$M) == 1 && !dat$fixProcs){
+            dat$M <- matrix(rep(dat$M,ny), nrow = ny, ncol = ns, byrow=TRUE)
+        }else if(nrow(dat$M) < nt){
+            stop(paste0("Intra-annual natural mortality ('dat$M') has dimensions ",
+                        paste0(dim(dat$M),collapse=" x "),
+                        ". It should either be a single numeric or correspond to a matrix with dimensions: dat$ny x dat$ns."))
         }
     }
 
@@ -212,7 +220,7 @@ checkDat <- function(dat, verbose = TRUE){
         if(!any(names(dat) == "Msel")){
             if(verbose) writeLines("No natural mortality at age provided. Setting M-at-age based on the Gislason's (2010) empirical formula.")
             dat$Msel <- getMsel(Linf, K, mids, plba)
-        }else if(!inherits(dat$Msel, "list") && dim(dat$Msel) == c(amax,ns)){
+        }else if(!inherits(dat$Msel, "list") && dim(dat$Msel) == c(amax,ns) && !dat$fixProcs){
             dat$Msel <- list(dat$Msel/max(dat$Msel))
         }else if(inherits(dat$Msel, "list") && length(dat$Msel) != ny && length(dat$Msel) != 1) stop("Natural mortality at age (dat$Msel) has incorrect dimensions. dat$Msel has to be a matrix with dimensions: maximum age + 1 (age 0) x the number of seasons (rows x columns)!")
     }

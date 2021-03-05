@@ -96,9 +96,9 @@ List simpop(double logFM, List dat, List set, int out) {
   int sptype = as<int>(set["spType"]);
   NumericVector spawning = as<NumericVector>(dat["spawning"]);
   // temporary entries
-  int tvm = as<int>(set["tvm"]);
-  int tvmsel = as<int>(set["tvmsel"]);
-  int tvsel = as<int>(set["tvsel"]);
+  // int tvm = as<int>(set["tvm"]);
+  // int tvmsel = as<int>(set["tvmsel"]);
+  // int tvsel = as<int>(set["tvsel"]);
   // still to figure out
   IntegerVector as2a = as<IntegerVector>(dat["as2a"]) - 1;
   IntegerVector as2s = as<IntegerVector>(dat["as2s"]) - 1;
@@ -149,11 +149,14 @@ List simpop(double logFM, List dat, List set, int out) {
   std::fill( SSB2.begin(), SSB2.end(), 0);
   std::fill( TSB.begin(), TSB.end(), 0);
   std::fill( ESB.begin(), ESB.end(), 0);
-  NumericMatrix Msel = as<NumericMatrix>(MselList[tvmsel-1]);
-  NumericMatrix sel = as<NumericMatrix>(selList[tvsel-1]);
+  // NumericMatrix Msel = as<NumericMatrix>(MselList[tvmsel-1]);
+  // NumericMatrix sel = as<NumericMatrix>(selList[tvsel-1]);
+  NumericMatrix Msel = as<NumericMatrix>(MselList[0]);
+  NumericMatrix sel = as<NumericMatrix>(selList[0]);
 
   for(int a=0; a<asmax; a++){
-    MAA0(a) = M(tvm-1,as2s(a)) * Msel(as2a(a),as2s(a));
+    //    MAA0(a) = M(tvm-1,as2s(a)) * Msel(as2a(a),as2s(a));
+    MAA0(a) = M(0,as2s(a)) * Msel(as2a(a),as2s(a));
     //     for(int a=0; a<asmax; a++) MAA(a,_) = Mtmp(a,_) * M[Rcpp::Range(s1vec(y), s1vec(y)+ns-1)];
     FAA(a) = fs * sel(as2a(a),as2s(a));
   }

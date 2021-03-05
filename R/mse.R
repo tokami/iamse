@@ -4,9 +4,7 @@
 ##' @importFrom parallel detectCores
 ##'
 ##' @export
-runMSE <- function(dat, set, ncores=parallel::detectCores()-1, verbose=TRUE){
-    if(ncores > 1) verbose <- FALSE
-
+runMSE <- function(dat, set, ncores=parallel::detectCores()-1, verbose=TRUE){if(ncores > 1) verbose <- FALSE
     ## define constant catch (resort HCR if something not converging)
     defHCRconscat()
 
@@ -24,37 +22,44 @@ runMSE <- function(dat, set, ncores=parallel::detectCores()-1, verbose=TRUE){
 
     ## Checks
     ## --------------------
+
     ## Reference points provided
     if(!any(names(dat) == "ref")) stop("Reference levels have to be part of dat. Use estRef/estRefStoch to estimate them.")
     refs <- dat$ref
+
     ## Natural mortality
     ## --------------------
+    if(!inherits(dat$M, "matrix")) stop(paste0("dat$M is not a matrix. It should be a matrix with ",ns," columns and at least ",ny," rows."))
+    if(ncol(dat$M) != ns) stop(paste0("dat$M has ",ncol(dat$M), "columns. It should have ",ns," columns."))
     ## per season
-    if(length(dat$M) == nt){
-        dat$M <- c(dat$M, rep(tail(dat$M,1), ntall - nt))
-    }else if(length(dat$M) < (ntall)){
-        if(verbose) warning("Length of vector with natural mortality (M) is shorter than sum of historical and projection period. Using last provided natural mortality value for missing years.")
-        dat$M <- c(dat$M, rep(tail(dat$M,ns), nt - length(dat$M)))
+    if(nrow(dat$M) == ny){
+        dat$M <- rbind(dat$M, matrix(rep(tail(dat$M,ns), nyall - ny), nrow = nyall - ny, ncol = ns))
+        if(verbose) writeLines("No M provided for projection period. Using M in the last historical year for the projection period.")
+    }else if(nrow(dat$M) < nyall){
+        if(verbose) warning("Length of vector with natural mortality (dat$M) is shorter than the historical period. Using last provided natural mortality value for missing years and projection period.")
+        dat$M <- rbind(dat$M, matrix(rep(tail(dat$M,ns), ny - nrow(dat$M)), nrow = ny-nrow(dat$M), ncol=ns))
     }
     ## per age
     if(length(dat$Msel) == nt){
         dat$Msel <- c(dat$Msel, rep(tail(dat$Msel,1), ntall - nt))
+        if(verbose) writeLines("No Msel provided for projection period. Using Msel in the last historical year for the projection period.")
     }else if(length(dat$Msel) != 1 && length(dat$Msel) < nt){
-        if(verbose) warning("Length of list with relative natural mortality at age (Msel) is shorter than sum of historical and projection period. Using last provided values for missing years.")
+        if(verbose) warning("Length of list with relative natural mortality at age (dat$Msel) is shorter than the historical period. Using last provided values for missing time step and projection period.")
         dat$Msel <- c(dat$Msel, rep(tail(dat$Msel,1), nt - length(dat$Msel)))
     }
+
     ## Selectivity
     ## --------------------
     ## per age
     if(length(dat$sel) == nt){
         dat$sel <- c(dat$sel, rep(tail(dat$sel,1), ntall - nt))
     }else if(length(dat$sel) != 1 && length(dat$sel) < nt){
-        if(verbose) warning("Length of list with selectivity at age (Msel) is shorter than sum of historical and projection period. Using last provided values for missing years.")
+        if(verbose) warning("Length of list with selectivity at age (dat$sel) is shorter than the historical period. Using last provided values for missing years and projection period.")
         dat$sel <- c(dat$sel, rep(tail(dat$sel,1), nt - length(dat$sel)))
     }
 
 
-    ## Indices
+    ## Overwritting indices (accounting for projection period)
     dat$yvec <- rep(1:nyall, each = ns)
     dat$svec <- rep(1:ns, each = nyall)
     dat$s1vec <- seq(1, ntall, ns)
@@ -91,7 +96,7 @@ runMSE <- function(dat, set, ncores=parallel::detectCores()-1, verbose=TRUE){
         setx$eImp <- genNoise(nysim, set$noiseImp[1], set$noiseImp[2], set$noiseImp[3])
         setx$eC <- genNoise(nysim, set$noiseC[1], set$noiseC[2], set$noiseC[3])
         setx$eI <- list()
-        for(i in 1:length(set$surveyTimes)){
+        for(i in 1:length(dat$surveyTimes)){
            setx$eI[[i]] <- genNoise(nysim, set$noiseI[1], set$noiseI[2], set$noiseI[3])
         }
 
@@ -105,7 +110,8 @@ runMSE <- function(dat, set, ncores=parallel::detectCores()-1, verbose=TRUE){
                                      hist = poptmp,
                                      set = setx,
                                      hcr = hcri,
-                                     year = y)
+                                     year = y,
+                                     verbose = verbose)
             }
             popListx[[i]] <- poptmp
             gc()

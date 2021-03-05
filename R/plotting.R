@@ -40,8 +40,8 @@ plotmse.cw <- function(dat, set, resMSE,
          ylim = ylim,
          ty='n', lwd=2,
          ylab=ylab, xlab = xlab)
-    polygon(x = c((dat$ny-(set$nyhist-1)):dat$ny,rev((dat$ny-(set$nyhist-1)):dat$ny)),
-            y = c(rep(ylim[1]-1e4,set$nyhist),rep(1.5*ylim[2],set$nyhist)),
+    polygon(x = c((dat$ny-(dat$nyC-1)):dat$ny,rev((dat$ny-(dat$nyC-1)):dat$ny)),
+            y = c(rep(ylim[1]-1e4,dat$nyC),rep(1.5*ylim[2],dat$nyC)),
             border=NA, col="grey95")
     polygon(x = c(xhist,rev(xhist)), y = c(llhist,rev(ulhist)),
             border=NA, col=rgb(t(col2rgb("grey30"))/255,alpha=0.2))
@@ -117,8 +117,8 @@ plotmse.b <- function(dat, set, resMSE,
          ylim = ylim,
          ty='n', lwd=2,
          ylab=ylab, xlab = xlab)
-    polygon(x = c((dat$ny-(set$nyhist-1)):dat$ny,rev((dat$ny-(set$nyhist-1)):dat$ny)),
-            y = c(rep(ylim[1]-1e4,set$nyhist),rep(1.5*ylim[2],set$nyhist)),
+    polygon(x = c((dat$ny-(dat$nyC-1)):dat$ny,rev((dat$ny-(dat$nyC-1)):dat$ny)),
+            y = c(rep(ylim[1]-1e4,dat$nyC),rep(1.5*ylim[2],dat$nyC)),
             border=NA, col="grey95")
     polygon(x = c(xhist,rev(xhist)), y = c(llhist,rev(ulhist)),
             border=NA, col=rgb(t(col2rgb("grey30"))/255,alpha=0.2))
@@ -195,8 +195,8 @@ plotmse.f <- function(dat, set, resMSE,
          ylim = ylim,
          ty='n', lwd=2,
          ylab=ylab, xlab = xlab)
-    polygon(x = c((dat$ny-(set$nyhist-1)):dat$ny,rev((dat$ny-(set$nyhist-1)):dat$ny)),
-            y = c(rep(ylim[1]-10,set$nyhist),rep(1.5*ylim[2],set$nyhist)),
+    polygon(x = c((dat$ny-(dat$nyC-1)):dat$ny,rev((dat$ny-(dat$nyC-1)):dat$ny)),
+            y = c(rep(ylim[1]-10,dat$nyC),rep(1.5*ylim[2],dat$nyC)),
             border=NA, col="grey95")
     polygon(x = c(xhist,rev(xhist)), y = c(llhist,rev(ulhist)),
             border=NA, col=rgb(t(col2rgb("grey30"))/255,alpha=0.2))
@@ -354,4 +354,32 @@ plotmse.quant <- function(dat, set, resMSE, hcrs=NULL,
 
     box()
 
+}
+
+
+#' @name plotmse.prod
+#' @export
+plotmse.prod <- function(prod, cols = NULL){
+    meds <- prod$meds
+    means <- prod$means
+    lo <- prod$lo
+    up <- prod$up
+    alltv <- length(prod$meds)
+    if(is.null(cols))
+        cols <- rep(c("darkred","dodgerblue","darkgreen","darkorange","purple","gray","black","goldenrod"),100)
+    plot(meds[[1]]$TSB, meds[[1]]$SP, ty = 'n',
+         ylim = range(sapply(meds,function(x) x$SP),
+                      sapply(lo,function(x) x$SP),
+                      sapply(up,function(x) x$SP), na.rm =TRUE),
+         xlim = range(sapply(meds,function(x) x$TSB),
+                      sapply(lo,function(x) x$TSB),
+                      sapply(up,function(x) x$TSB), na.rm =TRUE),
+         xlab = "TSB", ylab = "SP")
+    for(i in 1:alltv){
+        if(i <= 3){
+            polygon(c(lo[[i]]$TSB, rev(up[[i]]$TSB)), c(lo[[i]]$SP, rev(up[[i]]$SP)), border = NA,
+                    col = rgb(t(col2rgb(cols[i])/255), alpha = 0.2))
+        }
+        lines(meds[[i]]$TSB, meds[[i]]$SP, col=cols[i], lwd=2)
+    }
 }
