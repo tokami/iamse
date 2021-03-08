@@ -173,9 +173,6 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){## indices
     ZAA <-  Mbi + Fbi
 
     NAASbi <- initdistR(Mbi, Fbi, ns, asmax, indage0, spawning, R0y)
-    ## NAASbi <- NAASbi * exp(-ZAA)
-    ## NAASbi[asmax] <- NAASbi[asmax] + NAASbi[asmax-1]
-    ## for(as in (asmax-1):2) NAASbi[as] <- NAASbi[as-1]
 
     ## REMOVE:
     NAASbi2 <- NAASbi
@@ -191,55 +188,16 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){## indices
                 ## recruitment
                 if(spawning[s] > 0){
                     SSBtmp <- sum(NAASbi * weighty * maty * exp(-pzbm * Zbi))
-                    SSBPR0 <- get.ssbpr(Mbi, maty, weighty, fecun=1, asmax, ns,
-                                        spawning, indage0 = indage0)
-                    SSB0 <- get.ssbpr(Mbi, maty, weighty, fecun=1, asmax, ns,
-                                      spawning, indage0 = indage0, R0 = R0y)
-                    print(SSB0)
                     print(SSBtmp)
-                    recbi <- spawning[s] * recfunc(h = hy, SSBPR0 = SSBPR0, SSB = SSBtmp,
+                    SSB0 <- get.ssb0(Mbi, maty, weighty, fecun = 1, asmax, ns,
+                                     spawning, indage0 = indage0,
+                                     R0 = R0y, season = s, FM = Fbi)  ## HERE: don't like that this uses F, should use F=0, possible that initdist (NAASbi2) is incorrect, when F is unqueal 0?
+                    recbi <- spawning[s] * recfunc(h = hy, SSBPR0 = SSB0/R0y, SSB = SSBtmp,
                                                    R0 = R0y, method = dat$SR, bp = dat$bp,
                                                    beta = dat$recBeta, gamma = dat$recGamma)
-                    ## recbi <- spawning[s] * recfunc(h = hy, SSBPR0 = SSBPR0,
-                    ##                                SSB = ifelse(SSBtmp > SSB0, SSB0, SSBtmp),
-                    ##                                R0 = R0y, method = dat$SR, bp = dat$bp,
-                    ##                                beta = dat$recBeta, gamma = dat$recGamma)
-
-                    ## SSBPR0 <- 0.008
-                    ## b0 <- get.ssbpr(Mbi, maty, weighty, fecun=1, asmax, ns,
-                    ##                 R0y*spawning, indage0 = indage0)
-                    ## SSB <- seq(0,b0,1)
-                    ## ## tmp/R0y
-                    ## tmp <- recfunc(h = hy, SSBPR0 = b0/R0y, SSB = SSB,
-                    ##                                R0 = R0y, method = dat$SR, bp = dat$bp,
-                    ##                beta = dat$recBeta, gamma = dat$recGamma)
-                    ## plot(SSB,tmp)
-                    ## abline(h=R0y)
-                    ## max(tmp)
-
                     recbi[recbi<0] <- 1e-10
                     NAASbi[indage0] <- recbi
                 }
-                CWbi <- sum(baranov(Fbi, Mbi, NAASbi) * as.numeric(t(weightFy)))
-                ## can't take more than what's there
-                ## Btmp <- sum(NAASbi * weighty * sely * exp(-Mbi/2))
-                ## if(is.na(CWbi) || is.na(Btmp)){
-                ##     stop("Something went wrong in the burnin period. Catch or biomass is NA.")
-                ## }
-                ## if(CWbi > 0.99 * Btmp){
-                ##     Fbi <- sely * min(get.f(0.75 * Btmp,
-                ##                              NAA = NAASbi, MAA = Mbi,
-                ##                              sel = sely,
-                ##                              weight = weighty,
-                ##                              seasons = s, ns = ns, y = y,
-                ##                              h = hy, asmax = asmax, mat = maty,
-                ##                              pzbm = pzbm, spawning = spawning,
-                ##                              R0 = R0y, SR = dat$SR, bp = dat$pb, recBeta = dat$recBeta,
-                ##                              recGamma = dat$recGamma, eR = eR, indage0 = indage0,
-                ##                              lastFM = 0.001),
-                ##                       set$maxF/ns)
-                ##     Zbi <- Mbi + Fbi
-                ## }
                 ## ageing by season or year
                 NAASbi <- NAASbi * exp(-Zbi)
                 NAASbi[asmax] <- NAASbi[asmax] + NAASbi[asmax-1]
@@ -251,11 +209,12 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){## indices
     NAAS <- NAASbi
 
 
-
     print(cbind(initdist=NAASbi2,burnin=NAASbi))
-##    browser()
+    ## browser()
 
-    NAASbi2/NAASbi
+    ## initdistR(Mbi, Fbi, ns, asmax, indage0, spawning, R0y)
+
+    ## NAASbi2/NAASbi
 
 
     ## main loop
@@ -281,9 +240,9 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){## indices
                 ## Survivors from previous season/year
                 SSB[y,s] <- sum(NAAS * weighty * maty * exp(-pzbm * ZAA)) ## pre-recruitment mort
 ##                print(SSB[y,s])
-                SSBPR0 <- get.ssbpr(MAA, maty, weighty, fecun=1, asmax,
-                                   ns, spawning, indage0 = indage0)
-                rec[y,s] <-  spawning[s] * recfunc(h = hy, SSBPR0 = SSBPR0, SSB = SSB[y,s],
+                SSB0 <- get.ssb0(MAA, maty, weighty, fecun=1, asmax,
+                                   ns, spawning, indage0 = indage0, R0=R0y, season = s)
+                rec[y,s] <-  spawning[s] * recfunc(h = hy, SSBPR0 = SSB0/R0y, SSB = SSB[y,s],
                                                    R0 = R0y, method = dat$SR, bp = dat$bp,
                                                    beta = dat$recBeta, gamma = dat$recGamma) * eR[y]
                 rec[rec<0] <- 1e-10
@@ -694,8 +653,10 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
                 Ztmp <- ZAA
             }
             SSBtmp <- sum(NAAS * weighty * maty * exp(-pzbm * Ztmp)) ## pre-recruitment mort
-            SSBPR0 <- get.ssbpr(MAA, maty, weighty, fecun=1, asmax, ns, spawning, indage0 = indage0)
-            rec[y,s] <- spawning[s] * recfunc(h = hy, SSBPR0 = SSBPR0, SSB = SSBtmp, R0 = R0y,
+            SSB0 <- get.ssb0(MAA, maty, weighty, fecun=1, asmax, ns,
+                             spawning, indage0 = indage0,
+                             R0 = R0y, season = s)
+            rec[y,s] <- spawning[s] * recfunc(h = hy, SSBPR0 = SSB0/R0y, SSB = SSBtmp, R0 = R0y,
                                               method = dat$SR, bp = dat$bp,
                                               beta = dat$recBeta, gamma = dat$recGamma) * eR
             rec[rec<0] <- 1e-10

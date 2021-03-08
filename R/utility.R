@@ -715,34 +715,37 @@ getMsel <- function(Linf, K, mids, plba, a = 0.55, b = 1.61, c = 1.44){
 
 
 
-#' @name get.ssbpr
-#' @description Function to calculate spawners per recruit
+#' @name get.ssb0
+#' @description Function to calculate SSB (F=0)
 #' @param Z - total mortality
 #' @param mat - maturity ogive
 #' @param fecun - fecundity matrix
 #' @param amax - number of age classes
 #' @return spawning biomass per recruit
 #' @export
-get.ssbpr <- function (M, mat, weight, fecun = 1,
+get.ssb0 <- function (M, mat, weight, fecun = 1,
                        asmax, ns, spawning,
-                       R0 = 1, FM = NULL, indage0){
+                      R0, indage0, season, FM=NULL){
 
     if(is.null(FM)){
         FM <- 0
     }
     ZAA <-  M + FM
 
-    NAAS <- initdistR(M, FM, ns, asmax, indage0, spawning, R0)
-    spawning2 <- spawning
-    while(spawning2[1] == 0){
+    NAAS <- initdistR(M, FM=FM, ns, asmax, indage0, spawning, R0)
+
+    ## SSB0 season dependent
+    while(season > 1){
         NAAS <- NAAS * exp(-ZAA)
         NAAS[asmax] <- NAAS[asmax] + NAAS[asmax-1]
         for(as in (asmax-1):2) NAAS[as] <- NAAS[as-1]
-        spawning2 <- spawning2[-1]
+        season <- season - 1
     }
-    SBPR <- sum(NAAS * mat * weight * fecun)
 
-    return(SBPR)
+    ## SSB0
+    SBB0 <- sum(NAAS * mat * weight * fecun)
+
+    return(SBB0)
 }
 
 
@@ -796,7 +799,7 @@ initdistR <- function(M, FM=NULL, ns, asmax, indage0, spawning, R0=1){
     ## each season
     for(as in (indage0+1):asmax)
         NAA[as,] <- NAA[as-1,] * exp(-ZAA[as-1])
-    ## only keep age groups present in season
+    ## only keep age groups present reltative to end of year (last season)
     for(s in 1:ns){
         indi <- seq(indage0+s-1,asmax,ns)
         NAA2[indi,s] <- NAA[indi,s]
@@ -808,10 +811,6 @@ initdistR <- function(M, FM=NULL, ns, asmax, indage0, spawning, R0=1){
     NAA2[asmax,] <- NAA2[asmax,] / (1 - exp(-sum(ZAA[(asmax-ns+1):asmax])))
     ## combine seasons
     NAAS <- rowSums(NAA2)
-    ## for every season without recruitment -> ageing ## CHECK: HERE: or outside?
-    ## NAAS <- NAAS * exp(-ZAA)
-    ## NAAS[asmax] <- NAAS[asmax] + NAAS[asmax-1]
-    ## for(as in (asmax-1):2) NAAS[as] <- NAAS[as-1]
     ## remove recruits
     NAAS[indage0] <- 0
 
