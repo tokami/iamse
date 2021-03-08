@@ -7,7 +7,7 @@ using namespace Rcpp;
 
 // initdist
 NumericVector initdist(NumericVector MAA, NumericVector FAA, double R0, NumericVector spawning);
-RcppExport SEXP _mse_initdist(SEXP MAASEXP, SEXP FAASEXP, SEXP R0SEXP, SEXP spawningSEXP) {
+RcppExport SEXP _iamse_initdist(SEXP MAASEXP, SEXP FAASEXP, SEXP R0SEXP, SEXP spawningSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -21,7 +21,7 @@ END_RCPP
 }
 // simpop
 List simpop(double logFM, List dat, List set, int out);
-RcppExport SEXP _mse_simpop(SEXP logFMSEXP, SEXP datSEXP, SEXP setSEXP, SEXP outSEXP) {
+RcppExport SEXP _iamse_simpop(SEXP logFMSEXP, SEXP datSEXP, SEXP setSEXP, SEXP outSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -35,12 +35,12 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_mse_initdist", (DL_FUNC) &_mse_initdist, 4},
-    {"_mse_simpop", (DL_FUNC) &_mse_simpop, 4},
+    {"_iamse_initdist", (DL_FUNC) &_iamse_initdist, 4},
+    {"_iamse_simpop", (DL_FUNC) &_iamse_simpop, 4},
     {NULL, NULL, 0}
 };
 
-RcppExport void R_init_mse(DllInfo *dll) {
+RcppExport void R_init_iamse(DllInfo *dll) {
     R_registerRoutines(dll, NULL, CallEntries, NULL, NULL);
     R_useDynamicSymbols(dll, FALSE);
 }

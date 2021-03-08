@@ -1,14 +1,14 @@
-#' @name checkDat
+#' @name check.dat
 #' @description Checks data list and fills missing slots
 #' @param dat - data list with all parameters
 #' @param verbose - print informative messages
 #' @return Updated data list
 #' @export
-checkDat <- function(dat = NULL, verbose = TRUE){
+check.dat <- function(dat = NULL, verbose = TRUE){
 
     if(is.null(dat)) dat <- list()
 
-    ## Do not change processes (sel, mat, weight, weightF) when re-running checkDat()
+    ## Do not change processes (sel, mat, weight, weightF) when re-running check.dat()
     if(is.null(dat$fixProcs)) dat$fixProcs <- FALSE
 
 
@@ -55,14 +55,14 @@ checkDat <- function(dat = NULL, verbose = TRUE){
     if(!any(names(dat) == "K")){
         dat$K <- NULL
     }else K <- dat$K
-    if(!any(names(dat) == "a0")){
-        dat$a0 <- NULL
-    }else a0 <- dat$a0
-    if(is.null(dat$Linf) && any(!is.null(dat$K), !is.null(dat$a0))) dat$Linf <- 100 ## stop("dat$Linf not provided.")
-    if(is.null(dat$K) && any(!is.null(dat$Linf), !is.null(dat$a0))) dat$K <- 0.1 ## stop("dat$K not provided.")
-    if(is.null(dat$a0) && any(!is.null(dat$Linf), !is.null(dat$K))) dat$a0 <- -0.1 ## stop("dat$a0 not provided.")
-    if(!any(is.null(dat$a0), is.null(dat$Linf), is.null(dat$K))){
-        LA <- dat$Linf * (1 - exp(-dat$K * (ages - dat$a0)))
+    if(!any(names(dat) == "t0")){
+        dat$t0 <- NULL
+    }else t0 <- dat$t0
+    if(is.null(dat$Linf) && any(!is.null(dat$K), !is.null(dat$t0))) dat$Linf <- 100 ## stop("dat$Linf not provided.")
+    if(is.null(dat$K) && any(!is.null(dat$Linf), !is.null(dat$t0))) dat$K <- 0.1 ## stop("dat$K not provided.")
+    if(is.null(dat$t0) && any(!is.null(dat$Linf), !is.null(dat$K))) dat$t0 <- -0.1 ## stop("dat$t0 not provided.")
+    if(!any(is.null(dat$t0), is.null(dat$Linf), is.null(dat$K))){
+        LA <- dat$Linf * (1 - exp(-dat$K * (ages - dat$t0)))
     }else{
         LA <- NULL
     }
@@ -311,7 +311,11 @@ checkDat <- function(dat = NULL, verbose = TRUE){
         }
     }
     dat$spawning <- dat$spawning / sum(dat$spawning)
-
+    if(!"age0" %in% names(dat)){
+        dat$age0 <- 0
+    }
+    ##    dat$indage0 <- which(ages == ages[which.min(abs(ages - 1/ns/2 - dat$age0))], arr.ind = TRUE)
+    dat$indage0 <- which.min(abs(t(ages) - 1/ns/2 - dat$age0))
 
     ## pzbm
     ##------------------

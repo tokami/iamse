@@ -1,9 +1,9 @@
 ## Harvest control rules (HCRs)
 ##-----------------------------
 
-#' @name estTAC
+#' @name est.tac
 #' @export
-estTAC <- function(obs, hcr, tacs=NULL, pars=NULL){
+est.tac <- function(obs, hcr, tacs=NULL, pars=NULL){
     func <- get(hcr)
     tacs <- func(obs, tacs, pars)
     return(tacs)
@@ -50,13 +50,13 @@ gettacs <- function(tacs=NULL, id="", TAC=NA, obs=NULL){
 
 
 
-#' @name defHCRref
+#' @name def.hcr.ref
 #'
 #' @param consF either numeric indicating constant F level or "fmsy" for fishing at fmsy
 #'
 #' @export
 #'
-defHCRref <- function(consF = 0,
+def.hcr.ref <- function(consF = 0,
                       fracFmsy = NULL,
                       env = globalenv()
                       ){
@@ -138,12 +138,12 @@ structure(
 
 
 
-#' @name defHCRconscat
+#' @name def.hcr.conscat
 #' @title Define harvest control rule
 #'
 #' @export
 #'
-defHCRconscat <- function(id = "conscat",
+def.hcr.conscat <- function(id = "conscat",
                           constantC = NULL,
                           clyears = 1,
                           red = NA,
@@ -240,7 +240,7 @@ class="hcr"
 
 
 
-#' @name defHCRindex
+#' @name def.hcr.index
 #' @title Define harvest control rule
 #' @details This function allows to define harvest control rules (HCRs) which can be incorporated into a
 #' management strategy evaluation framework (DLMtool package). HCRs are saved with a
@@ -258,7 +258,7 @@ class="hcr"
 #'
 #' @export
 #'
-defHCRindex <- function(id = "r23",
+def.hcr.index <- function(id = "r23",
                         x = 2,
                         y = 3,
                         stab = TRUE,
@@ -403,7 +403,7 @@ structure(
 
 
 
-#' @name defHCRspict
+#' @name def.hcr.spict
 #' @title Define harvest control rule
 #'
 #' @param id Name/ID of HCR. Default: "spict-msy"
@@ -446,7 +446,7 @@ structure(
 #'
 #' @export
 #'
-defHCRspict <- function(id = "spict-msy",
+def.hcr.spict <- function(id = "spict-msy",
                         fractiles = list(catch=0.5,
                                          ffmsy=0.5,
                                          bbmsy=0.5,
@@ -918,7 +918,7 @@ indBref <- which(floor(timeX) %in% ann2)
 }
 
 
-#' @name defHCRsam
+#' @name def.hcr.sam
 #' @title Define harvest control rule for SAM
 #'
 #' @param id Name/ID of HCR. Default: "sam"
@@ -930,7 +930,7 @@ indBref <- which(floor(timeX) %in% ann2)
 #'
 #' @export
 #'
-defHCRsam <- function(id = "sam",
+def.hcr.sam <- function(id = "sam",
                       nonconvHCR = "conscat",
                       silent = TRUE,
                       verbose = FALSE,

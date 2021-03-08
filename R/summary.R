@@ -1,10 +1,10 @@
 
 
-#' @name sumMSE
+#' @name summary.mse
 #'
 #' @export
 #'
-sumMSE <- function(mse){
+summary.mse <- function(mse){
     ##
     quants <- c("TSB","SSB","ESB","CW","TSBfinal","TACs","FM")
     nquants <- length(quants)

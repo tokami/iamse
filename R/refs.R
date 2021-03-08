@@ -1,11 +1,11 @@
-#' @name estRef
+#' @name est.ref.levels
 #'
 #' @importFrom parallel detectCores
 #' @importFrom parallel mclapply
 #'
 #' @export
 #'
-estRef <- function(dat, set=NULL, fvec = seq(0,5,0.1),
+est.ref.levels <- function(dat, set=NULL, fvec = seq(0,5,0.1),
                    ncores=parallel::detectCores()-1,
                    ref = c("Fmsy","Bmsy","MSY","ESBmsy","SSBmsy","B0"),
                    plot = FALSE){
@@ -16,7 +16,7 @@ estRef <- function(dat, set=NULL, fvec = seq(0,5,0.1),
     asmax <- dat$asmax
     amax <- dat$amax
 
-    if(is.null(set)) set <- checkSet()
+    if(is.null(set)) set <- check.set()
     ## Remove variability
     set$noiseF <- c(0,0,0)
     set$noiseR <- c(0,0,0)
@@ -28,15 +28,15 @@ estRef <- function(dat, set=NULL, fvec = seq(0,5,0.1),
     set$noiseSel <- c(0,0,0)
     set$noiseImp <- c(0,0,0)
     errs <- vector("list", 7)
-    errs$eF <- genNoise(nyref, set$noiseF[1], set$noiseF[2], set$noiseF[3])
-    errs$eR <- genNoise(nyref, set$noiseR[1], set$noiseR[2], set$noiseR[3])
-    errs$eM <- genNoise(nyref, set$noiseM[1], set$noiseM[2], set$noiseM[3])
-    errs$eH <- genNoise(nyref, set$noiseH[1], set$noiseH[2], set$noiseH[3])
-    errs$eW <- genNoise(nyref, set$noiseW[1], set$noiseW[2], set$noiseW[3])
-    errs$eR0 <- genNoise(nyref, set$noiseR0[1], set$noiseR0[2], set$noiseR0[3])
-    errs$eMat <- genNoise(nyref, set$noiseMat[1], set$noiseMat[2], set$noiseMat[3])
-    errs$eSel <- genNoise(nyref, set$noiseSel[1], set$noiseSel[2], set$noiseSel[3])
-    errs$eImp <- genNoise(nyref, set$noiseImp[1], set$noiseImp[2], set$noiseImp[3])
+    errs$eF <- gen.noise(nyref, set$noiseF[1], set$noiseF[2], set$noiseF[3])
+    errs$eR <- gen.noise(nyref, set$noiseR[1], set$noiseR[2], set$noiseR[3])
+    errs$eM <- gen.noise(nyref, set$noiseM[1], set$noiseM[2], set$noiseM[3])
+    errs$eH <- gen.noise(nyref, set$noiseH[1], set$noiseH[2], set$noiseH[3])
+    errs$eW <- gen.noise(nyref, set$noiseW[1], set$noiseW[2], set$noiseW[3])
+    errs$eR0 <- gen.noise(nyref, set$noiseR0[1], set$noiseR0[2], set$noiseR0[3])
+    errs$eMat <- gen.noise(nyref, set$noiseMat[1], set$noiseMat[2], set$noiseMat[3])
+    errs$eSel <- gen.noise(nyref, set$noiseSel[1], set$noiseSel[2], set$noiseSel[3])
+    errs$eImp <- gen.noise(nyref, set$noiseImp[1], set$noiseImp[2], set$noiseImp[3])
     setx <- c(set, errs)
 
     if(any(ref %in% c("Fmsy","Bmsy","MSY"))){
@@ -91,20 +91,20 @@ estRef <- function(dat, set=NULL, fvec = seq(0,5,0.1),
 }
 
 
-#' @name estRefStoch
+#' @name est.ref.levels.stochastic
 #'
 #' @importFrom parallel detectCores
 #' @importFrom parallel mclapply
 #'
 #' @export
 #'
-estRefStoch <- function(dat, set=NULL, fmax = 10,
+est.ref.levels.stochastic <- function(dat, set=NULL, fmax = 10,
                         ncores = parallel::detectCores()-1,
                         ref = c("Fmsy","Bmsy","MSY","B0","ESBmsy","SSBmsy"),
                         plot = FALSE){
 
     ## Checks
-    if(is.null(set)) set <- checkSet()
+    if(is.null(set)) set <- check.set()
     dist <- NULL
     if(!(set$refMethod %in% c("mean","median"))){
         stop("'set$refMethod' not known! Has to be 'mean' or 'median'!")
@@ -153,15 +153,15 @@ estRefStoch <- function(dat, set=NULL, fmax = 10,
     errs <- vector("list", nrep)
     for(i in 1:nrep){
         errs[[i]] <- vector("list", 9)
-        errs[[i]]$eF <- genNoise(nyref, set$noiseF[1], set$noiseF[2], set$noiseF[3])
-        errs[[i]]$eR <- genNoise(nyref, set$noiseR[1], set$noiseR[2], set$noiseR[3])
-        errs[[i]]$eM <- genNoise(nyref, set$noiseM[1], set$noiseM[2], set$noiseM[3])
-        errs[[i]]$eH <- genNoise(nyref, set$noiseH[1], set$noiseH[2], set$noiseH[3])
-        errs[[i]]$eW <- genNoise(nyref, set$noiseW[1], set$noiseW[2], set$noiseW[3])
-        errs[[i]]$eR0 <- genNoise(nyref, set$noiseR0[1], set$noiseR0[2], set$noiseR0[3])
-        errs[[i]]$eMat <- genNoise(nyref, set$noiseMat[1], set$noiseMat[2], set$noiseMat[3])
-        errs[[i]]$eSel <- genNoise(nyref, set$noiseSel[1], set$noiseSel[2], set$noiseSel[3])
-        errs[[i]]$eImp <- genNoise(nyref, set$noiseImp[1], set$noiseImp[2], set$noiseImp[3])
+        errs[[i]]$eF <- gen.noise(nyref, set$noiseF[1], set$noiseF[2], set$noiseF[3])
+        errs[[i]]$eR <- gen.noise(nyref, set$noiseR[1], set$noiseR[2], set$noiseR[3])
+        errs[[i]]$eM <- gen.noise(nyref, set$noiseM[1], set$noiseM[2], set$noiseM[3])
+        errs[[i]]$eH <- gen.noise(nyref, set$noiseH[1], set$noiseH[2], set$noiseH[3])
+        errs[[i]]$eW <- gen.noise(nyref, set$noiseW[1], set$noiseW[2], set$noiseW[3])
+        errs[[i]]$eR0 <- gen.noise(nyref, set$noiseR0[1], set$noiseR0[2], set$noiseR0[3])
+        errs[[i]]$eMat <- gen.noise(nyref, set$noiseMat[1], set$noiseMat[2], set$noiseMat[3])
+        errs[[i]]$eSel <- gen.noise(nyref, set$noiseSel[1], set$noiseSel[2], set$noiseSel[3])
+        errs[[i]]$eImp <- gen.noise(nyref, set$noiseImp[1], set$noiseImp[2], set$noiseImp[3])
     }
     ##
     datx <- dat
@@ -194,13 +194,27 @@ estRefStoch <- function(dat, set=NULL, fmax = 10,
 
 
 ##     datx$FM <- matrix(datx$ref$Fmsy/ns, ncol = ns, nrow=ny)
-##     pop <- initPop(datx, setx)
+##     pop <- initpop(datx, setx)
     ##     pop$CW
 
-    ## browser()
-    ## x <- 1
-    ## i=1
-    ## simpop(log(0.1), datx, setx, out=1)
+    browser()
+
+
+    set.seed(1)
+    x <- 1
+    i=1
+    setx <- c(set, errs[[x]])
+    setx$refYearsMSY <- 10
+    setx$refYears <- 20
+    tmp <- rep(NA, alltv)
+    datx$mat[1,2] <- 0.5
+    datx$sel[[1]][1,2] <- 0.5
+    simpop(log(20), datx, setx, out=1)
+
+
+    ##sourceCpp("~/Documents/projects/iamse/iamse/src/simpop.cpp")
+
+
 
 
     if(any(ref %in% c("Fmsy","Bmsy","MSY","ESBmsy","SSBmsy"))){
@@ -231,7 +245,7 @@ estRefStoch <- function(dat, set=NULL, fmax = 10,
         ## i <- 1
         ## tmp0$CW
         ## tmp0$TSB
-        ## rowSums(initPop(datx,setx)$TSB)
+        ## rowSums(initpop(datx,setx)$TSB)
 
 
         ## MSY and Biomass reference points

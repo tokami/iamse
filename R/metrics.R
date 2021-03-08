@@ -1,12 +1,12 @@
 
 
 
-#' @name estConsMets
+#' @name est.cons.mets
 #'
 #' @description Estimate consistency of metrics across different sample sizes
 #'
 #' @export
-estConsMets <- function(mse, dat, mets = "all",
+est.cons.mets <- function(mse, dat, mets = "all",
                         sampleSizes = c(0.1,0.25,0.5,0.75,1)){
 
     nsamp <- length(sampleSizes)
@@ -25,7 +25,7 @@ estConsMets <- function(mse, dat, mets = "all",
         names(msei) <- names(mse)
         names(mse[[1]])
         names(msei[[1]])
-        res[[samp]] <- estMets(msei, dat = dat, mets = mets)
+        res[[samp]] <- est.metrics(msei, dat = dat, mets = mets)
     }
 
     return(res)
@@ -34,9 +34,9 @@ estConsMets <- function(mse, dat, mets = "all",
 
 
 
-#' @name estMets
+#' @name est.metrics
 #' @export
-estMets <- function(mse, dat, mets = "all"){
+est.metrics <- function(mse, dat, mets = "all"){
 
     nhcr <- length(mse)
     nrep <- length(mse[[1]])

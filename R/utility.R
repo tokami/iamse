@@ -3,7 +3,7 @@
 #' @name genConvs
 #' @description Get converged simulates from a resMSE object
 #' @export
-getConvs <- function(mse, convyears = "all", convhcrs = "all", out = 0, verbose = FALSE){
+get.converged <- function(mse, convyears = "all", convhcrs = "all", out = 0, verbose = FALSE){
 
     nhcr <- length(mse)
     hcrs <- names(mse)
@@ -102,9 +102,9 @@ sdconv <- function(mu, sd) (log(1 + ((sd^2)/(mu^2))))^0.5
 muconv <- function(mu, sd) log(mu) - 0.5 * log(1 + ((sd^2)/(mu^2)))
 
 
-#' @name genNoise
+#' @name gen.noise
 #' @export
-genNoise <- function(n, sd, rho=0, bias.cor = 0, mv=FALSE, dat=NULL){
+gen.noise <- function(n, sd, rho=0, bias.cor = 0, mv=FALSE, dat=NULL){
 
     if(mv){
         ## multivariate noise
@@ -144,14 +144,14 @@ genNoise <- function(n, sd, rho=0, bias.cor = 0, mv=FALSE, dat=NULL){
 }
 
 
-#' @name estDepl
+#' @name est.depletion
 #' @export
-estDepl <- function(dat, set=NULL, fmax = 10, nrep = 100, verbose = TRUE, method = "percentile"){
+est.depletion <- function(dat, set=NULL, fmax = 10, nrep = 100, verbose = TRUE, method = "percentile"){
 
-    if(!any(names(dat) == "ref")) stop("Reference points are missing in dat. Use estRefStoch to estimate reference points.")
+    if(!any(names(dat) == "ref")) stop("Reference points are missing in dat. Use est.ref.levels.stochastic to estimate reference points.")
 
     if(is.null(set)){
-        set <- checkSet()
+        set <- check.set()
         nrep <- 1
     }
 
@@ -171,7 +171,7 @@ estDepl <- function(dat, set=NULL, fmax = 10, nrep = 100, verbose = TRUE, method
         datx <- dat
         fpat <- frel * exp(logfabs)
         datx$FM <- fpat
-        dreal <- sapply(1:nrep, function(x) initPop(datx, set, out.opt = outopt))
+        dreal <- sapply(1:nrep, function(x) initpop(datx, set, out.opt = outopt))
         if(method == "mean"){
             drealQ <- mean(dreal)
         }else if(method == "median"){
@@ -202,9 +202,9 @@ estDepl <- function(dat, set=NULL, fmax = 10, nrep = 100, verbose = TRUE, method
 
 
 
-#' @name estProd
+#' @name est.productivity
 #' @export
-estProd <- function(dat, set= NULL,
+est.productivity <- function(dat, set= NULL,
                     ny = 100,
                     fmax = 10,
                     tsSplit = 8,
@@ -215,7 +215,7 @@ estProd <- function(dat, set= NULL,
     nt <- ny * ns
 
     ## noise
-    if(is.null(set)) set <- checkSet()
+    if(is.null(set)) set <- check.set()
     set$noiseF <- c(0,0,0)
     set$noiseR <- c(0,0,0)
     set$noiseR0 <- c(0,0,0)
@@ -237,8 +237,8 @@ estProd <- function(dat, set= NULL,
                 rep(fmax,len3)) / ns
     ## CHECK: how to estimate productivity with time variant M?
     dat$M <- mean(dat$M)
-    dat <- checkDat(dat)
-    pop1 <- initPop(dat, set)
+    dat <- check.dat(dat)
+    pop1 <- initpop(dat, set)
     tsb1 <- pop1$TSBfinal
     esb1 <- pop1$ESBfinal
     cw1 <- apply(pop1$CW,1,sum)
@@ -262,8 +262,8 @@ estProd <- function(dat, set= NULL,
                    seq(fmax, 0, length.out = len2),
                 rep(0, len3)) / ns
     dat$M <- mean(dat$M)
-    dat <- checkDat(dat)
-    pop2 <- initPop(dat, set)
+    dat <- check.dat(dat)
+    pop2 <- initpop(dat, set)
     tsb2 <- pop2$TSBfinal
     esb2 <- pop2$ESBfinal
     cw2 <- apply(pop2$CW,1,sum)
@@ -335,9 +335,9 @@ estProd <- function(dat, set= NULL,
 
 
 
-#' @name estProd
+#' @name est.productivity
 #' @export
-estProdStoch <- function(dat, set= NULL,
+est.productivity.stochastic <- function(dat, set= NULL,
                          fmax = 10,
                          nf = 1e3,
                          prob = c(0.1,0.9),
@@ -350,7 +350,7 @@ estProdStoch <- function(dat, set= NULL,
     nt <- ny * ns
     asmax <- amax * ns
     ## noise
-    if(is.null(set)) set <- checkSet()
+    if(is.null(set)) set <- check.set()
     nyref <- set$refYears
     nrep <- set$refN
     nyrefmsy <- set$refYearsMSY
@@ -365,15 +365,15 @@ estProdStoch <- function(dat, set= NULL,
     errs <- vector("list", nrep)
     for(i in 1:nrep){
         errs[[i]] <- vector("list", 7)
-        errs[[i]]$eF <- genNoise(nyref, set$noiseF[1], set$noiseF[2], set$noiseF[3])
-        errs[[i]]$eR <- genNoise(nyref, set$noiseR[1], set$noiseR[2], set$noiseR[3])
-        errs[[i]]$eM <- genNoise(nyref, set$noiseM[1], set$noiseM[2], set$noiseM[3])
-        errs[[i]]$eH <- genNoise(nyref, set$noiseH[1], set$noiseH[2], set$noiseH[3])
-        errs[[i]]$eW <- genNoise(nyref, set$noiseW[1], set$noiseW[2], set$noiseW[3])
-        errs[[i]]$eR0 <- genNoise(nyref, set$noiseR0[1], set$noiseR0[2], set$noiseR0[3])
-        errs[[i]]$eMat <- genNoise(nyref, set$noiseMat[1], set$noiseMat[2], set$noiseMat[3])
-        errs[[i]]$eSel <- genNoise(nyref, set$noiseSel[1], set$noiseSel[2], set$noiseSel[3])
-        errs[[i]]$eImp <- genNoise(nyref, set$noiseImp[1], set$noiseImp[2], set$noiseImp[3])
+        errs[[i]]$eF <- gen.noise(nyref, set$noiseF[1], set$noiseF[2], set$noiseF[3])
+        errs[[i]]$eR <- gen.noise(nyref, set$noiseR[1], set$noiseR[2], set$noiseR[3])
+        errs[[i]]$eM <- gen.noise(nyref, set$noiseM[1], set$noiseM[2], set$noiseM[3])
+        errs[[i]]$eH <- gen.noise(nyref, set$noiseH[1], set$noiseH[2], set$noiseH[3])
+        errs[[i]]$eW <- gen.noise(nyref, set$noiseW[1], set$noiseW[2], set$noiseW[3])
+        errs[[i]]$eR0 <- gen.noise(nyref, set$noiseR0[1], set$noiseR0[2], set$noiseR0[3])
+        errs[[i]]$eMat <- gen.noise(nyref, set$noiseMat[1], set$noiseMat[2], set$noiseMat[3])
+        errs[[i]]$eSel <- gen.noise(nyref, set$noiseSel[1], set$noiseSel[2], set$noiseSel[3])
+        errs[[i]]$eImp <- gen.noise(nyref, set$noiseImp[1], set$noiseImp[2], set$noiseImp[3])
     }
 
     datx <- dat
@@ -560,6 +560,7 @@ predCatch <- function(logFM,
                       sel, weight,
                       seasons, ns, y, h2, asmax, mat, pzbm, spawning,
                       R0, SR, bp, recBeta, recGamma, eR,
+                      indage0,
                       TAC = NULL,
                       out = 0){
     Ctmp <- 0
@@ -571,8 +572,8 @@ predCatch <- function(logFM,
         ## recruitment
         if(spawning[s] > 0 && s > 1){
             ## Survivors from previous season/year
-            SSBPR0 <- getSSBPR(Ztmp, mat, weight,
-                                fecun=1, asmax, ns, spawning)
+            SSBPR0 <- get.ssbpr(Ztmp, mat, weight,
+                                fecun=1, asmax, ns, spawning, indage0)
             SSBtmp <- sum(NAA * weight  * mat  * exp(-pzbm * Ztmp))
             rec <- recfunc(h = h2, SSBPR0 = SSBPR0, SSB = SSBtmp,
                              R0 = R0, method = SR, bp = bp,
@@ -595,16 +596,17 @@ predCatch <- function(logFM,
     }
 }
 
-#' @name getFM
+#' @name get.f
 #' @details get FM accounting for seasons
 #' @export
-getFM <- function(TAC,
+get.f <- function(TAC,
                    NAA, MAA,
                    sel, weight,
                    seasons, ns, y, h, asmax, mat,
                    pzbm, spawning,
-                   R0, SR, bp, recBeta = recBeta,
-                   recGamma = recGamma, eR = eR,
+                   R0, SR, bp, recBeta,
+                  recGamma, eR,
+                  indage0,
                   lastFM = 0.1){
 
     opt <- nlminb(start = log(lastFM), objective = predCatch,
@@ -615,6 +617,7 @@ getFM <- function(TAC,
                   pzbm = pzbm, spawning = spawning,
                   R0 = R0, SR = SR, bp = bp, recBeta = recBeta,
                   recGamma = recGamma, eR = eR,
+                  indage0 = indage0,
                   TAC = TAC,
                   out = 1,
                   lower = -10, upper = 10,
@@ -712,7 +715,7 @@ getMsel <- function(Linf, K, mids, plba, a = 0.55, b = 1.61, c = 1.44){
 
 
 
-#' @name getSSBPR
+#' @name get.ssbpr
 #' @description Function to calculate spawners per recruit
 #' @param Z - total mortality
 #' @param mat - maturity ogive
@@ -720,34 +723,23 @@ getMsel <- function(Linf, K, mids, plba, a = 0.55, b = 1.61, c = 1.44){
 #' @param amax - number of age classes
 #' @return spawning biomass per recruit
 #' @export
-getSSBPR <- function (M, mat, weight, fecun = 1,
+get.ssbpr <- function (M, mat, weight, fecun = 1,
                        asmax, ns, spawning,
-                       R0 = 1, FM = NULL){
+                       R0 = 1, FM = NULL, indage0){
 
     if(is.null(FM)){
         FM <- 0
     }
-
-    NAAS <- NAA <- matrix(0, asmax, ns)
-    NAA[1,] <- spawning
     ZAA <-  M + FM
-    ## each season
-    for(as in 2:asmax)
-        NAA[as,] <- NAA[as-1,] * exp(-ZAA[as-1])
-    ## all seasons combined
-    for(s in 1:ns){
-        NAAS[seq(s,asmax,ns),s] <- NAA[seq(s,asmax,ns),s]
-    }
-    NAAS <- rowSums(NAAS)
-    NAAS[1] <- 0
-    plusgroup <- NAAS[(asmax-ns+1):asmax] / (1 - exp(-sum(ZAA[(asmax-ns+1):asmax])))
-    if(ns == 1){
-        NAAS[asmax] <- sum(plusgroup)
-    }else{
-        NAAS[asmax] <- sum(plusgroup) - sum(NAAS[(asmax-ns+1):asmax])
-    }
-##    NAAS[asmax] <- sum(plusgroup)
 
+    NAAS <- initdistR(M, FM, ns, asmax, indage0, spawning, R0)
+    spawning2 <- spawning
+    while(spawning2[1] == 0){
+        NAAS <- NAAS * exp(-ZAA)
+        NAAS[asmax] <- NAAS[asmax] + NAAS[asmax-1]
+        for(as in (asmax-1):2) NAAS[as] <- NAAS[as-1]
+        spawning2 <- spawning2[-1]
+    }
     SBPR <- sum(NAAS * mat * weight * fecun)
 
     return(SBPR)
@@ -768,12 +760,9 @@ recfunc <- function(h, SSBPR0, SSB,  R0 = 1e6, method = "bevholt", bp = 0,
                     beta = 0, gamma = 0){
 
     if(method == "bevholt"){
-        ## alpha <- SSBPR0 * ((1-h)/(4*h))
-        ## beta <- (5*h-1)/(4*h*R0)
-        ## rec <- SSB / (alpha + beta * SSB)
-
-        rec <- (4 * h * R0 * SSB / (SSBPR0 * R0 * (1-h) + SSB * (5*h-1)))
-
+        alpha <- SSBPR0 * (1-h)/(4*h)
+        beta <- (5*h-1) / (4*h*R0)
+        rec <- SSB / (alpha + beta * SSB)
     }else if(method == "ricker"){
         ## beta <- log(5 * h) / (0.8 * R0)
         ## alpha <- exp(beta * R0)/SSBPR0
@@ -788,4 +777,43 @@ recfunc <- function(h, SSBPR0, SSB,  R0 = 1e6, method = "bevholt", bp = 0,
     }else print("Stock-recruitment method not known! Implemented methods: 'bevholt', 'ricker', 'average', and 'hockey-stick'.")
 
     return (rec)
+}
+
+
+
+#' @name initdistR
+#' @export
+initdistR <- function(M, FM=NULL, ns, asmax, indage0, spawning, R0=1){
+
+    if(is.null(FM)){
+        FM <- 0
+    }
+
+    NAA2 <- NAA <- matrix(0, asmax, ns)
+    NAA[indage0,] <- R0 * spawning
+    ZAA <-  M + FM
+
+    ## each season
+    for(as in (indage0+1):asmax)
+        NAA[as,] <- NAA[as-1,] * exp(-ZAA[as-1])
+    ## only keep age groups present in season
+    for(s in 1:ns){
+        indi <- seq(indage0+s-1,asmax,ns)
+        NAA2[indi,s] <- NAA[indi,s]
+    }
+    ## keep last age group for every season
+    indi <- which(NAA2[asmax,]==0)
+    NAA2[asmax,indi] <- NAA[asmax,indi] * exp(-ZAA[asmax])
+    ## plus group correction
+    NAA2[asmax,] <- NAA2[asmax,] / (1 - exp(-sum(ZAA[(asmax-ns+1):asmax])))
+    ## combine seasons
+    NAAS <- rowSums(NAA2)
+    ## for every season without recruitment -> ageing ## CHECK: HERE: or outside?
+    ## NAAS <- NAAS * exp(-ZAA)
+    ## NAAS[asmax] <- NAAS[asmax] + NAAS[asmax-1]
+    ## for(as in (asmax-1):2) NAAS[as] <- NAAS[as-1]
+    ## remove recruits
+    NAAS[indage0] <- 0
+
+    return(NAAS)
 }

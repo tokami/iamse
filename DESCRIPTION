@@ -1,11 +1,11 @@
-Package: mse
+Package: iamse
 Type: Package
-Title: Management strategy evaluation (MSE)
-Version: 0.0.1
-Date: 2020-07-07
+Title: Intra-annual management strategy evaluation (IAMSE)
+Version: 0.0.3
+Date: 2021-02-20
 Author: T.K. Mildenberger
 Maintainer: T.K. Mildenberger <t.k.mildenberger@gmail.com>
-Description: Contains framework for age-based operating model for MSE.
+Description: Contains framework for intra-annual age-based operating model for MSE.
 License: GPL (>=3)
 Encoding: UTF-8
 Copyright: Tobias K. Mildenberger <t.k.mildenberger@gmail.com>

@@ -1,8 +1,8 @@
 
 
-#' @name plotmse.cw
+#' @name plotiamse.cw
 #' @export
-plotmse.cw <- function(dat, set, resMSE,
+plotiamse.cw <- function(dat, set, resMSE,
                        trendline=TRUE, uncert = TRUE, med = TRUE,
                        hcrs=NA, ylim = NULL, plot.legend = TRUE,
                        ylab="Catch", xlab = ""){
@@ -16,7 +16,7 @@ plotmse.cw <- function(dat, set, resMSE,
         set$hcr <- hcrs
     }
     ## summary (median, 95% CIs)
-    res <- sumMSE(resMSE)
+    res <- summary.mse(resMSE)
     ## vars
     nms <- length(resMSE)
     xhist <- seq(1,dat$ny,1)
@@ -77,9 +77,9 @@ plotmse.cw <- function(dat, set, resMSE,
 }
 
 
-#' @name plotmse.b
+#' @name plotiamse.b
 #' @export
-plotmse.b <- function(dat, set, resMSE,
+plotiamse.b <- function(dat, set, resMSE,
                       trendline=TRUE, uncert = TRUE, med = TRUE,
                       hcrs=NA, ylim = NULL, plot.legend = TRUE,
                       ylab="Total biomass", xlab = ""){
@@ -93,7 +93,7 @@ plotmse.b <- function(dat, set, resMSE,
         set$hcr <- hcrs
     }
     ## summary (median, 95% CIs)
-    res <- sumMSE(resMSE)
+    res <- summary.mse(resMSE)
     ## vars
     nms <- length(resMSE)
     xhist <- seq(1,dat$ny,1)
@@ -154,9 +154,9 @@ plotmse.b <- function(dat, set, resMSE,
 }
 
 
-#' @name plotmse.f
+#' @name plotiamse.f
 #' @export
-plotmse.f <- function(dat, set, resMSE,
+plotiamse.f <- function(dat, set, resMSE,
                       trendline=TRUE, uncert = TRUE, med = TRUE,
                       hcrs=NA, ylim=NULL, plot.legend = TRUE,
                       ylab="Fishing mortality", xlab = ""){
@@ -170,7 +170,7 @@ plotmse.f <- function(dat, set, resMSE,
         set$hcr <- hcrs
     }
     ## summary (median, 95% CIs)
-    res <- sumMSE(resMSE)
+    res <- summary.mse(resMSE)
 
     ## vars
     nms <- length(resMSE)
@@ -233,9 +233,9 @@ plotmse.f <- function(dat, set, resMSE,
 
 
 
-#' @name plotmse.tradeoff
+#' @name plotiamse.tradeoff
 #' @export
-plotmse.tradeoff <- function(mets, metrics = c("avRelCatch","PBBlim"),
+plotiamse.tradeoff <- function(mets, metrics = c("avRelCatch","PBBlim"),
                              hcrs=NA, plot.legend = TRUE){
     if(any(!is.na(hcrs))){
         metsnew <- vector("list",length(hcrs))
@@ -284,9 +284,9 @@ plotmse.tradeoff <- function(mets, metrics = c("avRelCatch","PBBlim"),
 }
 
 
-#' @name plotmse.quant
+#' @name plotiamse.quant
 #' @export
-plotmse.quant <- function(dat, set, resMSE, hcrs=NULL,
+plotiamse.quant <- function(dat, set, resMSE, hcrs=NULL,
                           quants = c("bpbmsy.sd","fmfmsy.sd","cp.sd"),
                           hline=NULL, plot.legend = TRUE){
 
@@ -357,9 +357,9 @@ plotmse.quant <- function(dat, set, resMSE, hcrs=NULL,
 }
 
 
-#' @name plotmse.prod
+#' @name plotiamse.prod
 #' @export
-plotmse.prod <- function(prod, cols = NULL){
+plotiamse.prod <- function(prod, cols = NULL){
     meds <- prod$meds
     means <- prod$means
     lo <- prod$lo

@@ -7,12 +7,11 @@
 ## maturity-at-age (mat)
 ## proportion of Z before maturation (pzbm)
 
-#' @name initPop
+#' @name initpop
 #'
 #' @export
-initPop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){
-    ## indices
-    if(is.null(set)) set <- checkSet()
+initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){## indices
+    if(is.null(set)) set <- check.set()
     ny <- dat$ny
     ns <- dat$ns
     nt <- ny * ns
@@ -21,6 +20,7 @@ initPop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){
     s1vec <- dat$s1vec
     s1avec <- dat$s1avec
     as2a <- dat$as2a
+    indage0 <- dat$indage0
     nsC <- dat$catchSeasons
     nyC <- dat$nyC
     if(nyC > ny){
@@ -79,29 +79,29 @@ initPop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){
         eI <- set$eI
         eCmv <- set$eCmv
         eImv <- set$eImv
-        if(is.null(eF)) eF <- genNoise(ny, set$noiseF[1], set$noiseF[2], bias.cor = set$noiseF[3])
-        if(is.null(eR)) eR <- genNoise(ny, set$noiseR[1], set$noiseR[2], bias.cor = set$noiseR[3])
-        if(is.null(eM)) eM <- genNoise(ny, set$noiseM[1], set$noiseM[2], bias.cor = set$noiseM[3])
-        if(is.null(eH)) eH <- genNoise(ny, set$noiseH[1], set$noiseH[2], bias.cor = set$noiseH[3])
-        if(is.null(eR0)) eR0 <- genNoise(ny, set$noiseR0[1], set$noiseR0[2], bias.cor = set$noiseR0[3])
-        if(is.null(eMat)) eMat <- genNoise(ny, set$noiseMat[1], set$noiseMat[2], bias.cor = set$noiseMat[3])
-        if(is.null(eSel)) eSel <- genNoise(ny, set$noiseSel[1], set$noiseSel[2], bias.cor = set$noiseSel[3])
-        if(is.null(eW)) eW <- genNoise(ny, set$noiseW[1], set$noiseW[2], bias.cor = set$noiseW[3])
-        if(is.null(eImp)) eImp <- genNoise(ny, set$noiseImp[1], set$noiseImp[2], bias.cor = set$noiseImp[3])
-        if(is.null(eC)) eC <- genNoise(ny, set$noiseC[1], set$noiseC[2], bias.cor = set$noiseC[3])
+        if(is.null(eF)) eF <- gen.noise(ny, set$noiseF[1], set$noiseF[2], bias.cor = set$noiseF[3])
+        if(is.null(eR)) eR <- gen.noise(ny, set$noiseR[1], set$noiseR[2], bias.cor = set$noiseR[3])
+        if(is.null(eM)) eM <- gen.noise(ny, set$noiseM[1], set$noiseM[2], bias.cor = set$noiseM[3])
+        if(is.null(eH)) eH <- gen.noise(ny, set$noiseH[1], set$noiseH[2], bias.cor = set$noiseH[3])
+        if(is.null(eR0)) eR0 <- gen.noise(ny, set$noiseR0[1], set$noiseR0[2], bias.cor = set$noiseR0[3])
+        if(is.null(eMat)) eMat <- gen.noise(ny, set$noiseMat[1], set$noiseMat[2], bias.cor = set$noiseMat[3])
+        if(is.null(eSel)) eSel <- gen.noise(ny, set$noiseSel[1], set$noiseSel[2], bias.cor = set$noiseSel[3])
+        if(is.null(eW)) eW <- gen.noise(ny, set$noiseW[1], set$noiseW[2], bias.cor = set$noiseW[3])
+        if(is.null(eImp)) eImp <- gen.noise(ny, set$noiseImp[1], set$noiseImp[2], bias.cor = set$noiseImp[3])
+        if(is.null(eC)) eC <- gen.noise(ny, set$noiseC[1], set$noiseC[2], bias.cor = set$noiseC[3])
         if(is.null(eI)){
             eI <- list()
             for(i in 1:nsurv){
-                eI[[i]] <- genNoise(ny, set$noiseI[1], set$noiseI[2], bias.cor = set$noiseI[3])
+                eI[[i]] <- gen.noise(ny, set$noiseI[1], set$noiseI[2], bias.cor = set$noiseI[3])
             }
         }
-        if(is.null(eCmv)) eCmv <- genNoise(ny, set$noiseCmv[1], set$noiseCmv[2],
+        if(is.null(eCmv)) eCmv <- gen.noise(ny, set$noiseCmv[1], set$noiseCmv[2],
                                                bias.cor = set$noiseCmv[3],
                                                mv = TRUE, dat = dat)
         if(is.null(eImv)){
             eImv <- list()
             for(i in 1:nsurv){
-                eImv[[i]] <- genNoise(ny, set$noiseImv[1], set$noiseImv[2],
+                eImv[[i]] <- gen.noise(ny, set$noiseImv[1], set$noiseImv[2],
                                     bias.cor = set$noiseImv[3],
                                     mv = TRUE, dat = dat)
             }
@@ -167,25 +167,18 @@ initPop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){
     sely <- as.numeric(t(sel[[1]])) * eSel[1]
     msely <- as.numeric(t(Msel[[1]]))
     NAAbi2 <- NAAbi <- matrix(0, asmax, ns)
-    NAAbi[1,] <- R0y * spawning ## * exp(initN[1])
-    ZAA <-  M[1,] * eM[1] * msely + FM[1,] * eF[1] * sely
+    NAAbi[indage0,] <- R0y * spawning ## * exp(initN[1])
+    Mbi <- M[1,] * eM[1] * msely
+    Fbi <- FM[1,] * eF[1] * sely ## TODO: F,M different in various seasons?
+    ZAA <-  Mbi + Fbi
 
-    ## each season
-    for(as in 2:asmax)
-        NAAbi[as,] <- NAAbi[as-1,] * exp(-ZAA[as-1])
-    ## all seasons combined
-    for(s in 1:ns){
-        NAAbi2[seq(s,asmax,ns),s] <- NAAbi[seq(s,asmax,ns),s]
-    }
-    NAASbi <- rowSums(NAAbi2)
-    NAASbi[1] <- 0
-    ## plusgroup
-    plusgroup <- NAASbi[(asmax-ns+1):asmax] / (1 - exp(-sum(ZAA[(asmax-ns+1):asmax])))
-    if(ns == 1){
-        NAASbi[asmax] <- sum(plusgroup)
-    }else{
-        NAASbi[asmax] <- sum(plusgroup) - sum(NAASbi[(asmax-ns+1):asmax])
-    }
+    NAASbi <- initdistR(Mbi, Fbi, ns, asmax, indage0, spawning, R0y)
+    ## NAASbi <- NAASbi * exp(-ZAA)
+    ## NAASbi[asmax] <- NAASbi[asmax] + NAASbi[asmax-1]
+    ## for(as in (asmax-1):2) NAASbi[as] <- NAASbi[as-1]
+
+    ## REMOVE:
+    NAASbi2 <- NAASbi
 
     ## Burn-in period
     if(is.null(set)) burnin <- 5e2 else burnin <- set$burnin
@@ -198,13 +191,34 @@ initPop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){
                 ## recruitment
                 if(spawning[s] > 0){
                     SSBtmp <- sum(NAASbi * weighty * maty * exp(-pzbm * Zbi))
-                    SSBPR0 <- getSSBPR(Zbi, maty, weighty, fecun=1, asmax, ns,
-                                       spawning)
+                    SSBPR0 <- get.ssbpr(Mbi, maty, weighty, fecun=1, asmax, ns,
+                                        spawning, indage0 = indage0)
+                    SSB0 <- get.ssbpr(Mbi, maty, weighty, fecun=1, asmax, ns,
+                                      spawning, indage0 = indage0, R0 = R0y)
+                    print(SSB0)
+                    print(SSBtmp)
                     recbi <- spawning[s] * recfunc(h = hy, SSBPR0 = SSBPR0, SSB = SSBtmp,
                                                    R0 = R0y, method = dat$SR, bp = dat$bp,
                                                    beta = dat$recBeta, gamma = dat$recGamma)
+                    ## recbi <- spawning[s] * recfunc(h = hy, SSBPR0 = SSBPR0,
+                    ##                                SSB = ifelse(SSBtmp > SSB0, SSB0, SSBtmp),
+                    ##                                R0 = R0y, method = dat$SR, bp = dat$bp,
+                    ##                                beta = dat$recBeta, gamma = dat$recGamma)
+
+                    ## SSBPR0 <- 0.008
+                    ## b0 <- get.ssbpr(Mbi, maty, weighty, fecun=1, asmax, ns,
+                    ##                 R0y*spawning, indage0 = indage0)
+                    ## SSB <- seq(0,b0,1)
+                    ## ## tmp/R0y
+                    ## tmp <- recfunc(h = hy, SSBPR0 = b0/R0y, SSB = SSB,
+                    ##                                R0 = R0y, method = dat$SR, bp = dat$bp,
+                    ##                beta = dat$recBeta, gamma = dat$recGamma)
+                    ## plot(SSB,tmp)
+                    ## abline(h=R0y)
+                    ## max(tmp)
+
                     recbi[recbi<0] <- 1e-10
-                    NAASbi[1] <- recbi
+                    NAASbi[indage0] <- recbi
                 }
                 CWbi <- sum(baranov(Fbi, Mbi, NAASbi) * as.numeric(t(weightFy)))
                 ## can't take more than what's there
@@ -213,7 +227,7 @@ initPop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){
                 ##     stop("Something went wrong in the burnin period. Catch or biomass is NA.")
                 ## }
                 ## if(CWbi > 0.99 * Btmp){
-                ##     Fbi <- sely * min(getFM(0.75 * Btmp,
+                ##     Fbi <- sely * min(get.f(0.75 * Btmp,
                 ##                              NAA = NAASbi, MAA = Mbi,
                 ##                              sel = sely,
                 ##                              weight = weighty,
@@ -221,7 +235,7 @@ initPop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){
                 ##                              h = hy, asmax = asmax, mat = maty,
                 ##                              pzbm = pzbm, spawning = spawning,
                 ##                              R0 = R0y, SR = dat$SR, bp = dat$pb, recBeta = dat$recBeta,
-                ##                              recGamma = dat$recGamma, eR = eR,
+                ##                              recGamma = dat$recGamma, eR = eR, indage0 = indage0,
                 ##                              lastFM = 0.001),
                 ##                       set$maxF/ns)
                 ##     Zbi <- Mbi + Fbi
@@ -230,11 +244,18 @@ initPop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){
                 NAASbi <- NAASbi * exp(-Zbi)
                 NAASbi[asmax] <- NAASbi[asmax] + NAASbi[asmax-1]
                 for(as in (asmax-1):2) NAASbi[as] <- NAASbi[as-1]
-                NAASbi[1] <- 0
+                NAASbi[indage0] <- 0
             }
         }
     }
     NAAS <- NAASbi
+
+
+
+    print(cbind(initdist=NAASbi2,burnin=NAASbi))
+##    browser()
+
+    NAASbi2/NAASbi
 
 
     ## main loop
@@ -260,13 +281,13 @@ initPop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){
                 ## Survivors from previous season/year
                 SSB[y,s] <- sum(NAAS * weighty * maty * exp(-pzbm * ZAA)) ## pre-recruitment mort
 ##                print(SSB[y,s])
-                SSBPR0 <- getSSBPR(ZAA, maty, weighty, fecun=1, asmax,
-                                   ns, spawning)
+                SSBPR0 <- get.ssbpr(MAA, maty, weighty, fecun=1, asmax,
+                                   ns, spawning, indage0 = indage0)
                 rec[y,s] <-  spawning[s] * recfunc(h = hy, SSBPR0 = SSBPR0, SSB = SSB[y,s],
                                                    R0 = R0y, method = dat$SR, bp = dat$bp,
                                                    beta = dat$recBeta, gamma = dat$recGamma) * eR[y]
                 rec[rec<0] <- 1e-10
-                NAAS[1] <- rec[y,s]
+                NAAS[indage0] <- rec[y,s]
             }
 
             ## catch
@@ -276,7 +297,7 @@ initPop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){
             ## can't take more than what's there
             ## Btmp <- sum(NAAS * weighty * sely * exp(-MAA/2))
             ## if(CW[y,s] > 0.99 * Btmp){
-            ##     FM[y,s] <- min(getFM(0.75 * Btmp,
+            ##     FM[y,s] <- min(get.f(0.75 * Btmp,
             ##                                  NAA = NAAS, MAA = MAA,
             ##                                  sel = sely,
             ##                                  weight = weighty,
@@ -284,7 +305,7 @@ initPop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){
             ##                                  h = hy, asmax = asmax, mat = maty,
             ##                                  pzbm = pzbm, spawning = spawning,
             ##                                  R0 = R0y, SR = dat$SR, bp = dat$pb, recBeta = dat$recBeta,
-            ##                                  recGamma = dat$recGamma, eR = eR,
+            ##                                  recGamma = dat$recGamma, eR = eR, indage0 = indage0,
             ##                                  lastFM = FM[y,s]),
             ##                           set$maxF/ns)
             ##     FAA <- FM[y,] * sely
@@ -332,7 +353,7 @@ initPop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){
             ## Continuous ageing
             NAAS[asmax] <- NAAS[asmax] + NAAS[asmax-1]
             for(as in (asmax-1):2) NAAS[as] <- NAAS[as-1]
-            NAAS[1] <- 0
+            NAAS[indage0] <- 0
         }
     }
 
@@ -453,7 +474,7 @@ initPop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){
     }else if(out.opt %in% c(2,3)){
         refs <- dat$ref
         if(is.null(refs)){
-            warning("The reference points are not part of dat! Use estRef to estimate them")
+            warning("The reference points are not part of dat! Use est.ref.levels to estimate them")
         }else if(out.opt == 2){
             out <- TSBfinal[ny]/refs[[dat$depl.quant]]
         }else if(out.opt == 3){
@@ -465,10 +486,10 @@ initPop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){
 
 
 
-## advance population
-#' @name advancePop
+## advancepopulation
+#' @name advancepop
 #' @export
-advancePop <- function(dat, hist, set, hcr, year, verbose = TRUE){
+advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
 
     ## indices
     ny <- nrow(hist$TSB)
@@ -477,6 +498,7 @@ advancePop <- function(dat, hist, set, hcr, year, verbose = TRUE){
     ns <- dat$ns
     s1vec <- dat$s1vec
     as2a <- dat$as2a
+    indage0 <- dat$indage0
     nt <- ny * ns
     nsC <- dat$catchSeasons
     nysim <- set$nysim
@@ -542,29 +564,29 @@ advancePop <- function(dat, hist, set, hcr, year, verbose = TRUE){
     }
     eCmv <- set$eCmv[ysim,]
     eImv <- set$eImv[ysim,]
-    if(is.null(eF)) eF <- genNoise(1, set$noiseF[1], set$noiseF[2], bias.cor = set$noiseF[3])
-    if(is.null(eR)) eR <- genNoise(1, set$noiseR[1], set$noiseR[2], bias.cor = set$noiseR[3])
-    if(is.null(eM)) eM <- genNoise(1, set$noiseM[1], set$noiseM[2], bias.cor = set$noiseM[3])
-    if(is.null(eH)) eH <- genNoise(1, set$noiseH[1], set$noiseH[2], bias.cor = set$noiseH[3])
-    if(is.null(eR0)) eR0 <- genNoise(1, set$noiseR0[1], set$noiseR0[2], bias.cor = set$noiseR0[3])
-    if(is.null(eMat)) eMat <- genNoise(1, set$noiseMat[1], set$noiseMat[2], bias.cor = set$noiseMat[3])
-    if(is.null(eSel)) eSel <- genNoise(1, set$noiseSel[1], set$noiseSel[2], bias.cor = set$noiseSel[3])
-    if(is.null(eW)) eW <- genNoise(1, set$noiseW[1], set$noiseW[2], bias.cor = set$noiseW[3])
-    if(is.null(eImp)) eImp <- genNoise(1, set$noiseImp[1], set$noiseImp[2], bias.cor = set$noiseImp[3])
-    if(is.null(eC)) eC <- genNoise(1, set$noiseC[1], set$noiseC[2], bias.cor = set$noiseC[3])
+    if(is.null(eF)) eF <- gen.noise(1, set$noiseF[1], set$noiseF[2], bias.cor = set$noiseF[3])
+    if(is.null(eR)) eR <- gen.noise(1, set$noiseR[1], set$noiseR[2], bias.cor = set$noiseR[3])
+    if(is.null(eM)) eM <- gen.noise(1, set$noiseM[1], set$noiseM[2], bias.cor = set$noiseM[3])
+    if(is.null(eH)) eH <- gen.noise(1, set$noiseH[1], set$noiseH[2], bias.cor = set$noiseH[3])
+    if(is.null(eR0)) eR0 <- gen.noise(1, set$noiseR0[1], set$noiseR0[2], bias.cor = set$noiseR0[3])
+    if(is.null(eMat)) eMat <- gen.noise(1, set$noiseMat[1], set$noiseMat[2], bias.cor = set$noiseMat[3])
+    if(is.null(eSel)) eSel <- gen.noise(1, set$noiseSel[1], set$noiseSel[2], bias.cor = set$noiseSel[3])
+    if(is.null(eW)) eW <- gen.noise(1, set$noiseW[1], set$noiseW[2], bias.cor = set$noiseW[3])
+    if(is.null(eImp)) eImp <- gen.noise(1, set$noiseImp[1], set$noiseImp[2], bias.cor = set$noiseImp[3])
+    if(is.null(eC)) eC <- gen.noise(1, set$noiseC[1], set$noiseC[2], bias.cor = set$noiseC[3])
     if(is.null(eI)){
         eI <- list()
         for(i in 1:nsurv){
-            eI[[i]] <- genNoise(1, set$noiseI[1], set$noiseI[2], bias.cor = set$noiseI[3])
+            eI[[i]] <- gen.noise(1, set$noiseI[1], set$noiseI[2], bias.cor = set$noiseI[3])
         }
     }
-    if(is.null(eCmv)) eCmv <- genNoise(1, set$noiseCmv[1], set$noiseCmv[2],
+    if(is.null(eCmv)) eCmv <- gen.noise(1, set$noiseCmv[1], set$noiseCmv[2],
                                        bias.cor = set$noiseCmv[3],
                                        mv = TRUE, dat = dat)
     if(is.null(eImv)){
         eImv <- list()
         for(i in 1:nsurv){
-            eImv[[i]] <- genNoise(1, set$noiseImv[1], set$noiseImv[2],
+            eImv[[i]] <- gen.noise(1, set$noiseImv[1], set$noiseImv[2],
                                   bias.cor = set$noiseImv[3],
                                   mv = TRUE, dat = dat)
         }
@@ -672,12 +694,12 @@ advancePop <- function(dat, hist, set, hcr, year, verbose = TRUE){
                 Ztmp <- ZAA
             }
             SSBtmp <- sum(NAAS * weighty * maty * exp(-pzbm * Ztmp)) ## pre-recruitment mort
-            SSBPR0 <- getSSBPR(Ztmp, maty, weighty, fecun=1, asmax, ns, spawning)
+            SSBPR0 <- get.ssbpr(MAA, maty, weighty, fecun=1, asmax, ns, spawning, indage0 = indage0)
             rec[y,s] <- spawning[s] * recfunc(h = hy, SSBPR0 = SSBPR0, SSB = SSBtmp, R0 = R0y,
                                               method = dat$SR, bp = dat$bp,
                                               beta = dat$recBeta, gamma = dat$recGamma) * eR
             rec[rec<0] <- 1e-10
-            NAAS[1] <- rec[y,s]
+            NAAS[indage0] <- rec[y,s]
         }
 
         ## Assessment
@@ -695,7 +717,7 @@ advancePop <- function(dat, hist, set, hcr, year, verbose = TRUE){
                 FMtmp <- as.numeric(t(FM))
                 ffmsy <- sum(tail(FMtmp[1:((y*ns)-ns-(s-1))],ns)) / refs$Fmsy[y]
                 ## TAC
-                tacs <- estTAC(obs = obs,
+                tacs <- est.tac(obs = obs,
                                hcr = hcr,
                                tacs = tacs,
                                pars = list("ffmsy" = ffmsy,
@@ -748,7 +770,7 @@ advancePop <- function(dat, hist, set, hcr, year, verbose = TRUE){
                 ## but which pattern to use? from last year? or in sel?
 
                 FMtac <- min(set$maxF/ns,
-                             getFM(TACs[y],
+                             get.f(TACs[y],
                                    NAA = NAAS, MAA = MAA,
                                    sel = sely, weight = weighty,
                                    seasons = assessSeasons[[s]], ns = ns, y = y,
@@ -756,6 +778,7 @@ advancePop <- function(dat, hist, set, hcr, year, verbose = TRUE){
                                    pzbm = pzbm, spawning = spawning,
                                    R0 = R0y, SR = dat$SR, bp = dat$pb, recBeta = dat$recBeta,
                                    recGamma = dat$recGamma, eR = eR,
+                                   indage0 = indage0,
                                    lastFM = FM[y-1,s]
                                    )
                              )
@@ -771,7 +794,7 @@ advancePop <- function(dat, hist, set, hcr, year, verbose = TRUE){
         ## can't take more than what's there
         Btmp <- sum(NAAS * weighty * sely * exp(-MAA/2))
         ## if(CW[y,s] > 0.99 * Btmp){
-        ##     FM[y,s] <- min(getFM(0.75 * Btmp,
+        ##     FM[y,s] <- min(get.f(0.75 * Btmp,
         ##                                  NAA = NAAS, MAA = MAA,
         ##                                  sel = sely,
         ##                                  weight = weighty,
@@ -780,6 +803,7 @@ advancePop <- function(dat, hist, set, hcr, year, verbose = TRUE){
         ##                                  pzbm = pzbm, spawning = spawning,
         ##                                  R0 = R0y, SR = dat$SR, bp = dat$pb, recBeta = dat$recBeta,
         ##                                  recGamma = dat$recGamma, eR = eR,
+        ##                                  indage0 = indage0,
         ##                                  lastFM = FM[y,s]),
         ##                           set$maxF/ns)
         ##     FAA <- FM[y,] * sely
@@ -843,7 +867,7 @@ advancePop <- function(dat, hist, set, hcr, year, verbose = TRUE){
         ## Continuous ageing
         NAAS[asmax] <- NAAS[asmax] + NAAS[asmax-1]
         for(as in (asmax-1):2) NAAS[as] <- NAAS[as-1]
-        NAAS[1] <- 0
+        NAAS[indage0] <- 0
     }
 
     ## catch observations

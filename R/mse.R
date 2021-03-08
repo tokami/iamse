@@ -1,12 +1,12 @@
-##' @name runMSE
+##' @name run.mse
 ##'
 ##' @importFrom parallel mclapply
 ##' @importFrom parallel detectCores
 ##'
 ##' @export
-runMSE <- function(dat, set, ncores=parallel::detectCores()-1, verbose=TRUE){if(ncores > 1) verbose <- FALSE
+run.mse <- function(dat, set, ncores=parallel::detectCores()-1, verbose=TRUE){if(ncores > 1) verbose <- FALSE
     ## define constant catch (resort HCR if something not converging)
-    defHCRconscat()
+    def.hcr.conscat()
 
     ## Variables
     hcrs <- set$hcr
@@ -24,7 +24,7 @@ runMSE <- function(dat, set, ncores=parallel::detectCores()-1, verbose=TRUE){if(
     ## --------------------
 
     ## Reference points provided
-    if(!any(names(dat) == "ref")) stop("Reference levels have to be part of dat. Use estRef/estRefStoch to estimate them.")
+    if(!any(names(dat) == "ref")) stop("Reference levels have to be part of dat. Use est.ref.levels/est.ref.levels.stochastic to estimate them.")
     refs <- dat$ref
 
     ## Natural mortality
@@ -73,7 +73,7 @@ runMSE <- function(dat, set, ncores=parallel::detectCores()-1, verbose=TRUE){if(
         if(is.numeric(set$seed)) set.seed(set$seed + x)
 
         ## pop list with errors
-        pop <- initPop(dat, set)
+        pop <- initpop(dat, set)
         ## add reference levels
         pop$refs <- refs
         popList <- vector("list", nhcrs)
@@ -85,19 +85,19 @@ runMSE <- function(dat, set, ncores=parallel::detectCores()-1, verbose=TRUE){if(
         popListx <- popList
         setx <- set
         ## errors
-        setx$eF <- genNoise(nysim, set$noiseF[1], set$noiseF[2], set$noiseF[3])
-        setx$eR <- genNoise(nysim, set$noiseR[1], set$noiseR[2], set$noiseR[3])
-        setx$eM <- genNoise(nysim, set$noiseM[1], set$noiseM[2], set$noiseM[3])
-        setx$eH <- genNoise(nysim, set$noiseH[1], set$noiseH[2], set$noiseH[3])
-        setx$eW <- genNoise(nysim, set$noiseW[1], set$noiseW[2], set$noiseW[3])
-        setx$eR0 <- genNoise(nysim, set$noiseR0[1], set$noiseR0[2], set$noiseR0[3])
-        setx$eMat <- genNoise(nysim, set$noiseMat[1], set$noiseMat[2], set$noiseMat[3])
-        setx$eSel <- genNoise(nysim, set$noiseSel[1], set$noiseSel[2], set$noiseSel[3])
-        setx$eImp <- genNoise(nysim, set$noiseImp[1], set$noiseImp[2], set$noiseImp[3])
-        setx$eC <- genNoise(nysim, set$noiseC[1], set$noiseC[2], set$noiseC[3])
+        setx$eF <- gen.noise(nysim, set$noiseF[1], set$noiseF[2], set$noiseF[3])
+        setx$eR <- gen.noise(nysim, set$noiseR[1], set$noiseR[2], set$noiseR[3])
+        setx$eM <- gen.noise(nysim, set$noiseM[1], set$noiseM[2], set$noiseM[3])
+        setx$eH <- gen.noise(nysim, set$noiseH[1], set$noiseH[2], set$noiseH[3])
+        setx$eW <- gen.noise(nysim, set$noiseW[1], set$noiseW[2], set$noiseW[3])
+        setx$eR0 <- gen.noise(nysim, set$noiseR0[1], set$noiseR0[2], set$noiseR0[3])
+        setx$eMat <- gen.noise(nysim, set$noiseMat[1], set$noiseMat[2], set$noiseMat[3])
+        setx$eSel <- gen.noise(nysim, set$noiseSel[1], set$noiseSel[2], set$noiseSel[3])
+        setx$eImp <- gen.noise(nysim, set$noiseImp[1], set$noiseImp[2], set$noiseImp[3])
+        setx$eC <- gen.noise(nysim, set$noiseC[1], set$noiseC[2], set$noiseC[3])
         setx$eI <- list()
         for(i in 1:length(dat$surveyTimes)){
-           setx$eI[[i]] <- genNoise(nysim, set$noiseI[1], set$noiseI[2], set$noiseI[3])
+           setx$eI[[i]] <- gen.noise(nysim, set$noiseI[1], set$noiseI[2], set$noiseI[3])
         }
 
         ## loop
@@ -106,7 +106,7 @@ runMSE <- function(dat, set, ncores=parallel::detectCores()-1, verbose=TRUE){if(
             poptmp <- popListx[[i]]
             poptmp$tacs <- NULL
             for(y in 1:nysim){
-                poptmp <- advancePop(dat = dat,
+                poptmp <- advancepop(dat = dat,
                                      hist = poptmp,
                                      set = setx,
                                      hcr = hcri,
@@ -146,7 +146,7 @@ runMSE <- function(dat, set, ncores=parallel::detectCores()-1, verbose=TRUE){if(
     })
     names(res2) <- hcrs
 
-    class(res2) <- "mse"
+    class(res2) <- "iamse"
 
     return(res2)
 }

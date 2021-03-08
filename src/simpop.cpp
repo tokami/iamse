@@ -102,6 +102,7 @@ List simpop(double logFM, List dat, List set, int out) {
   // still to figure out
   IntegerVector as2a = as<IntegerVector>(dat["as2a"]) - 1;
   IntegerVector as2s = as<IntegerVector>(dat["as2s"]) - 1;
+  int indage0 = as<int>(dat["indage0"]) - 1;
 
   // Containers
   NumericVector Bage (asmax);
@@ -183,6 +184,8 @@ List simpop(double logFM, List dat, List set, int out) {
     for(int a=0; a<asmax; a++){
       maty(a) = mat(as2a(a),as2s(a)) * eMat(y);
       sely(a) = sel(as2a(a),as2s(a)) * eSel(y);
+      FAA(a) = fs * sely(a);
+      //      std::cout << "sely(" << a << "): " << sely(a) << std::endl;
       weighty(a) = weight(as2a(a),as2s(a)) * eW(y);
       weightFy(a) = weightF(as2a(a),as2s(a)) * eW(y);
     }
@@ -221,8 +224,12 @@ List simpop(double logFM, List dat, List set, int out) {
         rec = recBeta * (SSB + sqrt(pow(bp,2) + pow(recGamma,2)/4) -
                          sqrt(pow(SSB-bp,2) + pow(recGamma,2)/4));
       }
+      NAAS(indage0) = rec * spawning(s) * eR(y);
 
-      NAAS(0) = rec * spawning(s) * eR(y);
+      // printing
+      for(int a=0; a<asmax; a++){
+        std::cout << "NAAS(,"<< a <<"," << s << ","<< y << "): " << NAAS(a) << std::endl;
+      }
 
       // Catches
       CAA = FAA/ZAA * NAAS * (1 - exp(-ZAA));
@@ -250,7 +257,7 @@ List simpop(double logFM, List dat, List set, int out) {
       for(int a=(asmax-1); a>0; a--){
         NAAS(a) = NAAS(a-1);
       }
-      NAAS(0) = 0;
+      NAAS(indage0) = 0;
     }
   }
 
