@@ -18,8 +18,8 @@
 #' @export
 NULL
 
-initdist <- function(MAA, FAA, R0, spawning) {
-    .Call('_iamse_initdist', PACKAGE = 'iamse', MAA, FAA, R0, spawning)
+initdist <- function(MAA, FAA, R0, spawning, indage0) {
+    .Call('_iamse_initdist', PACKAGE = 'iamse', MAA, FAA, R0, spawning, indage0)
 }
 
 simpop <- function(logFM, dat, set, out) {

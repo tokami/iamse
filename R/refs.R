@@ -122,7 +122,7 @@ est.ref.levels.stochastic <- function(dat, set=NULL, fmax = 10,
 
     ## Time-variant processes
     ## natural mortality
-    mtv <- length(unique(dat$M))
+    mtv <- length(unique(as.numeric(dat$M)))  ## CHECK: if M is matrix
     ms <- unique(dat$M)
     mind <- match(dat$M, ms)
     if(length(dat$Msel) > 1){
@@ -167,54 +167,21 @@ est.ref.levels.stochastic <- function(dat, set=NULL, fmax = 10,
     datx <- dat
 
     ##
-    datx$yvec <- rep(1:nyref, each = ns)
-    datx$svec <- rep(1:ns, each = nyref)
-    datx$s1vec <- seq(1, nyref * ns, ns)
-    datx$as2a <- rep(1:amax, each = ns)
-    datx$as2s <- rep(1:ns, amax)
-    datx$inds <- seq(1,asmax,ns)
+    ## datx$yvec <- rep(1:nyref, each = ns)
+    ## datx$svec <- rep(1:ns, each = nyref)
+    ## datx$s1vec <- seq(1, nyref * ns, ns)
+    ## datx$as2a <- rep(1:amax, each = ns)
+    ## datx$as2s <- rep(1:ns, amax)
+    ## datx$inds <- seq(1,asmax,ns)
 
-##     browser()
+    ## browser()
 
-##     x <- i <- 1
-##     setx <- c(set, errs[[x]])
-##     tmp <- rep(NA, alltv)
-##     setx$tvm <- 1
-##     setx$tvmsel <- 1
-##     setx$tvsel <- 1
-##     simpop(log(datx$ref$Fmsy[1]), datx, setx, out=1)
-
-## ## SSB(0): 281 449
-## ## Ctmp(0): 278 097
-## ## SSB(1): 141 846
-## ## Ctmp(1): 143 626
-## ## SSB(2): 99 720.1
-## ## Ctmp(2): 104 795
-## ## SSB(3): 70 258.6
-
-
-##     datx$FM <- matrix(datx$ref$Fmsy/ns, ncol = ns, nrow=ny)
-##     pop <- initpop(datx, setx)
-    ##     pop$CW
-
-    browser()
-
-
-    set.seed(1)
-    x <- 1
-    i=1
-    setx <- c(set, errs[[x]])
-    setx$refYearsMSY <- 10
-    setx$refYears <- 20
-    tmp <- rep(NA, alltv)
-    datx$mat[1,2] <- 0.5
-    datx$sel[[1]][1,2] <- 0.5
-    simpop(log(20), datx, setx, out=1)
-
-
-    ##sourceCpp("~/Documents/projects/iamse/iamse/src/simpop.cpp")
-
-
+    ## setx$refMethod <- "median"
+    ## setx$refYearsMSY <- 10
+    ## f <- 20
+    ## x = 1
+    ## setx <- c(set, errs[[x]])
+    ## simpop(log(f), datx, setx, out=1)
 
 
     if(any(ref %in% c("Fmsy","Bmsy","MSY","ESBmsy","SSBmsy"))){
@@ -223,9 +190,12 @@ est.ref.levels.stochastic <- function(dat, set=NULL, fmax = 10,
             setx <- c(set, errs[[x]])
             tmp <- rep(NA, alltv)
             for(i in 1:alltv){
-                setx$tvm <- 1
-                setx$tvmsel <- 1
-                setx$tvsel <- 1
+                ## datx$M <- as.matrix(ms[mtv[i],])
+                ## datx$Msel <- msels[mseltv[i]]
+                ## datx$sel <- sels[seltv[i]]
+                ## setx$tvm <- 1
+                ## setx$tvmsel <- 1
+                ## setx$tvsel <- 1
                 ## datx$M <- rep(dat$M[i], nyref)
                 ## ind <- (i-1)*ns+1
                 ## datx$Ms <- rep(dat$Ms[ind:(ind+ns)], nyref)
@@ -239,13 +209,6 @@ est.ref.levels.stochastic <- function(dat, set=NULL, fmax = 10,
             return(tmp)
         }, mc.cores = ncores)
         fmsys <- do.call(rbind, res)
-
-        ## browser()
-        ## x <- 1
-        ## i <- 1
-        ## tmp0$CW
-        ## tmp0$TSB
-        ## rowSums(initpop(datx,setx)$TSB)
 
 
         ## MSY and Biomass reference points

@@ -5,42 +5,64 @@
 using namespace Rcpp;
 
 // [[Rcpp::export]]
-NumericVector initdist(NumericVector MAA, NumericVector FAA, double R0, NumericVector spawning){
+NumericVector initdist(NumericVector MAA, NumericVector FAA, double R0, NumericVector spawning, int indage0){
 
   int asmax = MAA.size();
   int ns = spawning.size();
   NumericMatrix NAA(asmax, ns);
+  NumericMatrix NAA2(asmax, ns);
   NumericVector NAAS(asmax);
   NumericVector ZAA(asmax);
-  int ind2 = (asmax-1) - ns + 1;
-  // std::cout << asmax << "ns: " << ns << std::endl;
-  NumericVector pg(ns);
 
+  // initalise
+  for(int a=0; a<asmax; a++){
+    NAAS(a) = 0.0;
+    for(int s=0; s<ns; s++){
+      NAA(a,s) = 0.0;
+      NAA2(a,s) = 0.0;
+    }
+  }
+
+  // total mortality
   for(int a=0; a<asmax; a++){
     ZAA(a) = MAA(a) + FAA(a);
   }
-  // Initial distribution
+  // distribution each season
   for(int s=0; s<ns; s++){
-    NAA(0,s) = R0 * spawning(s);
-    for(int a=1; a<asmax; a++){
+    NAA(indage0,s) = R0 * spawning(s);
+    for(int a=(indage0+1); a<asmax; a++){
       NAA(a,s) = NAA(a-1,s) * exp(-ZAA(a-1));
     }
   }
+  // only keep age groups present relative to end of year (last season)
   for(int s=0; s<ns; s++){
-    int j=s;
+    int j=ns-s+indage0;  // differs to R as s=[0,ns-1], ns-1, and indage0-1
     while(j < asmax){
-      NAAS(j) += NAA(j,s);
+      NAA2(j,s) = NAA(j,s);
       j += ns;
     }
   }
-  NAAS(0) = 0;
-  // plusgroup
-  if(ns == 1){
-    NAAS(asmax-1) = NAAS[asmax-1] / (1 - exp(-ZAA[asmax-1]));
-  }else{
-    pg = NAAS[Rcpp::Range(ind2, asmax-1)] / (1 - exp(-sum(ZAA[Rcpp::Range(ind2, asmax-1)])));
-    NAAS(asmax-1) = sum(pg) - sum(NAAS[Rcpp::Range(ind2, asmax-1)]);
+  // keep last age group for every season
+  for(int s=0; s<ns; s++){
+    if(NAA2(asmax-1,s) == 0)
+      NAA2(asmax-1,s) = NAA(asmax-1,s) * exp(-ZAA(asmax-1));
   }
+  // plusgroup correction
+  double Ztmp = 0.0;
+  for(int a=(asmax-ns); a<asmax; a++){ // +1 (in R) not needed as last = asmax-1
+    Ztmp += ZAA(a);
+  }
+  for(int s=0; s<ns; s++){
+    NAA2(asmax-1,s) = NAA2(asmax-1,s) / (1 - exp(-Ztmp));
+  }
+  // combine seasons
+  for(int a=0; a<asmax; a++){
+    for(int s=0; s<ns; s++){
+      NAAS(a) += NAA2(a,s);
+    }
+  }
+  // remove recruits
+  NAAS(indage0) = 0;
 
   return NAAS;
 
@@ -170,7 +192,7 @@ List simpop(double logFM, List dat, List set, int out) {
   //   std::cout << "FAA(" << a << "): " << FAA(a) << std::endl;
   // }
 
-  NumericVector NAAS = initdist(MAA0 * eM(0), FAA, R0 * eR0(0), spawning);
+  NumericVector NAAS = initdist(MAA0 * eM(0), FAA, R0 * eR0(0), spawning, indage0);
 
   // for(int a=0; a<asmax; a++){
   //   std::cout << "NAAS(" << a << "): " << NAAS(a) << std::endl;
@@ -204,7 +226,7 @@ List simpop(double logFM, List dat, List set, int out) {
       //    std::cout << "SSB(" << s << "): " << SSB << std::endl;
       // SR
       if(SR == "bevholt"){
-        NAAStmp = initdist(MAA, FAA, 1, spawning);
+        NAAStmp = initdist(MAA, FAA, 1, spawning, indage0);
         SPR = 0.0;
         for(int a=0; a<asmax; a++){
           SPR += NAAStmp(a) * maty(a) * weighty(a) * fecun; // SPR(s) += NnatM(a,s) * maty(a,s) * weighty(a,s) * fecun;
@@ -226,10 +248,10 @@ List simpop(double logFM, List dat, List set, int out) {
       }
       NAAS(indage0) = rec * spawning(s) * eR(y);
 
-      // printing
-      for(int a=0; a<asmax; a++){
-        std::cout << "NAAS(,"<< a <<"," << s << ","<< y << "): " << NAAS(a) << std::endl;
-      }
+
+      // for(int a=0; a<asmax; a++){
+      //   std::cout << "NAAS("<< a <<"," << s << ","<< y << "): " << NAAS(a) << std::endl;
+      // }
 
       // Catches
       CAA = FAA/ZAA * NAAS * (1 - exp(-ZAA));

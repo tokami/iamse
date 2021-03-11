@@ -6,8 +6,8 @@
 using namespace Rcpp;
 
 // initdist
-NumericVector initdist(NumericVector MAA, NumericVector FAA, double R0, NumericVector spawning);
-RcppExport SEXP _iamse_initdist(SEXP MAASEXP, SEXP FAASEXP, SEXP R0SEXP, SEXP spawningSEXP) {
+NumericVector initdist(NumericVector MAA, NumericVector FAA, double R0, NumericVector spawning, int indage0);
+RcppExport SEXP _iamse_initdist(SEXP MAASEXP, SEXP FAASEXP, SEXP R0SEXP, SEXP spawningSEXP, SEXP indage0SEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -15,7 +15,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< NumericVector >::type FAA(FAASEXP);
     Rcpp::traits::input_parameter< double >::type R0(R0SEXP);
     Rcpp::traits::input_parameter< NumericVector >::type spawning(spawningSEXP);
-    rcpp_result_gen = Rcpp::wrap(initdist(MAA, FAA, R0, spawning));
+    Rcpp::traits::input_parameter< int >::type indage0(indage0SEXP);
+    rcpp_result_gen = Rcpp::wrap(initdist(MAA, FAA, R0, spawning, indage0));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -35,7 +36,7 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_iamse_initdist", (DL_FUNC) &_iamse_initdist, 4},
+    {"_iamse_initdist", (DL_FUNC) &_iamse_initdist, 5},
     {"_iamse_simpop", (DL_FUNC) &_iamse_simpop, 4},
     {NULL, NULL, 0}
 };

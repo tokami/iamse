@@ -174,9 +174,6 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){## indices
 
     NAASbi <- initdistR(Mbi, Fbi, ns, asmax, indage0, spawning, R0y)
 
-    ## REMOVE:
-    NAASbi2 <- NAASbi
-
     ## Burn-in period
     if(is.null(set)) burnin <- 5e2 else burnin <- set$burnin
     if(is.numeric(burnin) && burnin > 0){
@@ -188,18 +185,19 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){## indices
                 ## recruitment
                 if(spawning[s] > 0){
                     SSBtmp <- sum(NAASbi * weighty * maty * exp(-pzbm * Zbi))
-                    print(SSBtmp)
                     SSB0 <- get.ssb0(Mbi, maty, weighty, fecun = 1, asmax, ns,
                                      spawning, indage0 = indage0,
-                                     R0 = R0y, season = s, FM = Fbi)  ## HERE: don't like that this uses F, should use F=0, possible that initdist (NAASbi2) is incorrect, when F is unqueal 0?
+                                     R0 = R0y, season = s, FM = 0)
+  ##                  print(paste0("SSB0: ",round(SSB0), " - SSBt: ",round(SSBtmp)))
                     recbi <- spawning[s] * recfunc(h = hy, SSBPR0 = SSB0/R0y, SSB = SSBtmp,
                                                    R0 = R0y, method = dat$SR, bp = dat$bp,
                                                    beta = dat$recBeta, gamma = dat$recGamma)
                     recbi[recbi<0] <- 1e-10
                     NAASbi[indage0] <- recbi
                 }
-                ## ageing by season or year
+                ## decay model
                 NAASbi <- NAASbi * exp(-Zbi)
+                ## ageing by season or year
                 NAASbi[asmax] <- NAASbi[asmax] + NAASbi[asmax-1]
                 for(as in (asmax-1):2) NAASbi[as] <- NAASbi[as-1]
                 NAASbi[indage0] <- 0
@@ -207,14 +205,6 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){## indices
         }
     }
     NAAS <- NAASbi
-
-
-    print(cbind(initdist=NAASbi2,burnin=NAASbi))
-    ## browser()
-
-    ## initdistR(Mbi, Fbi, ns, asmax, indage0, spawning, R0y)
-
-    ## NAASbi2/NAASbi
 
 
     ## main loop
@@ -241,7 +231,8 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){## indices
                 SSB[y,s] <- sum(NAAS * weighty * maty * exp(-pzbm * ZAA)) ## pre-recruitment mort
 ##                print(SSB[y,s])
                 SSB0 <- get.ssb0(MAA, maty, weighty, fecun=1, asmax,
-                                   ns, spawning, indage0 = indage0, R0=R0y, season = s)
+                                 ns, spawning, indage0 = indage0, R0=R0y,
+                                 season = s)
                 rec[y,s] <-  spawning[s] * recfunc(h = hy, SSBPR0 = SSB0/R0y, SSB = SSB[y,s],
                                                    R0 = R0y, method = dat$SR, bp = dat$bp,
                                                    beta = dat$recBeta, gamma = dat$recGamma) * eR[y]

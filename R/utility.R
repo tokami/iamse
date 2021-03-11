@@ -430,6 +430,7 @@ est.productivity.stochastic <- function(dat, set= NULL,
         }else seltv <- rep(seltv, length.out = alltv)
     }
 
+
     ##
     blims <- vector("list",alltv)
     means <- vector("list",alltv)
@@ -437,7 +438,7 @@ est.productivity.stochastic <- function(dat, set= NULL,
     lo <- vector("list",alltv)
     up <- vector("list",alltv)
     for(i in 1:alltv){
-        datx$M <- as.matrix(ms[mtv[i],])
+        datx$M <- t(as.matrix(ms[mtv[i],]))
         datx$Msel <- msels[mseltv[i]]
         datx$sel <- sels[seltv[i]]
         fms <- seq(0, fmax, length.out = nf)
@@ -799,9 +800,10 @@ initdistR <- function(M, FM=NULL, ns, asmax, indage0, spawning, R0=1){
     ## each season
     for(as in (indage0+1):asmax)
         NAA[as,] <- NAA[as-1,] * exp(-ZAA[as-1])
-    ## only keep age groups present reltative to end of year (last season)
+    ## only keep age groups present relative to end of year (last season)
     for(s in 1:ns){
-        indi <- seq(indage0+s-1,asmax,ns)
+        indi <- seq(ns+2-s+indage0-1,asmax,ns)
+##         indi <- seq(s+indage0-1,asmax,ns)
         NAA2[indi,s] <- NAA[indi,s]
     }
     ## keep last age group for every season
