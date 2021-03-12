@@ -500,6 +500,8 @@ def.hcr.spict <- function(id = "spict-msy",
     if(is.null(limitB)) limitB <- 0
     prob <- safeguard$prob
     if(is.null(prob)) prob <- 0.95
+    breakpointB1 <- breakpointB[1]
+    breakpointB2 <- ifelse(length(breakpointB) == 2, breakpointB[2], NULL)
 
     template  <- expression(paste0(
         '
@@ -755,7 +757,7 @@ indBref <- which(floor(timeX) %in% ann2)
                                                         bbmsy = ',frbb,',
                                                         bmsy  = ',frb,',
                                                         fmsy  = ',frf,'),
-                                       breakpointB = ',breakpointB,',
+                                       breakpointB = c(',breakpointB1,',',breakpointB2,'),
                                        safeguardB = list(limitB = ',limitB,',prob = prob),
                                        intermediatePeriodCatch = intC2,
                                        verbose = FALSE),
@@ -781,7 +783,7 @@ indBref <- which(floor(timeX) %in% ann2)
                                                         bbmsy = ',frbb,',
                                                         bmsy  = ',frb,',
                                                         fmsy  = ',frf,'),
-                                       breakpointB = ',breakpointB,',
+                                       breakpointB = c(',breakpointB1,',',breakpointB2,'),
                                        safeguardB = list(limitB = ',limitB,',prob = prob),
                                        intermediatePeriodCatch = intC2,
                                        verbose = FALSE),
@@ -831,7 +833,7 @@ indBref <- which(floor(timeX) %in% ann2)
                                                             bbmsy = ',frbb,',
                                                             bmsy  = ',frb,',
                                                             fmsy  = ',frf,'),
-                                           breakpointB = ',breakpointB,',
+                                           breakpointB = c(',breakpointB1,',',breakpointB2,'),
                                            safeguardB = list(limitB = ',limitB,',prob = prob),
                                            intermediatePeriodCatch = intC2,
                                            verbose = FALSE),
