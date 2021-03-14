@@ -204,7 +204,7 @@ check.dat <- function(dat = NULL, verbose = TRUE){
             dat$M <- matrix(getM(Linf, K, mids) / ns, nrow = ny, ncol = ns)
         }else if(nrow(dat$M) == 1 && !dat$fixProcs){
             dat$M <- matrix(rep(dat$M,ny), nrow = ny, ncol = ns, byrow=TRUE)
-        }else if(nrow(dat$M) < nt){
+        }else if(any(dim(dat$M) != c(ny,ns))){
             stop(paste0("Intra-annual natural mortality ('dat$M') has dimensions ",
                         paste0(dim(dat$M),collapse=" x "),
                         ". It should either be a single numeric or correspond to a matrix with dimensions: dat$ny x dat$ns."))
