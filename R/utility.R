@@ -573,10 +573,10 @@ predCatch <- function(logFM,
         ## recruitment
         if(spawning[s] > 0 && s > 1){
             ## Survivors from previous season/year
-            SSBPR0 <- get.ssbpr(Ztmp, mat, weight,
+            SSBPR0 <- get.ssb0(MAA, mat, weight,
                                 fecun=1, asmax, ns, spawning, indage0)
             SSBtmp <- sum(NAA * weight  * mat  * exp(-pzbm * Ztmp))
-            rec <- recfunc(h = h2, SSBPR0 = SSBPR0, SSB = SSBtmp,
+            rec <- recfunc(h = h2, SSBPR0 = SSB0/R0, SSB = SSBtmp,
                              R0 = R0, method = SR, bp = bp,
                              beta = recBeta, gamma = recGamma)
             rec[rec<0] <- 1e-10
