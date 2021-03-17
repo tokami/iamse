@@ -503,7 +503,7 @@ def.hcr.spict <- function(id = "spict-msy",
     prob <- safeguard$prob
     if(is.null(prob)) prob <- 0.95
     breakpointB1 <- breakpointB[1]
-    breakpointB2 <- ifelse(length(breakpointB) == 2, breakpointB[2], NULL)
+    breakpointB2 <- breakpointB[2]
 
     template  <- expression(paste0(
         '
@@ -577,11 +577,7 @@ structure(
             }else bmID <- TRUE
         }
         ## fit spict
-## inp$reportmode = 0
-## inp$robflagi <- c(1,1)
         fit <- try(fit.spict(inp), silent=TRUE)
-## if(inherits(fit,"try-error")) browser()
-## try(plot(fit))
         ##
         if(class(fit) == "try-error" || fit$opt$convergence != 0 || any(is.infinite(fit$sd))){
             tacs <- func(inp, tacs=tacs, pars=pars)
@@ -755,12 +751,11 @@ indBref <- which(floor(timeX) %in% ann2)
         medbpbref <- as.numeric(exp(logBpBref[,2]))
         bpbref <- exp(qnorm(1-prob, logBpBref[2], logBpBref[4]))
         barID <- FALSE
-
         if(brule == 0){
             ## standard rule
             tac <- try(spict:::get.TAC(fit,
-                                       bfac = bfac,
-                                       bref.type = "',brefType,'",
+                                       ## bfac = bfac,                    ## not in pubFF yet
+                                       ## bref.type = "',brefType,'",     ## not in pubFF yet
                                        fractiles = list(catch = ',frc,',
                                                         ffmsy = ',frff,',
                                                         bbmsy = ',frbb,',
