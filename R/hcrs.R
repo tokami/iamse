@@ -458,6 +458,8 @@ def.hcr.spict <- function(id = "spict-msy",
                         reportmode = 1,
                         stabilise = 0,
                         priorlogn = c(log(2),2,1),
+                        priorlogsdf = c(5,2,0),
+                        priorlogsdc = c(log(0.2),2,0),
                         priorlogalpha = c(log(1),2,1),
                         priorlogbeta = c(log(1),2,1),
                         priorlogbkfrac = c(log(0.5),2,0),
@@ -537,6 +539,8 @@ structure(
         inp <- spict::check.inp(inp, verbose = FALSE)
         ## priors
         inp$priors$logn <- c(',priorlogn[1],',',priorlogn[2],',',priorlogn[3],')
+        inp$priors$logsdf <- c(',priorlogsdf[1],',',priorlogsdf[2],',',priorlogsdf[3],')
+        inp$priors$logsdc <- c(',priorlogsdc[1],',',priorlogsdc[2],',',priorlogsdc[3],')
         inp$priors$logalpha <- c(',priorlogalpha[1],',',priorlogalpha[2],',',priorlogalpha[3],')
         inp$priors$logbeta <- c(',priorlogbeta[1],',',priorlogbeta[2],',',priorlogbeta[3],')
         inp$priors$logbkfrac <- c(',priorlogbkfrac[1],',',priorlogbkfrac[2],',',priorlogbkfrac[3],')
@@ -573,7 +577,12 @@ structure(
             }else bmID <- TRUE
         }
         ## fit spict
+## inp$reportmode = 0
+## inp$robflagi <- c(1,1)
         fit <- try(fit.spict(inp), silent=TRUE)
+## if(inherits(fit,"try-error")) browser()
+## try(plot(fit))
+        ##
         if(class(fit) == "try-error" || fit$opt$convergence != 0 || any(is.infinite(fit$sd))){
             tacs <- func(inp, tacs=tacs, pars=pars)
             tacs$conv[nrow(tacs)] <- FALSE
