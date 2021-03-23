@@ -27,6 +27,11 @@ run.mse <- function(dat, set, ncores=parallel::detectCores()-1, verbose=TRUE){if
     if(!any(names(dat) == "ref")) stop("Reference levels have to be part of dat. Use est.ref.levels/est.ref.levels.stochastic to estimate them.")
     refs <- dat$ref
 
+    nrefs <- nrow(refs)
+    if(nrefs < ntall){
+        refs <- rbind(refs, refs[rep((nrefs-ns+1):nrefs, ntall-nt),])
+    }
+
     ## Natural mortality
     ## --------------------
     if(!inherits(dat$M, "matrix")) stop(paste0("dat$M is not a matrix. It should be a matrix with ",ns," columns and at least ",ny," rows."))

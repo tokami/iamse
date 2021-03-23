@@ -466,7 +466,7 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
     ## parameters
     tacs <- hist$tacs
     obs <- hist$obs
-    refs <- dat$ref
+    refs <- hist$ref
     amax <- dat$amax + 1  ## age 0
     asmax <- amax * ns
     pzbm <- dat$pzbm
@@ -665,9 +665,9 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
                 ## True stock status
                 TSBtmp <- sum(NAAS * weighty)
                 ESBtmp <- sum(NAAS * weighty * sely)
-                bbmsy <- TSBtmp / refs$Bmsy[y]
+                bbmsy <- TSBtmp / refs$Bmsy[y + s - 1]
                 FMtmp <- as.numeric(t(FM))
-                ffmsy <- sum(tail(FMtmp[1:((y*ns)-ns-(s-1))],ns)) / refs$Fmsy[y]
+                ffmsy <- sum(tail(FMtmp[1:((y*ns)-ns-(s-1))],ns)) / refs$Fmsy[y + s - 1]
                 ## TAC
                 tacs <- est.tac(obs = obs,
                                hcr = hcr,
@@ -676,8 +676,8 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
                                            "bbmsy" = bbmsy,
                                            "f" = FMtmp,
                                            "b" = TSBtmp,
-                                           "fmsy" = refs$Fmsy[y],
-                                           "bmsy" = refs$Bmsy[y],
+                                           "fmsy" = refs$Fmsy[y + s - 1],
+                                           "bmsy" = refs$Bmsy[y + s - 1],
                                            "sel" = sely,
                                            "weight" = weightFy,
                                            "m" = MAA,
@@ -691,7 +691,7 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
             if(tacID2 == "refFmsy"){
                 if(tacID == "refFmsy"){
                     ## Fishing at Fmsy
-                    FMtac <- refs$Fmsy[y] / ns
+                    FMtac <- refs$Fmsy[y + s - 1] / ns
                 }else{
                     fraci <- as.numeric(unlist(strsplit(as.character(tacID), "_"))[2])
                     ## Fishing at fraction of Fmsy
@@ -893,5 +893,6 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
     out$errs <- errs
     out$obs <- obs
     out$tacs <- tacs
+    out$refs <- refs
     return(out)
 }
