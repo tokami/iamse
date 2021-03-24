@@ -38,7 +38,8 @@ gettacs <- function(tacs=NULL, id="", TAC=NA, obs=NULL){
                            m.est=NA,m.sd=NA,
                            indBref = NA,
                            bmID=NA, assessInt=NA,
-                           medbpbref=NA, bpbref=NA))
+                           medbpbref=NA, bpbref=NA,
+                           rwF=NA))
     if(is.null(tacs)){
         tacs <- tactmp
     }else{
@@ -57,9 +58,9 @@ gettacs <- function(tacs=NULL, id="", TAC=NA, obs=NULL){
 #' @export
 #'
 def.hcr.ref <- function(consF = 0,
-                      fracFmsy = NULL,
-                      env = globalenv()
-                      ){
+                        fracFmsy = NULL,
+                        env = globalenv()
+                        ){
 
     id <- NULL
 
@@ -144,17 +145,17 @@ structure(
 #' @export
 #'
 def.hcr.conscat <- function(id = "conscat",
-                          constantC = NULL,
-                          clyears = 1,
-                          red = NA,
-                          redyears = 2,
-                          redAlways = FALSE,
-                          assessmentInterval = 1,
-                          ffmsySD = 0,
-                          bbtriggerSD = 0,
-                          rightRef=1,
-                          env = globalenv()
-                          ){
+                            constantC = NULL,
+                            clyears = 1,
+                            red = NA,
+                            redyears = 2,
+                            redAlways = FALSE,
+                            assessmentInterval = 1,
+                            ffmsySD = 0,
+                            bbtriggerSD = 0,
+                            rightRef=1,
+                            env = globalenv()
+                            ){
 
     if(is.null(constantC)) constantC = NA
 
@@ -259,22 +260,22 @@ class="hcr"
 #' @export
 #'
 def.hcr.index <- function(id = "r23",
-                        x = 2,
-                        y = 3,
-                        stab = TRUE,
-                        lower = 0.8,
-                        upper = 1.2,
-                        clType = "TAC",
-                        clyears = 1,
-                        red = NA,
-                        redyears = 3,
-                        redAlways = FALSE,
-                        ffmsySD = 0,
-                        bbtriggerSD = 0,
-                        rightRef=1,
-                        assessmentInterval = 1,
-                        env = globalenv()
-                        ){
+                          x = 2,
+                          y = 3,
+                          stab = TRUE,
+                          lower = 0.8,
+                          upper = 1.2,
+                          clType = "TAC",
+                          clyears = 1,
+                          red = NA,
+                          redyears = 3,
+                          redAlways = FALSE,
+                          ffmsySD = 0,
+                          bbtriggerSD = 0,
+                          rightRef=1,
+                          assessmentInterval = 1,
+                          env = globalenv()
+                          ){
 
     template  <- expression(paste0(
         '
@@ -447,46 +448,46 @@ structure(
 #' @export
 #'
 def.hcr.spict <- function(id = "spict-msy",
-                        fractiles = list(catch=0.5,
-                                         ffmsy=0.5,
-                                         bbmsy=0.5,
-                                         bmsy = 0.5,
-                                         fmsy = 0.5),
-                        breakpointB = 0.0,
-                        safeguard = list(limitB = 0, prob = 0.95),
-                        dteuler = 1/4,
-                        reportmode = 1,
-                        stabilise = 0,
-                        priorlogn = c(log(2),2,1),
-                        priorlogsdf = c(5,2,0),
-                        priorlogsdc = c(log(0.2),2,0),
-                        priorlogalpha = c(log(1),2,1),
-                        priorlogbeta = c(log(1),2,1),
-                        priorlogbkfrac = c(log(0.5),2,0),
-                        fixn = NA,
-                        bfac = NA,
-                        bref = "current", ## lowest or "highest" or "average" or "last"
-                        brefType = "target",
-                        nyBref = 5,
-                        btar = "bmsy",
-                        probtar = 0.4,
-                        brule = 0,
-                        red = NA,
-                        redyears = 3,
-                        redAlways = FALSE,
-                        rai = 0.2,
-                        manstartdY = 0,
-                        assessmentInterval = 1,
-                        intC = NA,
-                        nonconvHCR = "conscat",
-                        clType = "TAC",
-                        clyears = 1,
-                        stab = FALSE,
-                        lower = 0.8,
-                        upper = 1.2,
-                        bm = FALSE,  ## e.g. 5 => re-defining Bref at every benchmark
-                        env = globalenv()
-                        ){
+                          fractiles = list(catch=0.5,
+                                           ffmsy=0.5,
+                                           bbmsy=0.5,
+                                           bmsy = 0.5,
+                                           fmsy = 0.5),
+                          breakpointB = 0.0,
+                          safeguard = list(limitB = 0, prob = 0.95),
+                          dteuler = 1/4,
+                          reportmode = 1,
+                          stabilise = 0,
+                          priorlogn = c(log(2),2,1),
+                          priorlogsdf = c(5,2,0),
+                          priorlogsdc = c(log(0.2),2,0),
+                          priorlogalpha = c(log(1),2,1),
+                          priorlogbeta = c(log(1),2,1),
+                          priorlogbkfrac = c(log(0.5),2,0),
+                          fixn = NA,
+                          bfac = NA,
+                          bref = "current", ## lowest or "highest" or "average" or "last"
+                          brefType = "target",
+                          nyBref = 5,
+                          btar = "bmsy",
+                          probtar = 0.4,
+                          brule = 0,
+                          red = NA,
+                          redyears = 3,
+                          redAlways = FALSE,
+                          rai = 0.2,
+                          manstartdY = 0,
+                          assessmentInterval = 1,
+                          intC = NA,
+                          nonconvHCR = "conscat",
+                          clType = "TAC",
+                          clyears = 1,
+                          stab = FALSE,
+                          lower = 0.8,
+                          upper = 1.2,
+                          bm = FALSE,  ## e.g. 5 => re-defining Bref at every benchmark
+                          env = globalenv()
+                          ){
 
     frc <- fractiles$catch
     if(is.null(frc)) frc <- 0.5
@@ -576,15 +577,28 @@ structure(
                 bmID <- FALSE
             }else bmID <- TRUE
         }
+
+        ## ## if TAC/catch very small -> adjust random walk
+        ## if(!is.null(tacs) && any(tacs$TAC  < 10)){
+        ##     inp$priors$logbeta <- c(0,0,0)
+        ##     inp$priors$logsdf <- c(1,0.5,1)
+        ##     inp$priors$logsdc <- c(log(0.2),0.2,1)
+        ##     rwF <- TRUE
+        ## }else{
+        ##     rwF <- FALSE
+        ## }
+
         ## fit spict
+        rwF  <- FALSE
         fit <- try(fit.spict(inp), silent=TRUE)
-        ##
+        ## non-convergence
         if(class(fit) == "try-error" || fit$opt$convergence != 0 || any(is.infinite(fit$sd))){
             tacs <- func(inp, tacs=tacs, pars=pars)
             tacs$conv[nrow(tacs)] <- FALSE
             tacs$indBref[nrow(tacs)] <- indBref2
             tacs$bmID[nrow(tacs)] <- bmID
             tacs$assessInt[nrow(tacs)] <- assessInt
+            tacs$rwF[nrow(tacs)] <- rwF
             return(tacs)
         }
         ## last years catch/tac
@@ -683,6 +697,7 @@ structure(
             tacs$assessInt[nrow(tacs)] <- assessInt
             tacs$medbpbref[nrow(tacs)] <- medbpbref
             tacs$bpbref[nrow(tacs)] <- bpbref
+            tacs$rwF[nrow(tacs)] <- rwF
             return(tacs)
         }
 
@@ -694,15 +709,15 @@ structure(
             if(bref == "current"){
                 indBref <- inp$indlastobs
             }else if(bref == "lowest"){
-timeX <- inp$time[inp$indest]
-ann <- spict:::annual(timeX,logB)
-ann2 <- ann$anntime[sort(doBy::which.minn(ann$annvec, nyBref))]
-indBref <- which(floor(timeX) %in% ann2)
+                timeX <- inp$time[inp$indest]
+                ann <- spict:::annual(timeX,logB)
+                ann2 <- ann$anntime[sort(doBy::which.minn(ann$annvec, nyBref))]
+                indBref <- which(floor(timeX) %in% ann2)
             }else if(bref == "highest"){
-timeX <- inp$time[inp$indest]
-ann <- spict:::annual(timeX,logB)
-ann2 <- ann$anntime[sort(doBy::which.maxn(ann$annvec, nyBref))]
-indBref <- which(floor(timeX) %in% ann2)
+                timeX <- inp$time[inp$indest]
+                ann <- spict:::annual(timeX,logB)
+                ann2 <- ann$anntime[sort(doBy::which.maxn(ann$annvec, nyBref))]
+                indBref <- which(floor(timeX) %in% ann2)
             }else if(bref == "average"){
                 indBref <- (2/inp$dteuler):length(logB)
             }else if(bref == "last"){
@@ -719,6 +734,7 @@ indBref <- which(floor(timeX) %in% ann2)
             tacs$assessInt[nrow(tacs)] <- assessInt
             tacs$medbpbref[nrow(tacs)] <- medbpbref
             tacs$bpbref[nrow(tacs)] <- bpbref
+            tacs$rwF[nrow(tacs)] <- rwF
             return(tacs)
         }else{
             fit <- try(set.bref(fit, indBref = indBref),silent=TRUE)
@@ -733,6 +749,7 @@ indBref <- which(floor(timeX) %in% ann2)
             tacs$assessInt[nrow(tacs)] <- assessInt
             tacs$medbpbref[nrow(tacs)] <- medbpbref
             tacs$bpbref[nrow(tacs)] <- bpbref
+            tacs$rwF[nrow(tacs)] <- rwF
             return(tacs)
         }
 
@@ -777,6 +794,7 @@ indBref <- which(floor(timeX) %in% ann2)
                 tacs$assessInt[nrow(tacs)] <- assessInt
                 tacs$medbpbref[nrow(tacs)] <- medbpbref
                 tacs$bpbref[nrow(tacs)] <- bpbref
+                tacs$rwF[nrow(tacs)] <- rwF
                 return(tacs)
             }
             tac <- try(spict:::get.TAC(fit,
@@ -821,6 +839,7 @@ indBref <- which(floor(timeX) %in% ann2)
                 tacs$assessInt[nrow(tacs)] <- assessInt
                 tacs$medbpbref[nrow(tacs)] <- medbpbref
                 tacs$bpbref[nrow(tacs)] <- bpbref
+                tacs$rwF[nrow(tacs)] <- rwF
                 return(tacs)
             }
             ## 4 stock status categories
@@ -882,6 +901,7 @@ indBref <- which(floor(timeX) %in% ann2)
             tacs$assessInt[nrow(tacs)] <- assessInt
             tacs$medbpbref[nrow(tacs)] <- medbpbref
             tacs$bpbref[nrow(tacs)] <- bpbref
+            tacs$rwF[nrow(tacs)] <- rwF
             return(tacs)
         }
 
@@ -903,7 +923,8 @@ indBref <- which(floor(timeX) %in% ann2)
         tactmp <- data.frame(c(tactmp, quantstmp,
                                indBref = indBref2, bmID=bmID,
                                assessInt = assessInt,
-                               medbpbref = medbpbref, bpbref = bpbref))
+                               medbpbref = medbpbref, bpbref = bpbref,
+                               rwF = rwF))
         if(is.null(tacs)){
             tacs <- tactmp
         }else{
@@ -924,6 +945,8 @@ indBref <- which(floor(timeX) %in% ann2)
 }
 
 
+
+
 #' @name def.hcr.sam
 #' @title Define harvest control rule for SAM
 #'
@@ -937,11 +960,11 @@ indBref <- which(floor(timeX) %in% ann2)
 #' @export
 #'
 def.hcr.sam <- function(id = "sam",
-                      nonconvHCR = "conscat",
-                      silent = TRUE,
-                      verbose = FALSE,
-                      env = globalenv()
-                      ){
+                        nonconvHCR = "conscat",
+                        silent = TRUE,
+                        verbose = FALSE,
+                        env = globalenv()
+                        ){
 
     template  <- expression(paste0('
 structure(function(obs, tacs = NULL, pars=NULL){

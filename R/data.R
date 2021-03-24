@@ -176,7 +176,7 @@ check.dat <- function(dat = NULL, verbose = TRUE){
     }
     if(any(is.null(LA),is.null(Ls50),is.null(Ls95))){
         if(!any(names(dat) == "sel")) dat$sel <- list(matrix(NA, nrow = amax, ncol = ns))
-    }else if(!dat$fixProcs) dat$sel <- getSel(Lm50, Lm95, mids, plba)
+    }else if(!dat$fixProcs) dat$sel <- getSel(Ls50, Ls95, mids, plba)
 
     if(!inherits(dat$sel, "list") && dim(dat$sel) == c(amax,ns)){
         dat$sel <- list(dat$sel/max(dat$sel))

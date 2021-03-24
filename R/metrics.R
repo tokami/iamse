@@ -317,7 +317,7 @@ est.metrics <- function(mse, dat, mets = "all"){
             if(length(reffmsyInd) > 0){
                 indi <- as.numeric(names(msei))
                 tmp <- sapply(1:length(msei), function(x)
-                    median(apply(msei[[x]]$CW,1,sum)[last15Years] / refyield[["last15Years"]][[indi[x]]]))
+                    median(apply(msei[[x]]$CW,1,sum)[last15Years] / refyield[["last10Years"]][[indi[x]]]))
                 vari <- var(tmp)
                 ni <- length(tmp)
                 sei <- sqrt(vari/ni)
@@ -350,7 +350,7 @@ est.metrics <- function(mse, dat, mets = "all"){
         ## "PBBlimLT"
         if(any(mets == "PBBlimLT")){
             metsUsed <- c(metsUsed, "PBBlimLT")
-            tmp <- unlist(lapply(msei, function(x) mean(x$TSBfinal[last15Years] / refs$Blim < 1)))
+            tmp <- unlist(lapply(msei, function(x) mean(x$TSBfinal[last10Years] / refs$Blim < 1)))
             vari <- var(tmp)
             ni <- length(tmp)
             sei <- sqrt(vari/ni)
