@@ -133,6 +133,8 @@ List simpop(double logFM, List dat, List set, int out) {
   NumericVector CAA (asmax);
   NumericVector NAAStmp (asmax);
   NumericVector FAA (asmax);
+  NumericVector FAA0 (asmax);
+  NumericVector F0 (asmax);
   NumericVector MAA0 (asmax);
   NumericVector MAA (asmax);
   NumericVector ZAA (asmax);
@@ -155,7 +157,7 @@ List simpop(double logFM, List dat, List set, int out) {
   double SPR = 0.0;
 
   // errors
-  //  NumericVector eF = as<NumericVector>(set["eF"]);
+  NumericVector eF = as<NumericVector>(set["eF"]);
   NumericVector eR = as<NumericVector>(set["eR"]);
   NumericVector eM = as<NumericVector>(set["eM"]);
   NumericVector eH = as<NumericVector>(set["eH"]);
@@ -172,6 +174,7 @@ List simpop(double logFM, List dat, List set, int out) {
   std::fill( SSB2.begin(), SSB2.end(), 0);
   std::fill( TSB.begin(), TSB.end(), 0);
   std::fill( ESB.begin(), ESB.end(), 0);
+  std::fill( F0.begin(), F0.end(), 0);
   // NumericMatrix Msel = as<NumericMatrix>(MselList[tvmsel-1]);
   // NumericMatrix sel = as<NumericMatrix>(selList[tvsel-1]);
   NumericMatrix Msel = as<NumericMatrix>(MselList[0]);
@@ -181,7 +184,7 @@ List simpop(double logFM, List dat, List set, int out) {
     //    MAA0(a) = M(tvm-1,as2s(a)) * Msel(as2a(a),as2s(a));
     MAA0(a) = M(0,as2s(a)) * Msel(as2a(a),as2s(a));
     //     for(int a=0; a<asmax; a++) MAA(a,_) = Mtmp(a,_) * M[Rcpp::Range(s1vec(y), s1vec(y)+ns-1)];
-    FAA(a) = fs * sel(as2a(a),as2s(a));
+    FAA0(a) = fs * sel(as2a(a),as2s(a));
   }
 
   // for(int a=0; a<asmax; a++){
@@ -192,7 +195,7 @@ List simpop(double logFM, List dat, List set, int out) {
   //   std::cout << "FAA(" << a << "): " << FAA(a) << std::endl;
   // }
 
-  NumericVector NAAS = initdist(MAA0 * eM(0), FAA, R0 * eR0(0), spawning, indage0);
+  NumericVector NAAS = initdist(MAA0 * eM(0), FAA0 * eF(0), R0 * eR0(0), spawning, indage0);
 
   // for(int a=0; a<asmax; a++){
   //   std::cout << "NAAS(" << a << "): " << NAAS(a) << std::endl;
@@ -206,7 +209,7 @@ List simpop(double logFM, List dat, List set, int out) {
     for(int a=0; a<asmax; a++){
       maty(a) = mat(as2a(a),as2s(a)) * eMat(y);
       sely(a) = sel(as2a(a),as2s(a)) * eSel(y);
-      FAA(a) = fs * sely(a);
+      FAA(a) = fs * eF(y) * sely(a);
       //      std::cout << "sely(" << a << "): " << sely(a) << std::endl;
       weighty(a) = weight(as2a(a),as2s(a)) * eW(y);
       weightFy(a) = weightF(as2a(a),as2s(a)) * eW(y);
@@ -221,12 +224,23 @@ List simpop(double logFM, List dat, List set, int out) {
       // Recruitment
       SSB = 0.0;
       for(int a=0; a<asmax; a++){
-        SSB += NAAS(a) * maty(a) * weighty(a) * exp(-pzbm * ZAA(a));
+        SSB += NAAS(a) * maty(a) * weighty(a) * exp(-pzbm * MAA(a));
       }
       //    std::cout << "SSB(" << s << "): " << SSB << std::endl;
       // SR
       if(SR == "bevholt"){
-        NAAStmp = initdist(MAA, FAA, 1, spawning, indage0);
+        NAAStmp = initdist(MAA, F0, 1, spawning, indage0);
+        int s2 = s;
+        while(s2 > 0){
+          for(int a=0; a<asmax; a++){
+            NAAStmp(a) = NAAStmp(a) * exp(-MAA(a));
+          }
+          NAAStmp(asmax-1) += NAAStmp(asmax-2);
+          for(int a=(asmax-1); a>0; a--){
+            NAAStmp(a) = NAAStmp(a-1);
+          }
+          s2 = s2 - 1;
+        }
         SPR = 0.0;
         for(int a=0; a<asmax; a++){
           SPR += NAAStmp(a) * maty(a) * weighty(a) * fecun; // SPR(s) += NnatM(a,s) * maty(a,s) * weighty(a,s) * fecun;
@@ -249,8 +263,9 @@ List simpop(double logFM, List dat, List set, int out) {
       NAAS(indage0) = rec * spawning(s) * eR(y);
 
 
+
       // for(int a=0; a<asmax; a++){
-      //   std::cout << "NAAS("<< a <<"," << s << ","<< y << "): " << NAAS(a) << std::endl;
+      //    std::cout << "NAAS("<< a <<"," << s << ","<< y << "): " << NAAS(a) << std::endl;
       // }
 
       // Catches
@@ -263,7 +278,9 @@ List simpop(double logFM, List dat, List set, int out) {
       CW(y) += Ctmp;
 
       // Exponential decay
-      NAAS = NAAS * exp(-ZAA);
+      for(int a=0; a<asmax; a++){
+        NAAS(a) = NAAS(a) * exp(-ZAA(a));
+      }
       if(s == (ns-1)){
         for(int a=0; a<asmax; a++){
           // biomasses

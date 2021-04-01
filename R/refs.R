@@ -154,6 +154,7 @@ est.ref.levels.stochastic <- function(dat, set=NULL, fmax = 10,
     for(i in 1:nrep){
         errs[[i]] <- vector("list", 9)
         errs[[i]]$eF <- gen.noise(nyref, set$noiseF[1], set$noiseF[2], set$noiseF[3])
+##        errs[[i]]$eF <- rep(1.0, nyref)
         errs[[i]]$eR <- gen.noise(nyref, set$noiseR[1], set$noiseR[2], set$noiseR[3])
         errs[[i]]$eM <- gen.noise(nyref, set$noiseM[1], set$noiseM[2], set$noiseM[3])
         errs[[i]]$eH <- gen.noise(nyref, set$noiseH[1], set$noiseH[2], set$noiseH[3])
@@ -178,7 +179,7 @@ est.ref.levels.stochastic <- function(dat, set=NULL, fmax = 10,
 
     ## setx$refMethod <- "median"
     ## setx$refYearsMSY <- 10
-    ## f <- 20
+    ## f <- 1
     ## x = 1
     ## setx <- c(set, errs[[x]])
     ## simpop(log(f), datx, setx, out=1)

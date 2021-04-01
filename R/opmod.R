@@ -426,10 +426,12 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){## indices
         if(is.null(refs)){
             warning("The reference points are not part of dat! Use est.ref.levels to estimate them")
         }else if(out.opt == 2){
-            out <- TSBfinal[ny]/refs[[dat$depl.quant]]
+            out <- TSBfinal[ny]/refs[[dat$depl.quant]][ny]
         }else if(out.opt == 3){
-            out <- SSBfinal[ny]/refs[[dat$depl.quant]]
+            out <- SSBfinal[ny]/refs[[dat$depl.quant]][ny]
         }
+    }else if(out.opt == 4){
+        out <- TSBfinal[ny]
     }
     return(out)
 }

@@ -50,6 +50,7 @@ est.metrics <- function(mse, dat, mets = "all"){
     dims <- dim(mse[[1]][[1]]$CW)
     ny <- dims[1] - nysim
     ns <- dims[2]
+    amax <- dat$amax
 
     finalYear <- ny + nysim
     fifthYear <- ny + 5
@@ -62,7 +63,8 @@ est.metrics <- function(mse, dat, mets = "all"){
     last15Years <- (finalYear - 14) : finalYear
     last35Years <- (finalYear - 34) : finalYear
     first15Years <- (ny + 1) : (ny + 15)
-
+ ##   last5AmaxYears <- ifelse(amax>5,amax-4,1):amax + ny
+    last5AmaxYears <- 1:amax + ny
 
     hcrs <- names(mse)
     reffmsyInd <- which(hcrs == "refFmsy")
@@ -73,7 +75,8 @@ est.metrics <- function(mse, dat, mets = "all"){
         "last15Years" = lapply(mse[[reffmsyInd]], function(x) apply(x$CW,1,sum)[last15Years]),
         "last35Years" = lapply(mse[[reffmsyInd]], function(x) apply(x$CW,1,sum)[last35Years]),
         "last5Years" = lapply(mse[[reffmsyInd]], function(x) apply(x$CW,1,sum)[last5Years]),
-        "last10Years" = lapply(mse[[reffmsyInd]], function(x) apply(x$CW,1,sum)[last10Years]))
+        "last10Years" = lapply(mse[[reffmsyInd]], function(x) apply(x$CW,1,sum)[last10Years]),
+        "last5AmaxYears" = lapply(mse[[reffmsyInd]], function(x) apply(x$CW,1,sum)[last5AmaxYears]))
 
     refF <- list(
         "finalYear" = lapply(mse[[reffmsyInd]], function(x) apply(x$FM,1,sum)[finalYear]),
@@ -95,6 +98,7 @@ est.metrics <- function(mse, dat, mets = "all"){
                  "PBBlim1","PBBlim3",
                  "CMSYST","PBBlimST","PBBlim1ST","PBBlim3ST",
                  "CMSYLT","PBBlimLT","PBBlim1LT","PBBlim3LT",
+                 "CMSYamax","PBBlimamax",
                  "AAVC2",
                  "CMSY2","CMSYST2","CMSYLT2",
                  "CMSYMaxAge","PBBlimMaxAge",
@@ -120,6 +124,15 @@ est.metrics <- function(mse, dat, mets = "all"){
     ## TODO: make part of mse
     refs <- dat$ref
     if(is.null(refs)) stop("Reference levels missing.")
+    ny <- dat$ny
+    ns <- dat$ns
+    nt <- ny * ns
+    nyall <- ny + nysim
+    ntall <- nyall * ns
+    nrefs <- nrow(refs)
+    if(nrefs < ntall){
+        refs <- rbind(refs, refs[rep((nrefs-ns+1):nrefs, ntall-nt),])
+    }
     ##
     res2 <- vector("list", nhcr)
     for(hcr in 1:nhcr){
@@ -221,7 +234,7 @@ est.metrics <- function(mse, dat, mets = "all"){
             ry <- vector("list",nysim)
             for(y in 1:nysim){
                 yi <- ((ny+1):finalYear)[y]
-                tmp <- sapply(msei, function(x) x$TSBfinal[yi] / refs$Blim < 1)
+                tmp <- sapply(msei, function(x) x$TSBfinal[yi] / refs$Blim[yi] < 1)
                 tmp <- prop.test(sum(tmp), n = length(tmp), conf.level = 0.95, correct = FALSE)
                 ry[[y]] <- c(tmp$conf.int[1], tmp$estimate, tmp$conf.int[2])
             }
@@ -234,7 +247,7 @@ est.metrics <- function(mse, dat, mets = "all"){
             ry <- vector("list",nysim)
             for(y in 1:nysim){
                 yi <- ((ny+1):finalYear)[y]
-                tmp <- sapply(msei, function(x) x$TSBfinal[yi] / refs$Blim < 1)
+                tmp <- sapply(msei, function(x) x$TSBfinal[yi] / refs$Blim[yi] < 1)
                 tmp <- prop.test(sum(tmp), n = length(tmp), conf.level = 0.95, correct = FALSE)
                 ry[[y]] <- c(tmp$conf.int[1], tmp$estimate, tmp$conf.int[2])
             }
@@ -280,7 +293,7 @@ est.metrics <- function(mse, dat, mets = "all"){
         ## "PBBlimST"
         if(any(mets == "PBBlimST")){
             metsUsed <- c(metsUsed, "PBBlimST")
-            tmp <- unlist(lapply(msei, function(x) mean(x$TSBfinal[first5Years] / refs$Blim < 1)))
+            tmp <- unlist(lapply(msei, function(x) mean(x$TSBfinal[first5Years] / refs$Blim[first5Years] < 1)))
             vari <- var(tmp)
             ni <- length(tmp)
             sei <- sqrt(vari/ni)
@@ -317,7 +330,7 @@ est.metrics <- function(mse, dat, mets = "all"){
             if(length(reffmsyInd) > 0){
                 indi <- as.numeric(names(msei))
                 tmp <- sapply(1:length(msei), function(x)
-                    median(apply(msei[[x]]$CW,1,sum)[last15Years] / refyield[["last10Years"]][[indi[x]]]))
+                    median(apply(msei[[x]]$CW,1,sum)[last15Years] / refyield[["last15Years"]][[indi[x]]]))
                 vari <- var(tmp)
                 ni <- length(tmp)
                 sei <- sqrt(vari/ni)
@@ -350,7 +363,7 @@ est.metrics <- function(mse, dat, mets = "all"){
         ## "PBBlimLT"
         if(any(mets == "PBBlimLT")){
             metsUsed <- c(metsUsed, "PBBlimLT")
-            tmp <- unlist(lapply(msei, function(x) mean(x$TSBfinal[last10Years] / refs$Blim < 1)))
+            tmp <- unlist(lapply(msei, function(x) mean(x$TSBfinal[last15Years] / refs$Blim[last15Years] < 1)))
             vari <- var(tmp)
             ni <- length(tmp)
             sei <- sqrt(vari/ni)
@@ -380,6 +393,51 @@ est.metrics <- function(mse, dat, mets = "all"){
             }
             tmp <- do.call(rbind,ry)
             res <- rbind(res, c(max(tmp[6:40,1]),max(tmp[6:40,2]),max(tmp[6:40,3]), NA, NA))
+        }
+        if(any(mets == "CMSYamax")){
+            metsUsed <- c(metsUsed, "CMSYamax")
+            if(length(reffmsyInd) > 0){
+                indi <- as.numeric(names(msei))
+                tmp <- sapply(1:length(msei), function(x)
+                    median(apply(msei[[x]]$CW,1,sum)[last5AmaxYears] / refyield[["last5AmaxYears"]][[indi[x]]]))
+                vari <- var(tmp)
+                ni <- length(tmp)
+                sei <- sqrt(vari/ni)
+                tmp2 <- try(wilcox.test(as.numeric(tmp),
+                                   alternative="two.sided",
+                                   correct=TRUE,
+                                   conf.int=TRUE,
+                                   conf.level=0.95), silent=TRUE)
+                if(hcrs[hcr] == "noF"){
+                    res <- rbind(res, c(0,
+                                        0,
+                                        0,
+                                        sei,
+                                        ni))
+                }else if(hcrs[hcr] == "refFmsy"){
+                    res <- rbind(res, c(1,
+                                        1,
+                                        1,
+                                        sei,
+                                        ni))
+                }else{
+                    res <- rbind(res, c(tmp2$conf.int[1],
+                                        tmp2$estimate,
+                                        tmp2$conf.int[2],
+                                        sei,
+                                        ni))
+                }
+            }else writeLines("CMSYLT could not be estimated, because no rule 'refFmsy' not found.")
+        }
+        ## "PBBlimamax"
+        if(any(mets == "PBBlimamax")){
+            metsUsed <- c(metsUsed, "PBBlimamax")
+            tmp <- unlist(lapply(msei, function(x) mean(x$TSBfinal[last5AmaxYears] / refs$Blim[last5AmaxYears] < 1)))
+            vari <- var(tmp)
+            ni <- length(tmp)
+            sei <- sqrt(vari/ni)
+            tmp <- prop.test(sum(tmp), n = length(tmp), conf.level = 0.95, correct = FALSE)
+            res <- rbind(res, c(tmp$conf.int[1], tmp$estimate, tmp$conf.int[2], sei, ni))
         }
         ## CMSYlast5
         if(any(mets == "CMSYlast5")){
@@ -493,7 +551,7 @@ est.metrics <- function(mse, dat, mets = "all"){
         ## "PBBlimlast5"
         if(any(mets == "PBBlimlast5")){
             metsUsed <- c(metsUsed, "PBBlimlast5")
-            tmp <- unlist(lapply(msei, function(x) mean(x$TSBfinal[last5Years] / refs$Blim < 1)))
+            tmp <- unlist(lapply(msei, function(x) mean(x$TSBfinal[last5Years] / refs$Blim[last5Years] < 1)))
             vari <- var(tmp)
             ni <- length(tmp)
             sei <- sqrt(vari/ni)
@@ -503,7 +561,7 @@ est.metrics <- function(mse, dat, mets = "all"){
         ## "PBBlimlast10"
         if(any(mets == "PBBlimlast10")){
             metsUsed <- c(metsUsed, "PBBlimlast10")
-            tmp <- unlist(lapply(msei, function(x) mean(x$TSBfinal[last10Years] / refs$Blim < 1)))
+            tmp <- unlist(lapply(msei, function(x) mean(x$TSBfinal[last10Years] / refs$Blim[last10Years] < 1)))
             vari <- var(tmp)
             ni <- length(tmp)
             sei <- sqrt(vari/ni)
@@ -513,7 +571,7 @@ est.metrics <- function(mse, dat, mets = "all"){
         ## "PBBlimlast10"
         if(any(mets == "PBBlimlast10SSB")){
             metsUsed <- c(metsUsed, "PBBlimlast10SSB")
-            tmp <- unlist(lapply(msei, function(x) mean(x$SSBfinal[last10Years] / refs$SSBlim < 1)))
+            tmp <- unlist(lapply(msei, function(x) mean(x$SSBfinal[last10Years] / refs$SSBlim[last10Years] < 1)))
             vari <- var(tmp)
             ni <- length(tmp)
             sei <- sqrt(vari/ni)
@@ -523,7 +581,7 @@ est.metrics <- function(mse, dat, mets = "all"){
         ## "PBBlimfirst10"
         if(any(mets == "PBBlimfirst10")){
             metsUsed <- c(metsUsed, "PBBlimfirst10")
-            tmp <- unlist(lapply(msei, function(x) mean(x$TSBfinal[first10Years] / refs$Blim < 1)))
+            tmp <- unlist(lapply(msei, function(x) mean(x$TSBfinal[first10Years] / refs$Blim[first10Years] < 1)))
             vari <- var(tmp)
             ni <- length(tmp)
             sei <- sqrt(vari/ni)
@@ -533,7 +591,7 @@ est.metrics <- function(mse, dat, mets = "all"){
         ## "PBBlimfirst10"
         if(any(mets == "PBBlimfirst10SSB")){
             metsUsed <- c(metsUsed, "PBBlimfirst10SSB")
-            tmp <- unlist(lapply(msei, function(x) mean(x$SSBfinal[first10Years] / refs$SSBlim < 1)))
+            tmp <- unlist(lapply(msei, function(x) mean(x$SSBfinal[first10Years] / refs$SSBlim[first10Years] < 1)))
             vari <- var(tmp)
             ni <- length(tmp)
             sei <- sqrt(vari/ni)

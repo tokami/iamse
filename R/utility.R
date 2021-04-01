@@ -146,7 +146,10 @@ gen.noise <- function(n, sd, rho=0, bias.cor = 0, mv=FALSE, dat=NULL){
 
 #' @name est.depletion
 #' @export
-est.depletion <- function(dat, set=NULL, fmax = 10, nrep = 100, verbose = TRUE, method = "percentile"){
+est.depletion <- function(dat, set=NULL, fmin = 0.0001,
+                          fmax = 10, nrep = 100, verbose = TRUE,
+                          method = "percentile",
+                          tol = 0.0001){
 
     if(!any(names(dat) == "ref")) stop("Reference points are missing in dat. Use est.ref.levels.stochastic to estimate reference points.")
 
@@ -154,6 +157,8 @@ est.depletion <- function(dat, set=NULL, fmax = 10, nrep = 100, verbose = TRUE, 
         set <- check.set()
         nrep <- 1
     }
+    refs <- dat$ref
+    ny <- dat$ny
 
     depl <- dat$depl
     depl.quant <- dat$depl.quant
@@ -161,17 +166,42 @@ est.depletion <- function(dat, set=NULL, fmax = 10, nrep = 100, verbose = TRUE, 
 
     if(depl.quant %in% c("Bmsy","Blim")){
         outopt <- 2
+        blim <- dat$ref$Blim[ny]
     }else if(depl.quant %in% c("SSBmsy","SSBlim")){
         outopt <- 3
+        blim <- dat$ref$SSBlim[ny]
     }else stop("depl.quant not implemented. Please use Bmsy, Blim,SSBmsy or SSBlim. Or implement others.")
+
+
+    ## errors
+    errs <- list()
+    errs$eF <- lapply(as.list(1:nrep), function(x) gen.noise(ny, set$noiseF[1], set$noiseF[2], bias.cor = set$noiseF[3]))
+    errs$eR <- lapply(as.list(1:nrep), function(x) gen.noise(ny, set$noiseR[1], set$noiseR[2], bias.cor = set$noiseR[3]))
+    errs$eM <- lapply(as.list(1:nrep), function(x) gen.noise(ny, set$noiseM[1], set$noiseM[2], bias.cor = set$noiseM[3]))
+    errs$eH <- lapply(as.list(1:nrep), function(x) gen.noise(ny, set$noiseH[1], set$noiseH[2], bias.cor = set$noiseH[3]))
+    errs$eR0 <- lapply(as.list(1:nrep), function(x) gen.noise(ny, set$noiseR0[1], set$noiseR0[2], bias.cor = set$noiseR0[3]))
+    errs$eMat <- lapply(as.list(1:nrep), function(x) gen.noise(ny, set$noiseMat[1], set$noiseMat[2], bias.cor = set$noiseMat[3]))
+    errs$eSel <- lapply(as.list(1:nrep), function(x) gen.noise(ny, set$noiseSel[1], set$noiseSel[2], bias.cor = set$noiseSel[3]))
+    errs$eW <- lapply(as.list(1:nrep), function(x) gen.noise(ny, set$noiseW[1], set$noiseW[2], bias.cor = set$noiseW[3]))
 
     frel <- dat$FM/max(dat$FM)
 
-    fn <- function(logfabs, frel, depl, depl.prob, nrep, dat, set, outopt, optFn=1){
+    fn <- function(logfabs, frel, depl, depl.prob, nrep, dat, set, errs, outopt, optFn=1){
         datx <- dat
+        setx <- set
         fpat <- frel * exp(logfabs)
         datx$FM <- fpat
-        dreal <- sapply(1:nrep, function(x) initpop(datx, set, out.opt = outopt))
+        dreal <- sapply(1:nrep, function(x){
+            setx$eF <- errs$eF[[x]]
+            setx$eR <- errs$eR[[x]]
+            setx$eM <- errs$eM[[x]]
+            setx$eH <- errs$eH[[x]]
+            setx$eR0 <- errs$eR0[[x]]
+            setx$eMat <- errs$eMat[[x]]
+            setx$eSel <- errs$eSel[[x]]
+            setx$eW <- errs$eW[[x]]
+            initpop(datx, setx, out.opt = outopt)
+        })
         if(method == "mean"){
             drealQ <- mean(dreal)
         }else if(method == "median"){
@@ -179,20 +209,30 @@ est.depletion <- function(dat, set=NULL, fmax = 10, nrep = 100, verbose = TRUE, 
         }else if(method == "percentile"){
             drealQ <- quantile(dreal, probs = depl.prob)
         }
-        if(optFn==1) return((depl - drealQ)^2)
+        if(optFn==1) return((drealQ - depl)^2)
         if(optFn==2) return(drealQ)
+        if(optFn==3) return(dreal)
     }
 
-    opt <- optimize(fn, c(log(0.0001),log(fmax)), frel = frel, depl = depl, depl.prob = depl.prob,
-                    nrep = nrep, dat = dat, set=set, outopt = outopt, optFn = 1)
+    ## opt <- nlminb(log(5), fn, lower = log(fmin), upper = log(fmax), frel = frel, depl = depl,
+    ##               depl.prob = depl.prob,
+    ##               nrep = nrep, dat = dat, set=set, errs=errs, outopt = outopt, optFn = 1)
+
+    opt <- optimize(fn, c(log(fmin),log(fmax)), frel = frel, depl = depl, depl.prob = depl.prob,
+                    nrep = nrep, dat = dat, set=set, errs=errs, outopt = outopt, optFn = 1, tol = tol)
     fabs <- exp(opt$minimum)
     fvals <- frel * fabs
-    dreal <- round(fn(log(fabs), frel, depl, depl.prob, nrep, dat, set, outopt=outopt, optFn = 2),3)
+    tmp <- fn(log(fabs), frel, depl, depl.prob, nrep, dat, set, errs, outopt=outopt, optFn = 2)
+    dreal <- round(tmp,5)
+    tmp <- fn(log(fabs), frel, depl, depl.prob, nrep, dat, set, errs, outopt=outopt, optFn = 3)
+    risk <- round(mean(tmp * dat$ref[[depl.quant]][ny] < blim) * 100,1)
+    fmsyfac <- round(fabs / dat$ref$Fmsy[ny],2)
 
     if(verbose){
-        print(paste0("Target depletion level as ",depl.prob * 100, "% quantile of ", depl, " ", depl.quant,
+        print(paste0("Target depletion level as ",depl.prob, "% quantile of ", depl, " ", depl.quant,
                      " -- Realised depletion level at ", dreal, " ", depl.quant,
-                     " with absolute F equal to ",round(fabs,3)))
+                     " with absolute F equal to ",round(fabs,3)," (",fmsyfac," * Fmsy). This corresponds to a risk of ",
+                     risk,"% (P(B[last] < B[lim])."))
     }
 
     dat$FM <- fvals
@@ -483,10 +523,10 @@ est.productivity.stochastic <- function(dat, set= NULL,
     if(plot){
         cols <- rep(c("darkred","dodgerblue","darkgreen","darkorange","purple","gray","black","goldenrod"),100)
         plot(meds[[1]]$TSB, meds[[1]]$SP, ty = 'n',
-             ylim = range(sapply(meds,function(x) x$SP),
+             ylim = range(0,sapply(meds,function(x) x$SP),
                           sapply(lo,function(x) x$SP),
                           sapply(up,function(x) x$SP), na.rm =TRUE),
-             xlim = range(sapply(meds,function(x) x$TSB),
+             xlim = range(0,sapply(meds,function(x) x$TSB),
                           sapply(lo,function(x) x$TSB),
                           sapply(up,function(x) x$TSB), na.rm =TRUE),
              xlab = "TSB", ylab = "SP")
@@ -735,12 +775,14 @@ get.ssb0 <- function (M, mat, weight, fecun = 1,
     ZAA <-  M + FM
 
     NAAS <- initdistR(M, FM=FM, ns, asmax, indage0, spawning, R0)
+##    print(NAAS)
 
     ## SSB0 season dependent
     while(season > 1){
         NAAS <- NAAS * exp(-ZAA)
         NAAS[asmax] <- NAAS[asmax] + NAAS[asmax-1]
         for(as in (asmax-1):2) NAAS[as] <- NAAS[as-1]
+        ## NAAS[1] <- 0  ## CHECK: ?
         season <- season - 1
     }
 
