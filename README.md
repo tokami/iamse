@@ -4,7 +4,7 @@ Intra-annual management strategy evaluation (IAMSE)
 ## Highlights:
 
 1. Sub-annual time steps.
-2. Length-dependent processes.
+2. Optional length-dependent processes.
 3. Stochastic age-length key.
 4. Stochastic estimation of reference points (MSY, Fmsy, Bmsy).
 5. Dynamic (time-variant) processes and reference points.
