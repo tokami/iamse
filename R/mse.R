@@ -104,6 +104,7 @@ run.mse <- function(dat, set, ncores=parallel::detectCores()-1, verbose=TRUE){if
         for(i in 1:length(dat$surveyTimes)){
            setx$eI[[i]] <- gen.noise(nysim, set$noiseI[1], set$noiseI[2], set$noiseI[3])
         }
+        setx$eE <- gen.noise(nysim, set$noiseE[1], set$noiseE[2], set$noiseE[3])
 
         ## loop
         for(i in 1:nhcrs){

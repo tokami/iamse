@@ -12,7 +12,7 @@ est.tac <- function(obs, hcr, tacs=NULL, pars=NULL){
 
 #' @name gettacs
 gettacs <- function(tacs=NULL, id="", TAC=NA, obs=NULL){
-    if(!is.null(obs) && is.list(obs$obsI))
+    if(!is.null(obs) && is.list(obs$obsI) && length(obs$obsI) != 0)
         nis <- length(obs$obsI) else nis <- 1
     tactmp <- data.frame(TAC=TAC, id=id,
                          hitSC=NA,
@@ -511,7 +511,13 @@ def.hcr.spict <- function(id = "spict-msy",
 structure(
     function(obs, tacs = NULL, pars=NULL){
 
-        inp <- obs[c("obsC","timeC","obsI","timeI")]
+        if(is.null(obs$timeE)){
+             inp <- obs[c("obsC","timeC","obsI","timeI")]
+        }else if(is.null(obs$timeI)){
+             inp <- obs[c("obsC","timeC","obsE","timeE")]
+        }else{
+             inp <- obs[c("obsC","timeC","obsI","timeI","obsE","timeE")]
+        }
 
         func <- get("',nonconvHCR,'")
         inp$reportmode <- ',reportmode,'
@@ -559,7 +565,7 @@ structure(
             inp$phases$logn <- -1
             inp$ini$logn <- log(fixn)
         }
-        if(is.list(inp$obsI)) nis <- length(inp$obsI)
+        if(is.list(inp$obsI) && length(inp$obsI) != 0) nis <- length(inp$obsI) else nis <- 1
         if(is.null(tacs)){
             indBref <- inp$indBref
         }else{
@@ -688,7 +694,7 @@ structure(
         quantstmp <- c(fmfmsy, bpbmsy, cp, fmsy, bmsy, sdb, sdi, sdf, sdc, bmbmsy, nest, Kest, mest)
 
         if(is.na(fixn) &&
-           reportmode %in% c(0,1) && any(is.na(quantstmp))){
+           reportmode %in% c(0,1) && any(is.na(quantstmp)[-which(names(quantstmp) == "sdi.sd1")])){
             ## n.sd is NA if schaefer (n fixed), reportmode 3 does not report most quantities
             tacs <- func(inp, tacs=tacs, pars=pars)
             tacs$conv[nrow(tacs)] <- FALSE

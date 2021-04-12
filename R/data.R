@@ -343,11 +343,18 @@ check.dat <- function(dat = NULL, verbose = TRUE){
     ## catchability
     if(!any(names(dat) == "q")) dat$q <- 0.005
 
+    ## effort coefficient
+    if(!any(names(dat) == "qE")) dat$qE <- 5e2
+
     if(is.null(dat$nyC)) dat$nyC <- ny
     if(is.null(dat$nyI)) dat$nyI <- rep(ny, nsurv)
+    if(is.null(dat$nyE)) dat$nyE <- NA
 
     ## Seasonal catch observations
     if(is.null(dat$catchSeasons)) dat$catchSeasons <- 1
+
+    ## Seasonal effort observations
+    if(is.null(dat$effortSeasons)) dat$effortSeasons <- 1
 
     ## return
     return(dat)

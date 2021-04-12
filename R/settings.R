@@ -71,7 +71,11 @@ check.set <- function(set = NULL){
     }else if(length(set$noiseImv) != 3){
         writeLines("'set$noiseImv' needs to be a vector with 3 values corresponding to: sd, rho, bias.cor. Setting to c(0,0,0)!")
     }
-
+    if(is.null(set$noiseE)){
+        set$noiseE <- c(0,0,0)
+    }else if(length(set$noiseE) != 3){
+        writeLines("'set$noiseE' needs to be a vector with 3 values corresponding to: sd, rho, bias.cor (see gen.noise). Setting to c(0,0,0)!")
+    }
 
     ## maximum F for baranov solution for F given TAC
     if(is.null(set$maxF)) set$maxF <- 5
