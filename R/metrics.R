@@ -63,8 +63,11 @@ est.metrics <- function(mse, dat, mets = "all"){
     last15Years <- (finalYear - 14) : finalYear
     last35Years <- (finalYear - 34) : finalYear
     first15Years <- (ny + 1) : (ny + 15)
- ##   last5AmaxYears <- ifelse(amax>5,amax-4,1):amax + ny
-    last5AmaxYears <- 1:amax + ny
+    last5AmaxYears <- ifelse(amax>5,amax-4,1):amax + ny
+    amaxYears <- 1:amax + ny
+    amaxYears2 <- amax + ny
+    amaxYears3 <- 1:floor(amax/2) + ny
+    amaxYears4 <- floor(amax/2) + ny
 
     hcrs <- names(mse)
     reffmsyInd <- which(hcrs == "refFmsy")
@@ -76,7 +79,8 @@ est.metrics <- function(mse, dat, mets = "all"){
         "last35Years" = lapply(mse[[reffmsyInd]], function(x) apply(x$CW,1,sum)[last35Years]),
         "last5Years" = lapply(mse[[reffmsyInd]], function(x) apply(x$CW,1,sum)[last5Years]),
         "last10Years" = lapply(mse[[reffmsyInd]], function(x) apply(x$CW,1,sum)[last10Years]),
-        "last5AmaxYears" = lapply(mse[[reffmsyInd]], function(x) apply(x$CW,1,sum)[last5AmaxYears]))
+        "last5AmaxYears" = lapply(mse[[reffmsyInd]], function(x) apply(x$CW,1,sum)[last5AmaxYears]),
+        "amaxYears" = lapply(mse[[reffmsyInd]], function(x) apply(x$CW,1,sum)[amaxYears]))
 
     refF <- list(
         "finalYear" = lapply(mse[[reffmsyInd]], function(x) apply(x$FM,1,sum)[finalYear]),
@@ -98,7 +102,10 @@ est.metrics <- function(mse, dat, mets = "all"){
                  "PBBlim1","PBBlim3",
                  "CMSYST","PBBlimST","PBBlim1ST","PBBlim3ST",
                  "CMSYLT","PBBlimLT","PBBlim1LT","PBBlim3LT",
-                 "CMSYamax","PBBlimamax",
+                 "CMSYamax","PBBlimamax","AAVCamax",
+                 "CMSYamax2","PBBlimamax2",
+                 "BBmsyamax",
+                 "FFmsyamax",
                  "AAVC2",
                  "CMSY2","CMSYST2","CMSYLT2",
                  "CMSYMaxAge","PBBlimMaxAge",
@@ -399,7 +406,7 @@ est.metrics <- function(mse, dat, mets = "all"){
             if(length(reffmsyInd) > 0){
                 indi <- as.numeric(names(msei))
                 tmp <- sapply(1:length(msei), function(x)
-                    median(apply(msei[[x]]$CW,1,sum)[last5AmaxYears] / refyield[["last5AmaxYears"]][[indi[x]]]))
+                    sum(apply(msei[[x]]$CW,1,sum)[amaxYears]))  ## / refyield[["amaxYears"]][[indi[x]]])) ## HERE: sum and no reference yield
                 vari <- var(tmp)
                 ni <- length(tmp)
                 sei <- sqrt(vari/ni)
@@ -414,12 +421,12 @@ est.metrics <- function(mse, dat, mets = "all"){
                                         0,
                                         sei,
                                         ni))
-                }else if(hcrs[hcr] == "refFmsy"){
-                    res <- rbind(res, c(1,
-                                        1,
-                                        1,
-                                        sei,
-                                        ni))
+                ## }else if(hcrs[hcr] == "refFmsy"){
+                ##     res <- rbind(res, c(1,
+                ##                         1,
+                ##                         1,
+                ##                         sei,
+                ##                         ni))
                 }else{
                     res <- rbind(res, c(tmp2$conf.int[1],
                                         tmp2$estimate,
@@ -432,12 +439,102 @@ est.metrics <- function(mse, dat, mets = "all"){
         ## "PBBlimamax"
         if(any(mets == "PBBlimamax")){
             metsUsed <- c(metsUsed, "PBBlimamax")
-            tmp <- unlist(lapply(msei, function(x) mean(x$TSBfinal[last5AmaxYears] / refs$Blim[last5AmaxYears] < 1)))
+            tmp <- unlist(lapply(msei, function(x) mean(x$TSBfinal[amaxYears2] / refs$Blim[amaxYears2] < 1)))
             vari <- var(tmp)
             ni <- length(tmp)
             sei <- sqrt(vari/ni)
             tmp <- prop.test(sum(tmp), n = length(tmp), conf.level = 0.95, correct = FALSE)
             res <- rbind(res, c(tmp$conf.int[1], tmp$estimate, tmp$conf.int[2], sei, ni))
+        }
+        ## "AAVCamax"
+        if(any(mets == "AAVCamax")){
+            metsUsed <- c(metsUsed, "AAVCamax")
+            ## tmp <- unlist(lapply(lapply(msei,
+            ##                             function(x) (((apply(x$CW,1,sum)[simYears] -
+            ##                                            apply(x$CW,1,sum)[simYears+1])/
+            ##                                           apply(x$CW,1,sum)[simYears+1])^2)^0.5),
+            ##                      median ,na.rm=TRUE))
+            tmp <- sapply(msei, function(x) (sum(abs(apply(x$CW,1,sum)[amaxYears[-1]] -
+                                                     apply(x$CW,1,sum)[amaxYears[-length(amaxYears)]]),na.rm=TRUE)/
+                                             sum(apply(x$CW,1,sum)[amaxYears[-1]], na.rm=TRUE)))
+            vari <- var(tmp)
+            ni <- length(tmp)
+            sei <- sqrt(vari/ni)
+            tmp2 <- try(wilcox.test(as.numeric(tmp),
+                                    alternative="two.sided",
+                                    correct=TRUE,
+                                    conf.int=TRUE,
+                                    conf.level=0.95), silent=TRUE)
+            if(hcrs[hcr] == "noF"){
+                res <- rbind(res, c(0,
+                                    0,
+                                    0,
+                                    sei,
+                                    ni))
+            }else{
+                res <- rbind(res, c(tmp2$conf.int[1],
+                                    tmp2$estimate,
+                                    tmp2$conf.int[2],
+                                    sei,
+                                    ni))
+            }
+        }
+        if(any(mets == "CMSYamax2")){
+            metsUsed <- c(metsUsed, "CMSYamax2")
+            if(length(reffmsyInd) > 0){
+                indi <- as.numeric(names(msei))
+                tmp <- sapply(1:length(msei), function(x)
+                    mean(apply(msei[[x]]$CW,1,sum)[amaxYears3]))  ## / refyield[["amaxYears"]][[indi[x]]])) ## HERE: sum and no reference yield
+                vari <- var(tmp)
+                ni <- length(tmp)
+                sei <- sqrt(vari/ni)
+                tmp2 <- try(wilcox.test(as.numeric(tmp),
+                                   alternative="two.sided",
+                                   correct=TRUE,
+                                   conf.int=TRUE,
+                                   conf.level=0.95), silent=TRUE)
+                if(hcrs[hcr] == "noF"){
+                    res <- rbind(res, c(0,
+                                        0,
+                                        0,
+                                        sei,
+                                        ni))
+                ## }else if(hcrs[hcr] == "refFmsy"){
+                ##     res <- rbind(res, c(1,
+                ##                         1,
+                ##                         1,
+                ##                         sei,
+                ##                         ni))
+                }else{
+                    res <- rbind(res, c(tmp2$conf.int[1],
+                                        tmp2$estimate,
+                                        tmp2$conf.int[2],
+                                        sei,
+                                        ni))
+                }
+            }else writeLines("CMSYLT could not be estimated, because no rule 'refFmsy' not found.")
+        }
+        ## "PBBlimamax2"
+        if(any(mets == "PBBlimamax2")){
+            metsUsed <- c(metsUsed, "PBBlimamax2")
+            tmp <- unlist(lapply(msei, function(x) mean(x$TSBfinal[amaxYears4] / refs$Blim[amaxYears4] < 1)))
+            vari <- var(tmp)
+            ni <- length(tmp)
+            sei <- sqrt(vari/ni)
+            tmp <- prop.test(sum(tmp), n = length(tmp), conf.level = 0.95, correct = FALSE)
+            res <- rbind(res, c(tmp$conf.int[1], tmp$estimate, tmp$conf.int[2], sei, ni))
+        }
+        ## "BBmsy"
+        if(any(mets == "BBmsyamax")){
+            metsUsed <- c(metsUsed, "BBmsyamax")
+            tmp <- unlist(lapply(msei, function(x) median(x$TSBfinal[amaxYears2] / refs$Bmsy[amaxYears2])))
+            res <- rbind(res, quantile(tmp, probs = c(0.2, 0.5, 0.8), na.rm=TRUE))
+        }
+        ## "FFmsy"
+        if(any(mets == "FFmsyamax")){
+            metsUsed <- c(metsUsed, "FFmsyamax")
+            tmp <- unlist(lapply(msei, function(x) median(apply(x$FM,1,sum)[amaxYears2] / refs$Fmsy[amaxYears2])))
+            res <- rbind(res, quantile(tmp, probs = c(0.2, 0.5, 0.8), na.rm=TRUE))
         }
         ## CMSYlast5
         if(any(mets == "CMSYlast5")){
