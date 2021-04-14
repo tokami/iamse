@@ -70,8 +70,15 @@ def.hcr.ref <- function(consF = 0,
             '
 structure(
     function(obs, tacs=NULL, pars=NULL){
-        obs <- spict::check.inp(obs, verbose = FALSE)
-        tacs <- gettacs(tacs, id="',id,'", TAC=NA, obs=obs)
+        if(is.null(obs$timeE)){
+             inp <- obs[c("obsC","timeC","obsI","timeI")]
+        }else if(is.null(obs$timeI)){
+             inp <- obs[c("obsC","timeC","obsE","timeE")]
+        }else{
+             inp <- obs[c("obsC","timeC","obsI","timeI","obsE","timeE")]
+        }
+        inp <- spict::check.inp(inp, verbose = FALSE)
+        tacs <- gettacs(tacs, id="',id,'", TAC=NA, obs=inp)
         return(tacs)
     },
     class="hcr"
@@ -88,8 +95,15 @@ structure(
                 '
 structure(
     function(obs, tacs=NULL, pars=NULL){
-        obs <- spict::check.inp(obs, verbose = FALSE)
-        tacs <- gettacs(tacs, id="',id,'", TAC=NA, obs=obs)
+        if(is.null(obs$timeE)){
+             inp <- obs[c("obsC","timeC","obsI","timeI")]
+        }else if(is.null(obs$timeI)){
+             inp <- obs[c("obsC","timeC","obsE","timeE")]
+        }else{
+             inp <- obs[c("obsC","timeC","obsI","timeI","obsE","timeE")]
+        }
+        inp <- spict::check.inp(inp, verbose = FALSE)
+        tacs <- gettacs(tacs, id="',id,'", TAC=NA, obs=inp)
         return(tacs)
     },
     class="hcr"
@@ -103,8 +117,15 @@ structure(
                 '
 structure(
     function(obs, tacs=NULL, pars=NULL){
-        obs <- spict::check.inp(obs, verbose = FALSE)
-        tacs <- gettacs(tacs, id="',id,'", TAC=NA, obs=obs)
+        if(is.null(obs$timeE)){
+             inp <- obs[c("obsC","timeC","obsI","timeI")]
+        }else if(is.null(obs$timeI)){
+             inp <- obs[c("obsC","timeC","obsE","timeE")]
+        }else{
+             inp <- obs[c("obsC","timeC","obsI","timeI","obsE","timeE")]
+        }
+        inp <- spict::check.inp(inp, verbose = FALSE)
+        tacs <- gettacs(tacs, id="',id,'", TAC=NA, obs=inp)
         return(tacs)
     },
     class="hcr"
@@ -118,8 +139,15 @@ structure(
                 '
 structure(
     function(obs, tacs=NULL, pars=NULL){
-        obs <- spict::check.inp(obs, verbose = FALSE)
-        tacs <- gettacs(tacs, id="',id,'", TAC=0, obs=obs)
+        if(is.null(obs$timeE)){
+             inp <- obs[c("obsC","timeC","obsI","timeI")]
+        }else if(is.null(obs$timeI)){
+             inp <- obs[c("obsC","timeC","obsE","timeE")]
+        }else{
+             inp <- obs[c("obsC","timeC","obsI","timeI","obsE","timeE")]
+        }
+        inp <- spict::check.inp(inp, verbose = FALSE)
+        tacs <- gettacs(tacs, id="',id,'", TAC=0, obs=inp)
         return(tacs)
     },
     class="hcr"
@@ -519,6 +547,8 @@ structure(
              inp <- obs[c("obsC","timeC","obsI","timeI","obsE","timeE")]
         }
 
+browser()
+
         func <- get("',nonconvHCR,'")
         inp$reportmode <- ',reportmode,'
         inp$dteuler <- ',dteuler,'
@@ -593,6 +623,8 @@ structure(
         ## }else{
         ##     rwF <- FALSE
         ## }
+
+browser()
 
         ## fit spict
         rwF  <- FALSE
@@ -1043,6 +1075,161 @@ structure(function(obs, tacs = NULL, pars=NULL){
     }
 },
 class="hcr")
+'))
+
+    ## create HCR as functions
+    templati <- eval(parse(text=paste(parse(text = eval(template)),collapse=" ")))
+    assign(value=templati, x=id, envir=env)
+
+    ## allow for assigning names
+    invisible(id)
+}
+
+
+
+#' @name def.hcr.pseudo
+#' @title Define harvest control rule with pseudo assessment
+#'
+#' @param id Name/ID of HCR. Default: "pseudo-msy"
+#' @param fractiles Fractiles. List
+#' @param breakpointB breakpointb
+#' @param safeguard safeguard. List
+#' @param dteuler Time step of Forward Euler scheme.
+#' @param reportmode Reportmode
+#' @param stabilise stabilise option of spict. Default: FALSE.
+#' @param priorlogn prior
+#' @param priorlogalpha prior
+#' @param priorlogbeta prior
+#' @param priorlogbkfrac prior
+#' @param fixn fixn
+#' @param bfac bfac
+#' @param bref bref
+#' @param brefType brefType
+#' @param nyBref nyBref
+#' @param btar btar
+#' @param probtar probtar
+#' @param brule Brule
+#' @param red Reduction
+#' @param redyears Reduction years
+#' @param redAlways Reduction always? Default: FALSE.
+#' @param rai Raising factor. Default: 0.2.
+#' @param manstartdY Management start year. Default: 0.
+#' @param assessmentInterval Assessment interval. Default: 1.
+#' @param intC Interval C. Default: NA.
+#' @param nonconvHCR HCR if SPiCT does not converge. Default: "conscat" (constant catch).
+#' @param clType Catch type for uncertainty cap. Default: "TAC".
+#' @param clyears Number of years for uncertainty cap. Default: 1.
+#' @param stab Uncertainty cap. Default: FALSE.
+#' @param lower Upper bound of uncertainty cap. Default: 0.8.
+#' @param upper Upper bound of uncertainty cap. Default: 1.2.
+#' @param bm Benchmark. Default: FALSE,  ## e.g. 5 => re-defining Bref at every benchmark
+#' @param env Environment. Default: globalenv()
+#'
+#'
+#' @importFrom doBy which.minn
+#'
+#' @export
+#'
+def.hcr.pseudo <- function(id = "pseudo-msy",
+                          fractiles = list(catch=0.5,
+                                           ffmsy=0.5,
+                                           bbmsy=0.5,
+                                           bmsy = 0.5,
+                                           fmsy = 0.5),
+                          breakpointB = 0.0,
+                          clType = "TAC",
+                          clyears = 1,
+                          stab = FALSE,
+                          lower = 0.8,
+                          upper = 1.2,
+                          env = globalenv()
+                          ){
+
+    frc <- fractiles$catch
+    if(is.null(frc)) frc <- 0.5
+    frff <- fractiles$ffmsy
+    if(is.null(frff)) frff <- 0.5
+    frbb <- fractiles$bbmsy
+    if(is.null(frbb)) frbb <- 0.5
+    frb <- fractiles$bmsy
+    if(is.null(frb)) frb <- 0.5
+    frf <- fractiles$fmsy
+    if(is.null(frf)) frf <- 0.5
+    breakpointB <- sort(breakpointB)
+    if(length(breakpointB) > 1){
+        blim <- breakpointB[1]
+        btrigger <- breakpointB[2]
+    }else{
+        blim <- 0
+        btrigger <- breakpointB[1]
+    }
+
+    template  <- expression(paste0(
+        '
+structure(
+    function(obs, tacs = NULL, pars=NULL){
+
+
+        inp <- obs[c("obsC","timeC")]
+        bbmsy <- pars[["bbmsy"]]
+        bbmsySD <- pars[["bbmsySD"]]
+        bbmsyBias <- pars[["bbmsyBias"]]
+        ffmsy <- pars[["ffmsy"]]
+        ffmsySD <- pars[["ffmsySD"]]
+        ffmsyBias <- pars[["ffmsyBias"]]
+        tacSD <- pars[["tacSD"]]
+        fmsy <- pars[["fmsy"]]
+        fmsyBias <- pars[["fmsyBias"]]
+
+        lower <- ',lower,'
+        upper <- ',upper,'
+        clyears <- ',clyears,'
+        clType <- "',clType,'"
+
+        ## pseudo-assessment-hcr
+        ffmsyi <- exp(qnorm(1 - frf, log(ffmsy + ffmsy * ffmsyBias), ffmsySD))
+        ffmsy5 <- exp(qnorm(0.5, log(ffmsy + ffmsy * ffmsyBias), ffmsySD))
+        fred <- ffmsy5 / ffmsyi
+        if(btrigger > 0){
+           hsSlope <- 1/(btrigger-blim)
+           hsIntercept <- - hsSlope * blim
+           bbmsyi <- hsSlope * exp(qnorm(frb, log(bbmsy + bbmsy * bbmsyBias),
+                                         bbmsySD)) + hsIntercept
+           fred <- fred * min(1, max(0,bbmsyi))
+        }
+        targetF <- (fred + 1e-8) * (fmsy + fmsy * fmsyBias) / pars[["ns"]]
+
+        faa <- targetF * pars[["sel"]]
+        caa <- baranov(faa, pars[["m"]], pars[["n"]])
+        tac <- sum(caa * pars[["weight"]])
+        tac <- exp(qnorm(frc, log(tac), tacSD))
+
+        ## last years catch/tac
+        if(clType == "observed"){
+            cl <- mean(tail(inp$obsC, clyears))
+        }else if(clType == "TAC"){
+            if(is.null(tacs)){
+                cl <- mean(tail(inp$obsC, clyears))
+                cl <- cl ## * assessInt
+            }else{
+                cl <- tacs$TAC[nrow(tacs)]
+            }
+        }
+
+        if(',stab,'){
+            cllo <- cl * lower
+            clup <- cl * upper
+            if(any(tac < cllo)) hitSC <- 1 else hitSC <- 0
+            if(any(tac > clup)) hitSC <- 2 else hitSC <- 0
+            tac[tac < cllo] <- cllo
+            tac[tac > clup] <- clup
+        }else hitSC <- 0
+
+        tacs <- gettacs(tacs, id="',id,'", TAC=tac, obs=obs)
+        tacs$hitSC[nrow(tacs)] <- hitSC
+        return(tacs)
+    },
+    class="hcr")
 '))
 
     ## create HCR as functions

@@ -170,7 +170,7 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){## indices
     CAA <- vector("list", ny)
     for(i in 1:ny) CAA[[i]] <- matrix(NA, nrow = asmax, ncol = ns)
     ## observations
-    if(!is.na(dat$surveyTimes) && is.numeric(nyI)){
+    if(all(!is.na(dat$surveyTimes)) && is.numeric(nyI)){
         obsI <- timeI <- vector("list", nsurv)
     }else{
         obsI <- timeI <- NULL
@@ -333,7 +333,7 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){## indices
     }
 
     ## account for nyhist (nyC, nyI)
-    if(is.numeric(nyI) && !is.na(dat$surveyTimes)){
+    if(is.numeric(nyI) && all(!is.na(dat$surveyTimes))){
         for(i in 1:nsurv){
             timeI[[i]] <- timeI[[i]][(ny-nyI[i]+1):ny]
             obsI[[i]] <- obsI[[i]][(ny-nyI[i]+1):ny]
@@ -525,7 +525,7 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
     nsurv <- length(dat$surveyTimes)
     seasonStart <- seq(0,1-1/ns,1/ns)
     idxS <- rep(0, nsurv)
-    if(!is.na(dat$surveyTimes)){
+    if(all(!is.na(dat$surveyTimes))){
         for(i in 1:nsurv){
             tmp <- seasonStart[seasonStart < dat$surveyTimes[i]]
             idxS[i] <- which.min((tmp - dat$surveyTimes[i])^2)
@@ -558,6 +558,19 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
         }
 
     }
+
+    bbmsySD <- set$bbmsySD
+    if(is.null(bbmsySD) || !is.numeric(bbmsySD)) bbmsySD <- 0
+    bbmsyBias <- set$bbmsyBias
+    if(is.null(bbmsyBias) || !is.numeric(bbmsyBias)) bbmsyBias <- 0
+    ffmsySD <- set$ffmsySD
+    if(is.null(ffmsySD) || !is.numeric(ffmsySD)) ffmsySD <- 0
+    ffmsyBias <- set$ffmsyBias
+    if(is.null(ffmsyBias) || !is.numeric(ffmsyBias)) ffmsyBias <- 0
+    fmsyBias <- set$fmsyBias
+    if(is.null(fmsyBias) || !is.numeric(fmsyBias)) fmsyBias <- 0
+    tacSD <- set$tacSD
+    if(is.null(tacSD) || !is.numeric(tacSD)) tacSD <- 0
 
     ## parameters per age
     weight <- dat$weight
@@ -755,10 +768,19 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
                                             "sel" = sely,
                                             "weight" = weightFy,
                                             "m" = MAA,
-                                            "n" = NAAS
+                                            "n" = NAAS,
+                                            "bbmsySD" = bbmsySD,
+                                            "bbmsyBias" = bbmsyBias,
+                                            "ffmsySD" = ffmsySD,
+                                            "ffmsyBias" = ffmsyBias,
+                                            "fmsyBias" = fmsyBias,
+                                            "tacSD" = tacSD,
+                                            "ns" = ns
                                             ))
+
                 TACs[y] <- as.numeric(as.character(tacs$TAC[nrow(tacs)])) * eImp
-                TACreal <- rep(TACs[y] / ntac, ntac)  ## CHECK: do not equally split tac among time steps!
+                TACreal <- rep(TACs[y] / ntac, ntac)
+                ## CHECK: do not equally split tac among time steps!
             }
 
             ## Find F given TAC
@@ -853,7 +875,7 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
         SSB[y,s] <- sum(NAAS * weighty * maty * exp(-pzbm * ZAA))
 
         ## index observations
-        if(!is.na(dat$surveyTimes)){
+        if(all(!is.na(dat$surveyTimes))){
             if(s %in% idxS){
                 idxi <- which(idxS == s)
                 for(i in 1:length(idxi)){
@@ -877,8 +899,9 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
                     rownames(obs$obsIA[[idxi[i]]])[nrow(obs$obsIA[[idxi[i]]])] <- as.character(y)  ## CHECK: instead of 1 (assuming one survey a year) this should allow for s surveys
                 }
             }
-            for(i in 1:length(idxS)) attributes(obs$obsIA[[i]]) <- c(attributes(obs$obsIA[[i]]),
-                                                                     list(time = dat$surveyTimes))
+            for(i in 1:length(idxS)) attributes(obs$obsIA[[i]]) <-
+                                         c(attributes(obs$obsIA[[i]]),
+                                           list(time = dat$surveyTimes))
         }
         ## observing annual M
         obsMAAtmp <- obsMAAtmp + MAA[seq(s,asmax,ns)]
@@ -920,7 +943,7 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
         ## Effort
         if(is.numeric(nyE)){
             if(nsE == 1){
-                obs$obsE <- c(obs$obsCE, sum(FM[y,]) * qE * eE)
+                obs$obsE <- c(obs$obsE, sum(FM[y,]) * qE * eE)
                 if(!is.null(obs$timeE)) timeEi <- tail(obs$timeE,1) else timeEi <- ny-nyE+1
                 obs$timeE <- c(obs$timeE, timeEi + 1)
             }else if(nsE == ns){
