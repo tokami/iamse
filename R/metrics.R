@@ -41,12 +41,15 @@ est.metrics <- function(mse, dat, mets = "all"){
     nhcr <- length(mse)
     nrep <- length(mse[[1]])
     nquant <- length(mse[[1]][[1]])
-    if(any(names(mse[[1]][[1]]$tacs) == "assessInt")){
+    ## IMPROVE:
+    if(any(names(mse[[1]][[1]]$tacs) == "assessInt") && !is.na(mse[[length(mse)-1]][[1]]$tacs$assessInt[1])){
         assessInt <- mse[[length(mse)-1]][[1]]$tacs$assessInt[1]
         nysim <- nrow(mse[[1]][[1]]$tacs) * assessInt
     }else{
         nysim <- nrow(mse[[1]][[1]]$tacs)
     }
+    ## REMOVE:
+    nysim <- 35
     dims <- dim(mse[[1]][[1]]$CW)
     ny <- dims[1] - nysim
     ns <- dims[2]
@@ -406,7 +409,7 @@ est.metrics <- function(mse, dat, mets = "all"){
             if(length(reffmsyInd) > 0){
                 indi <- as.numeric(names(msei))
                 tmp <- sapply(1:length(msei), function(x)
-                    sum(apply(msei[[x]]$CW,1,sum)[amaxYears]))  ## / refyield[["amaxYears"]][[indi[x]]])) ## HERE: sum and no reference yield
+                    sum(apply(msei[[x]]$CW,1,sum)[amaxYears]) / sum(refyield[["amaxYears"]][[indi[x]]]))
                 vari <- var(tmp)
                 ni <- length(tmp)
                 sei <- sqrt(vari/ni)
@@ -439,7 +442,7 @@ est.metrics <- function(mse, dat, mets = "all"){
         ## "PBBlimamax"
         if(any(mets == "PBBlimamax")){
             metsUsed <- c(metsUsed, "PBBlimamax")
-            tmp <- unlist(lapply(msei, function(x) mean(x$TSBfinal[amaxYears2] / refs$Blim[amaxYears2] < 1)))
+            tmp <- unlist(lapply(msei, function(x) mean(x$TSBfinal[amaxYears] / refs$Blim[amaxYears] < 1)))
             vari <- var(tmp)
             ni <- length(tmp)
             sei <- sqrt(vari/ni)
@@ -484,7 +487,7 @@ est.metrics <- function(mse, dat, mets = "all"){
             if(length(reffmsyInd) > 0){
                 indi <- as.numeric(names(msei))
                 tmp <- sapply(1:length(msei), function(x)
-                    mean(apply(msei[[x]]$CW,1,sum)[amaxYears3]))  ## / refyield[["amaxYears"]][[indi[x]]])) ## HERE: sum and no reference yield
+                    mean(apply(msei[[x]]$CW,1,sum)[amaxYears3]) / mean(refyield[["amaxYears"]][[indi[x]]]))
                 vari <- var(tmp)
                 ni <- length(tmp)
                 sei <- sqrt(vari/ni)

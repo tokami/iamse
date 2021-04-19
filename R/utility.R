@@ -149,7 +149,7 @@ gen.noise <- function(n, sd, rho=0, bias.cor = 0, mv=FALSE, dat=NULL){
 est.depletion <- function(dat, set=NULL, fmin = 0.0001,
                           fmax = 10, nrep = 100, verbose = TRUE,
                           method = "percentile",
-                          tol = 0.0001){
+                          tol = 0.0001, do.opt = TRUE){
 
     if(!any(names(dat) == "ref")) stop("Reference points are missing in dat. Use est.ref.levels.stochastic to estimate reference points.")
 
@@ -159,6 +159,7 @@ est.depletion <- function(dat, set=NULL, fmin = 0.0001,
     }
     refs <- dat$ref
     ny <- dat$ny
+    ns <- dat$ns
 
     depl <- dat$depl
     depl.quant <- dat$depl.quant
@@ -189,7 +190,7 @@ est.depletion <- function(dat, set=NULL, fmin = 0.0001,
     fn <- function(logfabs, frel, depl, depl.prob, nrep, dat, set, errs, outopt, optFn=1){
         datx <- dat
         setx <- set
-        fpat <- frel * exp(logfabs)
+        fpat <- frel * exp(logfabs) / dat$ns
         datx$FM <- fpat
         dreal <- sapply(1:nrep, function(x){
             setx$eF <- errs$eF[[x]]
@@ -217,11 +218,14 @@ est.depletion <- function(dat, set=NULL, fmin = 0.0001,
     ## opt <- nlminb(log(5), fn, lower = log(fmin), upper = log(fmax), frel = frel, depl = depl,
     ##               depl.prob = depl.prob,
     ##               nrep = nrep, dat = dat, set=set, errs=errs, outopt = outopt, optFn = 1)
-
-    opt <- optimize(fn, c(log(fmin),log(fmax)), frel = frel, depl = depl, depl.prob = depl.prob,
-                    nrep = nrep, dat = dat, set=set, errs=errs, outopt = outopt, optFn = 1, tol = tol)
-    fabs <- exp(opt$minimum)
-    fvals <- frel * fabs
+    if(do.opt){
+        opt <- optimize(fn, c(log(fmin),log(fmax)), frel = frel, depl = depl, depl.prob = depl.prob,
+                        nrep = nrep, dat = dat, set=set, errs=errs, outopt = outopt, optFn = 1, tol = tol)
+        fabs <- exp(opt$minimum)
+    }else{
+        fabs <- max(apply(dat$FM,1,sum))
+    }
+    fvals <- frel * fabs / ns
     tmp <- fn(log(fabs), frel, depl, depl.prob, nrep, dat, set, errs, outopt=outopt, optFn = 2)
     dreal <- round(tmp,5)
     tmp <- fn(log(fabs), frel, depl, depl.prob, nrep, dat, set, errs, outopt=outopt, optFn = 3)
@@ -272,11 +276,11 @@ est.productivity <- function(dat, set= NULL,
     len2 <- ny - len1 - len3
 
     ## increasing effort
-    dat$FM <- c(rep(0,len1),
+    dat$FM <- matrix(c(rep(0,len1),
                    seq(0, fmax, length.out = len2),
-                rep(fmax,len3)) / ns
+                rep(fmax,len3)) / ns, ncol=ns, nrow = ny)
     ## CHECK: how to estimate productivity with time variant M?
-    dat$M <- mean(dat$M)
+    dat$M <- matrix(dat$M[1,], ncol=ns, nrow=1)
     dat <- check.dat(dat)
     pop1 <- initpop(dat, set)
     tsb1 <- pop1$TSBfinal
@@ -298,10 +302,10 @@ est.productivity <- function(dat, set= NULL,
     Blim1 <- tsb1[which.min(abs(prod1 - msy1/2))]
 
     ## decreasing effort
-    dat$FM <- c(rep(fmax, len1),
+    dat$FM <- matrix(c(rep(fmax, len1),
                    seq(fmax, 0, length.out = len2),
-                rep(0, len3)) / ns
-    dat$M <- mean(dat$M)
+                rep(0, len3)) / ns, ncol=ns, nrow=ny)
+    dat$M <- matrix(dat$M[1,], ncol=ns, nrow=1)
     dat <- check.dat(dat)
     pop2 <- initpop(dat, set)
     tsb2 <- pop2$TSBfinal
@@ -621,14 +625,14 @@ predCatch <- function(logFM,
                              R0 = R0, method = SR, bp = bp,
                              beta = recBeta, gamma = recGamma)
             rec[rec<0] <- 1e-10
-            NAAtmp[1] <- rec * spawning[s] * eR
+            NAAtmp[indage0] <- rec * spawning[s] * eR
         }
         Ctmp <- Ctmp + sum(baranov(FAA, MAA, NAAtmp) * weight)
         ## Aging
         NAAtmp <- NAAtmp * exp(-Ztmp)
         NAAtmp[asmax] <- NAAtmp[asmax] + NAAtmp[asmax-1]
         for(as in (asmax-1):2) NAAtmp[as] <- NAAtmp[as-1]
-        NAAtmp[1] <- 0
+        NAAtmp[indage0] <- 0
     }
 
     if(out == 0){
@@ -649,7 +653,7 @@ get.f <- function(TAC,
                    R0, SR, bp, recBeta,
                   recGamma, eR,
                   indage0,
-                  lastFM = 0.1){
+                  lastFM = 0.01, upper = log(100)){
 
     opt <- nlminb(start = log(lastFM), objective = predCatch,
                   NAA = NAA, MAA = MAA,
@@ -662,8 +666,10 @@ get.f <- function(TAC,
                   indage0 = indage0,
                   TAC = TAC,
                   out = 1,
-                  lower = -10, upper = 10,
-                  control = list(rel.tol = 1e-10))
+                  lower = -10, upper = upper,
+                  control = list(rel.tol = 1e-3))
+
+##    print(paste0("obj: ",round(opt$objective,2), "- fm: ",round(exp(opt$par),3)))
     return(exp(opt$par))
 }
 

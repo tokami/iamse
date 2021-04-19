@@ -534,11 +534,7 @@ def.hcr.spict <- function(id = "spict-msy",
     breakpointB1 <- breakpointB[1]
     breakpointB2 <- breakpointB[2]
 
-    template  <- expression(paste0(
-        '
-structure(
-    function(obs, tacs = NULL, pars=NULL){
-
+    template  <- expression(paste0(' structure(function(obs, tacs = NULL, pars=NULL){
         if(is.null(obs$timeE)){
              inp <- obs[c("obsC","timeC","obsI","timeI")]
         }else if(is.null(obs$timeI)){
@@ -546,8 +542,6 @@ structure(
         }else{
              inp <- obs[c("obsC","timeC","obsI","timeI","obsE","timeE")]
         }
-
-browser()
 
         func <- get("',nonconvHCR,'")
         inp$reportmode <- ',reportmode,'
@@ -576,11 +570,16 @@ browser()
         inp <- spict::check.inp(inp, verbose = FALSE)
         ## priors
         inp$priors$logn <- c(',priorlogn[1],',',priorlogn[2],',',priorlogn[3],')
-        inp$priors$logsdf <- c(',priorlogsdf[1],',',priorlogsdf[2],',',priorlogsdf[3],')
-        inp$priors$logsdc <- c(',priorlogsdc[1],',',priorlogsdc[2],',',priorlogsdc[3],')
-        inp$priors$logalpha <- c(',priorlogalpha[1],',',priorlogalpha[2],',',priorlogalpha[3],')
-        inp$priors$logbeta <- c(',priorlogbeta[1],',',priorlogbeta[2],',',priorlogbeta[3],')
-        inp$priors$logbkfrac <- c(',priorlogbkfrac[1],',',priorlogbkfrac[2],',',priorlogbkfrac[3],')
+        inp$priors$logsdf <- c(',priorlogsdf[1],',',priorlogsdf[2],',',
+        priorlogsdf[3],')
+        inp$priors$logsdc <- c(',priorlogsdc[1],',',priorlogsdc[2],',',
+        priorlogsdc[3],')
+        inp$priors$logalpha <- c(',priorlogalpha[1],',',priorlogalpha[2],',',
+        priorlogalpha[3],')
+        inp$priors$logbeta <- c(',priorlogbeta[1],',',priorlogbeta[2],',',
+        priorlogbeta[3],')
+        inp$priors$logbkfrac <- c(',priorlogbkfrac[1],',',priorlogbkfrac[2],',',
+        priorlogbkfrac[3],')
         ## Catch for intermediate year
         if(is.na(',intC,')){
             intC2 <- NULL
@@ -624,11 +623,11 @@ browser()
         ##     rwF <- FALSE
         ## }
 
-browser()
-
         ## fit spict
         rwF  <- FALSE
+##  inp$reportmode <- 0
         fit <- try(fit.spict(inp), silent=TRUE)
+## try(plot(fit),silent=TRUE)
         ## non-convergence
         if(class(fit) == "try-error" || fit$opt$convergence != 0 || any(is.infinite(fit$sd))){
             tacs <- func(inp, tacs=tacs, pars=pars)
@@ -816,7 +815,8 @@ browser()
                                                         bbmsy = ',frbb,',
                                                         bmsy  = ',frb,',
                                                         fmsy  = ',frf,'),
-                                       breakpointB = c(',breakpointB1,',',breakpointB2,'),
+                                       breakpointB = c(',breakpointB1,',',
+breakpointB2,'),
                                        safeguardB = list(limitB = ',limitB,',prob = prob),
                                        intermediatePeriodCatch = intC2,
                                        verbose = FALSE),
@@ -843,7 +843,8 @@ browser()
                                                         bbmsy = ',frbb,',
                                                         bmsy  = ',frb,',
                                                         fmsy  = ',frf,'),
-                                       breakpointB = c(',breakpointB1,',',breakpointB2,'),
+                                       breakpointB = c(',breakpointB1,',',
+breakpointB2,'),
                                        safeguardB = list(limitB = ',limitB,',prob = prob),
                                        intermediatePeriodCatch = intC2,
                                        verbose = FALSE),
@@ -894,7 +895,8 @@ browser()
                                                             bbmsy = ',frbb,',
                                                             bmsy  = ',frb,',
                                                             fmsy  = ',frf,'),
-                                           breakpointB = c(',breakpointB1,',',breakpointB2,'),
+                                           breakpointB = c(',breakpointB1,',',
+breakpointB2,'),
                                            safeguardB = list(limitB = ',limitB,',prob = prob),
                                            intermediatePeriodCatch = intC2,
                                            verbose = FALSE),

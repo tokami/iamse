@@ -780,7 +780,7 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
 
                 TACs[y] <- as.numeric(as.character(tacs$TAC[nrow(tacs)])) * eImp
                 TACreal <- rep(TACs[y] / ntac, ntac)
-                ## CHECK: do not equally split tac among time steps!
+                ## CHECK: do not equally split tac among time steps! (only used for TACprev)
             }
 
             ## Find F given TAC
@@ -827,7 +827,8 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
                                    R0 = R0y, SR = dat$SR, bp = dat$pb, recBeta = dat$recBeta,
                                    recGamma = dat$recGamma, eR = eR,
                                    indage0 = indage0,
-                                   lastFM = FM[y-1,s]
+                                   lastFM = 0.01, ## FM[y-1,s],  ## CHECK: had some issues with too high FM
+                                   upper = log(set$maxF/ns)
                                    )
                              )
             }
@@ -882,7 +883,7 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
                     ## survey observation: total catch in weight (spict)
                     surveyTime <- dat$surveyTimes[idxi[i]] - seasonStart[idxS[idxi[i]]]
                     NAAsurv <- exp(log(NAAS) - ZAA * surveyTime)
-                    ESBsurv <- NAAsurv * weightFy * dat$selI[[idxi[i]]]
+                    ESBsurv <- NAAsurv * weightFy * as.numeric(t(dat$selI[[idxi[i]]]))
                     obs$obsI[[idxi[i]]] <-
                         c(obs$obsI[[idxi[i]]], q[idxi[i]] * sum(ESBsurv) * eI[[idxi[i]]])
                     if(is.null(obs$timeI[[idxi[i]]])){
