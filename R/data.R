@@ -332,6 +332,8 @@ check.dat <- function(dat = NULL, verbose = TRUE){
     if(is.null(dat$surveyTimes)) dat$surveyTimes <- c(1/12, 7/12)
     nsurv <- length(dat$surveyTimes)
 
+    if(is.null(dat$surveyBeforeAssessment)) dat$surveyBeforeAssessment <- c(TRUE, FALSE)
+
     ## survey selectivities and timings
     if(is.null(dat$selI)){
         dat$selI <- list()

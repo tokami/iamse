@@ -627,7 +627,7 @@ def.hcr.spict <- function(id = "spict-msy",
         rwF  <- FALSE
 ##  inp$reportmode <- 0
         fit <- try(fit.spict(inp), silent=TRUE)
-## try(plot(fit),silent=TRUE)
+##  try(plot(fit),silent=TRUE)
         ## non-convergence
         if(class(fit) == "try-error" || fit$opt$convergence != 0 || any(is.infinite(fit$sd))){
             tacs <- func(inp, tacs=tacs, pars=pars)

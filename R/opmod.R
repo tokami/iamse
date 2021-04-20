@@ -741,6 +741,31 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
             NAAS[indage0] <- rec[y,s]
         }
 
+
+        ## index observations before assessment (not implemented for obsIA yet)
+        if(all(!is.na(dat$surveyTimes))){
+            if(s %in% idxS){
+                idxi <- which(idxS == s)
+                for(i in 1:length(idxi)){
+                    if(dat$surveyBeforeAssessment[idxi[i]]){
+                        ## survey observation: total catch in weight (spict)
+                        surveyTime <- dat$surveyTimes[idxi[i]] - seasonStart[idxS[idxi[i]]]
+                        NAAsurv <- exp(log(NAAS) - ZAA * surveyTime)
+                        ESBsurv <- NAAsurv * weightFy * as.numeric(t(dat$selI[[idxi[i]]]))
+                        obs$obsI[[idxi[i]]] <-
+                            c(obs$obsI[[idxi[i]]], q[idxi[i]] * sum(ESBsurv) * eI[[idxi[i]]])
+                        if(is.null(obs$timeI[[idxi[i]]])){
+                            timeIi <- ny-nyI[idxi[i]]+1
+                        }else timeIi <- floor(tail(obs$timeI[[idxi[i]]],1))
+                        obs$timeI[[idxi[i]]] <-
+                            c(obs$timeI[[idxi[i]]], timeIi + 1 + dat$surveyTimes[idxi[i]])
+                    }
+                }
+            }
+        }
+
+
+
         ## Assessment
         if(year %in% assessYears && s %in% assessmentTiming){
 
@@ -880,24 +905,26 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
             if(s %in% idxS){
                 idxi <- which(idxS == s)
                 for(i in 1:length(idxi)){
-                    ## survey observation: total catch in weight (spict)
-                    surveyTime <- dat$surveyTimes[idxi[i]] - seasonStart[idxS[idxi[i]]]
-                    NAAsurv <- exp(log(NAAS) - ZAA * surveyTime)
-                    ESBsurv <- NAAsurv * weightFy * as.numeric(t(dat$selI[[idxi[i]]]))
-                    obs$obsI[[idxi[i]]] <-
-                        c(obs$obsI[[idxi[i]]], q[idxi[i]] * sum(ESBsurv) * eI[[idxi[i]]])
-                    if(is.null(obs$timeI[[idxi[i]]])){
-                        timeIi <- ny-nyI[idxi[i]]+1
-                    }else timeIi <- floor(tail(obs$timeI[[idxi[i]]],1))
-                    obs$timeI[[idxi[i]]] <-
-                        c(obs$timeI[[idxi[i]]], timeIi + 1 + dat$surveyTimes[idxi[i]])
-                    ## survey observation at age
-                    obs$obsIA[[idxi[i]]] <- rbind(obs$obsIA[[idxi[i]]],
-                                                  q[idxi[i]] *
-                                                  as.numeric(by(NAAsurv * as.numeric(t(dat$selI[[idxi[i]]])), as2a,
-                                                                sum)) *
-                                                  eImv[[idxi[[i]]]])
-                    rownames(obs$obsIA[[idxi[i]]])[nrow(obs$obsIA[[idxi[i]]])] <- as.character(y)  ## CHECK: instead of 1 (assuming one survey a year) this should allow for s surveys
+                    if(!dat$surveyBeforeAssessment[idxi[i]]){
+                        ## survey observation: total catch in weight (spict)
+                        surveyTime <- dat$surveyTimes[idxi[i]] - seasonStart[idxS[idxi[i]]]
+                        NAAsurv <- exp(log(NAAS) - ZAA * surveyTime)
+                        ESBsurv <- NAAsurv * weightFy * as.numeric(t(dat$selI[[idxi[i]]]))
+                        obs$obsI[[idxi[i]]] <-
+                            c(obs$obsI[[idxi[i]]], q[idxi[i]] * sum(ESBsurv) * eI[[idxi[i]]])
+                        if(is.null(obs$timeI[[idxi[i]]])){
+                            timeIi <- ny-nyI[idxi[i]]+1
+                        }else timeIi <- floor(tail(obs$timeI[[idxi[i]]],1))
+                        obs$timeI[[idxi[i]]] <-
+                            c(obs$timeI[[idxi[i]]], timeIi + 1 + dat$surveyTimes[idxi[i]])
+                        ## survey observation at age
+                        obs$obsIA[[idxi[i]]] <- rbind(obs$obsIA[[idxi[i]]],
+                                                      q[idxi[i]] *
+                                                      as.numeric(by(NAAsurv * as.numeric(t(dat$selI[[idxi[i]]])), as2a,
+                                                                    sum)) *
+                                                      eImv[[idxi[[i]]]])
+                        rownames(obs$obsIA[[idxi[i]]])[nrow(obs$obsIA[[idxi[i]]])] <- as.character(y)  ## CHECK: instead of 1 (assuming one survey a year) this should allow for s surveys
+                    }
                 }
             }
             for(i in 1:length(idxS)) attributes(obs$obsIA[[i]]) <-
