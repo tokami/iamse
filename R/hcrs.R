@@ -1165,6 +1165,8 @@ def.hcr.pseudo <- function(id = "pseudo-msy",
         blim <- 0
         btrigger <- breakpointB[1]
     }
+    ## Knife-edge hockey-stick
+    flagKE <- ifelse(blim == btrigger, TRUE, FALSE)
 
     template  <- expression(paste0(
         '
@@ -1192,6 +1194,7 @@ structure(
         ffmsyi <- exp(qnorm(1 - frf, log(ffmsy + ffmsy * ffmsyBias), ffmsySD))
         ffmsy5 <- exp(qnorm(0.5, log(ffmsy + ffmsy * ffmsyBias), ffmsySD))
         fred <- ffmsy5 / ffmsyi
+        if(!flagKE){
         if(btrigger > 0){
            hsSlope <- 1/(btrigger-blim)
            hsIntercept <- - hsSlope * blim
@@ -1199,6 +1202,13 @@ structure(
                                          bbmsySD)) + hsIntercept
            fred <- fred * min(1, max(0,bbmsyi))
         }
+}else{
+        if(btrigger > 0){
+           bbmsyi <- 1/blim * exp(qnorm(frb, log(bbmsy + bbmsy * bbmsyBias),
+                                         bbmsySD))
+           fred <- fred * ifelse(bbmsyi < 1, 0, 1)
+        }
+}
         targetF <- (fred + 1e-8) * (fmsy + fmsy * fmsyBias) / pars[["ns"]]
 
         faa <- targetF * pars[["sel"]]
