@@ -676,23 +676,56 @@ get.f <- function(TAC,
 
 #' @name getSel
 #' @description Function to estimate selectivity ogive
-#' @param L50 - length at 50% selectivity
-#' @param L95 - length at 95% selectivity
+#' @param pars - parameters, either Ls50 (length at 50% selectivity) and Ls95
+#'     (length at 95% selectivity) for logistic or LFS, sdl, sdr
 #' @param mids - midlengths
 #' @param plba - probability of being in mids given age
-getSel <- function(L50, L95, mids, plba){
-    n <- max(c(length(L50),length(L95)))
-    sel <- vector("list", n)
-    for(i in 1:n){
-        selL <- (1 /(1 + exp(-log(19)*(mids - L50[i])/(L95[i] - L50[i]))))
-        dims <- dim(plba)
-        selA <- matrix(NA, ncol = dims[3], nrow = dims[1])
-        for(j in 1:dim(plba)[3]){
-            selA[,j] <- apply(t(plba[,,j]) * selL, 2, sum)
+#' @param type - logistic or dnormal
+#'
+getSel <- function(pars, mids, plba, type = "logistic"){
+    if(type == "logistic"){
+        Ls50 <- pars[["Ls50"]]
+        Ls95 <- pars[["Ls95"]]
+        stopifnot(all(is.numeric(c(Ls50,Ls95))))
+        n <- max(c(length(Ls50),length(Ls95)))
+        sel <- vector("list", n)
+        for(i in 1:n){
+            selL <- (1 /(1 + exp(-log(19)*(mids - Ls50[i])/(Ls95[i] - Ls50[i]))))
+            dims <- dim(plba)
+            selA <- matrix(NA, ncol = dims[3], nrow = dims[1])
+            for(j in 1:dim(plba)[3]){
+                selA[,j] <- apply(t(plba[,,j]) * selL, 2, sum)
+            }
+            ##    selA <- apply(t(plba) * selL, 2, sum)
+            ##    selA[1] <- 1e-9 # it should be zero for age 0
+            sel[[i]] <- selA
         }
-        ##    selA <- apply(t(plba) * selL, 2, sum)
-        ##    selA[1] <- 1e-9 # it should be zero for age 0
-        sel[[i]] <- selA
+    }else if(type == "dnormal"){
+        LFS <- pars[["LFS"]]
+        sl <- pars[["sl"]]
+        sr <- pars[["sr"]]
+        stopifnot(all(is.numeric(c(LFS,sl,sr))))
+        n <- max(c(length(LFS),length(sl),length(sr)))
+        sel <- vector("list", n)
+        for(i in 1:n){
+            ind <- mids <= LFS
+            selL <- rep(NA,length(mids))
+            selL[ind] <- 2^(-((mids[ind] - LFS[i])/sl[i] *
+                              (mids[ind] - LFS[i])/sl[i]))
+            selL[!ind] <- 2^(-((mids[!ind] - LFS[i])/sr[i] *
+                               (mids[!ind] - LFS[i])/sr[i]))
+            dims <- dim(plba)
+            selA <- matrix(NA, ncol = dims[3], nrow = dims[1])
+            for(j in 1:dim(plba)[3]){
+                selA[,j] <- apply(t(plba[,,j]) * selL, 2, sum)
+            }
+            ##    selA <- apply(t(plba) * selL, 2, sum)
+            ##    selA[1] <- 1e-9 # it should be zero for age 0
+            sel[[i]] <- selA
+        }
+
+    }else{
+        stop("Only 'logistic' and 'dnormal' implemented.")
     }
     return(sel)
 }
@@ -743,12 +776,13 @@ getM <- function(Linf, K, mids, a = 0.55, b = 1.61, c = 1.44){
 #' @param K - K of vBGF
 #' @param mids - midlengths
 #' @param plba - probability of being in mids given age
-getMsel <- function(Linf, K, mids, plba, a = 0.55, b = 1.61, c = 1.44){
+getMsel <- function(Linf, K, mids, plba, a = 0.55, b = 1.61, c = 1.44, below10 = FALSE){
+    if(is.null(below10)) below10 <- FALSE
     n <- max(c(length(a),length(b),length(c)))
     sel <- vector("list", n)
     for(i in 1:n){
         selL <- exp(a[i] - b[i] * log(mids) + c[i] * log(Linf) + log(K))
-        selL[mids < 10] <- exp(a[i] - b[i] * log(10) + c[i] * log(Linf) + log(K))
+        if(!below10) selL[mids < 10] <- exp(a[i] - b[i] * log(10) + c[i] * log(Linf) + log(K))
         dims <- dim(plba)
         selA <- matrix(NA, ncol = dims[3], nrow = dims[1])
         for(j in 1:dim(plba)[3]){

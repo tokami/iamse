@@ -158,25 +158,37 @@ check.dat <- function(dat = NULL, verbose = TRUE){
 
     ## selectivity
     ##------------------
+    if(!any(names(dat) == "selType")) dat$selType <- "logistic"
+    if(!any(names(dat) == "LFS")) dat$LFS <- NULL
+    if(!any(names(dat) == "sl")) dat$sl <- NULL
+    if(!any(names(dat) == "sr")) dat$sr <- NULL
+    if(dat$selType == "dnormal" && any(is.null(c(dat$LFS,dat$sl,dat$sr))))
+        stop("Double-normal selectivity specified, but not all required parameters provided. Please provide 'LFS', 'sl', and 'sr'.")
     if(!any(names(dat) == "Ls50")){
         Ls50 <- NULL
     }else Ls50 <- dat$Ls50
     if(!any(names(dat) == "Ls95")){
         Ls95 <- NULL
     }else Ls95 <- dat$Ls95
-    if(is.null(Ls50) && !is.null(Ls95)) stop("Length at 50% selectivity missing: dat$Ls50")
-    if(is.null(Ls95) && !is.null(Ls50)) stop("Length at 95% selectivity missing: dat$Ls95")
-    if(is.null(Ls50) && !is.null(Lm50)){
+    if(dat$selType == "logistic" && is.null(Ls50) && !is.null(Ls95))
+        stop("Length at 50% selectivity missing: dat$Ls50")
+    if(dat$selType == "logistic" && is.null(Ls95) && !is.null(Ls50))
+        stop("Length at 95% selectivity missing: dat$Ls95")
+    if(dat$selType == "logistic" && is.null(Ls50) && !is.null(Lm50)){
         Ls50 <- Lm50
         if(verbose) writeLines("Length at 50% selectivity missing: dat$Ls50. Setting dat$Ls50 equal to maturity parameter: dat$Lm50.")
     }
-    if(is.null(Ls95) && !is.null(Lm95)){
+    if(dat$selType == "logistic" && is.null(Ls95) && !is.null(Lm95)){
         Ls95 <- Lm95
         if(verbose) writeLines("Length at 95% selectivity missing: dat$Ls95. Setting dat$Ls95 equal to maturity parameter: dat$Lm95.")
     }
-    if(any(is.null(LA),is.null(Ls50),is.null(Ls95))){
+    ## get selectivity
+    if(dat$selType == "logistic" && any(is.null(LA),is.null(Ls50),is.null(Ls95))){
         if(!any(names(dat) == "sel")) dat$sel <- list(matrix(NA, nrow = amax, ncol = ns))
-    }else if(!dat$fixProcs) dat$sel <- getSel(Ls50, Ls95, mids, plba)
+    }else if(dat$selType == "dnormal" &&
+             any(is.null(LA),is.null(dat$LFS),is.null(dat$sl),is.null(dat$sr))){
+        if(!any(names(dat) == "sel")) dat$sel <- list(matrix(NA, nrow = amax, ncol = ns))
+    }else if(!dat$fixProcs) dat$sel <- getSel(dat, mids, plba, dat[["selType"]])
 
     if(!inherits(dat$sel, "list") && dim(dat$sel) == c(amax,ns)){
         dat$sel <- list(dat$sel/max(dat$sel))
@@ -219,7 +231,7 @@ check.dat <- function(dat = NULL, verbose = TRUE){
     }else{
         if(!any(names(dat) == "Msel")){
             if(verbose) writeLines("No natural mortality at age provided. Setting M-at-age based on the Gislason's (2010) empirical formula.")
-            dat$Msel <- getMsel(Linf, K, mids, plba)
+            dat$Msel <- getMsel(Linf, K, mids, plba, below10 = dat$below10)
         }else if(!inherits(dat$Msel, "list") && dim(dat$Msel) == c(amax,ns) && !dat$fixProcs){
             dat$Msel <- list(dat$Msel/max(dat$Msel))
         }else if(inherits(dat$Msel, "list") && length(dat$Msel) != ny && length(dat$Msel) != 1) stop("Natural mortality at age (dat$Msel) has incorrect dimensions. dat$Msel has to be a matrix with dimensions: maximum age + 1 (age 0) x the number of seasons (rows x columns)!")
