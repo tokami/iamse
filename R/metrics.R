@@ -69,7 +69,7 @@ est.metrics <- function(mse, dat, mets = "all"){
     last5AmaxYears <- ifelse(amax>5,amax-4,1):amax + ny
     amaxYears <- 1:amax + ny
     amaxYears2 <- amax + ny
-    amaxYears3 <- 1:floor(amax/2) + ny
+    amaxYears3 <- 1:amax + ny ## floor(amax/2):amax + ny
     amaxYears4 <- floor(amax/2) + ny
 
     hcrs <- names(mse)
@@ -404,15 +404,18 @@ est.metrics <- function(mse, dat, mets = "all"){
             tmp <- do.call(rbind,ry)
             res <- rbind(res, c(max(tmp[6:40,1]),max(tmp[6:40,2]),max(tmp[6:40,3]), NA, NA))
         }
+        ## CMSYamax
         if(any(mets == "CMSYamax")){
             metsUsed <- c(metsUsed, "CMSYamax")
             if(length(reffmsyInd) > 0){
                 indi <- as.numeric(names(msei))
-                tmp <- sapply(1:length(msei), function(x)
-                    sum(apply(msei[[x]]$CW,1,sum)[amaxYears]) / sum(refyield[["amaxYears"]][[indi[x]]]))
+                tmp <- unlist(lapply(1:length(msei), function(x)
+                    mean(apply(msei[[x]]$CW,1,sum)[amaxYears] / refyield[["amaxYears"]][[indi[x]]])))
+                meani <- mean(tmp)
                 vari <- var(tmp)
                 ni <- length(tmp)
                 sei <- sqrt(vari/ni)
+                erri <- 1.96 * (sqrt(vari)/sqrt(ni))
                 tmp2 <- try(wilcox.test(as.numeric(tmp),
                                    alternative="two.sided",
                                    correct=TRUE,
@@ -487,10 +490,12 @@ est.metrics <- function(mse, dat, mets = "all"){
             if(length(reffmsyInd) > 0){
                 indi <- as.numeric(names(msei))
                 tmp <- sapply(1:length(msei), function(x)
-                    mean(apply(msei[[x]]$CW,1,sum)[amaxYears3]) / mean(refyield[["amaxYears"]][[indi[x]]]))
+                    mean(apply(msei[[x]]$CW,1,sum)[amaxYears3] / refyield[["amaxYears"]][[indi[x]]]))
+                meani <- mean(tmp)
                 vari <- var(tmp)
                 ni <- length(tmp)
                 sei <- sqrt(vari/ni)
+                erri <- 1.96 * (sqrt(vari)/sqrt(ni))
                 tmp2 <- try(wilcox.test(as.numeric(tmp),
                                    alternative="two.sided",
                                    correct=TRUE,
