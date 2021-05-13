@@ -67,9 +67,9 @@ est.metrics <- function(mse, dat, mets = "all"){
     last35Years <- (finalYear - 34) : finalYear
     first15Years <- (ny + 1) : (ny + 15)
     last5AmaxYears <- ifelse(amax>5,amax-4,1):amax + ny
-    amaxYears <- 1:amax + ny
+    amaxYears <- 3:amax + ny ## 1:amax + ny
     amaxYears2 <- amax + ny
-    amaxYears3 <- 1:floor(amax/2) + ny
+    amaxYears3 <- floor(amax/2):amax + ny
     amaxYears4 <- floor(amax/2) + ny
 
     hcrs <- names(mse)
@@ -487,7 +487,7 @@ est.metrics <- function(mse, dat, mets = "all"){
             if(length(reffmsyInd) > 0){
                 indi <- as.numeric(names(msei))
                 tmp <- sapply(1:length(msei), function(x)
-                    mean(apply(msei[[x]]$CW,1,sum)[amaxYears3]) / mean(refyield[["amaxYears"]][[indi[x]]]))
+                    mean(apply(msei[[x]]$CW,1,sum)[amaxYears]) / mean(refyield[["amaxYears"]][[indi[x]]]))
                 vari <- var(tmp)
                 ni <- length(tmp)
                 sei <- sqrt(vari/ni)
