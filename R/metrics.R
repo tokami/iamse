@@ -148,6 +148,7 @@ est.metrics <- function(mse, dat, mets = "all"){
     for(hcr in 1:nhcr){
         metsUsed <- NULL
         nrep <- length(mse[[hcr]])
+        print(names(mse)[hcr])
         msei <- mse[[hcr]]
         res <- NULL
         ## CMSY
@@ -409,8 +410,8 @@ est.metrics <- function(mse, dat, mets = "all"){
             metsUsed <- c(metsUsed, "CMSYamax")
             if(length(reffmsyInd) > 0){
                 indi <- as.numeric(names(msei))
-                tmp <- unlist(lapply(1:length(msei), function(x)
-                    mean(apply(msei[[x]]$CW,1,sum)[amaxYears] / refyield[["amaxYears"]][[indi[x]]])))
+                tmp <- unlist(lapply(as.list(1:length(msei)), function(x)
+                    apply(msei[[x]]$CW,1,sum)[amaxYears] / refyield[["amaxYears"]][[indi[x]]]))
                 meani <- mean(tmp)
                 vari <- var(tmp)
                 ni <- length(tmp)
@@ -489,8 +490,8 @@ est.metrics <- function(mse, dat, mets = "all"){
             metsUsed <- c(metsUsed, "CMSYamax2")
             if(length(reffmsyInd) > 0){
                 indi <- as.numeric(names(msei))
-                tmp <- sapply(1:length(msei), function(x)
-                    mean(apply(msei[[x]]$CW,1,sum)[amaxYears3] / refyield[["amaxYears"]][[indi[x]]]))
+                tmp <- unlist(lapply(as.list(1:length(msei)), function(x)
+                    apply(msei[[x]]$CW,1,sum)[amaxYears3] / refyield[["amaxYears"]][[indi[x]]]))
                 meani <- mean(tmp)
                 vari <- var(tmp)
                 ni <- length(tmp)
