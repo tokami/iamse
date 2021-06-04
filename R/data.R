@@ -159,7 +159,7 @@ check.dat <- function(dat = NULL, verbose = TRUE){
     ## selectivity
     ##------------------
     if(!any(names(dat) == "selType")) dat$selType <- "logistic"
-    if(!any(names(dat) == "selType")) dat$selAge <- FALSE
+    if(!any(names(dat) == "selAge")) dat$selAge <- FALSE
     if(!any(names(dat) == "LFS")) dat$LFS <- NULL
     if(!any(names(dat) == "sl")) dat$sl <- NULL
     if(!any(names(dat) == "sr")) dat$sr <- NULL
