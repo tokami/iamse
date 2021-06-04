@@ -250,6 +250,21 @@ est.ref.levels.stochastic <- function(dat, set=NULL, fmax = 10,
     ## B0
     if(any(ref == "B0")){
 
+        if(FALSE){
+        x = 1
+        i=1
+        setx <- c(set, errs[[x]])
+        tmp <- rep(NA, alltv)
+        setx$tvm <- 1
+        setx$tvmsel <- 1
+        setx$tvsel <- 1
+        tmp0 <- simpop(log(1e-20), datx, setx, out=0)$TSB
+        datx$FM[datx$FM>0] <- 0
+        tmp2 <- initpop(datx,set)
+        tmp2$rec
+        datx$R0
+        }
+
         res <- parallel::mclapply(as.list(1:nrep), function(x){
             setx <- c(set, errs[[x]])
             tmp <- rep(NA, alltv)

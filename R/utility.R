@@ -682,50 +682,85 @@ get.f <- function(TAC,
 #' @param plba - probability of being in mids given age
 #' @param type - logistic or dnormal
 #'
-getSel <- function(pars, mids, plba, type = "logistic"){
-    if(type == "logistic"){
-        Ls50 <- pars[["Ls50"]]
-        Ls95 <- pars[["Ls95"]]
-        stopifnot(all(is.numeric(c(Ls50,Ls95))))
-        n <- max(c(length(Ls50),length(Ls95)))
-        sel <- vector("list", n)
-        for(i in 1:n){
-            selL <- (1 /(1 + exp(-log(19)*(mids - Ls50[i])/(Ls95[i] - Ls50[i]))))
-            dims <- dim(plba)
-            selA <- matrix(NA, ncol = dims[3], nrow = dims[1])
-            for(j in 1:dim(plba)[3]){
-                selA[,j] <- apply(t(plba[,,j]) * selL, 2, sum)
+getSel <- function(pars, mids, plba, type = "logistic", age = FALSE, ages = NULL){
+    if(!age){
+        if(type == "logistic"){
+            Ls50 <- pars[["Ls50"]]
+            Ls95 <- pars[["Ls95"]]
+            stopifnot(all(is.numeric(c(Ls50,Ls95))))
+            n <- max(c(length(Ls50),length(Ls95)))
+            sel <- vector("list", n)
+            for(i in 1:n){
+                selL <- (1 /(1 + exp(-log(19)*(mids - Ls50[i])/(Ls95[i] - Ls50[i]))))
+                dims <- dim(plba)
+                selA <- matrix(NA, ncol = dims[3], nrow = dims[1])
+                for(j in 1:dim(plba)[3]){
+                    selA[,j] <- apply(t(plba[,,j]) * selL, 2, sum)
+                }
+                ##    selA <- apply(t(plba) * selL, 2, sum)
+                ##    selA[1] <- 1e-9 # it should be zero for age 0
+                sel[[i]] <- selA
             }
-            ##    selA <- apply(t(plba) * selL, 2, sum)
-            ##    selA[1] <- 1e-9 # it should be zero for age 0
-            sel[[i]] <- selA
-        }
-    }else if(type == "dnormal"){
-        LFS <- pars[["LFS"]]
-        sl <- pars[["sl"]]
-        sr <- pars[["sr"]]
-        stopifnot(all(is.numeric(c(LFS,sl,sr))))
-        n <- max(c(length(LFS),length(sl),length(sr)))
-        sel <- vector("list", n)
-        for(i in 1:n){
-            ind <- mids <= LFS
-            selL <- rep(NA,length(mids))
-            selL[ind] <- 2^(-((mids[ind] - LFS[i])/sl[i] *
-                              (mids[ind] - LFS[i])/sl[i]))
-            selL[!ind] <- 2^(-((mids[!ind] - LFS[i])/sr[i] *
-                               (mids[!ind] - LFS[i])/sr[i]))
-            dims <- dim(plba)
-            selA <- matrix(NA, ncol = dims[3], nrow = dims[1])
-            for(j in 1:dim(plba)[3]){
-                selA[,j] <- apply(t(plba[,,j]) * selL, 2, sum)
+        }else if(type == "dnormal"){
+            LFS <- pars[["LFS"]]
+            sl <- pars[["sl"]]
+            sr <- pars[["sr"]]
+            stopifnot(all(is.numeric(c(LFS,sl,sr))))
+            n <- max(c(length(LFS),length(sl),length(sr)))
+            sel <- vector("list", n)
+            for(i in 1:n){
+                ind <- mids <= LFS
+                selL <- rep(NA,length(mids))
+                selL[ind] <- 2^(-((mids[ind] - LFS[i])/sl[i] *
+                                  (mids[ind] - LFS[i])/sl[i]))
+                selL[!ind] <- 2^(-((mids[!ind] - LFS[i])/sr[i] *
+                                   (mids[!ind] - LFS[i])/sr[i]))
+                dims <- dim(plba)
+                selA <- matrix(NA, ncol = dims[3], nrow = dims[1])
+                for(j in 1:dim(plba)[3]){
+                    selA[,j] <- apply(t(plba[,,j]) * selL, 2, sum)
+                }
+                ##    selA <- apply(t(plba) * selL, 2, sum)
+                ##    selA[1] <- 1e-9 # it should be zero for age 0
+                sel[[i]] <- selA
             }
-            ##    selA <- apply(t(plba) * selL, 2, sum)
-            ##    selA[1] <- 1e-9 # it should be zero for age 0
-            sel[[i]] <- selA
-        }
 
+        }else{
+            stop("Only 'logistic' and 'dnormal' implemented.")
+        }
     }else{
-        stop("Only 'logistic' and 'dnormal' implemented.")
+        mids <- ages
+        if(is.null(ages)) stop("No age classes provided! Use argument 'ages' for selection by age.")
+        if(type == "logistic"){
+            Ls50 <- pars[["Ls50"]]
+            Ls95 <- pars[["Ls95"]]
+            stopifnot(all(is.numeric(c(Ls50,Ls95))))
+            n <- max(c(length(Ls50),length(Ls95)))
+            sel <- vector("list", n)
+            for(i in 1:n){
+                sel[[i]] <- matrix((1 /(1 + exp(-log(19)*(mids - Ls50[i])/(Ls95[i] - Ls50[i])))),
+                                   ncol = ncol(ages), nrow = nrow(ages))
+            }
+        }else if(type == "dnormal"){
+            LFS <- pars[["LFS"]]
+            sl <- pars[["sl"]]
+            sr <- pars[["sr"]]
+            stopifnot(all(is.numeric(c(LFS,sl,sr))))
+            n <- max(c(length(LFS),length(sl),length(sr)))
+            sel <- vector("list", n)
+            for(i in 1:n){
+                ind <- mids <= LFS
+                selL <- rep(NA,length(mids))
+                selL[ind] <- 2^(-((mids[ind] - LFS[i])/sl[i] *
+                                  (mids[ind] - LFS[i])/sl[i]))
+                selL[!ind] <- 2^(-((mids[!ind] - LFS[i])/sr[i] *
+                                   (mids[!ind] - LFS[i])/sr[i]))
+                sel[[i]] <- matrix(selL, ncol = ncol(ages), nrow = nrow(ages))
+            }
+
+        }else{
+            stop("Only 'logistic' and 'dnormal' implemented.")
+        }
     }
     return(sel)
 }
@@ -900,4 +935,18 @@ initdistR <- function(M, FM=NULL, ns, asmax, indage0, spawning, R0=1){
     NAAS[indage0] <- 0
 
     return(NAAS)
+}
+
+
+#' @name remove.noise
+#' @export
+remove.noise <- function(set){
+
+    ind <- grep("noise",names(set))
+    n <- length(ind)
+    for(i in 1:n){
+        set[[ind[i]]] <- c(0,0,0)
+    }
+
+    return(set)
 }

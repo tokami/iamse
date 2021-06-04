@@ -159,6 +159,7 @@ check.dat <- function(dat = NULL, verbose = TRUE){
     ## selectivity
     ##------------------
     if(!any(names(dat) == "selType")) dat$selType <- "logistic"
+    if(!any(names(dat) == "selType")) dat$selAge <- FALSE
     if(!any(names(dat) == "LFS")) dat$LFS <- NULL
     if(!any(names(dat) == "sl")) dat$sl <- NULL
     if(!any(names(dat) == "sr")) dat$sr <- NULL
@@ -188,7 +189,7 @@ check.dat <- function(dat = NULL, verbose = TRUE){
     }else if(dat$selType == "dnormal" &&
              any(is.null(LA),is.null(dat$LFS),is.null(dat$sl),is.null(dat$sr))){
         if(!any(names(dat) == "sel")) dat$sel <- list(matrix(NA, nrow = amax, ncol = ns))
-    }else if(!dat$fixProcs) dat$sel <- getSel(dat, mids, plba, dat[["selType"]])
+    }else if(!dat$fixProcs) dat$sel <- getSel(dat, mids, plba, dat[["selType"]], dat[["selAge"]], ages)
 
     if(!inherits(dat$sel, "list") && dim(dat$sel) == c(amax,ns)){
         dat$sel <- list(dat$sel/max(dat$sel))

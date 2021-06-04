@@ -224,9 +224,9 @@ List simpop(double logFM, List dat, List set, int out) {
       // Recruitment
       SSB = 0.0;
       for(int a=0; a<asmax; a++){
-        SSB += NAAS(a) * maty(a) * weighty(a) * exp(-pzbm * MAA(a));
+        SSB += NAAS(a) * maty(a) * weighty(a) * exp(-pzbm * ZAA(a));  // MAA
       }
-      //    std::cout << "SSB(" << s << "): " << SSB << std::endl;
+      //      std::cout << "SSB(" << s << "): " << SSB << std::endl;
       // SR
       if(SR == "bevholt"){
         NAAStmp = initdist(MAA, F0, 1, spawning, indage0);
@@ -262,8 +262,7 @@ List simpop(double logFM, List dat, List set, int out) {
       }
       NAAS(indage0) = rec * spawning(s) * eR(y);
 
-
-
+      // printing
       // for(int a=0; a<asmax; a++){
       //    std::cout << "NAAS("<< a <<"," << s << ","<< y << "): " << NAAS(a) << std::endl;
       // }
@@ -292,8 +291,9 @@ List simpop(double logFM, List dat, List set, int out) {
           ESB(y) += ESBage(a);
         }
       }
+      // Continuous ageing
       NAAS(asmax-1) = NAAS(asmax-1) + NAAS(asmax-2);
-      for(int a=(asmax-1); a>0; a--){
+      for(int a=(asmax-2); a>0; a--){
         NAAS(a) = NAAS(a-1);
       }
       NAAS(indage0) = 0;
