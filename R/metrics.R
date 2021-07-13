@@ -67,7 +67,7 @@ est.metrics <- function(mse, dat, mets = "all"){
     last35Years <- (finalYear - 34) : finalYear
     first15Years <- (ny + 1) : (ny + 15)
     last5AmaxYears <- ifelse(amax>5,amax-4,1):amax + ny
-    amaxYears <- 3:amax + ny ## 1:amax + ny
+    amaxYears <- 1:amax + ny
     amaxYears2 <- amax + ny
     amaxYears3 <- floor(amax/2):amax + ny
     amaxYears4 <- floor(amax/2) + ny
