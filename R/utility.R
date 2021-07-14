@@ -606,13 +606,14 @@ predCatch <- function(logFM,
                       seasons, ns, y, h2, asmax, mat, pzbm, spawning,
                       R0, SR, bp, recBeta, recGamma, eR,
                       indage0,
+                      seaFM,
                       TAC = NULL,
                       out = 0){
     Ctmp <- 0
     NAAtmp <- NAA
 
     for(s in seasons){
-        FAA <- exp(logFM) * sel
+        FAA <- exp(logFM) * seaFM[s] * sel
         Ztmp <- FAA + MAA
         ## recruitment
         if(spawning[s] > 0 && s > 1){
@@ -653,6 +654,7 @@ get.f <- function(TAC,
                    R0, SR, bp, recBeta,
                   recGamma, eR,
                   indage0,
+                  seaFM,
                   lastFM = 0.01, upper = log(100)){
 
     opt <- nlminb(start = log(lastFM), objective = predCatch,
@@ -664,6 +666,7 @@ get.f <- function(TAC,
                   R0 = R0, SR = SR, bp = bp, recBeta = recBeta,
                   recGamma = recGamma, eR = eR,
                   indage0 = indage0,
+                  seaFM = seaFM,
                   TAC = TAC,
                   out = 1,
                   lower = -10, upper = upper,

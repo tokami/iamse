@@ -80,6 +80,7 @@ plotiamse.cw <- function(dat, set, resMSE,
 #' @name plotiamse.b
 #' @export
 plotiamse.b <- function(dat, set, resMSE,
+                        yearly = TRUE,
                       trendline=TRUE, uncert = TRUE, med = TRUE,
                       hcrs=NA, ylim = NULL, plot.legend = TRUE,
                       ylab="Total biomass", xlab = ""){
@@ -93,22 +94,50 @@ plotiamse.b <- function(dat, set, resMSE,
         set$hcr <- hcrs
     }
     ## summary (median, 95% CIs)
-    res <- summary.mse(resMSE)
+    res <- summary.mse(resMSE, yearly = yearly)
+
     ## vars
+    ns <- dat$ns
+    ny <- dat$ny
+    nysim <- set$nysim
     nms <- length(resMSE)
-    xhist <- seq(1,dat$ny,1)
-    xsim <- seq(dat$ny,dat$ny+set$nysim,1)
-    idxsim <- (dat$ny):(dat$ny+set$nysim)
-    idxhist <- 1:dat$ny
-    xall <- 1:(dat$ny+set$nysim)
+    if(yearly){
+        xhist <- seq(1,ny,1)
+        xsim <- seq(ny,ny+nysim,1)
+        xall <- 1:(ny+nysim)
+    }else{
+        xhist <- seq(0,ny-1/ns, 1/ns)
+        xsim <- seq(ny-1/ns,ny+nysim-1/ns,1/ns)
+        xall <- seq(0,ny+nysim-1/ns,1/ns)
+    }
+    idxhist <- seq(length(xhist))
+    idxsim <- tail(idxhist,1) + c(0,seq(length(xsim)-1))
+    seaFM <- dat$FM[dat$ny,] / max(dat$FM[dat$ny,])
+    ## if all FM == 0
+    if(any(is.na(seaFM))){
+        seaFM <- 1
+    }
+
     if(is.null(ylim)) ylim <- c(0.8,1.2) * range(lapply(res,function(x) x$TSBfinal))
     cols <- rainbow(nms)
-    ## historic
+    ## historical
     i <- 1 ## historic pattern the same between mss
     llhist <- res[[i]]$TSBfinal[1,idxhist]
     ulhist <- res[[i]]$TSBfinal[3,idxhist]
     medhist <- res[[i]]$TSBfinal[2,idxhist]
-    if(!is.null(dat$ref$Bmsy)) bmsy <- dat$ref$Bmsy
+
+    ## reference
+    if(!is.null(dat$ref$Bmsy)){
+        bmsy <- dat$ref$Bmsy
+        if(yearly){
+            ## HERE:
+            tmp <- aggregate(list(FM = fmsy * seaFM), by = list(years = dat$yvec), sum)
+            bmsy <- c(tmp$FM, rep(tail(tmp$FM, 1), set$nysim))
+        }else{
+            ## HERE:
+            bmsy <- c(bmsy * seaFM, rep(tail(fmsy * seaFM, dat$ns), set$nysim))
+        }
+    }
     llbmsy <- NA ##tmp[1]
     ulbmsy <- NA ##tmp[2]
     ## plot
@@ -157,9 +186,10 @@ plotiamse.b <- function(dat, set, resMSE,
 #' @name plotiamse.f
 #' @export
 plotiamse.f <- function(dat, set, resMSE,
-                      trendline=TRUE, uncert = TRUE, med = TRUE,
-                      hcrs=NA, ylim=NULL, plot.legend = TRUE,
-                      ylab="Fishing mortality", xlab = ""){
+                        yearly = TRUE,
+                        trendline=TRUE, uncert = TRUE, med = TRUE,
+                        hcrs=NA, ylim=NULL, plot.legend = TRUE,
+                        ylab="Fishing mortality", xlab = ""){
     if(any(!is.na(hcrs))){
         resMSEnew <- vector("list",length(hcrs))
         for(i in 1:length(hcrs)){
@@ -169,41 +199,72 @@ plotiamse.f <- function(dat, set, resMSE,
         resMSE <- resMSEnew
         set$hcr <- hcrs
     }
+
     ## summary (median, 95% CIs)
-    res <- summary.mse(resMSE)
+    res <- summary.mse(resMSE, yearly = yearly)
 
     ## vars
+    ns <- dat$ns
+    ny <- dat$ny
+    nysim <- set$nysim
     nms <- length(resMSE)
-    xhist <- seq(1,dat$ny,1)
-    xsim <- seq(dat$ny,dat$ny+set$nysim,1)
-    idxsim <- (dat$ny):(dat$ny+set$nysim)
-    idxhist <- 1:dat$ny
-    xall <- 1:(dat$ny+set$nysim)
+    if(yearly){
+        xhist <- seq(1,ny,1)
+        xsim <- seq(ny,ny+nysim,1)
+        xall <- 1:(ny+nysim)
+    }else{
+        xhist <- seq(0,ny-1/ns, 1/ns)
+        xsim <- seq(ny-1/ns,ny+nysim-1/ns,1/ns)
+        xall <- seq(0,ny+nysim-1/ns,1/ns)
+    }
+    idxhist <- seq(length(xhist))
+    idxsim <- tail(idxhist,1) + c(0,seq(length(xsim)-1))
+    seaFM <- dat$FM[dat$ny,] / max(dat$FM[dat$ny,])
+    ## if all FM == 0
+    if(any(is.na(seaFM))){
+        seaFM <- 1
+    }
+
     if(is.null(ylim)) ylim <- c(0.8,1.2) * range(lapply(res,function(x) x$FM))
     cols <- rainbow(nms)
-    ## historic
+    ## historical
     i <- 1 ## historic pattern the same between mss
     llhist <- res[[i]]$FM[1,idxhist]
     ulhist <- res[[i]]$FM[3,idxhist]
     medhist <- res[[i]]$FM[2,idxhist]
-    if(!is.null(dat$ref$Fmsy)) fmsy <- dat$ref$Fmsy
+    if(!is.null(dat$ref$Fmsy)){
+        fmsy <- dat$ref$Fmsy
+        if(yearly){
+            tmp <- aggregate(list(FM = fmsy * seaFM), by = list(years = dat$yvec), sum)
+            fmsy <- c(tmp$FM, rep(tail(tmp$FM, 1), set$nysim))
+        }else{
+            fmsy <- c(fmsy * seaFM, rep(tail(fmsy * seaFM, dat$ns), set$nysim))
+        }
+    }
     llfmsy <- NA ## tmp[1]
-    ulfmsy <- NA ##tmp[2]
+    ulfmsy <- NA ## tmp[2]
     ## plot
     plot(xhist, medhist,
          xlim = c(0, dat$ny+set$nysim),
          ylim = ylim,
          ty='n', lwd=2,
          ylab=ylab, xlab = xlab)
+    ## data period
     polygon(x = c((dat$ny-(dat$nyC-1)):dat$ny,rev((dat$ny-(dat$nyC-1)):dat$ny)),
             y = c(rep(ylim[1]-10,dat$nyC),rep(1.5*ylim[2],dat$nyC)),
             border=NA, col="grey95")
-    polygon(x = c(xhist,rev(xhist)), y = c(llhist,rev(ulhist)),
+    ## historical
+    polygon(x = c(xhist,rev(xhist)), y = c(llhist, rev(ulhist)),
             border=NA, col=rgb(t(col2rgb("grey30"))/255,alpha=0.2))
     lines(xhist, medhist, lwd=2)
-    polygon(x = c(-2,rep(1.2*max(xall),2),-2), y = c(rep(llfmsy,2),rep(ulfmsy,2)),
-            border=NA, col=rgb(t(col2rgb("grey40"))/255,alpha=0.2))
-    if(!is.null(dat$ref$Fmsy)) abline(h=fmsy,lty=2)
+    ## reference level
+    if(!is.null(dat$ref$Fmsy)) {
+        ## CHECK: include seaFM
+        ## polygon(x = c(-2,rep(1.2*max(xall),2),-2),
+        ##         y = c(rep(llfmsy,2),rep(ulfmsy,2)),
+        ##         border=NA, col=rgb(t(col2rgb("grey40"))/255,alpha=0.2))
+        lines(xall, fmsy, lty=2)
+    }
     abline(h=0,lty=2)
     ## projection
     if(uncert){
@@ -229,6 +290,7 @@ plotiamse.f <- function(dat, set, resMSE,
            col=cols, bty="n", lwd=2,lty=1)
     title("Fishing mortality")
     box()
+
 }
 
 

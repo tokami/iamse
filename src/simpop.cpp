@@ -110,6 +110,7 @@ List simpop(double logFM, List dat, List set, int out) {
   NumericMatrix weight = as<NumericMatrix>(dat["weight"]);
   NumericMatrix weightF = as<NumericMatrix>(dat["weightF"]);
   NumericMatrix M = as<NumericMatrix>(dat["M"]);
+  NumericMatrix FMmat = as<NumericMatrix>(dat["FM"]);
   List MselList = as<List>(dat["Msel"]);
   List selList = as<List>(dat["sel"]);
   IntegerVector s1vec = as<IntegerVector>(dat["s1vec"]);
@@ -152,7 +153,13 @@ List simpop(double logFM, List dat, List set, int out) {
   double hy = 0.0;
   double R0y = 0.0;
   double Ctmp = 0.0;
-  double fs = FM/ns;
+  NumericVector seaFM (ns);
+  double maxFM = max(FMmat(FMmat.nrow()-1,_));
+  for(int s=0; s<ns; s++){
+    seaFM(s) = FMmat(FMmat.nrow()-1,s) / maxFM;
+//    std::cout << "seaFM(" << s << "): " << seaFM(s) << std::endl;
+  }
+  NumericVector fs = FM * seaFM;
   double SSB = 0.0;
   double SPR = 0.0;
 
@@ -180,11 +187,12 @@ List simpop(double logFM, List dat, List set, int out) {
   NumericMatrix Msel = as<NumericMatrix>(MselList[0]);
   NumericMatrix sel = as<NumericMatrix>(selList[0]);
 
+
   for(int a=0; a<asmax; a++){
     //    MAA0(a) = M(tvm-1,as2s(a)) * Msel(as2a(a),as2s(a));
     MAA0(a) = M(0,as2s(a)) * Msel(as2a(a),as2s(a));
     //     for(int a=0; a<asmax; a++) MAA(a,_) = Mtmp(a,_) * M[Rcpp::Range(s1vec(y), s1vec(y)+ns-1)];
-    FAA0(a) = fs * sel(as2a(a),as2s(a));
+    FAA0(a) = fs(as2s(a)) * sel(as2a(a),as2s(a));
   }
 
   // for(int a=0; a<asmax; a++){
@@ -209,7 +217,7 @@ List simpop(double logFM, List dat, List set, int out) {
     for(int a=0; a<asmax; a++){
       maty(a) = mat(as2a(a),as2s(a)) * eMat(y);
       sely(a) = sel(as2a(a),as2s(a)) * eSel(y);
-      FAA(a) = fs * eF(y) * sely(a);
+      FAA(a) = fs(as2s(a)) * eF(y) * sely(a);
       //      std::cout << "sely(" << a << "): " << sely(a) << std::endl;
       weighty(a) = weight(as2a(a),as2s(a)) * eW(y);
       weightFy(a) = weightF(as2a(a),as2s(a)) * eW(y);

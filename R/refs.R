@@ -177,10 +177,12 @@ est.ref.levels.stochastic <- function(dat, set=NULL, fmax = 10,
 
     ## browser()
 
+    ## x = 1
+    ## setx <- c(set, errs[[x]])
+    ## tmp <- rep(NA, alltv)
     ## setx$refMethod <- "median"
     ## setx$refYearsMSY <- 10
     ## f <- 1
-    ## x = 1
     ## setx <- c(set, errs[[x]])
     ## simpop(log(f), datx, setx, out=1)
 

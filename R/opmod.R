@@ -551,10 +551,12 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
         assessSeasons <- as.list(1)
     }else{
         if(length(assessmentTiming) == 1){
-            assessSeasons <- list(rep(1:ns, 20)[assessmentTiming:(assessmentTiming+ns-1)])
+            tmp <- rep(1:ns, 20)[assessmentTiming:(assessmentTiming+ns-1)]
+            assessSeasons <- vector("list", ns)
+            assessSeasons[[assessmentTiming]] <- tmp
         }else{
-            if(verbose) writeLines("You specified several assessmentTimings. I hope you know what you are doing!")
-            assessSeasons <- as.list(assessmentTiming)
+            if(verbose) writeLines("You specified several assessmentTimings. I hope you know what you are doing, e.g. using a list for assessmentTiming!")
+            assessSeasons <- assessmentTiming
         }
 
     }
@@ -682,6 +684,12 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
     TSBfinal <- c(hist$TSBfinal, NA)
     SSBfinal <- c(hist$SSBfinal, NA)
     ESBfinal <- c(hist$ESBfinal, NA)
+    ## seasonal FM pattern (uses FM pattern in last historical year for projection)
+    seaFM <- FM[dat$ny,] / max(FM[dat$ny,])
+    ## if all FM == 0
+    if(any(is.na(seaFM))){
+        seaFM <- 1
+    }
 
     ## project forward
     R0y <- dat$R0 * eR0
@@ -812,11 +820,11 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
             if(tacID2 == "refFmsy"){
                 if(tacID == "refFmsy"){
                     ## Fishing at Fmsy
-                    FMtac <- refs$Fmsy[y + s - 1] / ns
+                    FMtac <- refs$Fmsy[y + s - 1] ## / ns ## CHECK: not needed anymore because correcting for seaFM
                 }else{
                     fraci <- as.numeric(unlist(strsplit(as.character(tacID), "_"))[2])
                     ## Fishing at fraction of Fmsy
-                    FMtac <- (fraci * refs$Fmsy[y]) / ns
+                    FMtac <- (fraci * refs$Fmsy[y]) ## / ns ## CHECK:
                     ## ## percentile
                     ## fraci <- as.numeric(unlist(strsplit(as.character(tacID), "_"))[2])
                     ## ## uncertainty
@@ -834,7 +842,7 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
             }else if(tacID2 == "consF"){
                 ## constant F
                 fraci <- as.numeric(unlist(strsplit(as.character(tacID), "_"))[2])
-                FMtac <- fraci / ns
+                FMtac <- fraci ## / ns ## CHECK:
             }else{
                 ## any other HCR
 
@@ -842,7 +850,12 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
                 ## what if F cannot be assumed to be constant throughout the year? seasonal fishing effort?
                 ## but which pattern to use? from last year? or in sel?
 
-                FMtac <- min(set$maxF/ns,
+                ## TODO: assuming a seasonally varying F for sprat 7de! The
+                ## following function has to return a vector, not a single
+                ## value. But which pattern to assume? last year's relative F
+                ## pattern? Overall average?
+
+                FMtac <- min(set$maxF, ## /ns, ## CHECK:
                              get.f(TACs[y],
                                    NAA = NAAS, MAA = MAA,
                                    sel = sely, weight = weighty,
@@ -852,12 +865,13 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
                                    R0 = R0y, SR = dat$SR, bp = dat$pb, recBeta = dat$recBeta,
                                    recGamma = dat$recGamma, eR = eR,
                                    indage0 = indage0,
+                                   seaFM = seaFM,
                                    lastFM = 0.01, ## FM[y-1,s],  ## CHECK: had some issues with too high FM
                                    upper = log(set$maxF/ns)
                                    )
                              )
             }
-            FM[y,] <- FMtac
+            FM[y,] <- FMtac * seaFM
         }
 
         ## Population dynamics
