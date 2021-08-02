@@ -124,7 +124,7 @@ est.ref.levels.stochastic <- function(dat, set=NULL, fmax = 10,
     ## natural mortality
     mtv <- length(unique(as.numeric(dat$M)))  ## CHECK: if M is matrix
     ms <- unique(dat$M)
-    mind <- match(dat$M, ms)
+    mind <- match(data.frame(t(dat$M)), data.frame(t(ms)))
     if(length(dat$Msel) > 1){
         msel <- dat$Msel[!duplicated(dat$Msel)]
         mseltv <- length(msel)
@@ -186,7 +186,6 @@ est.ref.levels.stochastic <- function(dat, set=NULL, fmax = 10,
     ## setx <- c(set, errs[[x]])
     ## simpop(log(f), datx, setx, out=1)
 
-
     if(any(ref %in% c("Fmsy","Bmsy","MSY","ESBmsy","SSBmsy"))){
         ## Fmsy
         res <- parallel::mclapply(as.list(1:nrep), function(x){
@@ -213,6 +212,12 @@ est.ref.levels.stochastic <- function(dat, set=NULL, fmax = 10,
         }, mc.cores = ncores)
         fmsys <- do.call(rbind, res)
 
+        seaFM <- dat$FM[dat$ny,] / sum(dat$FM[dat$ny,])
+        fmsysSea <- vector("list",alltv)
+        for(i in 1:alltv){
+            fmsysSea[[i]] <- outer(fmsys[,i],seaFM)
+        }
+
 
         ## MSY and Biomass reference points
         res <- parallel::mclapply(as.list(1:nrep), function(x){
@@ -230,22 +235,43 @@ est.ref.levels.stochastic <- function(dat, set=NULL, fmax = 10,
                 setx$tvsel <- 1
                 tmp0 <- simpop(log(fmsys[x,i]), datx, setx, out=0)
                 if(set$refMethod == "mean"){
-                    tmp[[i]] <- c(mean(tail(tmp0$CW,nyrefmsy)), mean(tail(tmp0$TSB,nyrefmsy)),
-                                  mean(tail(tmp0$ESB,nyrefmsy)), mean(tail(tmp0$SSB,nyrefmsy)))
+                    tmp[[i]] <- list(apply(tail(tmp0$CW,nyrefmsy),2,mean),
+                                     apply(tail(tmp0$TSB,nyrefmsy),2,mean),
+                                     apply(tail(tmp0$ESB,nyrefmsy),2,mean),
+                                     apply(tail(tmp0$SSB,nyrefmsy),2,mean))
                 }else if(set$refMethod == "median"){
-                    tmp[[i]] <- c(median(tail(tmp0$CW,nyrefmsy)), median(tail(tmp0$TSB,nyrefmsy)),
-                                  median(tail(tmp0$ESB,nyrefmsy)), median(tail(tmp0$SSB,nyrefmsy)))
+                    tmp[[i]] <- list(apply(tail(tmp0$CW,nyrefmsy),2,median),
+                                     apply(tail(tmp0$TSB,nyrefmsy),2,median),
+                                     apply(tail(tmp0$ESB,nyrefmsy),2,median),
+                                     apply(tail(tmp0$SSB,nyrefmsy),2,median))
                 }
             }
             return(tmp)
         }, mc.cores = ncores)
 
+
+
+        ## yearly
         ## sort in list by reference point with matrix (nrep, ntv)
         brefs <- vector("list", 4) ## c("MSY","Bmsy","ESBmsy","SSBmsy")
         for(i in 1:4){
             brefs[[i]] <- do.call(rbind,
                                   lapply(as.list(1:nrep),
-                                         function(x) sapply(1:alltv, function(j) res[[x]][[j]][[i]])))
+                                         function(x) sapply(1:alltv, function(j){
+                                             if(i == 1){
+                                                 sum(res[[x]][[j]][[i]]) ## MSY (sum over all seasons)
+                                             }else{
+                                                 tail(res[[x]][[j]][[i]],1) ## biomass-related (last season)
+                                             }
+                                         })))
+        }
+        ## seasonally
+        ## sort in list by reference point with list (ntv) of matrix (nrep, ns)
+        brefsSea <- vector("list", 4) ## c("MSY","Bmsy","ESBmsy","SSBmsy")
+        for(i in 1:4){
+            for(j in 1:alltv){
+                brefsSea[[i]][[j]] <- do.call(rbind,lapply(res, function(x) x[[j]][[i]]))
+            }
         }
     }
 
@@ -260,11 +286,17 @@ est.ref.levels.stochastic <- function(dat, set=NULL, fmax = 10,
         setx$tvm <- 1
         setx$tvmsel <- 1
         setx$tvsel <- 1
-        tmp0 <- simpop(log(1e-20), datx, setx, out=0)$TSB
+        tmp0 <- simpop(log(1e-20), datx, setx, out=0)
         datx$FM[datx$FM>0] <- 0
         tmp2 <- initpop(datx,set)
         tmp2$rec
         datx$R0
+        names(tmp0)
+        tmp2$
+        tmp0$CW
+
+        1.2804e+06
+
         }
 
         res <- parallel::mclapply(as.list(1:nrep), function(x){
@@ -282,30 +314,46 @@ est.ref.levels.stochastic <- function(dat, set=NULL, fmax = 10,
                 setx$tvsel <- 1
                 tmp0 <- simpop(log(1e-20), datx, setx, out=0)$TSB
                 if(set$refMethod == "mean"){
-                    tmp[i] <- mean(tail(tmp0,nyrefmsy))
+                    tmp[[i]] <- list(apply(tail(tmp0,nyrefmsy),2,mean))
                 }else if(set$refMethod == "median"){
-                    tmp[i] <- median(tail(tmp0,nyrefmsy))
+                    tmp[[i]] <- list(apply(tail(tmp0,nyrefmsy),2,median))
                 }
             }
             return(tmp)
         }, mc.cores = ncores)
 
-        b0s <- do.call(rbind, res)
+
+        b0s <- do.call(rbind,
+                       lapply(as.list(1:nrep),
+                              function(x) sapply(1:alltv, function(j){
+                                  tail(res[[x]][[j]][[1]],1)  ## last season
+                              })))
+
+        ## seasonally
+        ## sort in list by reference point with list (ntv) of matrix (nrep, ns)
+        b0sSea <- vector("list",alltv)
+        for(j in 1:alltv){
+            b0sSea[[j]] <- do.call(rbind,lapply(res, function(x) x[[j]][[1]]))
+        }
+
     }
 
 
     ## all refs in one list
     refs <- c(list(fmsys), brefs, list(b0s))
+    refsSea <- c(list(fmsysSea), brefsSea, list(b0sSea))
 
     ## remove runs where long-term SP is smaller or equal to 0
     for(i in 1:alltv){
         ind <- which(brefs[[1]][,i] <= 0)
         if(length(ind) > 0){
             for(j in 1:6) refs[[j]][,i] <- refs[[j]][-ind,i]
+            for(j in 1:6) refs[[j]][[i]] <- refs[[j]][[i]][-ind,]
         }
     }
 
     ## overall refs
+    ## yearly
     if(set$refMethod == "mean"){
         meds <- lapply(refs, function(x){
             tmp <- rep(NA, alltv)
@@ -320,12 +368,13 @@ est.ref.levels.stochastic <- function(dat, set=NULL, fmax = 10,
         })
     }
 
+
+    ## yearly
     ind <- which(refall %in% ref)
     refdist <- refs[ind]
     names(refdist) <- refall[ind]
     dat$refdist <- refdist
-
-    refmed <- matrix(NA, ncol=length(ref), nrow=nt)
+    refmed <- matrix(NA, ncol=length(ref), nrow=ny)
     for(i in 1:length(ind)){
         refmed[,i] <- meds[[ind[[i]]]][mind]
     }
@@ -360,6 +409,34 @@ est.ref.levels.stochastic <- function(dat, set=NULL, fmax = 10,
             }
         }
     }
+
+    ## seasonally
+    if(set$refMethod == "mean"){
+        medsSea <- lapply(refsSea, function(x){
+            tmp <- vector("list", alltv)
+            for(i in 1:alltv) tmp[[i]] <- apply(x[[i]],2,mean)
+            return(tmp)
+        })
+    }else if(set$refMethod == "median"){
+        medsSea <- lapply(refsSea, function(x){
+            tmp <- vector("list", alltv)
+            for(i in 1:alltv) tmp[[i]] <- apply(x[[i]],2,median)
+            return(tmp)
+        })
+    }
+
+    ## seasonally
+    ind <- which(refall %in% ref)
+    refdist <- refsSea[ind]
+    names(refdist) <- refall[ind]
+    dat$refdistSea <- refdist
+
+    refmed <- vector("list", length(ind))
+    for(i in 1:length(ind)){
+        refmed[[i]] <- do.call(rbind,medsSea[[ind[[i]]]][mind])
+    }
+    names(refmed) <- refall[ind]
+    dat$refSea <- refmed
 
     ## return
     return(dat)

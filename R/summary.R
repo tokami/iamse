@@ -6,7 +6,7 @@
 #'
 summary.mse <- function(mse, yearly = TRUE){
     ##
-    quants <- c("TSB","SSB","ESB","CW","TSBfinal","TACs","FM")
+    quants <- c("TSB","SSB","ESB","CW","TSBfinal","TACs","FM","TSBfinalSea")
     nquants <- length(quants)
     nmse <- length(mse)
     resList <- vector("list",nmse)
@@ -15,7 +15,7 @@ summary.mse <- function(mse, yearly = TRUE){
         res <- vector("list",length(nquants))
         for(j in 1:nquants){
             quant <- quants[j]
-            if(quant %in% c("TSB","SSB","ESB")){
+            if(quant %in% c("TSB","SSB","ESB","TSBfinalSea")){
                 if(yearly){
                     tmp <- do.call(rbind,lapply(msei, function(x) apply(x[[quant]],1,mean)))
                 }else{

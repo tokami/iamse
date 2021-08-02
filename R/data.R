@@ -361,9 +361,21 @@ check.dat <- function(dat = NULL, verbose = TRUE){
     ## effort coefficient
     if(!any(names(dat) == "qE")) dat$qE <- 5e2
 
-    if(is.null(dat$nyC)) dat$nyC <- ny
-    if(is.null(dat$nyI)) dat$nyI <- rep(ny, nsurv)
-    if(is.null(dat$nyE)) dat$nyE <- NA
+    ## years of data available to assessment
+    if(is.null(dat$nyC[1])) dat$nyC <- ny
+    if(is.null(dat$nyI[1])) dat$nyI <- rep(ny, nsurv)
+    if(is.null(dat$nyE[1])) dat$nyE <- NA
+
+    ## most recent years of data available to assessment ## TODO: RENAME:
+    ## 0: last year available to assessment
+    ## 1: last year not available
+    ## 2: last 2 years not available
+    ## etc.
+    if(is.null(dat$lastyC[1])) dat$lastyC <- 0
+    if(is.null(dat$lastyI[1])) dat$lastyI <- rep(0, nsurv)
+    if(is.null(dat$lastyE[1])) dat$lastyE <- 0
+
+
 
     ## Seasonal catch observations
     if(is.null(dat$catchSeasons)) dat$catchSeasons <- 1

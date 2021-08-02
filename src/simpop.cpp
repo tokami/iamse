@@ -139,11 +139,12 @@ List simpop(double logFM, List dat, List set, int out) {
   NumericVector MAA0 (asmax);
   NumericVector MAA (asmax);
   NumericVector ZAA (asmax);
-  NumericVector CW (ny);
   NumericVector SP (ny);
-  NumericVector SSB2 (ny);
-  NumericVector TSB (ny);
-  NumericVector ESB (ny);
+  NumericVector CWy (ny);
+  NumericMatrix CW (ny, ns);
+  NumericMatrix SSB2 (ny, ns);
+  NumericMatrix TSB (ny, ns);
+  NumericMatrix ESB (ny, ns);
   NumericVector maty(asmax);
   NumericVector sely(asmax);
   NumericVector weighty(asmax);
@@ -154,11 +155,19 @@ List simpop(double logFM, List dat, List set, int out) {
   double R0y = 0.0;
   double Ctmp = 0.0;
   NumericVector seaFM (ns);
-  double maxFM = max(FMmat(FMmat.nrow()-1,_));
+  // double maxFM = max(FMmat(FMmat.nrow()-1,_));
+  double maxFM = 0.0;
+  for(int s=0; s<ns; s++){
+    maxFM += FMmat(FMmat.nrow()-1,s);
+  }
   for(int s=0; s<ns; s++){
     seaFM(s) = FMmat(FMmat.nrow()-1,s) / maxFM;
 //    std::cout << "seaFM(" << s << "): " << seaFM(s) << std::endl;
+    if(NumericVector::is_na(seaFM(s))){
+      seaFM(s) = 1;
+    }
   }
+
   NumericVector fs = FM * seaFM;
   double SSB = 0.0;
   double SPR = 0.0;
@@ -176,12 +185,12 @@ List simpop(double logFM, List dat, List set, int out) {
 
 
   // Initialise
-  std::fill( CW.begin(), CW.end(), 0);
-  std::fill( SP.begin(), SP.end(), 0);
-  std::fill( SSB2.begin(), SSB2.end(), 0);
-  std::fill( TSB.begin(), TSB.end(), 0);
-  std::fill( ESB.begin(), ESB.end(), 0);
-  std::fill( F0.begin(), F0.end(), 0);
+//  std::fill( CW.begin(), CW.end(), 0);
+//  std::fill( SP.begin(), SP.end(), 0);
+  // std::fill( SSB2.begin(), SSB2.end(), 0);
+  // std::fill( TSB.begin(), TSB.end(), 0);
+  // std::fill( ESB.begin(), ESB.end(), 0);
+//  std::fill( F0.begin(), F0.end(), 0);
   // NumericMatrix Msel = as<NumericMatrix>(MselList[tvmsel-1]);
   // NumericMatrix sel = as<NumericMatrix>(selList[tvsel-1]);
   NumericMatrix Msel = as<NumericMatrix>(MselList[0]);
@@ -282,22 +291,23 @@ List simpop(double logFM, List dat, List set, int out) {
         Ctmp += CAA(a) * weightFy(a);
       }
       // std::cout << "Ctmp(" << s << "): " << Ctmp << std::endl;
-      CW(y) += Ctmp;
+      CW(y,s) = Ctmp;
+      CWy(y) += Ctmp;
 
       // Exponential decay
       for(int a=0; a<asmax; a++){
         NAAS(a) = NAAS(a) * exp(-ZAA(a));
       }
-      if(s == (ns-1)){
+//      if(s == (ns-1)){
         for(int a=0; a<asmax; a++){
           // biomasses
           Bage(a) = NAAS(a) * weighty(a);
           SSBage(a) = Bage(a) * maty(a) * exp(-pzbm * ZAA(a));
           ESBage(a) = Bage(a) * sely(a);
-          TSB(y) += Bage(a);
-          SSB2(y) += SSBage(a);
-          ESB(y) += ESBage(a);
-        }
+          TSB(y,s) += Bage(a);
+          SSB2(y,s) += SSBage(a);
+          ESB(y,s) += ESBage(a);
+//        }
       }
       // Continuous ageing
       NAAS(asmax-1) = NAAS(asmax-1) + NAAS(asmax-2);
@@ -310,17 +320,18 @@ List simpop(double logFM, List dat, List set, int out) {
 
   if(sptype == 0){
     for(int y=1; y<ny; y++){
-      SP(y) = TSB(y) - TSB(y-1) + CW(y);  // SP(y) = TSB(y+1) - TSB(y) + CW(y);  // if TSB in first season
+      SP(y) = TSB(y,ns-1) - TSB(y-1,ns-1) + CWy(y);  // SP(y) = TSB(y+1) - TSB(y) + CW(y);  // if TSB in first season
     }
   }else if(sptype == 1){
     for(int y=1; y<ny; y++){
-      SP(y) = ESB(y) - ESB(y-1) + CW(y);
+      SP(y) = ESB(y,ns-1) - ESB(y-1,ns-1) + CWy(y);
     }
   }
 
   List res;
   if(out == 0){
     res["CW"] = CW;
+    res["CWy"] = CWy;
     res["TSB"] = TSB;
     res["SP"] = SP;
     res["ESB"] = ESB;

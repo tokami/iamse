@@ -30,6 +30,7 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){## indices
         }
         idxC <- (ny - nyC + 1):ny
     }
+    lastyC <- dat$lastyC
     nyI <- dat$nyI
     for(i in 1:length(nyI)){
         if(is.numeric(nyI) && any(nyI > ny) && verbose) writeLines("Period for index observations ('dat$nyI') is larger than historical period ('dat$ny'). Setting nyI == ny. ")
@@ -37,6 +38,7 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){## indices
             nyI[i] <- ny
         }
     }
+    lastyI <- dat$lastyI
     surveyTimes <- dat$surveyTimes
     nsurv <- length(surveyTimes)
     ## closest season
@@ -58,6 +60,7 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){## indices
         }
         idxE <- (ny - nyE + 1):ny
     }
+    lastyE <- dat$lastyE  ## TODO: not yet implemented
 
     ## species data
     amax <- dat$amax + 1  ## age 0
@@ -165,7 +168,7 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){## indices
     selFlag <- inherits(sel, "list") && length(sel) > 1
 
     ## containers
-    TSB <- TSB1plus <- ESB <- SSB <- CW <- rec <- matrix(0, nrow=ny, ncol=ns)
+    TSBfinalSea <- TSB <- TSB1plus <- ESB <- SSB <- CW <- rec <- matrix(0, nrow=ny, ncol=ns)
     TACs <- TSBfinal <- SSBfinal <- ESBfinal <- rep(NA, ny)
     CAA <- vector("list", ny)
     for(i in 1:ny) CAA[[i]] <- matrix(NA, nrow = asmax, ncol = ns)
@@ -319,6 +322,7 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){## indices
 
             ## Exponential decay
             NAAS <- NAAS * exp(-ZAA)
+            TSBfinalSea[y,s] <- sum(NAAS * weighty)
             if(s == ns){
                 ## end of year biomasses
                 TSBfinal[y] <- sum(NAAS * weighty)
@@ -332,19 +336,19 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){## indices
         }
     }
 
-    ## account for nyhist (nyC, nyI)
+    ## account for nyhist (nyC, nyI) and if last years missing (lastyC, lastyI)
     if(is.numeric(nyI) && all(!is.na(dat$surveyTimes))){
         for(i in 1:nsurv){
-            timeI[[i]] <- timeI[[i]][(ny-nyI[i]+1):ny]
-            obsI[[i]] <- obsI[[i]][(ny-nyI[i]+1):ny]
-            obsIA[[i]] <- obsIA[[i]][(ny-nyI[i]+1):ny,]
-            rownames(obsIA[[i]]) <- as.character((ny-nyI[i]+1):ny)
+            timeI[[i]] <- timeI[[i]][(ny-nyI[i]+1):(ny-lastyI)]
+            obsI[[i]] <- obsI[[i]][(ny-nyI[i]+1):(ny-lastyI)]
+            obsIA[[i]] <- obsIA[[i]][(ny-nyI[i]+1):(ny-lastyI),]
+            rownames(obsIA[[i]]) <- as.character((ny-nyI[i]+1):(ny-lastyI))
             colnames(obsIA[[i]]) <- as.character(0:dat$amax)
             attributes(obsIA[[i]]) <- c(attributes(obsIA[[i]]), list(time = dat$surveyTimes))
         }
     }
-    obsMAA <- obsMAA[(ny-nyC+1):ny,]
-    rownames(obsMAA) <- as.character((ny-nyC+1):ny)
+    obsMAA <- obsMAA[(ny-nyC+1):(ny-lastyC),]
+    rownames(obsMAA) <- as.character((ny-nyC+1):(ny-lastyC))
     colnames(obsMAA) <- as.character(0:dat$amax)
 
 
@@ -473,6 +477,7 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){## indices
         out$TSBfinal <- TSBfinal
         out$SSBfinal <- SSBfinal
         out$ESBfinal <- ESBfinal
+        out$TSBfinalSea <- TSBfinalSea
         out$rec <- rec
         out$TSB <- TSB
         out$TSB1plus <- TSB1plus
@@ -515,11 +520,13 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
     indage0 <- dat$indage0
     nt <- ny * ns
     nyC <- dat$nyC
+    lastyC <- dat$lastyC
     nsC <- dat$catchSeasons
     nysim <- set$nysim
     assessYears <- seq(1, nysim, set$assessmentInterval)
     nyE <- dat$nyE
     nsE <- dat$effortSeasons
+    lastyE <- dat$lastyE
 
     ## survey
     nsurv <- length(dat$surveyTimes)
@@ -531,6 +538,7 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
             idxS[i] <- which.min((tmp - dat$surveyTimes[i])^2)
         }
     }
+    lastyI <- dat$lastyI
 
     ## parameters
     tacs <- hist$tacs
@@ -676,7 +684,14 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
     SSB <- rbind(hist$SSB,tmp)
     ESB <- rbind(hist$ESB,tmp)
     CW  <- rbind(hist$CW,tmp)
-    FM  <- rbind(hist$FM,tmp)
+    ## if assessment not in first season, use last years F, otherwise overwritten anyways
+    repi <- set$assessmentInterval
+    if(set$assessmentTiming > 1 && nrow(hist$FM) == dat$ny){
+        repi <- repi + 1
+    }
+    FM <- rbind(hist$FM,tail(hist$FM,repi))
+    rownames(FM) <- seq(nrow(FM))
+
     NAA <- obsMAAtmp <- rep(0, amax)
     FAA <- ZAA <- MAA <- CAA <- matrix(NA, asmax, ns)
     TACs <- c(hist$TACs, NA)
@@ -684,8 +699,9 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
     TSBfinal <- c(hist$TSBfinal, NA)
     SSBfinal <- c(hist$SSBfinal, NA)
     ESBfinal <- c(hist$ESBfinal, NA)
+    TSBfinalSea <- rbind(hist$TSBfinalSea, tmp)
     ## seasonal FM pattern (uses FM pattern in last historical year for projection)
-    seaFM <- FM[dat$ny,] / max(FM[dat$ny,])
+    seaFM <- FM[dat$ny,] / sum(FM[dat$ny,])
     ## if all FM == 0
     if(any(is.na(seaFM))){
         seaFM <- 1
@@ -862,23 +878,35 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
                                    seasons = assessSeasons[[s]], ns = ns, y = y,
                                    h = hy, asmax = asmax, mat = maty,
                                    pzbm = pzbm, spawning = spawning,
-                                   R0 = R0y, SR = dat$SR, bp = dat$pb, recBeta = dat$recBeta,
+                                   R0 = R0y, SR = dat$SR, bp = dat$bp,
+                                   recBeta = dat$recBeta,
                                    recGamma = dat$recGamma, eR = eR,
                                    indage0 = indage0,
                                    seaFM = seaFM,
                                    lastFM = 0.01, ## FM[y-1,s],  ## CHECK: had some issues with too high FM
-                                   upper = log(set$maxF/ns)
+                                   upper = log(set$maxF)
                                    )
                              )
             }
-            FM[y,] <- FMtac * seaFM
+
+            ## General
+            FM[y,s:ns] <- FMtac * seaFM[s:ns]
+            if(s > 1){
+                FM[y+1,1:(s-1)] <- FMtac * seaFM[1:(s-1)]
+                ##
+                FM[y+1,s:ns] <- FMtac * seaFM[s:ns]
+            }
+
         }
+
 
         ## Population dynamics
         FAA <- FM[y,] * sely
         ZAA <- MAA + FAA
         CAA[,s] <- baranov(FAA, MAA, NAAS)
         CW[y,s] <- sum(CAA[,s] * weightFy)
+
+
         ## can't take more than what's there
         Btmp <- sum(NAAS * weighty * sely * exp(-MAA/2))
         ## if(CW[y,s] > 0.99 * Btmp){
@@ -927,7 +955,7 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
                         obs$obsI[[idxi[i]]] <-
                             c(obs$obsI[[idxi[i]]], q[idxi[i]] * sum(ESBsurv) * eI[[idxi[i]]])
                         if(is.null(obs$timeI[[idxi[i]]])){
-                            timeIi <- ny-nyI[idxi[i]]+1
+                            timeIi <- ny - nyI[idxi[i]] - lastyI[idxi[i]] + 1
                         }else timeIi <- floor(tail(obs$timeI[[idxi[i]]],1))
                         obs$timeI[[idxi[i]]] <-
                             c(obs$timeI[[idxi[i]]], timeIi + 1 + dat$surveyTimes[idxi[i]])
@@ -951,6 +979,7 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
 
         ## Eponential decay
         NAAS <- NAAS * exp(-ZAA)
+        TSBfinalSea[y,s] <- sum(NAAS * weighty)
         if(s == ns){
             ## end of year biomasses
             TSBfinal[y] <- sum(NAAS * weighty)
@@ -1040,6 +1069,10 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
     obs$landFrac = rbind(obs$landFrac, matrix(1.0, 1, amax))
     rownames(obs$landFrac)[nrow(obs$landFrac)] <- as.character(y)
 
+    if(y == dat$ny + set$nysim){
+        FM <- FM[seq(dat$ny + set$nysim),]
+    }
+
     ## return
     out <- NULL
     out$lastNAA <- NAAS
@@ -1048,6 +1081,7 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
     out$TSBfinal <- TSBfinal
     out$SSBfinal <- SSBfinal
     out$ESBfinal <- ESBfinal
+    out$TSBfinalSea <- TSBfinalSea
     out$TACprev <- TACreal
     out$ESB <- ESB
     out$SSB <- SSB

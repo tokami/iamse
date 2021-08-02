@@ -328,6 +328,7 @@ structure(
         bbtrigger[bbtrigger < 0] <- 0
 
         obs <- spict::check.inp(obs, verbose = FALSE)
+
         if(is.null(tacs)){
             indBref <- obs$indBref
         }else{
