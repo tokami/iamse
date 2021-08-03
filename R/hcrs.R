@@ -349,6 +349,12 @@ structure(
         inum <- ind[(ninds-(x-1)):ninds]
         iden <- ind[(ninds-(x+y-1)):(ninds-x)]
         r <- r0 <- mean(inum, na.rm = TRUE)/mean(iden, na.rm = TRUE)
+
+## print(inum)
+## print(iden)
+
+## print(r)
+
         ## account for seasonal and annual catches
         ## cl <- sum(tail(obs$obsC, tail(1/obs$dtc,1))) ## CHECK: dtc required?
         if(clType == "observed"){
@@ -415,6 +421,77 @@ structure(
         tacs$indBref[nrow(tacs)] <- indBref2
         tacs$bmID[nrow(tacs)] <- bmID
         tacs$assessInt[nrow(tacs)] <- assessInt
+        return(tacs)
+    },
+    class="hcr"
+)
+'))
+
+    ## create HCR as functions
+    templati <- eval(parse(text=paste(parse(text = eval(template)),collapse=" ")))
+    assign(value=templati, x=id, envir=env)
+
+    ## allow for assigning names
+    invisible(id)
+}
+
+
+
+
+#' @name def.hcr.hr
+#' @title Define harvest control rule
+#' @details This function allows to define harvest control rules (HCRs) which can be incorporated into a
+#' management strategy evaluation framework (DLMtool package). HCRs are saved with a
+#' generic name to the global environment and the names of the HCRs are returned if results of the
+#' function are assigned to an object. HCR runs a SPiCT assessment using catch and
+#' relative biomass index observations. Stock status estimates are used to set the TAC
+#' for the next year. TAC can be based on the distribution of predicted catches (percentileC)
+#' and/or the distribution of the Fmsy reference level (percentileFmsy).
+#' Additionally, a cap can be applied to account for low biomass levels (below Bmsy).
+#' Arguments of returned function are 'x' - the position in a data-limited mehods data object,
+#' 'Data' - the data-limited methods data object (see DLMtool), and 'reps' - the number of
+#' stochastic samples of the TAC recommendation (not used for this HCR).
+#' One or several arguments of the function can be provided as vectors to generate several
+#' HCRs at once (several vectors have to have same length).
+#'
+#' @export
+#'
+def.hcr.hr <- function(id = "prop_8.75",
+                       prop = 0.0875,
+                       env = globalenv()
+                       ){
+
+    template  <- expression(paste0(
+        '
+structure(
+    function(obs, tacs = NULL, pars = NULL){
+        prop <- ',prop,'
+
+        obs <- spict::check.inp(obs, verbose = FALSE)
+
+        if(is.null(tacs)){
+            indBref <- obs$indBref
+        }else{
+            indBref <- as.numeric(as.character(unlist(strsplit(as.character(tacs$indBref[nrow(tacs)]), "-"))))
+        }
+        indBref2 <- paste(indBref, collapse="-")
+        ## benchmark (only benchmark in spict)
+        bmID <- FALSE
+        inds <- obs$obsI
+        if(length(inds) > 1){
+            ## WHAT TO DO IF SEVERAL INDICES AVAILABLE? ## for now: mean
+            indtab <- do.call(rbind, inds)
+            ind <- apply(indtab, 2, mean)
+        }else{
+            ind <- unlist(inds)
+        }
+        ninds <- length(ind)
+
+        tac <- ind[ninds] * prop
+
+        tacs <- gettacs(tacs, id = "',id,'", TAC = tac, obs = obs)
+        tacs$indBref[nrow(tacs)] <- indBref2
+        tacs$bmID[nrow(tacs)] <- bmID
         return(tacs)
     },
     class="hcr"

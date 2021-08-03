@@ -612,16 +612,17 @@ predCatch <- function(logFM,
     Ctmp <- 0
     NAAtmp <- NAA
 
-    for(s in seasons){
+    for(i in 1:length(seasons)){
+        s <- seasons[i]
         FAA <- exp(logFM) * seaFM[s] * sel
         Ztmp <- FAA + MAA
         ## recruitment
-        if(spawning[s] > 0 && s > 1){
+        if(spawning[s] > 0 && i > 1){
             ## Survivors from previous season/year
             SSB0 <- get.ssb0(MAA, mat, weight,
                                fecun=1, asmax, ns, spawning,
                                R0, indage0, s)
-            SSBtmp <- sum(NAA * weight  * mat  * exp(-pzbm * Ztmp))
+            SSBtmp <- sum(NAAtmp * weight  * mat  * exp(-pzbm * Ztmp))
             rec <- recfunc(h = h2, SSBPR0 = SSB0/R0, SSB = SSBtmp,
                              R0 = R0, method = SR, bp = bp,
                              beta = recBeta, gamma = recGamma)

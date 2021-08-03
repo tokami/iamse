@@ -689,7 +689,8 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
     if(set$assessmentTiming > 1 && nrow(hist$FM) == dat$ny){
         repi <- repi + 1
     }
-    FM <- rbind(hist$FM,tail(hist$FM,repi))
+    tmp <- tail(hist$FM,1)
+    FM <- rbind(hist$FM,tmp[rep(seq_len(nrow(tmp)), each = repi),])
     rownames(FM) <- seq(nrow(FM))
 
     NAA <- obsMAAtmp <- rep(0, amax)
@@ -875,7 +876,8 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
                              get.f(TACs[y],
                                    NAA = NAAS, MAA = MAA,
                                    sel = sely, weight = weighty,
-                                   seasons = assessSeasons[[s]], ns = ns, y = y,
+                                   seasons = assessSeasons[[s]],
+                                   ns = ns, y = y,
                                    h = hy, asmax = asmax, mat = maty,
                                    pzbm = pzbm, spawning = spawning,
                                    R0 = R0y, SR = dat$SR, bp = dat$bp,
@@ -887,6 +889,7 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
                                    upper = log(set$maxF)
                                    )
                              )
+
             }
 
             ## General
@@ -898,7 +901,6 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
             }
 
         }
-
 
         ## Population dynamics
         FAA <- FM[y,] * sely
