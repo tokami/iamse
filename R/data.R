@@ -376,12 +376,14 @@ check.dat <- function(dat = NULL, verbose = TRUE){
     if(is.null(dat$lastyE[1])) dat$lastyE <- 0
 
 
-
     ## Seasonal catch observations
     if(is.null(dat$catchSeasons)) dat$catchSeasons <- 1
 
     ## Seasonal effort observations
     if(is.null(dat$effortSeasons)) dat$effortSeasons <- 1
+
+    ## Timing of catch observation interval (default: calendar year => 1)
+    if(is.null(dat$catchObsTiming)) dat$catchObsTiming <- 1
 
     ## return
     return(dat)

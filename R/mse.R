@@ -4,7 +4,9 @@
 ##' @importFrom parallel detectCores
 ##'
 ##' @export
-run.mse <- function(dat, set, ncores=parallel::detectCores()-1, verbose=TRUE){if(ncores > 1) verbose <- FALSE
+run.mse <- function(dat, set, ncores=parallel::detectCores()-1, verbose=TRUE, dbg = 0){
+
+    if(ncores > 1) verbose <- FALSE
     ## define constant catch (resort HCR if something not converging)
     def.hcr.conscat()
 
@@ -78,7 +80,7 @@ run.mse <- function(dat, set, ncores=parallel::detectCores()-1, verbose=TRUE){if
         if(is.numeric(set$seed)) set.seed(set$seed + x)
 
         ## pop list with errors
-        pop <- initpop(dat, set)
+        pop <- initpop(dat, set, dbg = dbg)
         ## add reference levels
         pop$refs <- refs
         popList <- vector("list", nhcrs)
@@ -117,7 +119,8 @@ run.mse <- function(dat, set, ncores=parallel::detectCores()-1, verbose=TRUE){if
                                      set = setx,
                                      hcr = hcri,
                                      year = y,
-                                     verbose = verbose)
+                                     verbose = verbose,
+                                     dbg = dbg)
             }
             popListx[[i]] <- poptmp
             gc()

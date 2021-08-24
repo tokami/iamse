@@ -350,6 +350,7 @@ structure(
         iden <- ind[(ninds-(x+y-1)):(ninds-x)]
         r <- r0 <- mean(inum, na.rm = TRUE)/mean(iden, na.rm = TRUE)
 
+## print(paste0("r: ", round(r,2)))
 ## print(inum)
 ## print(iden)
 

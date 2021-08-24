@@ -10,8 +10,10 @@
 #' @name initpop
 #'
 #' @export
-initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){## indices
+initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE, dbg = 0){## indices
+
     if(is.null(set)) set <- check.set()
+
     ny <- dat$ny
     ns <- dat$ns
     nt <- ny * ns
@@ -80,6 +82,7 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){## indices
     if(length(q) < nsurv) q <- rep(q, nsurv)
     qE <- dat$qE
     spawning <- dat$spawning
+    catchObsTiming <- dat$catchObsTiming
 
 
     ## errors
@@ -98,7 +101,7 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){## indices
         eCmv <- set$eCmv
         eImv <- set$eImv
         eE <- set$eE
-        if(is.null(eF)) eF <- gen.noise(ny, set$noiseF[1], set$noiseF[2], bias.cor = set$noiseF[3])
+        if(is.null(eF)) eF <- gen.noise(nrow(FM), set$noiseF[1], set$noiseF[2], bias.cor = set$noiseF[3])
         if(is.null(eR)) eR <- gen.noise(ny, set$noiseR[1], set$noiseR[2], bias.cor = set$noiseR[3])
         if(is.null(eM)) eM <- gen.noise(ny, set$noiseM[1], set$noiseM[2], bias.cor = set$noiseM[3])
         if(is.null(eH)) eH <- gen.noise(ny, set$noiseH[1], set$noiseH[2], bias.cor = set$noiseH[3])
@@ -232,17 +235,16 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){## indices
     }
     NAAS <- NAASbi
 
-
     ## main loop
     for(y in 1:ny){
 
         ## Adding noise
         selInd <- ifelse(selFlag, y, 1)
         sely <- as.numeric(t(sel[[selInd]])) * eSel[y]
-        FAA <- FM[y,] * eF[y] * sely
+## CHECK:        FAA <- FM[y,] * eF[y] * sely
         mselInd <- ifelse(mselFlag, y, 1)
-        MAA <- M[y,] * as.numeric(t(Msel[[mselInd]])) * eM[y]
-        ZAA <- MAA + FAA
+## CHECK:        MAA <- M[y,] * as.numeric(t(Msel[[mselInd]])) * eM[y]
+## CHECK:        ZAA <- MAA + FAA
         maty <- as.numeric(t(mat)) * eMat[y]
         weighty <- as.numeric(t(weight)) * eW[y]
         weightFy <- as.numeric(t(weightF)) * eW[y]
@@ -251,6 +253,11 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){## indices
 
         ## seasons
         for(s in 1:ns){
+
+            FAA <- FM[y,s] * eF[y] * sely
+            MAA <- M[y,s] * as.numeric(t(Msel[[mselInd]])) * eM[y]
+            ZAA <- MAA + FAA
+
             ## recruitment
             if(spawning[s] > 0){
                 ## Survivors from previous season/year
@@ -360,12 +367,31 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){## indices
         if(nsC == 1){
             ## annual catches
             ## ----------------
-            ## total catches (spict)
-            obsC <- apply(CW[idxC,], 1, sum) * eC[idxC]
-            timeC <- idxC
-            ## catch observations at age (SAM, SMS)
-            for(y in 1:length(idxC)) obsCA[y,] <- as.numeric(by(apply(CAA[[idxC[y]]], 1, sum) *
-                                                                eCmv[y,],as2a,sum))
+            if(catchObsTiming == 1){
+                ## Catch observation interval aligns with calendar year (default)
+                ## ------------------
+                ## total catches (spict)
+                obsC <- apply(CW[idxC,], 1, sum) * eC[idxC]
+                timeC <- idxC
+                ## catch observations at age (SAM, SMS)
+                for(y in 1:length(idxC)) obsCA[y,] <- as.numeric(by(apply(CAA[[idxC[y]]], 1, sum) *
+                                                                    eCmv[y,],as2a,sum))
+            }else{
+                ## Catch observation interval different than calendar year (relevant for in-year assessment)
+                ## ------------------
+                nidxC <- length(idxC)
+                obsC <- rep(NA, nidxC)
+                for(i in 1:(nidxC-1)){
+                    obsC[i] <- (sum(CW[idxC[i],catchObsTiming:ns]) +
+                                sum(CW[idxC[i+1],1:(catchObsTiming-1)])) * eC[idxC[i]]
+                }
+                obsC[nidxC] <- sum(CW[idxC[nidxC],catchObsTiming:ns]) * eC[idxC[nidxC]]
+                timeC <- idxC
+                ## catch observations at age (SAM, SMS)
+                ## TODO:
+                for(y in 1:length(idxC)) obsCA[y,] <- as.numeric(by(apply(CAA[[idxC[y]]], 1, sum) *
+                                                                    eCmv[y,],as2a,sum))
+            }
         }else if(nsC == ns){
             ## seasonal catches (for each season in OM)
             ## ----------------
@@ -508,7 +534,7 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){## indices
 ## advancepopulation
 #' @name advancepop
 #' @export
-advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
+advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE, dbg = 0){
 
     ## indices
     ny <- nrow(hist$TSB)
@@ -527,6 +553,8 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
     nyE <- dat$nyE
     nsE <- dat$effortSeasons
     lastyE <- dat$lastyE
+    catchObsTiming <- dat$catchObsTiming
+    pci <- 0
 
     ## survey
     nsurv <- length(dat$surveyTimes)
@@ -690,6 +718,7 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
         repi <- repi + 1
     }
     tmp <- tail(hist$FM,1)
+    ## tmp <- matrix(0, 1, 12)
     FM <- rbind(hist$FM,tmp[rep(seq_len(nrow(tmp)), each = repi),])
     rownames(FM) <- seq(nrow(FM))
 
@@ -712,7 +741,8 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
     R0y <- dat$R0 * eR0
     mselInd <- ifelse(mselFlag, y, 1)
 ##    MAA <- M[s1vec[y]:(s1vec[y]+ns-1)] * as.numeric(t(Msel[[mselInd]])) * eM
-    MAA <- M[y,] * as.numeric(t(Msel[[mselInd]])) * eM
+    ## CHECK:    MAA <- M[y,] * as.numeric(t(Msel[[mselInd]])) * eM
+    MAAy <- t(M[y,] * t(Msel[[mselInd]]) * eM)
     hy <- dat$h * eH
     maty <- as.numeric(t(mat)) * eMat
     selInd <- ifelse(selFlag, y, 1)
@@ -743,6 +773,8 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
 
     ## seasons
     for(s in 1:ns){
+
+        MAA <- M[y,s] * as.numeric(t(Msel[[mselInd]])) * eM
 
         ## Indices
         indtac <- (year - assessYears[max(which(assessYears <= year))]) * ns + s
@@ -787,6 +819,14 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
                     }
                 }
             }
+        }
+
+        ## Adjust catch observation if in-year catch interval
+        if(catchObsTiming > 1 && s == (catchObsTiming - 1)){
+            obs$obsC[ny] <- obs$obsC[ny] + sum(CW[y,(1:(catchObsTiming - 1))]) * hist$err$eC[ny]
+            ## catch observations at age (SAM, SMS)
+            ## TODO:
+##            obs$obsCA <- rbind(obs$obsCA, as.numeric(by(apply(CAA, 1, sum) * eCmv, as2a, sum)))
         }
 
 
@@ -872,9 +912,16 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
                 ## value. But which pattern to assume? last year's relative F
                 ## pattern? Overall average?
 
+
+
+                if(dbg > 0){
+                    print(paste0("TAC[",y,"]: ",round(TACs[y],1)))
+                }
+
+
                 FMtac <- min(set$maxF, ## /ns, ## CHECK:
                              get.f(TACs[y],
-                                   NAA = NAAS, MAA = MAA,
+                                   NAA = NAAS, MAA = MAAy,
                                    sel = sely, weight = weighty,
                                    seasons = assessSeasons[[s]],
                                    ns = ns, y = y,
@@ -886,7 +933,7 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
                                    indage0 = indage0,
                                    seaFM = seaFM,
                                    lastFM = 0.01, ## FM[y-1,s],  ## CHECK: had some issues with too high FM
-                                   upper = log(set$maxF)
+                                   upper = set$maxF
                                    )
                              )
 
@@ -903,11 +950,19 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
         }
 
         ## Population dynamics
-        FAA <- FM[y,] * sely
+        FAA <- FM[y,s] * sely  ## HERE: FM[y,]
         ZAA <- MAA + FAA
         CAA[,s] <- baranov(FAA, MAA, NAAS)
         CW[y,s] <- sum(CAA[,s] * weightFy)
 
+        if(dbg > 0){
+            pci <- pci + CW[y,s]
+            if(s == assessmentTiming){
+                if(ysim > 1) print(paste0("C[",y,"]: ", round(pci,1)))
+                pci <- 0
+                pci <- pci + CW[y,s]
+            }
+        }
 
         ## can't take more than what's there
         Btmp <- sum(NAAS * weighty * sely * exp(-MAA/2))
@@ -996,13 +1051,29 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
 
     ## catch & effort observations
     if(ns > 1){
-        ## Catch
+        ## Catch - seasonal OM
+        ## ------------------
         if(nsC == 1){
-            obs$obsC <- c(obs$obsC, sum(CW[y,]) * eC)
-            if(!is.null(obs$timeC)) timeCi <- tail(obs$timeC,1) else timeCi <- ny-nyC+1
-            obs$timeC <- c(obs$timeC, timeCi + 1)
-            ## catch observations at age (SAM, SMS)
-            obs$obsCA <- rbind(obs$obsCA, as.numeric(by(apply(CAA, 1, sum) * eCmv, as2a, sum)))
+            ## annual catches
+            ## ------------------
+            if(catchObsTiming == 1){
+                ## Catch observation interval aligns with calendar year (default)
+                ## ------------------
+                obs$obsC <- c(obs$obsC, sum(CW[y,]) * eC)
+                if(!is.null(obs$timeC)) timeCi <- tail(obs$timeC,1) else timeCi <- ny-nyC+1
+                obs$timeC <- c(obs$timeC, timeCi + 1)
+                ## catch observations at age (SAM, SMS)
+                obs$obsCA <- rbind(obs$obsCA, as.numeric(by(apply(CAA, 1, sum) * eCmv, as2a, sum)))
+            }else{
+                ## Catch observation interval different than calendar year (relevant for in-year assessment)
+                ## ------------------
+                obs$obsC <- c(obs$obsC, sum(CW[y,catchObsTiming:ns]) * eC)
+                if(!is.null(obs$timeC)) timeCi <- tail(obs$timeC,1) else timeCi <- ny-nyC+1
+                obs$timeC <- c(obs$timeC, timeCi + 1)
+                ## catch observations at age (SAM, SMS)
+                ## TODO:
+                obs$obsCA <- rbind(obs$obsCA, as.numeric(by(apply(CAA, 1, sum) * eCmv, as2a, sum)))
+            }
         }else if(nsC == ns){
             obs$obsC <- c(obs$obsC, CW[y,] * eC)
             if(!is.null(obs$timeC))

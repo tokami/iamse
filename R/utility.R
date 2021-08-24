@@ -601,7 +601,7 @@ baranov <- function(F, M, N){
 #' @details get predicted catch for TAC period or difference between provided
 #'     and predicted catch
 predCatch <- function(logFM,
-                      NAA, MAA,
+                      NAA, MAAy,
                       sel, weight,
                       seasons, ns, y, h2, asmax, mat, pzbm, spawning,
                       R0, SR, bp, recBeta, recGamma, eR,
@@ -615,13 +615,14 @@ predCatch <- function(logFM,
     for(i in 1:length(seasons)){
         s <- seasons[i]
         FAA <- exp(logFM) * seaFM[s] * sel
+        MAA <- MAAy[,s]
         Ztmp <- FAA + MAA
         ## recruitment
         if(spawning[s] > 0 && i > 1){
-            ## Survivors from previous season/year
             SSB0 <- get.ssb0(MAA, mat, weight,
                                fecun=1, asmax, ns, spawning,
-                               R0, indage0, s)
+                             R0, indage0, s)
+            ## Survivors from previous season/year
             SSBtmp <- sum(NAAtmp * weight  * mat  * exp(-pzbm * Ztmp))
             rec <- recfunc(h = h2, SSBPR0 = SSB0/R0, SSB = SSBtmp,
                              R0 = R0, method = SR, bp = bp,
@@ -630,6 +631,8 @@ predCatch <- function(logFM,
             NAAtmp[indage0] <- rec * spawning[s] * eR
         }
         Ctmp <- Ctmp + sum(baranov(FAA, MAA, NAAtmp) * weight)
+        ## print(paste0("TSB: ",round(sum(NAAtmp*weight))))
+        ## print(paste0("Ctmp: ",round(Ctmp)))
         ## Aging
         NAAtmp <- NAAtmp * exp(-Ztmp)
         NAAtmp[asmax] <- NAAtmp[asmax] + NAAtmp[asmax-1]
@@ -640,7 +643,7 @@ predCatch <- function(logFM,
     if(out == 0){
         return(Ctmp)
     }else{
-        return((TAC - Ctmp)^2)
+        return((log(TAC) - log(Ctmp))^2)  ## CHECK: needs if clause if Ctmp or TAC == 0?
     }
 }
 
@@ -656,10 +659,20 @@ get.f <- function(TAC,
                   recGamma, eR,
                   indage0,
                   seaFM,
-                  lastFM = 0.01, upper = log(100)){
+                  lastFM = 0.01, upper = 100){
+
+    ## browser()
+    ## TAC
+    ## predCatch(log(2),NAA, MAA,sel, weight,
+    ##           seasons, ns, y, h2, asmax, mat, pzbm, spawning,
+    ##           R0, SR, bp, recBeta, recGamma, eR,
+    ##           indage0,
+    ##           seaFM,
+    ##           TAC = TAC,
+    ##           out = 1)
 
     opt <- nlminb(start = log(lastFM), objective = predCatch,
-                  NAA = NAA, MAA = MAA,
+                  NAA = NAA, MAAy = MAA,
                   sel = sel, weight = weight,
                   seasons = seasons, ns = ns, y = y,
                   h2 = h, asmax = asmax, mat = mat,
@@ -670,7 +683,7 @@ get.f <- function(TAC,
                   seaFM = seaFM,
                   TAC = TAC,
                   out = 1,
-                  lower = -10, upper = upper,
+                  lower = -10, upper = log(upper),
                   control = list(rel.tol = 1e-3))
 
 ##    print(paste0("obj: ",round(opt$objective,2), "- fm: ",round(exp(opt$par),3)))
