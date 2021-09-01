@@ -357,6 +357,9 @@ structure(
         iden <- ind[(ninds-(x+y-1)):(ninds-x)]
         r <- r0 <- mean(inum, na.rm = TRUE)/mean(iden, na.rm = TRUE)
 
+if(',dbg,') print(paste0("inum: ", paste(round(inum), collapse=",")))
+if(',dbg,') print(paste0("iden: ", paste(round(iden),collapse=",")))
+
 if(',dbg,') print(paste0("r: ", round(r,2)))
 
         ## account for seasonal and annual catches
