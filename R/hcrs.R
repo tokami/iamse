@@ -475,6 +475,9 @@ structure(
         prop <- ',prop,'
 
         ## obs <- spict::check.inp(obs, verbose = FALSE)
+        obs$obsC <- as.vector(na.omit(obs$obsC))
+        obs$obsI <- lapply(obs$obsI,function(x) as.vector(na.omit(x)))
+        obs$dtc <- min(diff(na.omit(obs$timeC)))
 
         ## if(is.null(tacs)){
         ##     indBref <- obs$indBref
