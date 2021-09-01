@@ -77,7 +77,7 @@ structure(
         }else{
              inp <- obs[c("obsC","timeC","obsI","timeI","obsE","timeE")]
         }
-        inp <- spict::check.inp(inp, verbose = FALSE)
+        ## inp <- spict::check.inp(inp, verbose = FALSE)
         tacs <- gettacs(tacs, id="',id,'", TAC=NA, obs=inp)
         return(tacs)
     },
@@ -102,7 +102,7 @@ structure(
         }else{
              inp <- obs[c("obsC","timeC","obsI","timeI","obsE","timeE")]
         }
-        inp <- spict::check.inp(inp, verbose = FALSE)
+        ## inp <- spict::check.inp(inp, verbose = FALSE)
         tacs <- gettacs(tacs, id="',id,'", TAC=NA, obs=inp)
         return(tacs)
     },
@@ -124,7 +124,7 @@ structure(
         }else{
              inp <- obs[c("obsC","timeC","obsI","timeI","obsE","timeE")]
         }
-        inp <- spict::check.inp(inp, verbose = FALSE)
+        ## inp <- spict::check.inp(inp, verbose = FALSE)
         tacs <- gettacs(tacs, id="',id,'", TAC=NA, obs=inp)
         return(tacs)
     },
@@ -146,7 +146,7 @@ structure(
         }else{
              inp <- obs[c("obsC","timeC","obsI","timeI","obsE","timeE")]
         }
-        inp <- spict::check.inp(inp, verbose = FALSE)
+        ## inp <- spict::check.inp(inp, verbose = FALSE)
         tacs <- gettacs(tacs, id="',id,'", TAC=0, obs=inp)
         return(tacs)
     },
@@ -202,16 +202,19 @@ structure(
         ## bbtrigger <- runif(1, pars$bbmsy*2, pars$bbmsy*2 * ',bbtriggerSD,')
         bbtrigger[bbtrigger < 0] <- 0
 
-        obs <- spict::check.inp(obs, verbose = FALSE)
-        if(is.null(tacs)){
-            indBref <- obs$indBref
-        }else{
-            indBref <- as.numeric(as.character(unlist(strsplit(as.character(tacs$indBref[nrow(tacs)]), "-"))))
-        }
-        indBref2 <- paste(indBref, collapse="-")
+        ## obs <- spict::check.inp(obs, verbose = FALSE)
+        obs$obsC <- as.vector(na.omit(obs$obsC))
+        obs$obsI <- lapply(obs$obsI,function(x) as.vector(na.omit(x)))
+        obs$dtc <- min(diff(obs$timeC))
+        ## if(is.null(tacs)){
+        ##     indBref <- obs$indBref
+        ## }else{
+        ##     indBref <- as.numeric(as.character(unlist(strsplit(as.character(tacs$indBref[nrow(tacs)]), "-"))))
+        ## }
+        ## indBref2 <- paste(indBref, collapse="-")
         tac <- ',constantC,'
         if(!is.numeric(tac)){
-            annualcatch <- spict:::annual(obs$timeC, obs$obsC/obs$dtc, type = "mean") ## CHECK: why not sum?
+            annualcatch <- spict:::annual(obs$timeC, obs$obsC/obs$dtc, type = "mean") ## CHECK: why not sum? TODO: remove spict dependency
             tac <- mean(tail(annualcatch$annvec, ',clyears,'))
             ## Account for non-annual assessments
             tac <- tac * assessInt
@@ -250,7 +253,7 @@ structure(
         tacs$hitSC[nrow(tacs)] <- NA
         tacs$barID[nrow(tacs)] <- barID
         tacs$red[nrow(tacs)] <- red
-        tacs$indBref[nrow(tacs)] <- indBref2
+##        tacs$indBref[nrow(tacs)] <- indBref2
         tacs$assessInt[nrow(tacs)] <- assessInt
         return(tacs)
     },
@@ -302,7 +305,8 @@ def.hcr.index <- function(id = "r23",
                           bbtriggerSD = 0,
                           rightRef=1,
                           assessmentInterval = 1,
-                          env = globalenv()
+                          env = globalenv(),
+                          dbg = FALSE
                           ){
 
     template  <- expression(paste0(
@@ -327,14 +331,17 @@ structure(
         ## bbtrigger <- runif(1, pars$bbmsy*2, pars$bbmsy*2 * ',bbtriggerSD,')
         bbtrigger[bbtrigger < 0] <- 0
 
-        obs <- spict::check.inp(obs, verbose = FALSE)
+        ## obs <- spict::check.inp(obs, verbose = FALSE)
+        obs$obsC <- as.vector(na.omit(obs$obsC))
+        obs$obsI <- lapply(obs$obsI,function(x) as.vector(na.omit(x)))
+        obs$dtc <- min(diff(na.omit(obs$timeC)))
 
-        if(is.null(tacs)){
-            indBref <- obs$indBref
-        }else{
-            indBref <- as.numeric(as.character(unlist(strsplit(as.character(tacs$indBref[nrow(tacs)]), "-"))))
-        }
-        indBref2 <- paste(indBref, collapse="-")
+        ## if(is.null(tacs)){
+        ##     indBref <- obs$indBref
+        ## }else{
+        ##     indBref <- as.numeric(as.character(unlist(strsplit(as.character(tacs$indBref[nrow(tacs)]), "-"))))
+        ## }
+        ## indBref2 <- paste(indBref, collapse="-")
         ## benchmark (only benchmark in spict)
         bmID <- FALSE
         inds <- obs$obsI
@@ -350,11 +357,7 @@ structure(
         iden <- ind[(ninds-(x+y-1)):(ninds-x)]
         r <- r0 <- mean(inum, na.rm = TRUE)/mean(iden, na.rm = TRUE)
 
-## print(paste0("r: ", round(r,2)))
-## print(inum)
-## print(iden)
-
-## print(r)
+if(',dbg,') print(paste0("r: ", round(r,2)))
 
         ## account for seasonal and annual catches
         ## cl <- sum(tail(obs$obsC, tail(1/obs$dtc,1))) ## CHECK: dtc required?
@@ -372,10 +375,12 @@ structure(
             }
         }
         tac <- cl * r * 1 * 1 ## Clast * r * f * b
+if(',dbg,') print(paste0("tac: ", round(tac,2)))
         ## uncertainty cap
         if(stab){
             cllo <- cl * lower
             clup <- cl * upper
+if(',dbg,') print(paste0("cl: ", round(cl,2)))
             if(any(tac < cllo)) hitSC <- 1 else hitSC <- 0
             if(any(tac > clup)) hitSC <- 2 else hitSC <- 0
             tac[tac < cllo] <- cllo
@@ -410,6 +415,7 @@ structure(
         if(barID){
             tac <- tac * (1-red)
         }
+if(',dbg,') print(paste0("tac: ", round(tac,2)))
         tacs <- gettacs(tacs, id = "',id,'", TAC = tac, obs = obs)
         tacs$hitSC[nrow(tacs)] <- hitSC
         tacs$barID[nrow(tacs)] <- barID
@@ -419,7 +425,7 @@ structure(
         tacs$fmfmsy.sd[nrow(tacs)] <- ffmsySD
         tacs$bpbmsy.sd[nrow(tacs)] <- bbtriggerSD
         tacs$n.est[nrow(tacs)] <- r0
-        tacs$indBref[nrow(tacs)] <- indBref2
+        ## tacs$indBref[nrow(tacs)] <- indBref2
         tacs$bmID[nrow(tacs)] <- bmID
         tacs$assessInt[nrow(tacs)] <- assessInt
         return(tacs)
@@ -468,14 +474,14 @@ structure(
     function(obs, tacs = NULL, pars = NULL){
         prop <- ',prop,'
 
-        obs <- spict::check.inp(obs, verbose = FALSE)
+        ## obs <- spict::check.inp(obs, verbose = FALSE)
 
-        if(is.null(tacs)){
-            indBref <- obs$indBref
-        }else{
-            indBref <- as.numeric(as.character(unlist(strsplit(as.character(tacs$indBref[nrow(tacs)]), "-"))))
-        }
-        indBref2 <- paste(indBref, collapse="-")
+        ## if(is.null(tacs)){
+        ##     indBref <- obs$indBref
+        ## }else{
+        ##     indBref <- as.numeric(as.character(unlist(strsplit(as.character(tacs$indBref[nrow(tacs)]), "-"))))
+        ## }
+        ## indBref2 <- paste(indBref, collapse="-")
         ## benchmark (only benchmark in spict)
         bmID <- FALSE
         inds <- obs$obsI
@@ -491,7 +497,7 @@ structure(
         tac <- ind[ninds] * prop
 
         tacs <- gettacs(tacs, id = "',id,'", TAC = tac, obs = obs)
-        tacs$indBref[nrow(tacs)] <- indBref2
+        ## tacs$indBref[nrow(tacs)] <- indBref2
         tacs$bmID[nrow(tacs)] <- bmID
         return(tacs)
     },
