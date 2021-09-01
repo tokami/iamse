@@ -659,18 +659,23 @@ get.f <- function(TAC,
                   recGamma, eR,
                   indage0,
                   seaFM,
-                  lastFM = 0.01, upper = 100){
+                  lastFM = 0.01, upper = 100,
+                  tac_cut_off = 0.01){
 
     ## browser()
+
     ## TAC
-    ## predCatch(log(2),NAA, MAA,sel, weight,
-    ##           seasons, ns, y, h2, asmax, mat, pzbm, spawning,
+    ## predCatch(log(0.01), NAA, MAA, sel, weight,
+    ##           seasons, ns, y, h, asmax, mat, pzbm, spawning,
     ##           R0, SR, bp, recBeta, recGamma, eR,
     ##           indage0,
     ##           seaFM,
     ##           TAC = TAC,
     ##           out = 1)
 
+    if(TAC < tac_cut_off){
+        return(0)
+    }else{
     opt <- nlminb(start = log(lastFM), objective = predCatch,
                   NAA = NAA, MAAy = MAA,
                   sel = sel, weight = weight,
@@ -687,7 +692,8 @@ get.f <- function(TAC,
                   control = list(rel.tol = 1e-3))
 
 ##    print(paste0("obj: ",round(opt$objective,2), "- fm: ",round(exp(opt$par),3)))
-    return(exp(opt$par))
+        return(exp(opt$par))
+    }
 }
 
 

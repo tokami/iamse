@@ -938,6 +938,10 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE, dbg = 0){
                                    )
                              )
 
+                if(dbg > 0){
+                    print(paste0("FMtac[",y,"]: ",round(FMtac,2)))
+                }
+
             }
 
             ## General

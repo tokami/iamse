@@ -20,7 +20,8 @@ def.hcr.index(
   bbtriggerSD = 0,
   rightRef = 1,
   assessmentInterval = 1,
-  env = globalenv()
+  env = globalenv(),
+  dbg = FALSE
 )
 }
 \description{
