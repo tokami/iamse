@@ -562,7 +562,7 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE, dbg = 0){
     idxS <- rep(0, nsurv)
     if(all(!is.na(dat$surveyTimes))){
         for(i in 1:nsurv){
-            tmp <- seasonStart[seasonStart < dat$surveyTimes[i]]
+            tmp <- seasonStart[seasonStart <= dat$surveyTimes[i]]
             idxS[i] <- which.min((tmp - dat$surveyTimes[i])^2)
         }
     }
@@ -807,6 +807,7 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE, dbg = 0){
                     if(dat$surveyBeforeAssessment[idxi[i]]){
                         ## survey observation: total catch in weight (spict)
                         surveyTime <- dat$surveyTimes[idxi[i]] - seasonStart[idxS[idxi[i]]]
+                        ZAA <- MAA + FM[y,s] * sely
                         NAAsurv <- exp(log(NAAS) - ZAA * surveyTime)
                         ESBsurv <- NAAsurv * weightFy * as.numeric(t(dat$selI[[idxi[i]]]))
                         obs$obsI[[idxi[i]]] <-
