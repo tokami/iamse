@@ -615,7 +615,7 @@ predCatch <- function(logFM,
     for(i in 1:length(seasons)){
         s <- seasons[i]
         FAA <- exp(logFM) * seaFM[s] * sel
-        MAA <- MAAy[,s]
+        MAA <- MAAy[[s]] ## MAAy[,s]
         Ztmp <- FAA + MAA
         ## recruitment
         if(spawning[s] > 0 && i > 1){
@@ -624,11 +624,11 @@ predCatch <- function(logFM,
                              R0, indage0, s)
             ## Survivors from previous season/year
             SSBtmp <- sum(NAAtmp * weight  * mat  * exp(-pzbm * Ztmp))
-            rec <- recfunc(h = h2, SSBPR0 = SSB0/R0, SSB = SSBtmp,
+            rec <- spawning[s] * recfunc(h = h2, SSBPR0 = SSB0/R0, SSB = SSBtmp,
                              R0 = R0, method = SR, bp = bp,
-                             beta = recBeta, gamma = recGamma)
+                             beta = recBeta, gamma = recGamma) * eR
             rec[rec<0] <- 1e-10
-            NAAtmp[indage0] <- rec * spawning[s] * eR
+            NAAtmp[indage0] <- rec
         }
         Ctmp <- Ctmp + sum(baranov(FAA, MAA, NAAtmp) * weight)
         ## print(paste0("TSB: ",round(sum(NAAtmp*weight))))
@@ -643,7 +643,9 @@ predCatch <- function(logFM,
     if(out == 0){
         return(Ctmp)
     }else{
-        return((log(TAC) - log(Ctmp))^2)  ## CHECK: needs if clause if Ctmp or TAC == 0?
+##         return((Ctmp - TAC)^2)  ## CHECK: needs if clause if Ctmp or TAC == 0?
+##         return((log(Ctmp) - log(TAC))^2)  ## CHECK: needs if clause if Ctmp or TAC == 0?
+         return(sqrt(mean(Ctmp - TAC)^2))
     }
 }
 
@@ -665,31 +667,34 @@ get.f <- function(TAC,
     ## browser()
 
     ## TAC
-    ## predCatch(log(0.01), NAA, MAA, sel, weight,
+    ## seaFM
+    ## predCatch(log(0.48), NAA, MAA, sel, weight,
     ##           seasons, ns, y, h, asmax, mat, pzbm, spawning,
     ##           R0, SR, bp, recBeta, recGamma, eR,
     ##           indage0,
     ##           seaFM,
     ##           TAC = TAC,
-    ##           out = 1)
+    ##           out = 0)
 
     if(TAC < tac_cut_off){
         return(0)
     }else{
-    opt <- nlminb(start = log(lastFM), objective = predCatch,
-                  NAA = NAA, MAAy = MAA,
-                  sel = sel, weight = weight,
-                  seasons = seasons, ns = ns, y = y,
-                  h2 = h, asmax = asmax, mat = mat,
-                  pzbm = pzbm, spawning = spawning,
-                  R0 = R0, SR = SR, bp = bp, recBeta = recBeta,
-                  recGamma = recGamma, eR = eR,
-                  indage0 = indage0,
-                  seaFM = seaFM,
-                  TAC = TAC,
-                  out = 1,
-                  lower = -10, upper = log(upper),
-                  control = list(rel.tol = 1e-3))
+        opt <- nlminb(start = log(lastFM), objective = predCatch,
+                      NAA = NAA, MAAy = MAA,
+                      sel = sel, weight = weight,
+                      seasons = seasons, ns = ns, y = y,
+                      h2 = h, asmax = asmax, mat = mat,
+                      pzbm = pzbm, spawning = spawning,
+                      R0 = R0, SR = SR, bp = bp, recBeta = recBeta,
+                      recGamma = recGamma, eR = eR,
+                      indage0 = indage0,
+                      seaFM = seaFM,
+                      TAC = TAC,
+                      out = 1,
+                      lower = -10, upper = log(upper),
+                      control = list(rel.tol = 1e-3,
+                                     iter.max = 1e4,
+                                     eval.max = 1e4))
 
 ##    print(paste0("obj: ",round(opt$objective,2), "- fm: ",round(exp(opt$par),3)))
         return(exp(opt$par))
@@ -881,6 +886,7 @@ get.ssb0 <- function (M, mat, weight, fecun = 1,
         NAAS[asmax] <- NAAS[asmax] + NAAS[asmax-1]
         for(as in (asmax-1):2) NAAS[as] <- NAAS[as-1]
         ## NAAS[1] <- 0  ## CHECK: ?
+        NAAS[indage0] <- 0
         season <- season - 1
     }
 
@@ -947,11 +953,12 @@ initdistR <- function(M, FM=NULL, ns, asmax, indage0, spawning, R0=1){
 ##         indi <- seq(s+indage0-1,asmax,ns)
         NAA2[indi,s] <- NAA[indi,s]
     }
-    ## keep last age group for every season
+    ## keep last age group for every season ## BUG: problem with last age class
     indi <- which(NAA2[asmax,]==0)
     NAA2[asmax,indi] <- NAA[asmax,indi] * exp(-ZAA[asmax])
     ## plus group correction
-    NAA2[asmax,] <- NAA2[asmax,] / (1 - exp(-sum(ZAA[(asmax-ns+1):asmax])))
+    NAA2[asmax,] <- NAA2[asmax,] / (1 - exp(-sum(ns * ZAA[asmax])))
+##        NAA2[asmax,] / (1 - exp(-sum(ZAA[(asmax-ns+1):asmax])))
     ## combine seasons
     NAAS <- rowSums(NAA2)
     ## remove recruits
@@ -972,4 +979,37 @@ remove.noise <- function(set){
     }
 
     return(set)
+}
+
+
+
+#' @name get.annual
+#' @export
+get.annual <- function (intime, vec, type = "mean"){
+    anntime <- intime[which(intime%%1 == 0)]
+    nanntime <- length(anntime)
+    nstepvec <- rep(0, nanntime)
+    floortime <- floor(intime)
+    for (i in 1:nanntime) {
+        nstepvec[i] <- sum(anntime[i] == floortime)
+    }
+    nsteps <- max(nstepvec)
+    anntime <- anntime[which(nstepvec == max(nstepvec))]
+    nanntime <- length(anntime)
+    annvec <- rep(0, nanntime)
+    for (i in 1:nanntime) {
+        inds <- which(anntime[i] == floortime)
+        if (is(type, "function")) {
+            annvec[i] <- type(vec[inds])
+        }
+        else {
+            if (type == "mean") {
+                annvec[i] <- mean(vec[inds])
+            }
+            if (type == "sum") {
+                annvec[i] <- sum(vec[inds])
+            }
+        }
+    }
+    return(list(anntime = anntime, annvec = annvec))
 }
