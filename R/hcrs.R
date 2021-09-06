@@ -214,7 +214,8 @@ structure(
         ## indBref2 <- paste(indBref, collapse="-")
         tac <- ',constantC,'
         if(!is.numeric(tac)){
-            annualcatch <- spict:::annual(obs$timeC, obs$obsC/obs$dtc, type = "mean") ## CHECK: why not sum? TODO: remove spict dependency
+            annualcatch <- get.annual(obs$timeC, obs$obsC/obs$dtc, type = "mean")
+## CHECK: why not sum?
             tac <- mean(tail(annualcatch$annvec, ',clyears,'))
             ## Account for non-annual assessments
             tac <- tac * assessInt
