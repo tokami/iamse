@@ -207,21 +207,22 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE, dbg = 0){## in
     if(is.null(set)) burnin <- 5e2 else burnin <- set$burnin
     if(is.numeric(burnin) && burnin > 0){
         for(y in 1:burnin){
-            Fbi <- FM[1,] * eF[1] * sely
-            Mbi <- M[1,] * eM[1] * msely
-            Zbi <- Mbi + Fbi
             for(s in 1:ns){
+                Fbi <- FM[1,s] * eF[1] * sely
+                Mbi <- M[1,s] * eM[1] * msely
+                Zbi <- Mbi + Fbi
                 ## recruitment
                 if(spawning[s] > 0){
                     SSBtmp <- sum(NAASbi * weighty * maty * exp(-pzbm * Zbi))
                     SSB0 <- get.ssb0(Mbi, maty, weighty, fecun = 1, asmax, ns,
                                      spawning, indage0 = indage0,
                                      R0 = R0y, season = s, FM = 0)
-  ##                  print(paste0("SSB0: ",round(SSB0), " - SSBt: ",round(SSBtmp)))
+                    ## print(paste0("SSB0: ",round(SSB0), " - SSBt: ",round(SSBtmp)))
                     recbi <- spawning[s] * recfunc(h = hy, SSBPR0 = SSB0/R0y, SSB = SSBtmp,
                                                    R0 = R0y, method = dat$SR, bp = dat$bp,
-                                                   beta = dat$recBeta, gamma = dat$recGamma)
+                                                   beta = dat$recBeta, gamma = dat$recGamma) * eR[1]
                     recbi[recbi<0] <- 1e-10
+                    recbi <- 1e5
                     NAASbi[indage0] <- recbi
                 }
                 ## decay model
@@ -235,6 +236,7 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE, dbg = 0){## in
     }
     NAAS <- NAASbi
 
+
     ## main loop
     for(y in 1:ny){
 
@@ -244,7 +246,9 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE, dbg = 0){## in
 ## CHECK:        FAA <- FM[y,] * eF[y] * sely
         mselInd <- ifelse(mselFlag, y, 1)
 ## CHECK:        MAA <- M[y,] * as.numeric(t(Msel[[mselInd]])) * eM[y]
-## CHECK:        ZAA <- MAA + FAA
+        ## CHECK:        ZAA <- MAA + FAA
+        MAAy <- lapply(1:ns, function(x)
+            M[y,x] * as.numeric(t(Msel[[mselInd]])) * eM[y])
         maty <- as.numeric(t(mat)) * eMat[y]
         weighty <- as.numeric(t(weight)) * eW[y]
         weightFy <- as.numeric(t(weightF)) * eW[y]
@@ -255,17 +259,19 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE, dbg = 0){## in
         for(s in 1:ns){
 
             FAA <- FM[y,s] * eF[y] * sely
-            MAA <- M[y,s] * as.numeric(t(Msel[[mselInd]])) * eM[y]
+            MAA <- MAAy[[s]]
             ZAA <- MAA + FAA
 
             ## recruitment
             if(spawning[s] > 0){
                 ## Survivors from previous season/year
                 SSB[y,s] <- sum(NAAS * weighty * maty * exp(-pzbm * ZAA)) ## pre-recruitment mort
-##                print(SSB[y,s])
+                ##                print(SSB[y,s])
                 SSB0 <- get.ssb0(MAA, maty, weighty, fecun=1, asmax,
                                  ns, spawning, indage0 = indage0, R0=R0y,
                                  season = s)
+                ## print(SSB0)
+                ## print(SSB[y,s])
                 rec[y,s] <-  spawning[s] * recfunc(h = hy, SSBPR0 = SSB0/R0y, SSB = SSB[y,s],
                                                    R0 = R0y, method = dat$SR, bp = dat$bp,
                                                    beta = dat$recBeta, gamma = dat$recGamma) * eR[y]
@@ -346,10 +352,10 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE, dbg = 0){## in
     ## account for nyhist (nyC, nyI) and if last years missing (lastyC, lastyI)
     if(is.numeric(nyI) && all(!is.na(dat$surveyTimes))){
         for(i in 1:nsurv){
-            timeI[[i]] <- timeI[[i]][(ny-nyI[i]+1):(ny-lastyI)]
-            obsI[[i]] <- obsI[[i]][(ny-nyI[i]+1):(ny-lastyI)]
-            obsIA[[i]] <- obsIA[[i]][(ny-nyI[i]+1):(ny-lastyI),]
-            rownames(obsIA[[i]]) <- as.character((ny-nyI[i]+1):(ny-lastyI))
+            timeI[[i]] <- timeI[[i]][(ny-nyI[i]+1):(ny-lastyI[i])]
+            obsI[[i]] <- obsI[[i]][(ny-nyI[i]+1):(ny-lastyI[i])]
+            obsIA[[i]] <- obsIA[[i]][(ny-nyI[i]+1):(ny-lastyI[i]),]
+            rownames(obsIA[[i]]) <- as.character((ny-nyI[i]+1):(ny-lastyI[i]))
             colnames(obsIA[[i]]) <- as.character(0:dat$amax)
             attributes(obsIA[[i]]) <- c(attributes(obsIA[[i]]), list(time = dat$surveyTimes))
         }
@@ -725,7 +731,7 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE, dbg = 0){
     NAA <- obsMAAtmp <- rep(0, amax)
     FAA <- ZAA <- MAA <- CAA <- matrix(NA, asmax, ns)
     TACs <- c(hist$TACs, NA)
-    rec <- rbind(hist$rec, tmp)
+    rec <- rbind(hist$rec, matrix(0, 1, ns))
     TSBfinal <- c(hist$TSBfinal, NA)
     SSBfinal <- c(hist$SSBfinal, NA)
     ESBfinal <- c(hist$ESBfinal, NA)
@@ -734,7 +740,7 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE, dbg = 0){
     seaFM <- FM[dat$ny,] / sum(FM[dat$ny,])
     ## if all FM == 0
     if(any(is.na(seaFM))){
-        seaFM <- 1
+        seaFM <- rep(1, ns)
     }
 
     ## project forward
@@ -742,7 +748,8 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE, dbg = 0){
     mselInd <- ifelse(mselFlag, y, 1)
 ##    MAA <- M[s1vec[y]:(s1vec[y]+ns-1)] * as.numeric(t(Msel[[mselInd]])) * eM
     ## CHECK:    MAA <- M[y,] * as.numeric(t(Msel[[mselInd]])) * eM
-    MAAy <- t(M[y,] * t(Msel[[mselInd]]) * eM)
+    MAAy <- lapply(1:ns, function(x)
+        M[y,x] * as.numeric(t(Msel[[mselInd]])) * eM) ## t(M[y,] * t(Msel[[mselInd]]) * eM)
     hy <- dat$h * eH
     maty <- as.numeric(t(mat)) * eMat
     selInd <- ifelse(selFlag, y, 1)
@@ -774,7 +781,7 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE, dbg = 0){
     ## seasons
     for(s in 1:ns){
 
-        MAA <- M[y,s] * as.numeric(t(Msel[[mselInd]])) * eM
+        MAA <- MAAy[[s]]
 
         ## Indices
         indtac <- (year - assessYears[max(which(assessYears <= year))]) * ns + s
@@ -914,11 +921,9 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE, dbg = 0){
                 ## pattern? Overall average?
 
 
-
                 if(dbg > 0){
                     print(paste0("TAC[",y,"]: ",round(TACs[y],1)))
                 }
-
 
                 FMtac <- min(set$maxF, ## /ns, ## CHECK:
                              get.f(TACs[y],
@@ -933,7 +938,7 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE, dbg = 0){
                                    recGamma = dat$recGamma, eR = eR,
                                    indage0 = indage0,
                                    seaFM = seaFM,
-                                   lastFM = 0.01, ## FM[y-1,s],  ## CHECK: had some issues with too high FM
+                                   lastFM = sum(FM[y-1,]),  ## or 0.01 CHECK: had some issues with too high FM
                                    upper = set$maxF
                                    )
                              )
