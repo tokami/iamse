@@ -29,9 +29,11 @@ run.mse <- function(dat, set, ncores=parallel::detectCores()-1, verbose=TRUE, db
     if(!any(names(dat) == "ref")) stop("Reference levels have to be part of dat. Use est.ref.levels/est.ref.levels.stochastic to estimate them.")
     refs <- dat$ref
 
+
     nrefs <- nrow(refs)
     if(nrefs < ntall){
-        refs <- rbind(refs, refs[rep((nrefs-ns+1):nrefs, ntall-nt),])
+        ## refs <- rbind(refs, refs[rep((nrefs-ns+1):nrefs, ntall-nt),])
+        refs <- rbind(refs, refs[rep(nrefs, nyall-ny),]) ## CHECK: does refs need to be per time step? or annual values enough?
     }
 
     ## Natural mortality
