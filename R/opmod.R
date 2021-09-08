@@ -741,7 +741,7 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE, dbg = 0){
     ## seasonal FM pattern (uses FM pattern in last historical year for projection)
     seaFM <- FM[dat$ny,] / sum(FM[dat$ny,])
     ## if all FM == 0
-    if(any(is.na(seaFM)) || set$assessmentTiming > 1){ ## CHECK: if in-year advice periods and historical FM corrected for assessmentTiming, this will always give a certain pattern
+    if(any(is.na(seaFM)) || !dat$use.iaFM){ ## CHECK: if in-year advice periods and historical FM corrected for assessmentTiming, this will always give a certain pattern
         seaFM <- rep(1/ns, ns)
     }
 

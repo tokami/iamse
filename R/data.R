@@ -385,6 +385,9 @@ check.dat <- function(dat = NULL, verbose = TRUE){
     ## Timing of catch observation interval (default: calendar year => 1)
     if(is.null(dat$catchObsTiming)) dat$catchObsTiming <- 1
 
+    ## Use intra-annual FM pattern?
+    if(is.null(dat$use.iaFM)) dat$use.iaFM <- 1
+
     ## return
     return(dat)
 }
