@@ -349,11 +349,13 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE, dbg = 0){## in
         }
     }
 
+
     ## account for nyhist (nyC, nyI) and if last years missing (lastyC, lastyI)
     if(is.numeric(nyI) && all(!is.na(dat$surveyTimes))){
         for(i in 1:nsurv){
             timeI[[i]] <- timeI[[i]][(ny-nyI[i]+1):(ny-lastyI[i])]
             obsI[[i]] <- obsI[[i]][(ny-nyI[i]+1):(ny-lastyI[i])]
+            errs$eI[[i]] <- errs$eI[[i]][(ny-nyI[i]+1):(ny-lastyI[i])]
             obsIA[[i]] <- obsIA[[i]][(ny-nyI[i]+1):(ny-lastyI[i]),]
             rownames(obsIA[[i]]) <- as.character((ny-nyI[i]+1):(ny-lastyI[i]))
             colnames(obsIA[[i]]) <- as.character(0:dat$amax)
@@ -739,8 +741,8 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE, dbg = 0){
     ## seasonal FM pattern (uses FM pattern in last historical year for projection)
     seaFM <- FM[dat$ny,] / sum(FM[dat$ny,])
     ## if all FM == 0
-    if(any(is.na(seaFM))){
-        seaFM <- rep(1, ns)
+    if(any(is.na(seaFM)) || set$assessmentTiming > 1){ ## CHECK: if in-year advice periods and historical FM corrected for assessmentTiming, this will always give a certain pattern
+        seaFM <- rep(1/ns, ns)
     }
 
     ## project forward
@@ -803,6 +805,11 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE, dbg = 0){
                                               beta = dat$recBeta, gamma = dat$recGamma) * eR
             rec[rec<0] <- 1e-10
             NAAS[indage0] <- rec[y,s]
+
+
+            if(dbg > 0){
+                print(paste0("rec[",y,",",s,"]: ",round(rec[y,s],1)))
+            }
         }
 
 
@@ -959,6 +966,7 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE, dbg = 0){
 
         }
 
+
         ## Population dynamics
         FAA <- FM[y,s] * sely  ## HERE: FM[y,]
         ZAA <- MAA + FAA
@@ -966,13 +974,21 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE, dbg = 0){
         CW[y,s] <- sum(CAA[,s] * weightFy)
 
         if(dbg > 0){
-            pci <- pci + CW[y,s]
-            if(s == assessmentTiming){
-                if(ysim > 1) print(paste0("C[",y,"]: ", round(pci,1)))
-                pci <- 0
-                pci <- pci + CW[y,s]
-            }
+            print(paste0("FM[",y,",",s,"]: ",round(FM[y,s],1)))
         }
+
+        if(dbg > 0){
+            print(paste0("CW[",y,",",s,"]: ",round(CW[y,s],1)))
+        }
+
+        ## if(dbg > 0){
+        ##     pci <- pci + CW[y,s]
+        ##     if(s == assessmentTiming){
+        ##         if(ysim > 1) print(paste0("C[",y,"]: ", round(pci,1)))
+        ##         pci <- 0
+        ##         pci <- pci + CW[y,s]
+        ##     }
+        ## }
 
         ## can't take more than what's there
         Btmp <- sum(NAAS * weighty * sely * exp(-MAA/2))
@@ -1008,6 +1024,10 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE, dbg = 0){
         ESB[y,s] <- sum(NAAS * weighty * sely)
         ## SSB
         SSB[y,s] <- sum(NAAS * weighty * maty * exp(-pzbm * ZAA))
+
+        if(dbg > 0){
+            print(paste0("TSB[",y,",",s,"]: ",round(TSB[y,s],1)))
+        }
 
         ## index observations
         if(all(!is.na(dat$surveyTimes))){
