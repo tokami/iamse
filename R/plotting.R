@@ -354,6 +354,7 @@ plotiamse.f <- function(dat, set, resMSE,
         ##         border=NA, col=rgb(t(col2rgb("grey40"))/255,alpha=0.2))
         lines(xall, fmsy, lty=2)
     }
+
     abline(h=0,lty=2)
     ## projection
     if(uncert){
@@ -369,10 +370,20 @@ plotiamse.f <- function(dat, set, resMSE,
         if(med) lines(xsim, medsim, lwd=2, col=cols[i])
         if(is.numeric(trendline)){
             for(j in 1:length(trendline))
-                lines(xsim, apply(resMSE[[i]][[trendline[j]]]$FM,1,sum)[idxsim], col=cols[i])
-        }else if(trendline)
-            lines(xsim, apply(resMSE[[i]][[1]]$FM,1,sum)[idxsim],
-                  col=rgb(t(col2rgb(cols[i]))/255,alpha=0.5))
+                if(inherits(resMSE[[i]][[1]]$FM, "matrix")){
+                    lines(xsim, apply(resMSE[[i]][[trendline[j]]]$FM,1,sum)[idxsim], col=cols[i])
+                }else{
+                    lines(xsim, resMSE[[i]][[trendline[j]]]$FM[idxsim], col=cols[i])
+                }
+        }else if(trendline){
+            if(inherits(resMSE[[i]][[1]]$FM, "matrix")){
+                lines(xsim, apply(resMSE[[i]][[1]]$FM,1,sum)[idxsim],
+                      col=rgb(t(col2rgb(cols[i]))/255,alpha=0.5))
+            }else{
+                lines(xsim, resMSE[[i]][[1]]$FM[idxsim],
+                      col=rgb(t(col2rgb(cols[i]))/255,alpha=0.5))
+            }
+        }
     }
     abline(v=dat$ny, col="grey60",lwd=2)
     abline(v=max(which(dat$FM==0)), col="grey60",lwd=2,lty=2)
@@ -380,6 +391,7 @@ plotiamse.f <- function(dat, set, resMSE,
                            col=cols, bty="n", lwd=2,lty=1)
     if(!is.null(title) && !is.na(title)) title(title)
     box(lwd=1.5)
+
 }
 
 

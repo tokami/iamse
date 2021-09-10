@@ -5,6 +5,7 @@
 #' @export
 #'
 summary.mse <- function(mse, yearly = TRUE){
+
     ##
     quants <- c("TSB","SSB","ESB","CW","TSBfinal","TACs","FM","TSBfinalSea")
     nquants <- length(quants)
@@ -16,13 +17,13 @@ summary.mse <- function(mse, yearly = TRUE){
         for(j in 1:nquants){
             quant <- quants[j]
             if(quant %in% c("TSB","SSB","ESB","TSBfinalSea")){
-                if(yearly){
+                if(yearly && inherits(msei[[1]][["FM"]], "matrix")){
                     tmp <- do.call(rbind,lapply(msei, function(x) apply(x[[quant]],1,mean)))
                 }else{
                     tmp <- do.call(rbind,lapply(msei, function(x) as.vector(t(x[[quant]]))))
                 }
             }else if(quant %in% c("CW","FM")){
-                if(yearly){
+                if(yearly && inherits(msei[[1]][["FM"]], "matrix")){
                     tmp <- do.call(rbind,lapply(msei, function(x) apply(x[[quant]],1,sum)))
                 }else{
                     tmp <- do.call(rbind,lapply(msei, function(x) as.vector(t(x[[quant]]))))
@@ -36,5 +37,6 @@ summary.mse <- function(mse, yearly = TRUE){
         names(res) <- quants
         resList[[i]] <- res
     }
+
     return(resList)
 }
