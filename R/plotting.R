@@ -55,12 +55,12 @@ plotiamse.cw <- function(dat, set, resMSE,
     if(!is.null(dat$ref$MSY)){
         if(yearly){
             tmp <- apply(dat$refSea$MSY,1,sum)
-            ##            tmp <- aggregate(list(FM = fmsy * seaFM), by = list(years = dat$yvec), sum)
+            ##            tmp <- aggregate(list(FM = fmsy * iaFM), by = list(years = dat$yvec), sum)
             msy <- c(tmp, rep(tail(tmp, 1), set$nysim))
         }else{
             tmp <- as.vector(t(dat$refSea$MSY))
             msy <- c(tmp, rep(tail(tmp, ns), set$nysim))
-            ##            fmsy <- c(fmsy * seaFM, rep(tail(fmsy * seaFM, dat$ns), set$nysim))
+            ##            fmsy <- c(fmsy * iaFM, rep(tail(fmsy * iaFM, dat$ns), set$nysim))
         }
     }
     llmsy <- NA##tmp[1]
@@ -301,10 +301,10 @@ plotiamse.f <- function(dat, set, resMSE,
     }
     idxhist <- seq(length(xhist))
     idxsim <- tail(idxhist,1) + c(0,seq(length(xsim)-1))
-    seaFM <- dat$FM[dat$ny,] / sum(dat$FM[dat$ny,])
+    iaFM <- dat$FM[dat$ny,] / sum(dat$FM[dat$ny,])
     ## if all FM == 0
-    if(any(is.na(seaFM))){
-        seaFM <- 1
+    if(any(is.na(iaFM))){
+        iaFM <- 1
     }
 
     if(is.null(ylim)) ylim <- c(0.8,1.2) * range(lapply(res,function(x) x$FM))
@@ -322,12 +322,12 @@ plotiamse.f <- function(dat, set, resMSE,
     if(!is.null(dat$ref$Fmsy)){
         if(yearly){
             tmp <- apply(dat$refSea$Fmsy,1,sum)
-            ##            tmp <- aggregate(list(FM = fmsy * seaFM), by = list(years = dat$yvec), sum)
+            ##            tmp <- aggregate(list(FM = fmsy * iaFM), by = list(years = dat$yvec), sum)
             fmsy <- c(tmp, rep(tail(tmp, 1), set$nysim))
         }else{
             tmp <- as.vector(t(dat$refSea$Fmsy))
             fmsy <- c(tmp, rep(tail(tmp, ns), set$nysim))
-            ##            fmsy <- c(fmsy * seaFM, rep(tail(fmsy * seaFM, dat$ns), set$nysim))
+            ##            fmsy <- c(fmsy * iaFM, rep(tail(fmsy * iaFM, dat$ns), set$nysim))
         }
     }
     llfmsy <- NA ## tmp[1]
@@ -348,7 +348,7 @@ plotiamse.f <- function(dat, set, resMSE,
     lines(xhist, medhist, lwd=2)
     ## reference level
     if(!is.null(dat$ref$Fmsy)) {
-        ## CHECK: include seaFM
+        ## CHECK: include iaFM
         ## polygon(x = c(-2,rep(1.2*max(xall),2),-2),
         ##         y = c(rep(llfmsy,2),rep(ulfmsy,2)),
         ##         border=NA, col=rgb(t(col2rgb("grey40"))/255,alpha=0.2))
