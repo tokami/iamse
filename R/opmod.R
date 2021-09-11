@@ -202,6 +202,7 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE, dbg = 0){## in
     ZAA <-  Mbi + Fbi
 
     NAASbi <- initdistR(Mbi, Fbi, ns, asmax, indage0, spawning, R0y)
+    tmp <- NAASbi
 
     ## Burn-in period
     if(is.null(set)) burnin <- 5e2 else burnin <- set$burnin
@@ -218,11 +219,10 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE, dbg = 0){## in
                                      spawning, indage0 = indage0,
                                      R0 = R0y, season = s, FM = 0)
                     ## print(paste0("SSB0: ",round(SSB0), " - SSBt: ",round(SSBtmp)))
-                    recbi <- spawning[s] * recfunc(h = hy, SSBPR0 = SSB0/R0y, SSB = SSBtmp,
+                    recbi <- spawning[s] * recfunc(h = hy, SPR0 = SSB0/R0y, SSB = SSBtmp,
                                                    R0 = R0y, method = dat$SR, bp = dat$bp,
                                                    beta = dat$recBeta, gamma = dat$recGamma) * eR[1]
                     recbi[recbi<0] <- 1e-10
-                    recbi <- 1e5
                     NAASbi[indage0] <- recbi
                 }
                 ## decay model
@@ -235,6 +235,11 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE, dbg = 0){## in
         }
     }
     NAAS <- NAASbi
+
+    if(all(round(NAAS,3) != round(tmp,3)) ||
+       all(round(NAAS,3) != round(initdist(Mbi, Fbi, R0y, spawning, indage0-1),3))){
+        print("initdist in no good approximation!!")
+    }
 
 
     ## main loop
@@ -267,12 +272,12 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE, dbg = 0){## in
                 ## Survivors from previous season/year
                 SSB[y,s] <- sum(NAAS * weighty * maty * exp(-pzbm * ZAA)) ## pre-recruitment mort
                 ##                print(SSB[y,s])
-                SSB0 <- get.ssb0(MAA, maty, weighty, fecun=1, asmax,
-                                 ns, spawning, indage0 = indage0, R0=R0y,
+                SPR0 <- get.ssb0(MAA, maty, weighty, fecun=1, asmax,
+                                 ns, spawning, indage0 = indage0, R0=1,
                                  season = s)
                 ## print(SSB0)
                 ## print(SSB[y,s])
-                rec[y,s] <-  spawning[s] * recfunc(h = hy, SSBPR0 = SSB0/R0y, SSB = SSB[y,s],
+                rec[y,s] <-  spawning[s] * recfunc(h = hy, SPR0 = SPR0, SSB = SSB[y,s],
                                                    R0 = R0y, method = dat$SR, bp = dat$bp,
                                                    beta = dat$recBeta, gamma = dat$recGamma) * eR[y]
                 rec[rec<0] <- 1e-10
@@ -739,11 +744,7 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE, dbg = 0){
     ESBfinal <- c(hist$ESBfinal, NA)
     TSBfinalSea <- rbind(hist$TSBfinalSea, tmp)
     ## seasonal FM pattern (uses FM pattern in last historical year for projection)
-    seaFM <- FM[dat$ny,] / sum(FM[dat$ny,])
-    ## if all FM == 0
-    if(any(is.na(seaFM)) || !dat$use.iaFM){ ## CHECK: if in-year advice periods and historical FM corrected for assessmentTiming, this will always give a certain pattern
-        seaFM <- rep(1/ns, ns)
-    }
+    iaFM <- dat$iaFM
 
     ## project forward
     R0y <- dat$R0 * eR0
@@ -797,10 +798,10 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE, dbg = 0){
                 Ztmp <- ZAA
             }
             SSBtmp <- sum(NAAS * weighty * maty * exp(-pzbm * Ztmp)) ## pre-recruitment mort
-            SSB0 <- get.ssb0(MAA, maty, weighty, fecun=1, asmax, ns,
+            SPR0 <- get.ssb0(MAA, maty, weighty, fecun=1, asmax, ns,
                              spawning, indage0 = indage0,
-                             R0 = R0y, season = s)
-            rec[y,s] <- spawning[s] * recfunc(h = hy, SSBPR0 = SSB0/R0y, SSB = SSBtmp, R0 = R0y,
+                             R0 = 1, season = s)
+            rec[y,s] <- spawning[s] * recfunc(h = hy, SPR0 = SPR0, SSB = SSBtmp, R0 = R0y,
                                               method = dat$SR, bp = dat$bp,
                                               beta = dat$recBeta, gamma = dat$recGamma) * eR
             rec[rec<0] <- 1e-10
@@ -857,9 +858,9 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE, dbg = 0){
                 ## True stock status
                 TSBtmp <- sum(NAAS * weighty)
                 ESBtmp <- sum(NAAS * weighty * sely)
-                bbmsy <- TSBtmp / refs$Bmsy[y + s - 1]
+                bbmsy <- TSBtmp / refs$Bmsy[y] ## [y + s - 1]
                 FMtmp <- as.numeric(t(FM))
-                ffmsy <- sum(tail(FMtmp[1:((y*ns)-ns-(s-1))],ns)) / refs$Fmsy[y + s - 1]
+                ffmsy <- sum(tail(FMtmp[1:((y*ns)-ns-(s-1))],ns)) / refs$Fmsy[y] ## [y + s - 1]
                 ## TAC
                 tacs <- est.tac(obs = obs,
                                 hcr = hcr,
@@ -892,7 +893,7 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE, dbg = 0){
             if(tacID2 == "refFmsy"){
                 if(tacID == "refFmsy"){
                     ## Fishing at Fmsy
-                    FMtac <- refs$Fmsy[y + s - 1] ## / ns ## CHECK: not needed anymore because correcting for seaFM
+                    FMtac <- refs$Fmsy[y + s - 1] ## / ns ## CHECK: not needed anymore because correcting for iaFM
                 }else{
                     fraci <- as.numeric(unlist(strsplit(as.character(tacID), "_"))[2])
                     ## Fishing at fraction of Fmsy
@@ -944,7 +945,7 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE, dbg = 0){
                                    recBeta = dat$recBeta,
                                    recGamma = dat$recGamma, eR = eR,
                                    indage0 = indage0,
-                                   seaFM = seaFM,
+                                   iaFM = iaFM,
                                    lastFM = sum(FM[y-1,]),  ## or 0.01 CHECK: had some issues with too high FM
                                    upper = set$maxF
                                    )
@@ -957,11 +958,11 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE, dbg = 0){
             }
 
             ## General
-            FM[y,s:ns] <- FMtac * seaFM[s:ns]
+            FM[y,s:ns] <- FMtac * iaFM[s:ns]
             if(s > 1){
-                FM[y+1,1:(s-1)] <- FMtac * seaFM[1:(s-1)]
+                FM[y+1,1:(s-1)] <- FMtac * iaFM[1:(s-1)]
                 ##
-                FM[y+1,s:ns] <- FMtac * seaFM[s:ns]
+                FM[y+1,s:ns] <- FMtac * iaFM[s:ns]
             }
 
         }

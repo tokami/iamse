@@ -35,25 +35,36 @@ NumericVector initdist(NumericVector MAA, NumericVector FAA, double R0, NumericV
     }
   }
   // only keep age groups present relative to end of year (last season)
+  int ind = 0;
   for(int s=0; s<ns; s++){
     int j=ns-s+indage0;  // differs to R as s=[0,ns-1], ns-1, and indage0-1
     while(j < asmax){
       NAA2(j,s) = NAA(j,s);
       j += ns;
+      if(j == (asmax-1)) ind = s;
+    }
+  }
+  // Distance to season which fills last age class
+  NumericVector indx(ns);
+  if(ind > 0){
+    for(int i=0; i<ind; i++){
+      indx(i) = ind - i;
+    }
+  }
+  if(ind < ns){
+    for(int i=(ind+1); i<ns; i++){
+      indx(i) = ns + ind - i;
     }
   }
   // keep last age group for every season
   for(int s=0; s<ns; s++){
-    if(NAA2(asmax-1,s) == 0)
-      NAA2(asmax-1,s) = NAA(asmax-1,s) * exp(-ZAA(asmax-1));
+    if(NAA2(asmax-1,s) == 0){
+      NAA2(asmax-1,s) = NAA(asmax-1,s) * exp(-indx(s) * ZAA(asmax-1));
+    }
   }
   // plusgroup correction
-  double Ztmp = 0.0;
-  for(int a=(asmax-ns); a<asmax; a++){ // +1 (in R) not needed as last = asmax-1
-    Ztmp += ZAA(a);
-  }
   for(int s=0; s<ns; s++){
-    NAA2(asmax-1,s) = NAA2(asmax-1,s) / (1 - exp(-Ztmp));
+    NAA2(asmax-1,s) = NAA2(asmax-1,s) / (1 - exp(-ns*ZAA(asmax-1)));
   }
   // combine seasons
   for(int a=0; a<asmax; a++){
@@ -154,21 +165,21 @@ List simpop(double logFM, List dat, List set, int out) {
   double hy = 0.0;
   double R0y = 0.0;
   double Ctmp = 0.0;
-  NumericVector seaFM (ns);
+  NumericVector iaFM (ns);
   // double maxFM = max(FMmat(FMmat.nrow()-1,_));
   double maxFM = 0.0;
   for(int s=0; s<ns; s++){
     maxFM += FMmat(FMmat.nrow()-1,s);
   }
   for(int s=0; s<ns; s++){
-    seaFM(s) = FMmat(FMmat.nrow()-1,s) / maxFM;
-//    std::cout << "seaFM(" << s << "): " << seaFM(s) << std::endl;
-    if(NumericVector::is_na(seaFM(s))){
-      seaFM(s) = 1;
+    iaFM(s) = FMmat(FMmat.nrow()-1,s) / maxFM;
+//    std::cout << "iaFM(" << s << "): " << iaFM(s) << std::endl;
+    if(NumericVector::is_na(iaFM(s))){
+      iaFM(s) = 1;
     }
   }
 
-  NumericVector fs = FM * seaFM;
+  NumericVector fs = FM * iaFM;
   double SSB = 0.0;
   double SPR = 0.0;
 
