@@ -2,7 +2,7 @@
 
 
 ## make observations with given CV for catch and index (only one index time series so far)
-#' @name obsmod
+#' @title obsmod
 #' @export
 obsmod <- function(dat, hist, set, years = NULL){
     ## parameters

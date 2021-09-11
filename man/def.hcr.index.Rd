@@ -2,7 +2,7 @@
 % Please edit documentation in R/hcrs.R
 \name{def.hcr.index}
 \alias{def.hcr.index}
-\title{Define harvest control rule}
+\title{def.hcr.index}
 \usage{
 def.hcr.index(
   id = "r23",
@@ -25,6 +25,8 @@ def.hcr.index(
 )
 }
 \description{
+def.hcr.index
+
 Define harvest control rule
 }
 \details{

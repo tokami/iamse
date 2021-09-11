@@ -1,6 +1,6 @@
-#' iamse
+#' @title iamse
 #'
-#' Description of your package
+#' @description Description of your package
 #'
 #' @docType package
 #' @author T.K. Mildenberger

@@ -1,4 +1,4 @@
-#' @name est.ref.levels
+#' @title est.ref.levels
 #'
 #' @importFrom parallel detectCores
 #'
@@ -90,7 +90,7 @@ est.ref.levels <- function(dat, set=NULL, fvec = seq(0,5,0.1),
 }
 
 
-#' @name est.ref.levels.stochastic
+#' @title est.ref.levels.stochastic
 #'
 #' @importFrom parallel detectCores
 #'
@@ -441,7 +441,7 @@ est.ref.levels.stochastic <- function(dat, set=NULL, fmax = 10,
 }
 
 
-#' @name sbr
+#' @title sbr
 #' @export
 sbr <- function(FM, dat, out=0){
     ## some variables

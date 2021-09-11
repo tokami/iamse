@@ -2,11 +2,13 @@
 % Please edit documentation in R/hcrs.R
 \name{def.hcr.hr}
 \alias{def.hcr.hr}
-\title{Define harvest control rule}
+\title{def.hcr.hr}
 \usage{
 def.hcr.hr(id = "prop_8.75", prop = 0.0875, env = globalenv())
 }
 \description{
+def.hcr.hr
+
 Define harvest control rule
 }
 \details{

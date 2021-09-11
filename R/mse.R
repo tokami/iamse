@@ -1,4 +1,4 @@
-##' @name run.mse
+##' @title run.mse
 ##'
 ##' @importFrom parallel detectCores
 ##'

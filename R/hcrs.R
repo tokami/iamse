@@ -1,7 +1,7 @@
 ## Harvest control rules (HCRs)
 ##-----------------------------
 
-#' @name est.tac
+#' @title est.tac
 #' @export
 est.tac <- function(obs, hcr, tacs=NULL, pars=NULL){
     func <- get(hcr)
@@ -10,7 +10,7 @@ est.tac <- function(obs, hcr, tacs=NULL, pars=NULL){
 }
 
 
-#' @name gettacs
+#' @title gettacs
 gettacs <- function(tacs=NULL, id="", TAC=NA, obs=NULL){
     if(!is.null(obs) && is.list(obs$obsI) && length(obs$obsI) != 0)
         nis <- length(obs$obsI) else nis <- 1
@@ -51,7 +51,7 @@ gettacs <- function(tacs=NULL, id="", TAC=NA, obs=NULL){
 
 
 
-#' @name def.hcr.ref
+#' @title def.hcr.ref
 #'
 #' @param consF either numeric indicating constant F level or "fmsy" for fishing at fmsy
 #'
@@ -167,7 +167,7 @@ structure(
 
 
 
-#' @name def.hcr.conscat
+#' @title def.hcr.conscat
 #' @title Define harvest control rule
 #'
 #' @export
@@ -273,7 +273,7 @@ class="hcr"
 
 
 
-#' @name def.hcr.index
+#' @title def.hcr.index
 #' @title Define harvest control rule
 #' @details This function allows to define harvest control rules (HCRs) which can be incorporated into a
 #' management strategy evaluation framework (DLMtool package). HCRs are saved with a
@@ -449,7 +449,7 @@ if(',dbg,') print(paste0("tac: ", round(tac,2)))
 
 
 
-#' @name def.hcr.hr
+#' @title def.hcr.hr
 #' @title Define harvest control rule
 #' @details This function allows to define harvest control rules (HCRs) which can be incorporated into a
 #' management strategy evaluation framework (DLMtool package). HCRs are saved with a
@@ -524,7 +524,7 @@ structure(
 
 
 
-#' @name def.hcr.spict
+#' @title def.hcr.spict
 #' @title Define harvest control rule
 #'
 #' @param id Name/ID of HCR. Default: "spict-msy"
@@ -1079,7 +1079,7 @@ breakpointB2,'),
 
 
 
-#' @name def.hcr.sam
+#' @title def.hcr.sam
 #' @title Define harvest control rule for SAM
 #'
 #' @param id Name/ID of HCR. Default: "sam"
@@ -1181,7 +1181,7 @@ class="hcr")
 
 
 
-#' @name def.hcr.pseudo
+#' @title def.hcr.pseudo
 #' @title Define harvest control rule with pseudo assessment
 #'
 #' @param id Name/ID of HCR. Default: "pseudo-msy"

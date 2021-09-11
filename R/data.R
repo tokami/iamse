@@ -1,4 +1,4 @@
-#' @name check.dat
+#' @title check.dat
 #' @description Checks data list and fills missing slots
 #' @param dat - data list with all parameters
 #' @param verbose - print informative messages

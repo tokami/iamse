@@ -1,4 +1,4 @@
-#' @name check.set
+#' @title check.set
 #' @export
 check.set <- function(set = NULL){
 

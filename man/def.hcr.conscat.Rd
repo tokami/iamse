@@ -2,7 +2,7 @@
 % Please edit documentation in R/hcrs.R
 \name{def.hcr.conscat}
 \alias{def.hcr.conscat}
-\title{Define harvest control rule}
+\title{def.hcr.conscat}
 \usage{
 def.hcr.conscat(
   id = "conscat",
@@ -19,5 +19,7 @@ def.hcr.conscat(
 )
 }
 \description{
+def.hcr.conscat
+
 Define harvest control rule
 }

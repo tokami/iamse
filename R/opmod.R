@@ -7,7 +7,7 @@
 ## maturity-at-age (mat)
 ## proportion of Z before maturation (pzbm)
 
-#' @name initpop
+#' @title initpop
 #'
 #' @export
 initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE, dbg = 0){## indices
@@ -545,7 +545,7 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE, dbg = 0){## in
 
 
 ## advancepopulation
-#' @name advancepop
+#' @title advancepop
 #' @export
 advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE, dbg = 0){
 

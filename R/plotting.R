@@ -1,6 +1,6 @@
 
 
-#' @name plotiamse.cw
+#' @title plotiamse.cw
 #' @export
 plotiamse.cw <- function(dat, set, resMSE,
                          yearly = TRUE,
@@ -114,7 +114,7 @@ plotiamse.cw <- function(dat, set, resMSE,
 }
 
 
-#' @name plotiamse.b
+#' @title plotiamse.b
 #' @export
 plotiamse.b <- function(dat, set, resMSE,
                         yearly = TRUE,
@@ -263,7 +263,7 @@ plotiamse.b <- function(dat, set, resMSE,
 }
 
 
-#' @name plotiamse.f
+#' @title plotiamse.f
 #' @export
 plotiamse.f <- function(dat, set, resMSE,
                         yearly = TRUE,
@@ -396,7 +396,7 @@ plotiamse.f <- function(dat, set, resMSE,
 
 
 
-#' @name plotiamse.tradeoff
+#' @title plotiamse.tradeoff
 #' @export
 plotiamse.tradeoff <- function(mets, metrics = c("avRelCatch","PBBlim"),
                                hcrs=NA, plot.legend = TRUE){
@@ -447,7 +447,7 @@ plotiamse.tradeoff <- function(mets, metrics = c("avRelCatch","PBBlim"),
 }
 
 
-#' @name plotiamse.quant
+#' @title plotiamse.quant
 #' @export
 plotiamse.quant <- function(dat, set, resMSE, hcrs=NULL,
                             quants = c("bpbmsy.sd","fmfmsy.sd","cp.sd"),
@@ -520,7 +520,7 @@ plotiamse.quant <- function(dat, set, resMSE, hcrs=NULL,
 }
 
 
-#' @name plotiamse.prod
+#' @title plotiamse.prod
 #' @export
 plotiamse.prod <- function(prod, cols = NULL){
     meds <- prod$meds

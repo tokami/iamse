@@ -1,7 +1,7 @@
 
 
 
-#' @name est.cons.mets
+#' @title est.cons.mets
 #'
 #' @description Estimate consistency of metrics across different sample sizes
 #'
@@ -34,7 +34,7 @@ est.cons.mets <- function(mse, dat, mets = "all",
 
 
 
-#' @name est.metrics
+#' @title est.metrics
 #' @export
 est.metrics <- function(mse, dat, mets = "all"){
 

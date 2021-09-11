@@ -2,7 +2,7 @@
 % Please edit documentation in R/hcrs.R
 \name{def.hcr.pseudo}
 \alias{def.hcr.pseudo}
-\title{Define harvest control rule with pseudo assessment}
+\title{def.hcr.pseudo}
 \usage{
 def.hcr.pseudo(
   id = "pseudo-msy",
@@ -86,5 +86,7 @@ def.hcr.pseudo(
 \item{bm}{Benchmark. Default: FALSE,  ## e.g. 5 => re-defining Bref at every benchmark}
 }
 \description{
+def.hcr.pseudo
+
 Define harvest control rule with pseudo assessment
 }

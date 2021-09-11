@@ -2,7 +2,7 @@
 % Please edit documentation in R/hcrs.R
 \name{def.hcr.spict}
 \alias{def.hcr.spict}
-\title{Define harvest control rule}
+\title{def.hcr.spict}
 \usage{
 def.hcr.spict(
   id = "spict-msy",
@@ -113,5 +113,7 @@ def.hcr.spict(
 \item{env}{Environment. Default: globalenv()}
 }
 \description{
+def.hcr.spict
+
 Define harvest control rule
 }

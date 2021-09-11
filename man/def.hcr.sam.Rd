@@ -2,7 +2,7 @@
 % Please edit documentation in R/hcrs.R
 \name{def.hcr.sam}
 \alias{def.hcr.sam}
-\title{Define harvest control rule for SAM}
+\title{def.hcr.sam}
 \usage{
 def.hcr.sam(
   id = "sam",
@@ -24,5 +24,7 @@ def.hcr.sam(
 \item{env}{Environment. Default: globalenv()}
 }
 \description{
+def.hcr.sam
+
 Define harvest control rule for SAM
 }

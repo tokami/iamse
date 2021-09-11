@@ -1,6 +1,6 @@
 
 
-#' @name genConvs
+#' @title genConvs
 #' @description Get converged simulates from a resMSE object
 #' @export
 get.converged <- function(mse, convyears = "all", convhcrs = "all", out = 0, verbose = FALSE){
@@ -92,17 +92,17 @@ get.converged <- function(mse, convyears = "all", convhcrs = "all", out = 0, ver
 }
 
 
-#' @name sdconv
+#' @title sdconv
 #' @export
 sdconv <- function(mu, sd) (log(1 + ((sd^2)/(mu^2))))^0.5
 
 
-#' @name muconv
+#' @title muconv
 #' @export
 muconv <- function(mu, sd) log(mu) - 0.5 * log(1 + ((sd^2)/(mu^2)))
 
 
-#' @name gen.noise
+#' @title gen.noise
 #' @export
 gen.noise <- function(n, sd, rho=0, bias.cor = 0, mv=FALSE, dat=NULL){
 
@@ -144,7 +144,7 @@ gen.noise <- function(n, sd, rho=0, bias.cor = 0, mv=FALSE, dat=NULL){
 }
 
 
-#' @name est.depletion
+#' @title est.depletion
 #' @export
 est.depletion <- function(dat, set=NULL, fmin = 0.0001,
                           fmax = 10, nrep = 100, verbose = TRUE,
@@ -246,7 +246,7 @@ est.depletion <- function(dat, set=NULL, fmin = 0.0001,
 
 
 
-#' @name est.productivity
+#' @title est.productivity
 #' @export
 est.productivity <- function(dat, set= NULL,
                     ny = 100,
@@ -379,7 +379,7 @@ est.productivity <- function(dat, set= NULL,
 
 
 
-#' @name est.productivity
+#' @title est.productivity
 #' @export
 est.productivity.stochastic <- function(dat, set= NULL,
                          fmax = 10,
@@ -557,7 +557,7 @@ est.productivity.stochastic <- function(dat, set= NULL,
 }
 
 
-#' @name fpat
+#' @title fpat
 #' @export
 fpat <- function(fmax, fscen = 1){
     fscen <- as.character(fscen)
@@ -584,7 +584,7 @@ fpat <- function(fmax, fscen = 1){
 
 
 
-#' @name baranov
+#' @title baranov
 #' @export
 baranov <- function(F, M, N){
     Z <- F + M
@@ -592,7 +592,7 @@ baranov <- function(F, M, N){
 }
 
 
-#' @name predCatch
+#' @title predCatch
 #'
 #' @param seasons vector with season indices
 #' @param ns number of seasons
@@ -649,7 +649,7 @@ predCatch <- function(logFM,
     }
 }
 
-#' @name get.f
+#' @title get.f
 #' @details get FM accounting for seasons
 #' @export
 get.f <- function(TAC,
@@ -702,7 +702,7 @@ get.f <- function(TAC,
 }
 
 
-#' @name getSel
+#' @title getSel
 #' @description Function to estimate selectivity ogive
 #' @param pars - parameters, either Ls50 (length at 50% selectivity) and Ls95
 #'     (length at 95% selectivity) for logistic or LFS, sdl, sdr
@@ -794,7 +794,7 @@ getSel <- function(pars, mids, plba, type = "logistic", age = FALSE, ages = NULL
 }
 
 
-#' @name getMat
+#' @title getMat
 #' @description Function to estimate maturity at age
 #' @param Lm50 - length at 50% maturity
 #' @param Lm95 - length at 95% maturity
@@ -815,7 +815,7 @@ getMat <- function(Lm50, Lm95, mids, plba){
 }
 
 
-#' @name getM
+#' @title getM
 #' @description Function to estimate selectivity of natural mortality
 #' @param Linf - Linf of vBGF
 #' @param K - K of vBGF
@@ -833,7 +833,7 @@ getM <- function(Linf, K, mids, a = 0.55, b = 1.61, c = 1.44){
 }
 
 
-#' @name getMsel
+#' @title getMsel
 #' @description Function to estimate selectivity of natural mortality
 #' @param Linf - Linf of vBGF
 #' @param K - K of vBGF
@@ -860,7 +860,7 @@ getMsel <- function(Linf, K, mids, plba, a = 0.55, b = 1.61, c = 1.44, below10 =
 
 
 
-#' @name get.ssb0
+#' @title get.ssb0
 #' @description Function to calculate SSB (F=0)
 #' @param Z - total mortality
 #' @param mat - maturity ogive
@@ -897,7 +897,7 @@ get.ssb0 <- function (M, mat, weight, fecun = 1,
 }
 
 
-#' @name recfunc
+#' @title recfunc
 #' @description Function to calculate recruitment (Beverton - Holt)
 #' @param h - steepness
 #' @param R0 - recruitment in unfished population
@@ -932,7 +932,7 @@ recfunc <- function(h, SPR0, SSB,  R0 = 1e6, method = "bevholt", bp = 0,
 
 
 
-#' @name initdistR
+#' @title initdistR
 #' @export
 initdistR <- function(M, FM=NULL, ns, asmax, indage0, spawning, R0=1){
 
@@ -978,7 +978,7 @@ initdistR <- function(M, FM=NULL, ns, asmax, indage0, spawning, R0=1){
 }
 
 
-#' @name remove.noise
+#' @title remove.noise
 #' @export
 remove.noise <- function(set){
 
@@ -993,7 +993,7 @@ remove.noise <- function(set){
 
 
 
-#' @name get.annual
+#' @title get.annual
 #' @export
 get.annual <- function (intime, vec, type = "mean"){
     anntime <- intime[which(intime%%1 == 0)]
@@ -1027,7 +1027,7 @@ get.annual <- function (intime, vec, type = "mean"){
 
 
 
-#' @name repar.sr
+#' @title repar.sr
 #' @description Reparameterise stock-recruitment relationship
 #' @param dat
 #'
@@ -1079,7 +1079,7 @@ repar.sr <- function (dat){
 }
 
 
-#' @name mclapply.windows
+#' @title mclapply.windows
 #' @description Alternative parallelisation for windows
 #'
 #' @importFrom parallel detectCores makeCluster clusterExport parLapply
@@ -1132,7 +1132,7 @@ mclapply.windows <- function(...,mc.cores = parallel::detectCores()-1) {
 }
 
 
-#' @name mclapply.all.os
+#' @title mclapply.all.os
 #' @description mclapply comaptible with all OS
 #'
 #' @importFrom parallel mclapply

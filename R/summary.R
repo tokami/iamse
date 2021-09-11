@@ -1,6 +1,6 @@
 
 
-#' @name summary.mse
+#' @title summary.mse
 #'
 #' @export
 #'
