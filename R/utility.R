@@ -1139,7 +1139,7 @@ mclapply.windows <- function(...,mc.cores = parallel::detectCores()-1) {
 #' @export
 mclapply.all.os <- switch(
     Sys.info()[['sysname']],
-   Windows = {iamse::mclapply.windows},
+   Windows = {mclapply.windows},
    Linux   = {parallel::mclapply},
    Darwin  = {parallel::mclapply}
 )
