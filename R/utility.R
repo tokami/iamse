@@ -488,7 +488,7 @@ est.productivity.stochastic <- function(dat, set= NULL,
         fms <- seq(0, fmax, length.out = nf)
         tmp2 <- vector("list", nf)
         for(fx in 1:nf){
-            tmp0 <- parallel::mclapply(as.list(1:nrep), function(x){
+            tmp0 <- mclapply.all.os(as.list(1:nrep), function(x){
                 setx <- c(set, errs[[x]])
                 pop <- simpop(log(fms[fx]), datx, setx, out=0)
                 tsb <- tail(pop$TSB,1)
@@ -606,7 +606,7 @@ predCatch <- function(logFM,
                       seasons, ns, y, h2, asmax, mat, pzbm, spawning,
                       R0, SR, bp, recBeta, recGamma, eR,
                       indage0,
-                      seaFM,
+                      iaFM,
                       TAC = NULL,
                       out = 0){
     Ctmp <- 0
@@ -614,7 +614,7 @@ predCatch <- function(logFM,
 
     for(i in 1:length(seasons)){
         s <- seasons[i]
-        FAA <- exp(logFM) * seaFM[s] * sel
+        FAA <- exp(logFM) * iaFM[s] * sel
         MAA <- MAAy[[s]] ## MAAy[,s]
         Ztmp <- FAA + MAA
         ## recruitment
@@ -624,7 +624,7 @@ predCatch <- function(logFM,
                              R0, indage0, s)
             ## Survivors from previous season/year
             SSBtmp <- sum(NAAtmp * weight  * mat  * exp(-pzbm * Ztmp))
-            rec <- spawning[s] * recfunc(h = h2, SSBPR0 = SSB0/R0, SSB = SSBtmp,
+            rec <- spawning[s] * recfunc(h = h2, SPR0 = SSB0/R0, SSB = SSBtmp,
                              R0 = R0, method = SR, bp = bp,
                              beta = recBeta, gamma = recGamma) * eR
             rec[rec<0] <- 1e-10
@@ -660,19 +660,19 @@ get.f <- function(TAC,
                    R0, SR, bp, recBeta,
                   recGamma, eR,
                   indage0,
-                  seaFM,
+                  iaFM,
                   lastFM = 0.01, upper = 100,
                   tac_cut_off = 0.01){
 
     ## browser()
 
     ## TAC
-    ## seaFM
+    ## iaFM
     ## predCatch(log(0.48), NAA, MAA, sel, weight,
     ##           seasons, ns, y, h, asmax, mat, pzbm, spawning,
     ##           R0, SR, bp, recBeta, recGamma, eR,
     ##           indage0,
-    ##           seaFM,
+    ##           iaFM,
     ##           TAC = TAC,
     ##           out = 0)
 
@@ -688,7 +688,7 @@ get.f <- function(TAC,
                       R0 = R0, SR = SR, bp = bp, recBeta = recBeta,
                       recGamma = recGamma, eR = eR,
                       indage0 = indage0,
-                      seaFM = seaFM,
+                      iaFM = iaFM,
                       TAC = TAC,
                       out = 1,
                       lower = -10, upper = log(upper),
@@ -901,31 +901,31 @@ get.ssb0 <- function (M, mat, weight, fecun = 1,
 #' @description Function to calculate recruitment (Beverton - Holt)
 #' @param h - steepness
 #' @param R0 - recruitment in unfished population
-#' @param SSBPR0 - spawning biomass produced by one recrut in its lifetime
+#' @param SPR0 - spawning biomass produced by one recrut in its lifetime
 #' @param SSB - spawning biomass
 #' @param bp - breakpoint for hockey-stick SR
 #' @param method - SR type
 #'
 #' @export
-recfunc <- function(h, SSBPR0, SSB,  R0 = 1e6, method = "bevholt", bp = 0,
+recfunc <- function(h, SPR0, SSB,  R0 = 1e6, method = "bevholt", bp = 0,
                     beta = 0, gamma = 0){
 
     if(method == "bevholt"){
-        alpha <- SSBPR0 * (1-h)/(4*h)
+        alpha <- SPR0 * (1-h)/(4*h)
         beta <- (5*h-1) / (4*h*R0)
         rec <- SSB / (alpha + beta * SSB)
     }else if(method == "ricker"){
         ## beta <- log(5 * h) / (0.8 * R0)
-        ## alpha <- exp(beta * R0)/SSBPR0
+        ## alpha <- exp(beta * R0)/SPR0
         ## rec <- alpha * SSB * exp(-beta * SSB)
         rec <- bp * SSB * exp(-beta * SSB)
     }else if(method == "average"){
         rec <- rep(R0, length(SSB))
-    }else if(method == "hockey-stick"){
+    }else if(method == "hockey-stick" || method == "segreg"){
         rec <- ifelse(SSB > bp, R0, SSB * R0/bp)
     }else if(method == "bent-hyperbola"){  ## Watts-Bacon bent hyperbola
         rec <- beta * (SSB + sqrt(bp^2 + (gamma^2)/4) - sqrt((SSB-bp)^2 + (gamma^2)/4))
-    }else print("Stock-recruitment method not known! Implemented methods: 'bevholt', 'ricker', 'average', and 'hockey-stick'.")
+    }else print("Stock-recruitment method not known! Implemented methods: 'bevholt', 'ricker', 'average', and 'hockey-stick' ('segreg').")
 
     return (rec)
 }
@@ -936,6 +936,8 @@ recfunc <- function(h, SSBPR0, SSB,  R0 = 1e6, method = "bevholt", bp = 0,
 #' @export
 initdistR <- function(M, FM=NULL, ns, asmax, indage0, spawning, R0=1){
 
+    ## TODO: include here argument to get initdistR for specific season?
+
     if(is.null(FM)){
         FM <- 0
     }
@@ -943,22 +945,30 @@ initdistR <- function(M, FM=NULL, ns, asmax, indage0, spawning, R0=1){
     NAA2 <- NAA <- matrix(0, asmax, ns)
     NAA[indage0,] <- R0 * spawning
     ZAA <-  M + FM
-
     ## each season
     for(as in (indage0+1):asmax)
         NAA[as,] <- NAA[as-1,] * exp(-ZAA[as-1])
     ## only keep age groups present relative to end of year (last season)
+    indx <- rep(NA,ns)
     for(s in 1:ns){
         indi <- seq(ns+2-s+indage0-1,asmax,ns)
-##         indi <- seq(s+indage0-1,asmax,ns)
         NAA2[indi,s] <- NAA[indi,s]
+        if(asmax %in% indi) indx[s] <- 0
     }
-    ## keep last age group for every season ## BUG: problem with last age class
+    ##
+    indi <- which(indx == 0)
+    if(indi != 1)
+        indx[1:(indi-1)] <- (indi-1):1
+    if(indi != ns)
+        indx[(indi+1):ns] <- (ns:(indi+1)) - 1
+
+    ## keep last age group for every season
     indi <- which(NAA2[asmax,]==0)
-    NAA2[asmax,indi] <- NAA[asmax,indi] * exp(-ZAA[asmax])
+    ##
+    tmp <- NAA[asmax,] * exp(-indx*ZAA[asmax])
+    NAA2[asmax,indi] <- tmp[indi]
     ## plus group correction
     NAA2[asmax,] <- NAA2[asmax,] / (1 - exp(-sum(ns * ZAA[asmax])))
-##        NAA2[asmax,] / (1 - exp(-sum(ZAA[(asmax-ns+1):asmax])))
     ## combine seasons
     NAAS <- rowSums(NAA2)
     ## remove recruits
@@ -1013,3 +1023,124 @@ get.annual <- function (intime, vec, type = "mean"){
     }
     return(list(anntime = anntime, annvec = annvec))
 }
+
+
+
+
+#' @name repar.sr
+#' @description Reparameterise stock-recruitment relationship
+#' @param dat
+#'
+#' @details Convert steepness and virbin biomass into other parameterisations.
+#'     So far implemented: h and vb into breakpoint (bp) and R0 for segmented
+#'     regression (hockey-stick)
+#'
+#'
+#' @return spawning biomass per recruit
+#' @export
+repar.sr <- function (dat){
+
+    if(is.null(dat$h)){
+        stop(paste0("Reparameterisation of stock-recruitment parameters requires ",
+                    "information about steepness (dat$h)."))
+    }else{
+        h <- dat$h
+    }
+    if(is.null(dat$vb)){
+        stop(paste0("Reparameterisation of stock-recruitment parameters requires ",
+                    "information about virgin biomass (dat$vb)."))
+    }else{
+        vb <- dat$vb
+    }
+    M <- dat$M[1,] * as.numeric(t(dat$Msel[[1]]))  ## CHECK: TVM: which M if time-variant?
+    sel <-  as.numeric(t(dat$sel[[1]]))
+    mat <- as.numeric(t(dat$mat))
+    weight <- as.numeric(t(dat$weight))
+
+    ## Estimate SPR0
+    SPR0 <- get.ssb0(M = M, mat = mat, weight = weight, fecun = 1,
+                     asmax = dat$asmax, ns = dat$ns, spawning = dat$spawning,
+                     R0 = 1, indage0 = dat$indage0,
+                     season = dat$ns, ## CHECK: which season?
+                     FM=NULL)
+
+    if(dat$SR == "hockey-stick" || dat$SR == "segreg"){
+        a <- 5 * h/SPR0
+        bp <- vb/(a * SPR0)
+        R0 <- a * bp
+    }else{
+        stop(paste0("Only implemented for hockey-stick so far."))
+    }
+
+    dat$R0 <- R0
+    dat$bp <- bp
+
+    return(dat)
+}
+
+
+#' @name mclapply.windows
+#' @description Alternative parallelisation for windows
+#'
+#' @importFrom parallel detectCores makeCluster clusterExport parLapply
+#'
+#' @details Reference: https://www.r-bloggers.com/2014/07/implementing-mclapply-on-windows-a-primer-on-embarrassingly-parallel-computation-on-multicore-systems-with-r/
+#'
+#' @export
+mclapply.windows <- function(...,mc.cores = parallel::detectCores()-1) {
+    ## Create a cluster
+    size.of.list <- length(list(...)[[1]])
+    cl <- parallel::makeCluster(spec = min(size.of.list, mc.cores) )
+
+    ## Find out the names of the loaded packages
+    loaded.package.names <- c(
+        ## Base packages
+        sessionInfo()$basePkgs,
+        ## Additional packages
+        names( sessionInfo()$otherPkgs ))
+
+    tryCatch( {
+       ## Copy over all of the objects within scope to all clusters
+       this.env <- environment()
+       while( identical( this.env, globalenv() ) == FALSE ) {
+           parallel::clusterExport(cl,
+                         ls(all.names=TRUE, env=this.env),
+                         envir=this.env)
+           this.env <- parent.env(environment())
+       }
+       parallel::clusterExport(cl,
+                     ls(all.names=TRUE, env=globalenv()),
+                     envir=globalenv())
+
+       ## Load the libraries on all the clusters
+       ## N.B. length(cl) returns the number of clusters
+       parallel::parLapply(
+                     cl,
+                     1:length(cl),
+                     function(xx){
+           lapply(loaded.package.names, function(yy) {
+               require(yy , character.only=TRUE)})
+       })
+
+       ## Run the lapply in parallel
+       return( parLapply( cl, ...) )
+
+    }, finally = {
+       ## Stop the cluster
+       stopCluster(cl)
+    })
+}
+
+
+#' @name mclapply.all.os
+#' @description mclapply comaptible with all OS
+#'
+#' @importFrom parallel mclapply
+#'
+#' @export
+mclapply.all.os <- switch(
+    Sys.info()[['sysname']],
+   Windows = {iamse::mclapply.windows},
+   Linux   = {parallel::mclapply},
+   Darwin  = {parallel::mclapply}
+)
