@@ -10,10 +10,7 @@ License: GPL (>=3)
 Encoding: UTF-8
 Copyright: Tobias K. Mildenberger <t.k.mildenberger@gmail.com>
 Depends:
-    R (>= 3.0),
-    TMB,
-    spict,
-    stockassessment
+    R (>= 3.0)
 Imports: Rcpp (>= 1.0.3)
 LinkingTo: Rcpp
 Suggests:
@@ -21,7 +18,10 @@ Suggests:
     mgcv,
     knitr,
     rmarkdown,
-    DLMtool
+    DLMtool,
+    TMB,
+    spict,
+    stockassessment
 LazyData: true
 VignetteBuilder: knitr
 RoxygenNote: 7.1.1
