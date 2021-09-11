@@ -188,17 +188,19 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE, dbg = 0){## in
     for(i in 1:nsurv) obsIA[[i]] <- matrix(0, nrow = ny, ncol = amax)
 
     ## Initialise NAA
-    hy <- h * eH[1]
-    R0y <- R0 * eR0[1]
-    maty <- as.numeric(t(mat)) * eMat[1]
-    weighty <- as.numeric(t(weight)) * eW[1]
-    weightFy <- as.numeric(t(weightF)) * eW[1]
-    sely <- as.numeric(t(sel[[1]])) * eSel[1]
+    ## No errors used (because if really low, assumes this low recuritment for
+    ## many years, but in fact varying around some mean
+    hy <- h
+    R0y <- R0
+    maty <- as.numeric(t(mat))
+    weighty <- as.numeric(t(weight))
+    weightFy <- as.numeric(t(weightF))
+    sely <- as.numeric(t(sel[[1]]))
     msely <- as.numeric(t(Msel[[1]]))
     NAAbi2 <- NAAbi <- matrix(0, asmax, ns)
     NAAbi[indage0,] <- R0y * spawning ## * exp(initN[1])
-    Mbi <- M[1,] * eM[1] * msely
-    Fbi <- FM[1,] * eF[1] * sely ## TODO: F,M different in various seasons?
+    Mbi <- M[1,] * msely
+    Fbi <- FM[1,] * sely ## TODO: F,M different in various seasons?
     ZAA <-  Mbi + Fbi
 
     NAASbi <- initdistR(Mbi, Fbi, ns, asmax, indage0, spawning, R0y)
@@ -221,7 +223,7 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE, dbg = 0){## in
                     ## print(paste0("SSB0: ",round(SSB0), " - SSBt: ",round(SSBtmp)))
                     recbi <- spawning[s] * recfunc(h = hy, SPR0 = SSB0/R0y, SSB = SSBtmp,
                                                    R0 = R0y, method = dat$SR, bp = dat$bp,
-                                                   beta = dat$recBeta, gamma = dat$recGamma) * eR[1]
+                                                   beta = dat$recBeta, gamma = dat$recGamma)
                     recbi[recbi<0] <- 1e-10
                     NAASbi[indage0] <- recbi
                 }
