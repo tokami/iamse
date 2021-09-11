@@ -1,12 +1,11 @@
 #' @name est.ref.levels
 #'
 #' @importFrom parallel detectCores
-#' @importFrom parallel mclapply
 #'
 #' @export
 #'
 est.ref.levels <- function(dat, set=NULL, fvec = seq(0,5,0.1),
-                   ncores=parallel::detectCores()-1,
+                   mc.cores=parallel::detectCores()-1,
                    ref = c("Fmsy","Bmsy","MSY","ESBmsy","SSBmsy","B0"),
                    plot = FALSE){
 
@@ -40,7 +39,7 @@ est.ref.levels <- function(dat, set=NULL, fvec = seq(0,5,0.1),
     setx <- c(set, errs)
 
     if(any(ref %in% c("Fmsy","Bmsy","MSY"))){
-        res0 <- parallel::mclapply(as.list(fvec),
+        res0 <- mclapply.all.os(as.list(fvec),
                                    function(x){
                                        with(simpop(log(x), dat, setx, out = 0),
                                             c(x,
@@ -52,7 +51,7 @@ est.ref.levels <- function(dat, set=NULL, fvec = seq(0,5,0.1),
                                               )
                                             )
                                    },
-                                   mc.cores = ncores)
+                                   mc.cores = mc.cores)
 
         ## refs
         res <- do.call(cbind, res0)
@@ -94,12 +93,11 @@ est.ref.levels <- function(dat, set=NULL, fvec = seq(0,5,0.1),
 #' @name est.ref.levels.stochastic
 #'
 #' @importFrom parallel detectCores
-#' @importFrom parallel mclapply
 #'
 #' @export
 #'
 est.ref.levels.stochastic <- function(dat, set=NULL, fmax = 10,
-                        ncores = parallel::detectCores()-1,
+                        mc.cores = parallel::detectCores()-1,
                         ref = c("Fmsy","Bmsy","MSY","B0","ESBmsy","SSBmsy"),
                         plot = FALSE){
 
@@ -188,7 +186,7 @@ est.ref.levels.stochastic <- function(dat, set=NULL, fmax = 10,
 
     if(any(ref %in% c("Fmsy","Bmsy","MSY","ESBmsy","SSBmsy"))){
         ## Fmsy
-        res <- parallel::mclapply(as.list(1:nrep), function(x){
+        res <- mclapply.all.os(as.list(1:nrep), function(x){
             setx <- c(set, errs[[x]])
             tmp <- rep(NA, alltv)
             for(i in 1:alltv){
@@ -209,18 +207,18 @@ est.ref.levels.stochastic <- function(dat, set=NULL, fmax = 10,
                 tmp[i] <- exp(opt$maximum)
             }
             return(tmp)
-        }, mc.cores = ncores)
+        }, mc.cores = mc.cores)
         fmsys <- do.call(rbind, res)
 
-        seaFM <- dat$FM[dat$ny,] / sum(dat$FM[dat$ny,])
+        iaFM <- dat$FM[dat$ny,] / sum(dat$FM[dat$ny,])
         fmsysSea <- vector("list",alltv)
         for(i in 1:alltv){
-            fmsysSea[[i]] <- outer(fmsys[,i],seaFM)
+            fmsysSea[[i]] <- outer(fmsys[,i],iaFM)
         }
 
 
         ## MSY and Biomass reference points
-        res <- parallel::mclapply(as.list(1:nrep), function(x){
+        res <- mclapply.all.os(as.list(1:nrep), function(x){
             setx <- c(set, errs[[x]])
             tmp <- vector("list", alltv)
             for(i in 1:alltv){
@@ -247,7 +245,7 @@ est.ref.levels.stochastic <- function(dat, set=NULL, fmax = 10,
                 }
             }
             return(tmp)
-        }, mc.cores = ncores)
+        }, mc.cores = mc.cores)
 
 
 
@@ -299,7 +297,7 @@ est.ref.levels.stochastic <- function(dat, set=NULL, fmax = 10,
 
         }
 
-        res <- parallel::mclapply(as.list(1:nrep), function(x){
+        res <- mclapply.all.os(as.list(1:nrep), function(x){
             setx <- c(set, errs[[x]])
             tmp <- rep(NA, alltv)
             for(i in 1:alltv){
@@ -320,7 +318,7 @@ est.ref.levels.stochastic <- function(dat, set=NULL, fmax = 10,
                 }
             }
             return(tmp)
-        }, mc.cores = ncores)
+        }, mc.cores = mc.cores)
 
 
         b0s <- do.call(rbind,

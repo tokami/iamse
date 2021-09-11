@@ -1,12 +1,11 @@
 ##' @name run.mse
 ##'
-##' @importFrom parallel mclapply
 ##' @importFrom parallel detectCores
 ##'
 ##' @export
-run.mse <- function(dat, set, ncores=parallel::detectCores()-1, verbose=TRUE, dbg = 0){
+run.mse <- function(dat, set, mc.cores=parallel::detectCores()-1, verbose=TRUE, dbg = 0){
 
-    if(ncores > 1) verbose <- FALSE
+    if(mc.cores > 1) verbose <- FALSE
     ## define constant catch (resort HCR if something not converging)
     def.hcr.conscat()
 
@@ -74,7 +73,7 @@ run.mse <- function(dat, set, ncores=parallel::detectCores()-1, verbose=TRUE, db
     dat$s1vec <- seq(1, ntall, ns)
 
     ## parallel loop
-    res <- parallel::mclapply(as.list(1:nrep), function(x){
+    res <- mclapply.all.os(as.list(1:nrep), function(x){
 
         if(verbose) writeLines(paste0("Running replicate: ", x))
 
@@ -128,7 +127,7 @@ run.mse <- function(dat, set, ncores=parallel::detectCores()-1, verbose=TRUE, db
             gc()
         }
         repList[[x]] <- popListx
-    }, mc.cores = ncores)
+    }, mc.cores = mc.cores)
 
 
     ## Debugging printing
