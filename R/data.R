@@ -239,7 +239,7 @@ check.dat <- function(dat = NULL, verbose = TRUE){
     }
 
 
-    ## historic fishing mortality
+    ## Historic fishing mortality
     ##------------------
     ## timeseries <- c(seq(1985,2015,5),2019)
     ## otter <- c(2400, 2500, 1900, 1600, 1000, 700, 500, 500)
@@ -248,14 +248,52 @@ check.dat <- function(dat = NULL, verbose = TRUE){
     timeseries <- c(seq(1970,2015,5), 2019)
     eff <- c(0.1, 0.2, 0.35, 0.55, 0.7, 0.8, 0.9, 0.97, 1.0, 1.0, 0.9)
     effrel <- eff/max(eff)
-    mod <- smooth.spline(x=timeseries, y=effrel)
+    mod <- stats::smooth.spline(x=timeseries, y=effrel)
+
+    ## Intra-annual (seasonl) FM (with sum = 1)
+    if(!any(names(dat) == "iaFM")){
+        dat$iaFM <- rep(1/ns, ns)
+    }else if(length(dat$iaFM) != ns){
+        if(verbose) writeLines(paste0(
+                        "The intra-annual FM (dat$iaFM) does not have the correct length (dat$ns). ",
+                        "Please revise dat$iaFM. Removing the intra-annual FM pattern for now."
+                    ))
+        dat$iaFM <- rep(1/ns, ns)
+    }else if(sum(dat$iaFM) > 1 + 1e-8 || sum(dat$iaFM) < 1 - 1e-8){
+        if(verbose) writeLines(paste0(
+                        "The intra-annual FM (dat$iaFM) does not sum up to 1. Please revise dat$iaFM. ",
+                        "Overwriting dat$iaFM with the correct values that sum up to 1."
+                    ))
+        dat$iaFM <- dat$iaFM / sum(dat$iaFM)
+    }
+
+    ## Combined FM pattern (historic years vs seasons)
     if(!any(names(dat) == "FM")){
+        tmp <- stats::predict(mod, x = seq(1970, 2019, length.out = ny))$y
+        dat$FM <- as.matrix(tmp) %*% t(as.matrix(dat$iaFM))
+    }else if((!inherits(dat$FM, "matrix") && length(dat$FM) == ny) ||
+             (inherits(dat$FM, "matrix") && any(dim(as.matrix(dat$FM)) == 1))){
+        if(verbose) writeLines(paste0(
+                        "Assuming that the provided fishing mortality (dat$FM) corresponds to the ",
+                        "annual fishing mortality and, thus, extending it to the FM matrix by year ",
+                        " and season using the intra-annual FM pattern (dat$iaFM)."
+                    ))
+        if(!inherits(dat$FM, "matrix")){
+            dat$FM <- as.matrix(dat$FM) %*% t(as.matrix(dat$iaFM))
+        }else if(ncol(dat$FM) == 1){
+            dat$FM <- dat$FM %*% t(as.matrix(dat$iaFM))
+        }else if(ncol(dat$FM) == 1){
+            dat$FM <- t(dat$FM) %*% t(as.matrix(dat$iaFM))
+        }
+    }else if((!inherits(dat$FM, "matrix") && length(dat$FM) != ny) ||
+             (inherits(dat$FM, "matrix") && ncol(dat$FM) != ns && nrow(dat$FM) != ny)){
+        if(verbose) writeLines(paste0(
+                        "The fishing mortality (dat$FM) does not have the correct length/dimensions. ",
+                        "dat$FM has to be a matrix with dimensions: number of years x ",
+                        "the number of seasons (rows x columns). Overwriting dat$FM with default values."
+                    ))
         tmp <- predict(mod, x = seq(1970, 2019, length.out = ny))$y
-        dat$FM <- matrix(rep(tmp / ns, each = ns), nrow = ny, ncol = ns, byrow = TRUE)
-    }else if(any(dim(dat$FM) != c(ny,ns))){
-        writeLines("dat$FM does not have the correct dimensions. dat$FM has to be a matrix with dimensions: number of years x the number of seasons (rows x columns). Overwriting FM with default values.")
-        tmp <- predict(mod, x = seq(1970, 2019, length.out = ny))$y
-        dat$FM <- matrix(rep(tmp / ns, each = ns), nrow = ny, ncol = ns, byrow = TRUE)
+        dat$FM <- as.matrix(tmp) %*% t(as.matrix(dat$iaFM))
     }
 
 
@@ -289,26 +327,39 @@ check.dat <- function(dat = NULL, verbose = TRUE){
         dat$initF <- 0.2
     }
 
-    ## recruitment
+    ## Recruitment
     ##------------------
+    ## Stock-recruitment model
     if(!"SR" %in% names(dat)){
         dat$SR <- "bevholt"
     }
+    ## Steepness
     if(!"h" %in% names(dat)){
         dat$h <- 0.74              ## mean of Thorson 2018
     }
+    ## Number of recruits
     if(!"R0" %in% names(dat)){
         dat$R0 <- 1e6
     }
+    ## breakpoint (bp)
     if(!"bp" %in% names(dat)){
-        dat$bp <- 0
+        dat$bp <- NA
     }
     if(!"recBeta" %in% names(dat)){
-        dat$recBeta <- 0
+        dat$recBeta <- NA
     }
+    ## measure of the radius of curvature near the breakpoint (as gamma -> 0 = sharp bent like hockey-stick)
     if(!"recGamma" %in% names(dat)){
-        dat$recGamma <- 0  ## measure of the radius of curvature near the breakpoint (as gamma -> 0 = sharp bent like hockey-stick)
+        dat$recGamma <- NA
     }
+    ## virgin biomass (vb)
+    if(!"vb" %in% names(dat)){
+        dat$vb <- NA
+    }
+
+
+    ## Spawning
+    ##------------------
     if(is.null(dat$spawning)){
         if(ns == 1){
             dat$spawning <- 1
@@ -386,7 +437,7 @@ check.dat <- function(dat = NULL, verbose = TRUE){
     if(is.null(dat$catchObsTiming)) dat$catchObsTiming <- 1
 
     ## Use intra-annual FM pattern?
-    if(is.null(dat$use.iaFM)) dat$use.iaFM <- 1
+    if(is.null(dat$use.iaFM)) dat$use.iaFM <- TRUE
 
     ## return
     return(dat)
