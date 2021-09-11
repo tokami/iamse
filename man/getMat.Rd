@@ -7,9 +7,9 @@
 getMat(Lm50, Lm95, mids, plba)
 }
 \arguments{
-\item{Lm50}{- length at 50% maturity}
+\item{Lm50}{- length at 50\% maturity}
 
-\item{Lm95}{- length at 95% maturity}
+\item{Lm95}{- length at 95\% maturity}
 
 \item{mids}{- midlengths}
 

@@ -704,12 +704,11 @@ get.f <- function(TAC,
 
 #' @title getSel
 #' @description Function to estimate selectivity ogive
-#' @param pars - parameters, either Ls50 (length at 50% selectivity) and Ls95
-#'     (length at 95% selectivity) for logistic or LFS, sdl, sdr
+#' @param pars - parameters, either Ls50 (length at 50\% selectivity) and Ls95
+#'     (length at 95\% selectivity) for logistic or LFS, sdl, sdr
 #' @param mids - midlengths
 #' @param plba - probability of being in mids given age
 #' @param type - logistic or dnormal
-#'
 getSel <- function(pars, mids, plba, type = "logistic", age = FALSE, ages = NULL){
     if(!age){
         if(type == "logistic"){
@@ -796,8 +795,8 @@ getSel <- function(pars, mids, plba, type = "logistic", age = FALSE, ages = NULL
 
 #' @title getMat
 #' @description Function to estimate maturity at age
-#' @param Lm50 - length at 50% maturity
-#' @param Lm95 - length at 95% maturity
+#' @param Lm50 - length at 50\% maturity
+#' @param Lm95 - length at 95\% maturity
 #' @param mids - midlengths
 #' @param plba - probability of being in mids given age
 getMat <- function(Lm50, Lm95, mids, plba){

@@ -7,8 +7,8 @@
 getSel(pars, mids, plba, type = "logistic", age = FALSE, ages = NULL)
 }
 \arguments{
-\item{pars}{- parameters, either Ls50 (length at 50% selectivity) and Ls95
-(length at 95% selectivity) for logistic or LFS, sdl, sdr}
+\item{pars}{- parameters, either Ls50 (length at 50\% selectivity) and Ls95
+(length at 95\% selectivity) for logistic or LFS, sdl, sdr}
 
 \item{mids}{- midlengths}
 
