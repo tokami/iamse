@@ -385,7 +385,7 @@ est.productivity.stochastic <- function(dat, set= NULL,
                          fmax = 10,
                          nf = 1e3,
                          prob = c(0.1,0.9),
-                         ncores = parallel::detectCores()-1,
+                         mc.cores = parallel::detectCores()-1,
                          plot = TRUE){
 
     amax <- dat$amax + 1
@@ -497,7 +497,7 @@ est.productivity.stochastic <- function(dat, set= NULL,
                 cw <- tail(pop$CW,1)
                 sp <- tail(pop$SP,1)
                 return(c(TSB = tsb, SSB = ssb, ESB = esb, CW = cw, SP = sp))
-            }, mc.cores = ncores)
+            }, mc.cores = mc.cores)
             tmp1 <- do.call(rbind, tmp0)
             tmp2[[fx]] <- cbind(f = rep(fms[fx],nrep), tmp1)
         }
