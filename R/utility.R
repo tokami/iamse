@@ -1081,7 +1081,7 @@ repar.sr <- function (dat){
 #' @title mclapply.windows
 #' @description Alternative parallelisation for windows
 #'
-#' @importFrom parallel detectCores makeCluster clusterExport parLapply
+#' @importFrom parallel detectCores makeCluster clusterExport parLapply stopCluster
 #'
 #' @details Reference: https://www.r-bloggers.com/2014/07/implementing-mclapply-on-windows-a-primer-on-embarrassingly-parallel-computation-on-multicore-systems-with-r/
 #'
@@ -1122,11 +1122,11 @@ mclapply.windows <- function(...,mc.cores = parallel::detectCores()-1) {
        })
 
        ## Run the lapply in parallel
-       return( parLapply( cl, ...) )
+       return(parallel::parLapply( cl, ...))
 
     }, finally = {
        ## Stop the cluster
-       stopCluster(cl)
+       parallel::stopCluster(cl)
     })
 }
 
