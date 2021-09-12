@@ -467,9 +467,14 @@ if(',dbg,') print(paste0("tac: ", round(tac,2)))
 #'
 #' @export
 #'
-def.hcr.hr <- function(id = "prop_8.75",
-                       prop = 0.0875,
-                       env = globalenv()
+def.hcr.hr <- function(id = "prop_8.57",
+                       prop = 0.0857,
+                       stab = FALSE,
+                       lower = 0.8,
+                       upper = 1.2,
+                       assessmentInterval = 1,
+                       env = globalenv(),
+                       dbg = FALSE
                        ){
 
     template  <- expression(paste0(
@@ -477,6 +482,10 @@ def.hcr.hr <- function(id = "prop_8.75",
 structure(
     function(obs, tacs = NULL, pars = NULL){
         prop <- ',prop,'
+        stab <- ',stab,'
+        lower <- ',lower,'
+        upper <- ',upper,'
+        assessInt <- ',assessmentInterval,'
 
         ## obs <- spict::check.inp(obs, verbose = FALSE)
         obs$obsC <- as.vector(na.omit(obs$obsC))
@@ -503,9 +512,29 @@ structure(
 
         tac <- ind[ninds] * prop
 
+        ## uncertainty cap
+        if(is.null(tacs)){
+            cl <- mean(tail(obs$obsC, 3))
+            ## Account for non-annual assessments
+            cl <- cl * assessInt
+        }else{
+            cl <- tacs$TAC[nrow(tacs)]
+        }
+
+        if(stab){
+            cllo <- cl * lower
+            clup <- cl * upper
+if(',dbg,') print(paste0("cl: ", round(cl,2)))
+            if(any(tac < cllo)) hitSC <- 1 else hitSC <- 0
+            if(any(tac > clup)) hitSC <- 2 else hitSC <- 0
+            tac[tac < cllo] <- cllo
+            tac[tac > clup] <- clup
+        }else hitSC <- 0
+
         tacs <- gettacs(tacs, id = "',id,'", TAC = tac, obs = obs)
         ## tacs$indBref[nrow(tacs)] <- indBref2
         tacs$bmID[nrow(tacs)] <- bmID
+        tacs$hitSC[nrow(tacs)] <- hitSC
         return(tacs)
     },
     class="hcr"

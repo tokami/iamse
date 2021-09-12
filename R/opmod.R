@@ -895,11 +895,11 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE, dbg = 0){
             if(tacID2 == "refFmsy"){
                 if(tacID == "refFmsy"){
                     ## Fishing at Fmsy
-                    FMtac <- refs$Fmsy[y + s - 1] ## / ns ## CHECK: not needed anymore because correcting for iaFM
+                    FMtac <- refs$Fmsy[y]
                 }else{
                     fraci <- as.numeric(unlist(strsplit(as.character(tacID), "_"))[2])
                     ## Fishing at fraction of Fmsy
-                    FMtac <- (fraci * refs$Fmsy[y]) ## / ns ## CHECK:
+                    FMtac <- (fraci * refs$Fmsy[y])
                     ## ## percentile
                     ## fraci <- as.numeric(unlist(strsplit(as.character(tacID), "_"))[2])
                     ## ## uncertainty
@@ -917,25 +917,14 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE, dbg = 0){
             }else if(tacID2 == "consF"){
                 ## constant F
                 fraci <- as.numeric(unlist(strsplit(as.character(tacID), "_"))[2])
-                FMtac <- fraci ## / ns ## CHECK:
+                FMtac <- fraci
             }else{
                 ## any other HCR
-
-                ## CHECK: shouldn't this give a vector FM of length ns?
-                ## what if F cannot be assumed to be constant throughout the year? seasonal fishing effort?
-                ## but which pattern to use? from last year? or in sel?
-
-                ## TODO: assuming a seasonally varying F for sprat 7de! The
-                ## following function has to return a vector, not a single
-                ## value. But which pattern to assume? last year's relative F
-                ## pattern? Overall average?
-
-
                 if(dbg > 0){
                     print(paste0("TAC[",y,"]: ",round(TACs[y],1)))
                 }
 
-                FMtac <- min(set$maxF, ## /ns, ## CHECK:
+                FMtac <- min(set$maxF,
                              get.f(TACs[y],
                                    NAA = NAAS, MAA = MAAy,
                                    sel = sely, weight = weighty,
@@ -953,12 +942,17 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE, dbg = 0){
                                    )
                              )
 
+
                 if(dbg > 0){
                     print(paste0("FMtac[",y,"]: ",round(FMtac,2)))
                 }
 
             }
 
+            if(is.na(FMtac)) browser()
+
+            FMtac
+            y
 
             ## General
             FM[y,s:ns] <- FMtac * iaFM[s:ns]
@@ -969,6 +963,8 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE, dbg = 0){
 
         }
 
+
+        if(is.na(FM[y,s])) browser()
 
         ## Population dynamics
         FAA <- FM[y,s] * sely  ## HERE: FM[y,]
