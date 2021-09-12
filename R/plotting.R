@@ -3,6 +3,7 @@
 #' @title plotiamse.cw
 #' @export
 plotiamse.cw <- function(dat, set, resMSE,
+                         rel = FALSE,
                          yearly = TRUE,
                          trendline=TRUE, uncert = TRUE, med = TRUE,
                          hcrs=NA, ylim = NULL, plot.legend = TRUE,
@@ -39,18 +40,13 @@ plotiamse.cw <- function(dat, set, resMSE,
     idxhist <- seq(length(xhist))
     idxsim <- tail(idxhist,1) + c(0,seq(length(xsim)-1))
 
-    if(is.null(ylim)) ylim <- c(0.8,1.2) * range(lapply(res,function(x) x$CW))
     if(is.na(col[1])){
         cols <- rainbow(nms)
     }else{
         cols <- col
     }
 
-    ## historical
-    i <- 1 ## historic pattern the same between mss
-    llhist <- res[[i]]$CW[1,idxhist]
-    ulhist <- res[[i]]$CW[3,idxhist]
-    medhist <- res[[i]]$CW[2,idxhist]
+
     ## reference levels
     if(!is.null(dat$ref$MSY)){
         if(yearly){
@@ -63,6 +59,22 @@ plotiamse.cw <- function(dat, set, resMSE,
             ##            fmsy <- c(fmsy * iaFM, rep(tail(fmsy * iaFM, dat$ns), set$nysim))
         }
     }
+
+    ## historical
+    i <- 1 ## historic pattern the same between mss
+    if(rel){
+        llhist <- res[[i]]$CW[1,idxhist] / msy[idxhist]
+        ulhist <- res[[i]]$CW[3,idxhist] / msy[idxhist]
+        medhist <- res[[i]]$CW[2,idxhist] / msy[idxhist]
+        if(is.null(ylim)) ylim <- c(0.8,1.2) * range(lapply(res,function(x) x$CW/msy))
+    }else{
+        llhist <- res[[i]]$CW[1,idxhist]
+        ulhist <- res[[i]]$CW[3,idxhist]
+        medhist <- res[[i]]$CW[2,idxhist]
+        if(is.null(ylim)) ylim <- c(0.8,1.2) * range(lapply(res,function(x) x$CW))
+    }
+
+
     llmsy <- NA##tmp[1]
     ulmsy <- NA##tmp[2]
     ## plot
@@ -80,33 +92,55 @@ plotiamse.cw <- function(dat, set, resMSE,
             border=NA, col=rgb(t(col2rgb("grey30"))/255,alpha=0.2))
     lines(xhist, medhist, lwd=2)
     ## reference
-    if(!is.null(dat$ref$MSY)){
+    if(!is.null(dat$ref$MSY) && !rel){
         ## polygon(x = c(-2,rep(1.2*max(xall),2),-2), y = c(rep(llmsy,2),rep(ulmsy,2)),
         ##         border=NA, col=rgb(t(col2rgb("grey40"))/255,alpha=0.2))
         lines(xall, msy, lty=2)
+    }else if(rel){
+        abline(h = 1, lty=2)
     }
     abline(h=0,lty=2)
     ## projection
     if(uncert){
         for(i in 1:nms){
-            llsim <- res[[i]]$CW[1,idxsim]
-            ulsim <- res[[i]]$CW[3,idxsim]
+            if(rel){
+                llsim <- res[[i]]$CW[1,idxsim]  / msy[idxsim]
+                ulsim <- res[[i]]$CW[3,idxsim] / msy[idxsim]
+            }else{
+                llsim <- res[[i]]$CW[1,idxsim]
+                ulsim <- res[[i]]$CW[3,idxsim]
+            }
             polygon(x = c(xsim,rev(xsim)), y = c(llsim,rev(ulsim)),
                     border=NA, col=rgb(t(col2rgb(cols[i]))/255,alpha=0.2))
         }
     }
     for(i in 1:nms){
-        medsim <- res[[i]]$CW[2,idxsim]
+        if(rel){
+            medsim <- res[[i]]$CW[2,idxsim] / msy[idxsim]
+        }else{
+            medsim <- res[[i]]$CW[2,idxsim]
+        }
         if(med) lines(xsim, medsim, lwd=2, col=cols[i])
         if(is.numeric(trendline)){
-            for(j in 1:length(trendline))
-                lines(xsim, apply(resMSE[[i]][[trendline[j]]]$CW,1,sum)[idxsim], col=cols[i])
-        }else if(trendline)
-            lines(xsim, apply(resMSE[[i]][[1]]$CW,1,sum)[idxsim],
-                  col=rgb(t(col2rgb(cols[i]))/255,alpha=0.5))
+            for(j in 1:length(trendline)){
+                if(rel){
+                    lines(xsim, apply(resMSE[[i]][[trendline[j]]]$CW,1,sum)[idxsim]/msy[idxsim], col=cols[i])
+                }else{
+                    lines(xsim, apply(resMSE[[i]][[trendline[j]]]$CW,1,sum)[idxsim], col=cols[i])
+                }
+            }
+        }else if(trendline){
+            if(rel){
+                lines(xsim, apply(resMSE[[i]][[1]]$CW,1,sum)[idxsim]/ msy[idxsim],
+                      col=rgb(t(col2rgb(cols[i]))/255,alpha=0.5))
+            }else{
+                lines(xsim, apply(resMSE[[i]][[1]]$CW,1,sum)[idxsim],
+                      col=rgb(t(col2rgb(cols[i]))/255,alpha=0.5))
+            }
+        }
     }
     abline(v=dat$ny, col="grey60",lwd=2)
-    abline(v=max(which(dat$FM==0)), col="grey60",lwd=2,lty=2)
+    ## abline(v=max(which(dat$FM==0)), col="grey60",lwd=2,lty=2)
     if(plot.legend) legend("topright", legend=set$hcr,
                            col=cols, bty="n", lwd=2,lty=1)
     if(!is.null(title) && !is.na(title)) title(title)
@@ -118,6 +152,7 @@ plotiamse.cw <- function(dat, set, resMSE,
 #' @export
 plotiamse.b <- function(dat, set, resMSE,
                         yearly = TRUE,
+                        rel = FALSE,
                         trendline=TRUE, uncert = TRUE, med = TRUE,
                         hcrs=NA, ylim = NULL, plot.legend = TRUE,
                         col = NA,
@@ -157,19 +192,6 @@ plotiamse.b <- function(dat, set, resMSE,
     }else{
         cols <- col
     }
-    ## historical
-    i <- 1 ## historic pattern the same between mss
-    if(yearly){
-        if(is.null(ylim)) ylim <- c(0.8,1.2) * range(lapply(res,function(x) x$TSBfinal))
-        llhist <- res[[i]]$TSBfinal[1,idxhist]
-        ulhist <- res[[i]]$TSBfinal[3,idxhist]
-        medhist <- res[[i]]$TSBfinal[2,idxhist]
-    }else{
-        if(is.null(ylim)) ylim <- c(0.8,1.2) * range(lapply(res,function(x) x$TSBfinalSea))
-        llhist <- res[[i]]$TSBfinalSea[1,idxhist]
-        ulhist <- res[[i]]$TSBfinalSea[3,idxhist]
-        medhist <- res[[i]]$TSBfinalSea[2,idxhist]
-    }
 
     ## reference
     if(!is.null(dat$ref$Bmsy)){
@@ -180,9 +202,39 @@ plotiamse.b <- function(dat, set, resMSE,
             tmp <- as.vector(t(dat$refSea$Bmsy))
             bmsy <- c(tmp, rep(tail(tmp, ns), set$nysim))
         }
+    }else if(rel){
+        stop("No reference points in dat$ref!")
     }
     llbmsy <- NA ##tmp[1]
     ulbmsy <- NA ##tmp[2]
+
+    ## historical
+    i <- 1 ## historic pattern the same between mss
+    if(yearly){
+        if(rel){
+            if(is.null(ylim)) ylim <- c(0.8,1.2) * range(lapply(res,function(x) x$TSBfinal/bmsy))
+        }else{
+            if(is.null(ylim)) ylim <- c(0.8,1.2) * range(lapply(res,function(x) x$TSBfinal))
+        }
+        llhist <- res[[i]]$TSBfinal[1,idxhist]
+        ulhist <- res[[i]]$TSBfinal[3,idxhist]
+        medhist <- res[[i]]$TSBfinal[2,idxhist]
+    }else{
+        if(rel){
+            if(is.null(ylim)) ylim <- c(0.8,1.2) * range(lapply(res,function(x) x$TSBfinalSea/bmsy))
+        }else{
+            if(is.null(ylim)) ylim <- c(0.8,1.2) * range(lapply(res,function(x) x$TSBfinalSea))
+        }
+        llhist <- res[[i]]$TSBfinalSea[1,idxhist]
+        ulhist <- res[[i]]$TSBfinalSea[3,idxhist]
+        medhist <- res[[i]]$TSBfinalSea[2,idxhist]
+    }
+    if(rel){
+        llhist <- llhist / bmsy[idxhist]
+        ulhist <- ulhist / bmsy[idxhist]
+        medhist <- medhist / bmsy[idxhist]
+    }
+
     if(!is.null(dat$ref$B0)){
         if(yearly){
             tmp <- dat$refSea$B0[,ns]
@@ -207,10 +259,12 @@ plotiamse.b <- function(dat, set, resMSE,
             border=NA, col=rgb(t(col2rgb("grey30"))/255,alpha=0.2))
     lines(xhist, medhist, lwd=2)
     ## reference level
-    if(!is.null(dat$ref$Bmsy)){
+    if(!is.null(dat$ref$Bmsy) && !rel){
         ## polygon(x = c(-2,rep(1.2*max(xall),2),-2), y = c(rep(llbmsy,2),rep(ulbmsy,2)),
         ##         border=NA, col=rgb(t(col2rgb("grey40"))/255,alpha=0.2))
         lines(xall, bmsy, lty=2)
+    }else if(rel){
+        abline(h = 1, lty=2)
     }
     if(!is.null(dat$ref$B0)){
         lines(xall, b0, lty=2)
@@ -226,6 +280,10 @@ plotiamse.b <- function(dat, set, resMSE,
                 llsim <- res[[i]]$TSBfinalSea[1,idxsim]
                 ulsim <- res[[i]]$TSBfinalSea[3,idxsim]
             }
+            if(rel){
+                llsim <- llsim / bmsy[idxsim]
+                ulsim <- ulsim / bmsy[idxsim]
+            }
             polygon(x = c(xsim,rev(xsim)), y = c(llsim,rev(ulsim)),
                     border=NA, col=rgb(t(col2rgb(cols[i]))/255,alpha=0.2))
         }
@@ -236,6 +294,9 @@ plotiamse.b <- function(dat, set, resMSE,
         }else{
             medsim <- res[[i]]$TSBfinalSea[2,idxsim]
         }
+        if(rel){
+            medsim <- medsim / bmsy[idxsim]
+        }
         if(med) lines(xsim, medsim, lwd=2, col=cols[i])
         if(is.numeric(trendline)){
             for(j in 1:length(trendline))
@@ -244,6 +305,9 @@ plotiamse.b <- function(dat, set, resMSE,
                 }else{
                     trendi <- resMSE[[i]][[trendline[j]]]$TSBfinalSea[idxsim]
                 }
+            if(rel){
+                trendi <- trendi / bmsy[idxsim]
+            }
             lines(xsim, trendi, col=cols[i])
         }else if(trendline){
             if(yearly){
@@ -251,11 +315,14 @@ plotiamse.b <- function(dat, set, resMSE,
             }else{
                 trendi <- resMSE[[i]][[1]]$TSBfinalSea[idxsim]
             }
+            if(rel){
+                trendi <- trendi / bmsy[idxsim]
+            }
             lines(xsim, trendi, col=rgb(t(col2rgb(cols[i]))/255,alpha=0.5))
         }
     }
     abline(v=dat$ny, col="grey60",lwd=2)
-    abline(v=max(which(dat$FM==0)), col="grey60",lwd=2,lty=2)
+##    abline(v=max(which(dat$FM==0)), col="grey60",lwd=2,lty=2)
     if(plot.legend) legend("topright", legend=set$hcr,
                            col=cols, bty="n", lwd=2,lty=1)
     if(!is.null(title) && !is.na(title)) title(title)
@@ -267,6 +334,7 @@ plotiamse.b <- function(dat, set, resMSE,
 #' @export
 plotiamse.f <- function(dat, set, resMSE,
                         yearly = TRUE,
+                        rel = FALSE,
                         trendline=TRUE, uncert = TRUE, med = TRUE,
                         hcrs=NA, ylim=NULL, plot.legend = TRUE,
                         col = NA,
@@ -307,17 +375,13 @@ plotiamse.f <- function(dat, set, resMSE,
         iaFM <- 1
     }
 
-    if(is.null(ylim)) ylim <- c(0.8,1.2) * range(lapply(res,function(x) x$FM))
+
     if(is.na(col[1])){
         cols <- rainbow(nms)
     }else{
         cols <- col
     }
-    ## historical
-    i <- 1 ## historic pattern the same between mss
-    llhist <- res[[i]]$FM[1,idxhist]
-    ulhist <- res[[i]]$FM[3,idxhist]
-    medhist <- res[[i]]$FM[2,idxhist]
+
     ## reference levels
     if(!is.null(dat$ref$Fmsy)){
         if(yearly){
@@ -332,6 +396,21 @@ plotiamse.f <- function(dat, set, resMSE,
     }
     llfmsy <- NA ## tmp[1]
     ulfmsy <- NA ## tmp[2]
+
+    ## historical
+    i <- 1 ## historic pattern the same between mss
+    if(rel){
+        llhist <- res[[i]]$FM[1,idxhist] / fmsy[idxhist]
+        ulhist <- res[[i]]$FM[3,idxhist] / fmsy[idxhist]
+        medhist <- res[[i]]$FM[2,idxhist] / fmsy[idxhist]
+        if(is.null(ylim)) ylim <- c(0.8,1.2) * range(lapply(res,function(x) x$FM/fmsy))
+    }else{
+        llhist <- res[[i]]$FM[1,idxhist]
+        ulhist <- res[[i]]$FM[3,idxhist]
+        medhist <- res[[i]]$FM[2,idxhist]
+        if(is.null(ylim)) ylim <- c(0.8,1.2) * range(lapply(res,function(x) x$FM))
+    }
+
     ## plot
     plot(xhist, medhist,
          xlim = c(0, dat$ny+set$nysim),
@@ -347,46 +426,76 @@ plotiamse.f <- function(dat, set, resMSE,
             border=NA, col=rgb(t(col2rgb("grey30"))/255,alpha=0.2))
     lines(xhist, medhist, lwd=2)
     ## reference level
-    if(!is.null(dat$ref$Fmsy)) {
+    if(!is.null(dat$ref$Fmsy) && !rel) {
         ## CHECK: include iaFM
         ## polygon(x = c(-2,rep(1.2*max(xall),2),-2),
         ##         y = c(rep(llfmsy,2),rep(ulfmsy,2)),
         ##         border=NA, col=rgb(t(col2rgb("grey40"))/255,alpha=0.2))
         lines(xall, fmsy, lty=2)
+    }else if(rel){
+        abline(h=1, lty=2)
     }
 
     abline(h=0,lty=2)
     ## projection
     if(uncert){
         for(i in 1:nms){
-            llsim <- res[[i]]$FM[1,idxsim]
-            ulsim <- res[[i]]$FM[3,idxsim]
+            if(rel){
+                llsim <- res[[i]]$FM[1,idxsim] / fmsy[idxsim]
+                ulsim <- res[[i]]$FM[3,idxsim] / fmsy[idxsim]
+            }else{
+                llsim <- res[[i]]$FM[1,idxsim]
+                ulsim <- res[[i]]$FM[3,idxsim]
+            }
             polygon(x = c(xsim,rev(xsim)), y = c(llsim,rev(ulsim)),
                     border=NA, col=rgb(t(col2rgb(cols[i]))/255,alpha=0.2))
         }
     }
     for(i in 1:nms){
-        medsim <- res[[i]]$FM[2,idxsim]
+        if(rel){
+            medsim <- res[[i]]$FM[2,idxsim] / fmsy[idxsim]
+        }else{
+            medsim <- res[[i]]$FM[2,idxsim]
+        }
         if(med) lines(xsim, medsim, lwd=2, col=cols[i])
         if(is.numeric(trendline)){
-            for(j in 1:length(trendline))
+            for(j in 1:length(trendline)){
                 if(inherits(resMSE[[i]][[1]]$FM, "matrix")){
-                    lines(xsim, apply(resMSE[[i]][[trendline[j]]]$FM,1,sum)[idxsim], col=cols[i])
+                    if(rel){
+                        lines(xsim, apply(resMSE[[i]][[trendline[j]]]$FM,1,sum)[idxsim]/fmsy[idxsim], col=cols[i])
+                    }else{
+                        lines(xsim, apply(resMSE[[i]][[trendline[j]]]$FM,1,sum)[idxsim], col=cols[i])
+                    }
                 }else{
-                    lines(xsim, resMSE[[i]][[trendline[j]]]$FM[idxsim], col=cols[i])
+                    if(rel){
+                        lines(xsim, resMSE[[i]][[trendline[j]]]$FM[idxsim]/fmsy[idxsim], col=cols[i])
+                    }else{
+                        lines(xsim, resMSE[[i]][[trendline[j]]]$FM[idxsim], col=cols[i])
+                    }
                 }
+            }
         }else if(trendline){
             if(inherits(resMSE[[i]][[1]]$FM, "matrix")){
-                lines(xsim, apply(resMSE[[i]][[1]]$FM,1,sum)[idxsim],
+                if(rel){
+                    lines(xsim, apply(resMSE[[i]][[1]]$FM,1,sum)[idxsim]/fmsy[idxsim],
+                          col=rgb(t(col2rgb(cols[i]))/255,alpha=0.5))
+                }else{
+                    lines(xsim, apply(resMSE[[i]][[1]]$FM,1,sum)[idxsim],
                       col=rgb(t(col2rgb(cols[i]))/255,alpha=0.5))
+                }
             }else{
-                lines(xsim, resMSE[[i]][[1]]$FM[idxsim],
-                      col=rgb(t(col2rgb(cols[i]))/255,alpha=0.5))
+                if(rel){
+                    lines(xsim, resMSE[[i]][[1]]$FM[idxsim]/fmsy[idxsim],
+                          col=rgb(t(col2rgb(cols[i]))/255,alpha=0.5))
+                }else{
+                    lines(xsim, resMSE[[i]][[1]]$FM[idxsim],
+                          col=rgb(t(col2rgb(cols[i]))/255,alpha=0.5))
+                }
             }
         }
     }
     abline(v=dat$ny, col="grey60",lwd=2)
-    abline(v=max(which(dat$FM==0)), col="grey60",lwd=2,lty=2)
+##    abline(v=max(which(dat$FM==0)), col="grey60",lwd=2,lty=2)
     if(plot.legend) legend("topright", legend=set$hcr,
                            col=cols, bty="n", lwd=2,lty=1)
     if(!is.null(title) && !is.na(title)) title(title)
