@@ -259,6 +259,8 @@ check.dat <- function(dat = NULL, verbose = TRUE){
                         "Please revise dat$iaFM. Removing the intra-annual FM pattern for now."
                     ))
         dat$iaFM <- rep(1/ns, ns)
+    }else if(all(dat$iaFM == 0)){
+        dat$iaFM <- rep(1/ns, ns)
     }else if(sum(dat$iaFM) > 1 + 1e-8 || sum(dat$iaFM) < 1 - 1e-8){
         if(verbose) writeLines(paste0(
                         "The intra-annual FM (dat$iaFM) does not sum up to 1. Please revise dat$iaFM. ",
@@ -435,9 +437,6 @@ check.dat <- function(dat = NULL, verbose = TRUE){
 
     ## Timing of catch observation interval (default: calendar year => 1)
     if(is.null(dat$catchObsTiming)) dat$catchObsTiming <- 1
-
-    ## Use intra-annual FM pattern?
-    if(is.null(dat$use.iaFM)) dat$use.iaFM <- TRUE
 
     ## return
     return(dat)
