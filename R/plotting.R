@@ -8,6 +8,7 @@ plotiamse.cw <- function(dat, set, resMSE,
                          trendline=TRUE, uncert = TRUE, med = TRUE,
                          hcrs=NA, ylim = NULL, plot.legend = TRUE,
                          col = NA,
+                         ci = c(0.025,0.975),
                          ylab="Catch", xlab = "",
                          title = "Catch"){
     if(any(!is.na(hcrs))){
@@ -21,7 +22,8 @@ plotiamse.cw <- function(dat, set, resMSE,
     }
 
     ## summary (median, 95% CIs)
-    res <- summary.mse(resMSE, yearly = yearly)
+    probs <- unique(sort(c(ci,0.5)))
+    res <- summary.mse(resMSE, yearly = yearly, probs = probs)
 
     ## vars
     ns <- dat$ns
@@ -156,6 +158,7 @@ plotiamse.b <- function(dat, set, resMSE,
                         trendline=TRUE, uncert = TRUE, med = TRUE,
                         hcrs=NA, ylim = NULL, plot.legend = TRUE,
                         col = NA,
+                        ci = c(0.025,0.975),
                         ylab="Total biomass", xlab = "",
                         title = "Biomass"){
     if(any(!is.na(hcrs))){
@@ -167,8 +170,10 @@ plotiamse.b <- function(dat, set, resMSE,
         resMSE <- resMSEnew
         set$hcr <- hcrs
     }
+
     ## summary (median, 95% CIs)
-    res <- summary.mse(resMSE, yearly = yearly)
+    probs <- unique(sort(c(ci,0.5)))
+    res <- summary.mse(resMSE, yearly = yearly, probs = probs)
 
     ## vars
     ns <- dat$ns
@@ -338,6 +343,7 @@ plotiamse.f <- function(dat, set, resMSE,
                         trendline=TRUE, uncert = TRUE, med = TRUE,
                         hcrs=NA, ylim=NULL, plot.legend = TRUE,
                         col = NA,
+                        ci = c(0.025,0.975),
                         ylab="Fishing mortality", xlab = "",
                         title = "Fishing mortality"){
     if(any(!is.na(hcrs))){
@@ -350,8 +356,10 @@ plotiamse.f <- function(dat, set, resMSE,
         set$hcr <- hcrs
     }
 
+
     ## summary (median, 95% CIs)
-    res <- summary.mse(resMSE, yearly = yearly)
+    probs <- unique(sort(c(ci,0.5)))
+    res <- summary.mse(resMSE, yearly = yearly, probs = probs)
 
     ## vars
     ns <- dat$ns

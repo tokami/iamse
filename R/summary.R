@@ -4,7 +4,7 @@
 #'
 #' @export
 #'
-summary.mse <- function(mse, yearly = TRUE){
+summary.mse <- function(mse, yearly = TRUE, probs = c(0.025,0.5,0.975)){
 
     ##
     quants <- c("TSB","SSB","ESB","CW","TSBfinal","TACs","FM","TSBfinalSea")
@@ -32,7 +32,7 @@ summary.mse <- function(mse, yearly = TRUE){
                 ## CHECK: possible to extract sub-yearly?
                 tmp <- do.call(rbind,lapply(msei, function(x) x[[quant]]))
             }
-            res[[j]] <- apply(tmp, 2, quantile, probs=c(0.025,0.5,0.975), na.rm=TRUE)
+            res[[j]] <- apply(tmp, 2, quantile, probs=probs, na.rm=TRUE)
         }
         names(res) <- quants
         resList[[i]] <- res
