@@ -959,11 +959,11 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE, dbg = 0){
 
             }
 
+
             ## General
             FM[y,s:ns] <- FMtac * iaFM[s:ns]
             if(s > 1){
                 FM[y+1,1:(s-1)] <- FMtac * iaFM[1:(s-1)]
-                ##
                 FM[y+1,s:ns] <- FMtac * iaFM[s:ns]
             }
 
