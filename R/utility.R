@@ -1039,13 +1039,13 @@ get.annual <- function (intime, vec, type = "mean"){
 #' @export
 repar.sr <- function (dat){
 
-    if(is.null(dat$h)){
+    if(is.null(dat$h) || is.na(dat$h)){
         stop(paste0("Reparameterisation of stock-recruitment parameters requires ",
                     "information about steepness (dat$h)."))
     }else{
         h <- dat$h
     }
-    if(is.null(dat$vb)){
+    if(is.null(dat$vb) || is.na(dat$vb)){
         stop(paste0("Reparameterisation of stock-recruitment parameters requires ",
                     "information about virgin biomass (dat$vb)."))
     }else{
