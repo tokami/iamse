@@ -35,9 +35,8 @@ check.dat <- function(dat = NULL, verbose = TRUE){
     dat$asmax <- asmax
     ages <- 0:(amax-1)
     ## OLD: ages <- t(t(matrix(rep(ages,ns),ncol=ns,nrow=amax)) + seq(0, 1-1/ns, 1/ns))
-    ## HERE: ds05 <- 1/ns/2
-    ## ages <- t(t(matrix(rep(ages,each = ns),ncol=ns,nrow=amax, byrow=TRUE)) + seq(ds05, 1-ds05, length.out=ns))
-    ages <- t(t(matrix(rep(ages,ns),ncol=ns,nrow=amax)) + seq(0, 1-1/ns, 1/ns))
+    ds05 <- 1/ns/2
+    ages <- t(t(matrix(rep(ages,each = ns),ncol=ns,nrow=amax, byrow=TRUE)) + seq(ds05, 1-ds05, length.out=ns))
     dat$ages <- ages
 
     dat$yvec <- rep(1:ny, each = ns)
@@ -382,8 +381,7 @@ check.dat <- function(dat = NULL, verbose = TRUE){
         dat$age0 <- 0
     }
     ##    dat$indage0 <- which(ages == ages[which.min(abs(ages - 1/ns/2 - dat$age0))], arr.ind = TRUE)
-    ## HERE: dat$indage0 <- which.min(abs(t(ages) - 1/ns/2 - dat$age0))
-    dat$indage0 <- which.min(abs(t(ages) - dat$age0))
+    dat$indage0 <- which.min(abs(t(ages) - 1/ns/2 - dat$age0))
 
     ## pzbm
     ##------------------
