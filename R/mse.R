@@ -1,9 +1,8 @@
 ##' @title run.mse
 ##'
-##' @importFrom parallel detectCores
 ##'
 ##' @export
-run.mse <- function(dat, set, mc.cores=parallel::detectCores()-1, verbose=TRUE, dbg = 0){
+run.mse <- function(dat, set, mc.cores = 1, verbose=TRUE, dbg = 0){
 
     if(mc.cores > 1) verbose <- FALSE
     ## define constant catch (resort HCR if something not converging)
@@ -11,8 +10,6 @@ run.mse <- function(dat, set, mc.cores=parallel::detectCores()-1, verbose=TRUE, 
 
     ## Variables
     hcrs <- set$hcr
-    hcrs2 <- sapply(hcrs, function(x) unlist(strsplit(as.character(x), "-"))[1])
-    nhcrs <- length(hcrs)
     nysim <- set$nysim
     nrep <- set$nrep
     ny <- dat$ny
@@ -23,17 +20,23 @@ run.mse <- function(dat, set, mc.cores=parallel::detectCores()-1, verbose=TRUE, 
 
     ## Checks
     ## --------------------
-
     ## Reference points provided
-    if(!any(names(dat) == "ref")) stop("Reference levels have to be part of dat. Use est.ref.levels/est.ref.levels.stochastic to estimate them.")
     refs <- dat$ref
-
-
     nrefs <- nrow(refs)
-    if(nrefs < ntall){
-        ## refs <- rbind(refs, refs[rep((nrefs-ns+1):nrefs, ntall-nt),])
-        refs <- rbind(refs, refs[rep(nrefs, nyall-ny),]) ## CHECK: does refs need to be per time step? or annual values enough?
+    if(!is.null(nrefs)){
+        if(nrefs < ntall){
+            ## refs <- rbind(refs, refs[rep((nrefs-ns+1):nrefs, ntall-nt),])
+            refs <- rbind(refs, refs[rep(nrefs, nyall-ny),]) ## CHECK: does refs need to be per time step? or annual values enough?
+        }
+    }else{
+        writeLines(paste0("Reference levels are not part of dat, but might ",
+                          "be required for some HCRs (e.g. 'refFmsy'). ",
+                          "Use est.ref.levels/est.ref.levels.stochastic ",
+                          "to estimate them."))
+        if(any(hcrs == "refFmsy")) hcrs <- hcrs[-which(hcrs == "refFmsy")]
     }
+    hcrs2 <- sapply(hcrs, function(x) unlist(strsplit(as.character(x), "-"))[1])
+    nhcrs <- length(hcrs)
 
     ## Natural mortality
     ## --------------------
