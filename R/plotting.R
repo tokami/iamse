@@ -201,7 +201,7 @@ plotiamse.b <- function(dat, set, resMSE,
     ## reference
     if(!is.null(dat$ref$Bmsy)){
         if(yearly){
-            tmp <- dat$refSea$Bmsy[,ns]
+            tmp <- rep(dat$ref$Blim[1], length(dat$refSea$Bmsy[,ns])) ## dat$refSea$Bmsy[,ns]
             bmsy <- c(tmp, rep(tail(tmp, 1), set$nysim))
         }else{
             tmp <- as.vector(t(dat$refSea$Bmsy))

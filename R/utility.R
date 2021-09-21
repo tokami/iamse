@@ -909,6 +909,7 @@ get.ssb0 <- function (M, mat, weight, fecun = 1,
 recfunc <- function(h, SPR0, SSB,  R0 = 1e6, method = "bevholt", bp = 0,
                     beta = 0, gamma = 0){
 
+
     if(method == "bevholt"){
         alpha <- SPR0 * (1-h)/(4*h)
         beta <- (5*h-1) / (4*h*R0)
