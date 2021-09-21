@@ -94,9 +94,12 @@ check.dat <- function(dat = NULL, verbose = TRUE){
         }
         ## plba <- t(vlprobs(LA, LA * dat$CVlen))
         ## plba <- plba / rowSums(plba)
-    }else plba <- NULL
-    dat$plba <- plba
 
+    }else{
+        plba <- mids <- NULL
+    }
+    dat$plba <- plba
+    dat$mids <- mids
 
 
     ## weight at age
@@ -418,6 +421,8 @@ check.dat <- function(dat = NULL, verbose = TRUE){
     if(is.null(dat$nyC[1])) dat$nyC <- ny
     if(is.null(dat$nyI[1])) dat$nyI <- rep(ny, nsurv)
     if(is.null(dat$nyE[1])) dat$nyE <- NA
+    ## generate Length frequency distributions (LFD)?
+    if(is.null(dat$obsLFD[1])) dat$obsLFD <- FALSE
 
     ## most recent years of data available to assessment ## TODO: RENAME:
     ## 0: last year available to assessment

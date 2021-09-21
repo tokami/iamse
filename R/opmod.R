@@ -175,19 +175,22 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE, dbg = 0){## in
     TACs <- TSBfinal <- SSBfinal <- ESBfinal <- rep(NA, ny)
     CAA <- vector("list", ny)
     for(i in 1:ny) CAA[[i]] <- matrix(NA, nrow = asmax, ncol = ns)
-    ## observations
+
+    ## Observations
+    ## ----------------
     if(all(!is.na(dat$surveyTimes)) && is.numeric(nyI)){
         obsI <- timeI <- vector("list", nsurv)
     }else{
         obsI <- timeI <- NULL
     }
-    ## observations at age
-    obsMAA <- obsCA <- matrix(0, nrow = ny, ncol = amax)
+    ## Age-structured observations
+    obsMAA <- matrix(0, nrow = ny, ncol = amax)
     obsCA <- matrix(0, nrow = length(idxC), ncol = amax)
     obsIA <- vector("list", nsurv)
     for(i in 1:nsurv) obsIA[[i]] <- matrix(0, nrow = ny, ncol = amax)
 
     ## Initialise NAA
+    ## ---------------------
     ## No errors used (because if really low, assumes this low recuritment for
     ## many years, but in fact varying around some mean
     hy <- h
@@ -443,7 +446,8 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE, dbg = 0){## in
     }else{
         ## annual OM
         ## Catch
-        if(nsC > 1) writeLines("Set dat$ns to > 1 for seasonal catches. Generating annual catches!")
+        if(nsC > 1)
+            writeLines("Set dat$ns to > 1 for seasonal catches. Generating annual catches!")
         obsC <- CW[idxC,] * eC[idxC]
         timeC <- idxC
         ## catch observations at age
@@ -494,20 +498,39 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE, dbg = 0){## in
     rownames(landFrac) <- as.character((ny-nyC+1):ny)
     colnames(landFrac) <- as.character(0:dat$amax)
 
-    obs <- list(obsC = obsC,
-                timeC = timeC,
-                obsI = obsI,
-                timeI = timeI,
-                obsE = obsE,
-                timeE = timeE,
-                obsCA = obsCA,
-                obsIA = obsIA,
-                obsMAA = obsMAA,
-                propMature = propMature,
-                WAAs = WAAs,
-                WAAc = WAAc,
-                propFemale = propFemale,
-                landFrac = landFrac)
+    ## length distributions
+    if(dat$obsLFD){
+        LFD <- vector("list", length(obsIA))
+        for(i in 1:length(obsIA)){
+            ## Find closest season (plba per season)
+            closeSeason <- which.min((seq(0,1-1/ns,1/ns)-attributes(obsIA[[i]])$time[i])^2)
+            LFD[[i]] <- t(apply(obsIA[[i]], 1, function(x) x %*% dat$plba[,,closeSeason]))
+            rownames(LFD[[i]]) <- rownames(obsIA[[i]])
+            colnames(LFD[[i]]) <- dat$mids
+        }
+        attributes(LFD) <- c(attributes(LFD), list(time = dat$surveyTimes))
+    }else{
+        LFD <- NULL
+    }
+
+
+    obs <- list(
+        obsC = obsC,
+        timeC = timeC,
+        obsI = obsI,
+        timeI = timeI,
+        obsE = obsE,
+        timeE = timeE,
+        obsCA = obsCA,
+        obsIA = obsIA,
+        obsMAA = obsMAA,
+        propMature = propMature,
+        WAAs = WAAs,
+        WAAc = WAAc,
+        propFemale = propFemale,
+        landFrac = landFrac,
+        LFD = LFD
+    )
 
 
     ## return
@@ -949,11 +972,6 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE, dbg = 0){
 
             }
 
-            if(is.na(FMtac)) browser()
-
-            FMtac
-            y
-
             ## General
             FM[y,s:ns] <- FMtac * iaFM[s:ns]
             if(s > 1){
@@ -963,8 +981,6 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE, dbg = 0){
 
         }
 
-
-        if(is.na(FM[y,s])) browser()
 
         ## Population dynamics
         FAA <- FM[y,s] * sely  ## HERE: FM[y,]
@@ -1171,6 +1187,21 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE, dbg = 0){
     obs$landFrac = rbind(obs$landFrac, matrix(1.0, 1, amax))
     rownames(obs$landFrac)[nrow(obs$landFrac)] <- as.character(y)
 
+    ## length frequency distributions
+    if(dat$obsLFD){
+        for(i in 1:length(obs$obsIA)){
+            ## Find closest season (plba per season)
+            closeSeason <- which.min((seq(0,1-1/ns,1/ns) -
+                                      attributes(obs$obsIA[[i]])$time[i])^2)
+            obs$LFD[[i]] <- rbind(obs$LFD[[i]],
+                                  obs$obsIA[[i]][nrow(obs$obsIA[[i]]),]  %*%
+                                  dat$plba[,,closeSeason])
+            rownames(obs$LFD[[i]])[nrow(obs$LFD[[i]])] <- as.character(y)
+        }
+    }
+
+
+    ##
     if(y == dat$ny + set$nysim){
         FM <- FM[seq(dat$ny + set$nysim),]
     }
