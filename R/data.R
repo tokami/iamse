@@ -401,7 +401,11 @@ check.dat <- function(dat = NULL, verbose = TRUE){
     if(is.null(dat$surveyTimes)) dat$surveyTimes <- c(1/12, 7/12)
     nsurv <- length(dat$surveyTimes)
 
-    if(is.null(dat$surveyBeforeAssessment)) dat$surveyBeforeAssessment <- c(TRUE, FALSE)
+    if(is.null(dat$surveyBeforeAssessment)) dat$surveyBeforeAssessment <- c(FALSE, FALSE)
+    if(length(dat$surveyBeforeAssessment) != nsurv){
+        writeLines(paste0("Length of dat$surveyBeforeAssessment does not match with dat$surveyTimes! Overwriting with FALSE."))
+        dat$surveyBeforeAssessment <- rep(FALSE, nsurv)
+    }
 
     ## survey selectivities and timings
     if(is.null(dat$selI)){

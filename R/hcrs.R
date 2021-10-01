@@ -27,7 +27,7 @@ gettacs <- function(tacs=NULL, id="", TAC=NA, obs=NULL){
                          bmsy.est=NA,bmsy.sd=NA,
                          sdb.est=NA,sdb.sd=NA)
     sdi <- rep(c(NA,NA),nis)
-    names(sdi) <- paste0(rep(c("sdi.est","sdi.sd"),nis),rep(1:nis,each=nis))
+    names(sdi) <- paste0(rep(c("sdi.est","sdi.sd"),nis),rep(1:2,each=nis))
     tactmp <- data.frame(c(tactmp,
                            sdi,
                            sdf.est=NA,sdf.sd=NA,
