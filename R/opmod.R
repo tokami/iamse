@@ -14,6 +14,8 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE, dbg = 0){## in
 
     if(is.null(set)) set <- check.set()
 
+    if(!inherits(dat$FM, "matrix")) stop("dat$FM has to be a matrix. Did you run check.dat()?")
+
     ny <- dat$ny
     ns <- dat$ns
     nt <- ny * ns
@@ -83,7 +85,6 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE, dbg = 0){## in
     qE <- dat$qE
     spawning <- dat$spawning
     catchObsTiming <- dat$catchObsTiming
-
 
     ## errors
     if(!is.null(set)){
