@@ -886,6 +886,8 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE, dbg = 0){
                 bbmsy <- TSBtmp / refs$Bmsy[y] ## [y + s - 1]
                 FMtmp <- as.numeric(t(FM))
                 ffmsy <- sum(tail(FMtmp[1:((y*ns)-ns-(s-1))],ns)) / refs$Fmsy[y] ## [y + s - 1]
+
+
                 ## TAC
                 tacs <- est.tac(obs = obs,
                                 hcr = hcr,

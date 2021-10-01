@@ -101,7 +101,7 @@ plotiamse.cw <- function(dat, set, resMSE,
     }else if(rel){
         abline(h = 1, lty=2)
     }
-    abline(h=0,lty=2)
+    ## abline(h=0,lty=2)
     ## projection
     if(uncert){
         for(i in 1:nms){
@@ -201,7 +201,7 @@ plotiamse.b <- function(dat, set, resMSE,
     ## reference
     if(!is.null(dat$ref$Bmsy)){
         if(yearly){
-            tmp <- rep(dat$ref$Blim[1], length(dat$refSea$Bmsy[,ns])) ## dat$refSea$Bmsy[,ns]
+            tmp <- rep(dat$ref$Bmsy[1], length(dat$refSea$Bmsy[,ns])) ## dat$refSea$Bmsy[,ns]
             bmsy <- c(tmp, rep(tail(tmp, 1), set$nysim))
         }else{
             tmp <- as.vector(t(dat$refSea$Bmsy))
@@ -272,9 +272,9 @@ plotiamse.b <- function(dat, set, resMSE,
         abline(h = 1, lty=2)
     }
     if(!is.null(dat$ref$B0)){
-        lines(xall, b0, lty=2)
+        lines(xall, b0, lty=3)
     }
-    abline(h=0,lty=2)
+    ## abline(h=0,lty=2)
     ## projection
     if(uncert){
         for(i in 1:nms){
@@ -444,7 +444,7 @@ plotiamse.f <- function(dat, set, resMSE,
         abline(h=1, lty=2)
     }
 
-    abline(h=0,lty=2)
+    ## abline(h=0,lty=2)
     ## projection
     if(uncert){
         for(i in 1:nms){
@@ -598,7 +598,7 @@ plotiamse.quant <- function(dat, set, resMSE, hcrs=NULL,
     plot(years, quant1[[1]], ty='n',
          ylim=range(0,unlist(quant1)),
          ylab="", xlab = xlab, xaxt=xaxt)
-    abline(h=0,lty=2)
+    ## abline(h=0,lty=2)
     if(!is.null(hline)) abline(h=hline)
     for(i in 1:nspict) lines(years, quant1[[i]], col = cols[i], lwd=1.5)
     mtext(quants[1],2,3)
