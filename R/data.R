@@ -58,11 +58,24 @@ check.dat <- function(dat = NULL, verbose = TRUE){
     if(!any(names(dat) == "t0")){
         dat$t0 <- NULL
     }else t0 <- dat$t0
+    ## Parameters of the seasonalised VBGF
+    if(!any(names(dat) == "C")){
+        dat$C <- NULL
+    }
+    if(!any(names(dat) == "ts")){
+        dat$ts <- NULL
+    }
     if(is.null(dat$Linf) && any(!is.null(dat$K), !is.null(dat$t0))) dat$Linf <- 100 ## stop("dat$Linf not provided.")
     if(is.null(dat$K) && any(!is.null(dat$Linf), !is.null(dat$t0))) dat$K <- 0.1 ## stop("dat$K not provided.")
     if(is.null(dat$t0) && any(!is.null(dat$Linf), !is.null(dat$K))) dat$t0 <- -0.1 ## stop("dat$t0 not provided.")
     if(!any(is.null(dat$t0), is.null(dat$Linf), is.null(dat$K))){
-        LA <- dat$Linf * (1 - exp(-dat$K * (ages - dat$t0)))
+        if(!is.null(dat$C) && !is.null(dat$ts) && dat$C > 0){
+            LA <- dat$Linf * (1 - exp(-(dat$K * (ages - dat$t0) + (((dat$C * dat$K)/(2 * pi)) *
+                                                                   sin(2 * pi * (ages - dat$ts))) -
+                                        (((dat$C * dat$K)/(2 * pi)) * sin(2 * pi * (dat$t0 - dat$ts))))))
+        }else{
+            LA <- dat$Linf * (1 - exp(-dat$K * (ages - dat$t0)))
+        }
     }else{
         LA <- NULL
     }
