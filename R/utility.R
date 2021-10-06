@@ -709,7 +709,12 @@ get.f <- function(TAC,
 #' @param mids - midlengths
 #' @param plba - probability of being in mids given age
 #' @param type - logistic or dnormal
-getSel <- function(pars, mids, plba, type = "logistic", age = FALSE, ages = NULL){
+#' @param survey - use survey parameters
+getSel <- function(pars, mids, plba, type = "logistic", age = FALSE, ages = NULL, survey = FALSE){
+    if(survey){
+        Ls50 <- pars[["Ls50.surv"]]
+        Ls95 <- pars[["Ls95.surv"]]
+    }
     if(!age){
         if(type == "logistic"){
             Ls50 <- pars[["Ls50"]]

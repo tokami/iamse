@@ -187,8 +187,9 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE, dbg = 0){## in
     ## Age-structured observations
     obsMAA <- matrix(0, nrow = ny, ncol = amax)
     obsCA <- matrix(0, nrow = length(idxC), ncol = amax)
-    obsIA <- vector("list", nsurv)
+    obsIA <- obsIAL <- vector("list", nsurv)
     for(i in 1:nsurv) obsIA[[i]] <- matrix(0, nrow = ny, ncol = amax)
+    for(i in 1:nsurv) obsIAL[[i]] <- matrix(0, nrow = ny, ncol = asmax)
 
     ## Initialise NAA
     ## ---------------------
@@ -338,6 +339,8 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE, dbg = 0){## in
                         obsIA[[idxi[i]]][y,] <- q[idxi[i]] * as.numeric(by(NAAsurv *
                                                                            as.numeric(t(dat$selI[[idxi[i]]])),
                                                                            as2a, sum)) * eImv[[idxi[[i]]]][y,]
+                        ## Index by fine age for LFDs
+                        obsIAL[[idxi[i]]][y,] <- q[idxi[i]] * NAAsurv * as.numeric(t(dat$selI[[idxi[i]]])) * eImv[[idxi[[i]]]][y,]
                     }
                 }
             }
@@ -371,6 +374,10 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE, dbg = 0){## in
             rownames(obsIA[[i]]) <- as.character((ny-nyI[i]+1):(ny-lastyI[i]))
             colnames(obsIA[[i]]) <- as.character(0:dat$amax)
             attributes(obsIA[[i]]) <- c(attributes(obsIA[[i]]), list(time = dat$surveyTimes))
+            obsIAL[[i]] <- obsIAL[[i]][(ny-nyI[i]+1):(ny-lastyI[i]),]
+            rownames(obsIAL[[i]]) <- as.character((ny-nyI[i]+1):(ny-lastyI[i]))
+            colnames(obsIAL[[i]]) <- as.character(0:(dat$asmax-1))
+            attributes(obsIAL[[i]]) <- c(attributes(obsIAL[[i]]), list(time = dat$surveyTimes))
         }
     }
     obsMAA <- obsMAA[(ny-nyC+1):(ny-lastyC),]
@@ -501,12 +508,12 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE, dbg = 0){## in
 
     ## length distributions
     if(dat$obsLFD){
-        LFD <- vector("list", length(obsIA))
-        for(i in 1:length(obsIA)){
+        LFD <- vector("list", length(obsIAL))
+        for(i in 1:length(obsIAL)){
             ## Find closest season (plba per season)
-            closeSeason <- which.min((seq(0,1-1/ns,1/ns)-attributes(obsIA[[i]])$time[i])^2)
-            LFD[[i]] <- t(apply(obsIA[[i]], 1, function(x) x %*% dat$plba[,,closeSeason]))
-            rownames(LFD[[i]]) <- rownames(obsIA[[i]])
+            closeSeason <- which.min((seq(0,1-1/ns,1/ns)-attributes(obsIAL[[i]])$time[i])^2)
+            LFD[[i]] <- t(apply(obsIAL[[i]], 1, function(x) x %*% dat$plba2[,,closeSeason]))
+            rownames(LFD[[i]]) <- rownames(obsIAL[[i]])
             colnames(LFD[[i]]) <- dat$mids
         }
         attributes(LFD) <- c(attributes(LFD), list(time = dat$surveyTimes))

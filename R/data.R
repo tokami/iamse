@@ -98,7 +98,7 @@ check.dat <- function(dat = NULL, verbose = TRUE){
         if(!any(names(dat) == "CVlen")){
             dat$CVlen <- 0.1
         }
-        LA2 <- array(LA, dim = c(amax,1,ns))
+        LA2 <- array(LA, dim = c(amax,1,ns))  ## NEW: LA2 <- array(t(LA), dim = c(asmax,1,ns)) ## this plba can translate age+season to length and back at every season, I think this might require changing all process matrices to smooth_age by season (not as currently: age by season)
         plba <- apply(apply(LA2, c(1,3), function(x) vlprobs(x, x * dat$CVlen)), c(1,3), t)
         for(i in 1:dim(plba)[3]){
             tmp <- rowSums(plba[,,i])
@@ -108,11 +108,23 @@ check.dat <- function(dat = NULL, verbose = TRUE){
         ## plba <- t(vlprobs(LA, LA * dat$CVlen))
         ## plba <- plba / rowSums(plba)
 
+        ## NEW:
+        LA2 <- array(t(LA), dim = c(asmax,1,ns))
+        ## this plba can translate age+season to length and back at every season, I think this might require changing all process matrices to smooth_age by season (not as currently: age by season)
+        plba2 <- apply(apply(LA2, c(1,3), function(x) vlprobs(x, x * dat$CVlen)), c(1,3), t)
+        for(i in 1:dim(plba)[3]){
+            tmp <- rowSums(plba2[,,i])
+            plba2[,,i] <- plba2[,,i] / tmp
+            plba2[tmp == 0,,i] <- 0
+        }
+
     }else{
         plba <- mids <- NULL
+        plba2 <- NULL
     }
     dat$plba <- plba
     dat$mids <- mids
+    dat$plba2 <- plba2
 
 
     ## weight at age
@@ -222,6 +234,10 @@ check.dat <- function(dat = NULL, verbose = TRUE){
     if(is.null(LA)){
         if(!any(names(dat) == "M")){
             dat$M <- matrix(NA, nrow = ny, ncol = ns)
+        }else if(!inherits(dat$M, "matrix") && length(dat$M) == 1){
+            dat$M <- matrix(dat$M/ns, nrow=ny, ncol=ns)
+        }else if(!inherits(dat$M, "matrix") && length(dat$M) == ny){
+            dat$M <- matrix(rep(dat$M/ns,each=ns), nrow=ny, ncol=ns)
         }else if(any(dim(dat$M) != c(ny,ns))){
             writeLines("dat$M does not have the correct dimensions. dat$M has to be a matrix with dimensions: number of years x the number of seasons (rows x columns). Extending M matrix.")
             dat$M <- rbind(dat$M, matrix(rep(dat$M[dim(dat$M)[1]],ny-dim(dat$M)[1]),
@@ -231,8 +247,10 @@ check.dat <- function(dat = NULL, verbose = TRUE){
         if(!any(names(dat) == "M")){
             if(verbose) writeLines("No natural mortality provided. Setting time-invariant M corresponding to annual M based Gislason's formula and growth parameters.")
             dat$M <- matrix(getM(Linf, K, mids) / ns, nrow = ny, ncol = ns)
+        }else if(!inherits(dat$M, "matrix") && length(dat$M) == 1 && !dat$fixProcs){
+            dat$M <- matrix(rep(dat$M/ns,ny), nrow = ny, ncol = ns, byrow=TRUE)
         }else if(nrow(dat$M) == 1 && !dat$fixProcs){
-            dat$M <- matrix(rep(dat$M,ny), nrow = ny, ncol = ns, byrow=TRUE)
+            dat$M <- matrix(rep(dat$M/ns,ny), nrow = ny, ncol = ns, byrow=TRUE)
         }else if(any(dim(dat$M) != c(ny,ns))){
             stop(paste0("Intra-annual natural mortality ('dat$M') has dimensions ",
                         paste0(dim(dat$M),collapse=" x "),
