@@ -98,7 +98,7 @@ est.ref.levels <- function(dat, set=NULL, fvec = seq(0,5,0.1),
 #'
 est.ref.levels.stochastic <- function(dat, set=NULL, fmax = 10,
                         mc.cores = parallel::detectCores()-1,
-                        ref = c("Fmsy","Bmsy","MSY","B0","ESBmsy","SSBmsy"),
+                        ref = c("Fmsy","Bmsy","MSY","B0","ESBmsy","SSBmsy","SSB0"),
                         plot = FALSE){
 
     ## Checks
@@ -144,7 +144,7 @@ est.ref.levels.stochastic <- function(dat, set=NULL, fmax = 10,
     alltv <- max(c(alltv,seltv))
 
     ##
-    refall <- c("Fmsy","MSY","Bmsy","ESBmsy","SSBmsy","B0")
+    refall <- c("Fmsy","MSY","Bmsy","ESBmsy","SSBmsy","B0","SSB0")
     ##
 
     ## errors (have to be re-used for estimation of Bmsy)
@@ -274,7 +274,7 @@ est.ref.levels.stochastic <- function(dat, set=NULL, fmax = 10,
     }
 
     ## B0
-    if(any(ref == "B0")){
+    if(any(ref %in% c("B0","SSB0"))){
 
         if(FALSE){
         x = 1
@@ -299,7 +299,7 @@ est.ref.levels.stochastic <- function(dat, set=NULL, fmax = 10,
 
         res <- mclapply.all.os(as.list(1:nrep), function(x){
             setx <- c(set, errs[[x]])
-            tmp <- rep(NA, alltv)
+            tmp <- vector("list", alltv)
             for(i in 1:alltv){
                 ## datx$M <- rep(dat$M[i], nyref)
                 ## ind <- (i-1)*ns+1
@@ -310,43 +310,61 @@ est.ref.levels.stochastic <- function(dat, set=NULL, fmax = 10,
                 setx$tvm <- 1
                 setx$tvmsel <- 1
                 setx$tvsel <- 1
-                tmp0 <- simpop(log(1e-20), datx, setx, out=0)$TSB
+                tmp0 <- simpop(log(1e-20), datx, setx, out=0)
                 if(set$refMethod == "mean"){
-                    tmp[[i]] <- list(apply(tail(tmp0,nyrefmsy),2,mean))
+                    tmp[[i]] <- list(apply(tail(tmp0$TSB,nyrefmsy),2,mean),
+                                     apply(tail(tmp0$SSB,nyrefmsy),2,mean))
                 }else if(set$refMethod == "median"){
-                    tmp[[i]] <- list(apply(tail(tmp0,nyrefmsy),2,median))
+                    tmp[[i]] <- list(apply(tail(tmp0$TSB,nyrefmsy),2,median),
+                                     apply(tail(tmp0$SSB,nyrefmsy),2,median))
                 }
             }
             return(tmp)
         }, mc.cores = mc.cores)
 
+        ## b0s <- do.call(rbind,
+        ##                lapply(as.list(1:nrep),
+        ##                       function(x) sapply(1:alltv, function(j){
+        ##                           tail(res[[x]][[j]][[1]],1)  ## last season
+        ##                       })))
 
-        b0s <- do.call(rbind,
-                       lapply(as.list(1:nrep),
-                              function(x) sapply(1:alltv, function(j){
-                                  tail(res[[x]][[j]][[1]],1)  ## last season
-                              })))
+        b0s <- vector("list", 2) ## c("B0","SSB0")
+        for(i in 1:2){
+            b0s[[i]] <- do.call(rbind,
+                                  lapply(as.list(1:nrep),
+                                         function(x) sapply(1:alltv, function(j){
+                                                 tail(res[[x]][[j]][[i]],1) ## biomass-related (last season)
+                                         })))
+        }
 
         ## seasonally
         ## sort in list by reference point with list (ntv) of matrix (nrep, ns)
-        b0sSea <- vector("list",alltv)
-        for(j in 1:alltv){
-            b0sSea[[j]] <- do.call(rbind,lapply(res, function(x) x[[j]][[1]]))
+        b0sSea <- vector("list", 2) ## c("B0","SSB0")
+        for(i in 1:2){
+            for(j in 1:alltv){
+                b0sSea[[i]][[j]] <- do.call(rbind,lapply(res, function(x) x[[j]][[i]]))
+            }
         }
+
+        ## b0sSea <- vector("list",alltv)
+        ## for(j in 1:alltv){
+        ##     b0sSea[[j]] <- do.call(rbind,lapply(res, function(x) x[[j]][[1]]))
+        ## }
 
     }
 
 
     ## all refs in one list
-    refs <- c(list(fmsys), brefs, list(b0s))
-    refsSea <- c(list(fmsysSea), brefsSea, list(b0sSea))
+    refs <- c(list(fmsys), brefs, b0s)
+    refsSea <- c(list(fmsysSea), brefsSea, b0sSea)
+
 
     ## remove runs where long-term SP is smaller or equal to 0
     for(i in 1:alltv){
         ind <- which(brefs[[1]][,i] <= 0)
         if(length(ind) > 0){
-            for(j in 1:6) refs[[j]][,i] <- refs[[j]][-ind,i]
-            for(j in 1:6) refs[[j]][[i]] <- refs[[j]][[i]][-ind,]
+            for(j in 1:length(refs)) refs[[j]][,i] <- refs[[j]][-ind,i]
+            for(j in 1:length(refs)) refs[[j]][[i]] <- refs[[j]][[i]][-ind,]
         }
     }
 
