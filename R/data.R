@@ -30,6 +30,11 @@ check.dat <- function(dat = NULL, verbose = TRUE){
     ## ages
     ##------------------
     if(!any(names(dat) == "amax")) dat$amax <- 10 ## stop("Maximum age missing: amax")
+    if(dat$amax%%1 != 0){
+        if(verbose) writeLines(paste0("Maximum age (dat$amax = ",dat$amax,") is not natural number. This is not possible, setting amax equal to ",ceiling(dat$amax)))
+        dat$amax <- ceiling(dat$amax)
+    }
+
     amax <- dat$amax + 1
     asmax <- amax * ns
     dat$asmax <- asmax
@@ -177,8 +182,8 @@ check.dat <- function(dat = NULL, verbose = TRUE){
     if(!any(names(dat) == "Lm95")){
         Lm95 <- NULL
     }else Lm95 <- dat$Lm95
-    if(is.null(Lm50) && !is.null(Lm95)) stop("Length at 95% maturity missing: dat$Lm95")
-    if(is.null(Lm95) && !is.null(Lm50)) stop("Length at 50% maturity missing: dat$Lm50")
+    if(is.null(Lm50) && !is.null(Lm95)) stop("Length at 95% maturity missing: dat$Lm50")
+    if(is.null(Lm95) && !is.null(Lm50)) stop("Length at 50% maturity missing: dat$Lm95")
     if(any(is.null(LA),is.null(Lm50),is.null(Lm95))){
         if(!any(names(dat) == "mat")) dat$mat <- matrix(NA, nrow = amax, ncol = ns)
     }else if(!dat$fixProcs) dat$mat <- getMat(Lm50, Lm95, mids, plba)
@@ -211,6 +216,8 @@ check.dat <- function(dat = NULL, verbose = TRUE){
         Ls95 <- Lm95
         if(verbose) writeLines("Length at 95% selectivity missing: dat$Ls95. Setting dat$Ls95 equal to maturity parameter: dat$Lm95.")
     }
+    dat$Ls50 <- Ls50
+    dat$Ls95 <- Ls95
     ## get selectivity
     if(dat$selType == "logistic" && any(is.null(LA),is.null(Ls50),is.null(Ls95))){
         if(!any(names(dat) == "sel")) dat$sel <- list(matrix(NA, nrow = amax, ncol = ns))
