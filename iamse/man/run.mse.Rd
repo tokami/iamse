@@ -4,13 +4,7 @@
 \alias{run.mse}
 \title{run.mse}
 \usage{
-run.mse(
-  dat,
-  set,
-  mc.cores = parallel::detectCores() - 1,
-  verbose = TRUE,
-  dbg = 0
-)
+run.mse(dat, set, mc.cores = 1, verbose = TRUE, dbg = 0)
 }
 \description{
 run.mse

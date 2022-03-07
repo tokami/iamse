@@ -8,6 +8,7 @@ plotiamse.cw(
   dat,
   set,
   resMSE,
+  rel = FALSE,
   yearly = TRUE,
   trendline = TRUE,
   uncert = TRUE,
@@ -16,6 +17,7 @@ plotiamse.cw(
   ylim = NULL,
   plot.legend = TRUE,
   col = NA,
+  ci = c(0.025, 0.975),
   ylab = "Catch",
   xlab = "",
   title = "Catch"

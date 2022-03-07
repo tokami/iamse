@@ -4,7 +4,7 @@
 \alias{summary.mse}
 \title{summary.mse}
 \usage{
-\method{summary}{mse}(mse, yearly = TRUE)
+\method{summary}{mse}(mse, yearly = TRUE, probs = c(0.025, 0.5, 0.975))
 }
 \description{
 summary.mse

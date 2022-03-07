@@ -4,7 +4,16 @@
 \alias{def.hcr.hr}
 \title{def.hcr.hr}
 \usage{
-def.hcr.hr(id = "prop_8.75", prop = 0.0875, env = globalenv())
+def.hcr.hr(
+  id = "prop_8.57",
+  prop = 0.0857,
+  stab = FALSE,
+  lower = 0.8,
+  upper = 1.2,
+  assessmentInterval = 1,
+  env = globalenv(),
+  dbg = FALSE
+)
 }
 \description{
 def.hcr.hr

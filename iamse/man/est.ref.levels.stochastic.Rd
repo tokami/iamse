@@ -9,7 +9,7 @@ est.ref.levels.stochastic(
   set = NULL,
   fmax = 10,
   mc.cores = parallel::detectCores() - 1,
-  ref = c("Fmsy", "Bmsy", "MSY", "B0", "ESBmsy", "SSBmsy"),
+  ref = c("Fmsy", "Bmsy", "MSY", "B0", "ESBmsy", "SSBmsy", "SSB0"),
   plot = FALSE
 )
 }

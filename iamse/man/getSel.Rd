@@ -4,7 +4,15 @@
 \alias{getSel}
 \title{getSel}
 \usage{
-getSel(pars, mids, plba, type = "logistic", age = FALSE, ages = NULL)
+getSel(
+  pars,
+  mids,
+  plba,
+  type = "logistic",
+  age = FALSE,
+  ages = NULL,
+  survey = FALSE
+)
 }
 \arguments{
 \item{pars}{- parameters, either Ls50 (length at 50\% selectivity) and Ls95
@@ -15,6 +23,8 @@ getSel(pars, mids, plba, type = "logistic", age = FALSE, ages = NULL)
 \item{plba}{- probability of being in mids given age}
 
 \item{type}{- logistic or dnormal}
+
+\item{survey}{- use survey parameters}
 }
 \description{
 Function to estimate selectivity ogive

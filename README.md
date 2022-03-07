@@ -27,5 +27,5 @@ The package requires [`Rcpp`](http://www.rcpp.org) to be installed.
 To install spict from GitHub use
 
 ```
-remotes::install_github("tokami/iamse")            # master branch
+remotes::install_github("tokami/iamse/iamse")            # master branch
 ```
