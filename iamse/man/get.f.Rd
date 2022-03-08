@@ -5,7 +5,7 @@
 \title{get.f}
 \usage{
 get.f(
-  TAC,
+  target,
   NAA,
   MAA,
   sel,
@@ -28,7 +28,8 @@ get.f(
   iaFM,
   lastFM = 0.01,
   upper = 100,
-  tac_cut_off = 0.01
+  target_cut_off = 0.01,
+  type = "catch"
 )
 }
 \description{

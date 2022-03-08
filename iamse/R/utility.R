@@ -40,11 +40,11 @@ get.converged <- function(mse, convyears = "all", convhcrs = "all", out = 0, ver
         res <- vector("list",nhcr)
         for(hcr in 1:nhcr){
             if(hcrs[hcr] != "refFmsy"){
-            res[[hcr]] <- mse[[hcr]][inds]
-            names(res[[hcr]]) <- inds
+                res[[hcr]] <- mse[[hcr]][inds]
+                names(res[[hcr]]) <- inds
             }else{
                 res[[hcr]] <- mse[[hcr]]
-            names(res[[hcr]]) <- 1:nrep
+                names(res[[hcr]]) <- 1:nrep
             }
         }
     }else if(!is.na(convyears[1])){
@@ -249,10 +249,10 @@ est.depletion <- function(dat, set=NULL, fmin = 0.0001,
 #' @title est.productivity
 #' @export
 est.productivity <- function(dat, set= NULL,
-                    ny = 100,
-                    fmax = 10,
-                    tsSplit = 8,
-                    plot = TRUE){
+                             ny = 100,
+                             fmax = 10,
+                             tsSplit = 8,
+                             plot = TRUE){
 
     dat$ny <- ny
     ns <- dat$ns
@@ -277,8 +277,8 @@ est.productivity <- function(dat, set= NULL,
 
     ## increasing effort
     dat$FM <- matrix(c(rep(0,len1),
-                   seq(0, fmax, length.out = len2),
-                rep(fmax,len3)) / ns, ncol=ns, nrow = ny)
+                       seq(0, fmax, length.out = len2),
+                       rep(fmax,len3)) / ns, ncol=ns, nrow = ny)
     ## CHECK: how to estimate productivity with time variant M?
     dat$M <- matrix(dat$M[1,], ncol=ns, nrow=1)
     dat <- check.dat(dat)
@@ -303,8 +303,8 @@ est.productivity <- function(dat, set= NULL,
 
     ## decreasing effort
     dat$FM <- matrix(c(rep(fmax, len1),
-                   seq(fmax, 0, length.out = len2),
-                rep(0, len3)) / ns, ncol=ns, nrow=ny)
+                       seq(fmax, 0, length.out = len2),
+                       rep(0, len3)) / ns, ncol=ns, nrow=ny)
     dat$M <- matrix(dat$M[1,], ncol=ns, nrow=1)
     dat <- check.dat(dat)
     pop2 <- initpop(dat, set)
@@ -338,16 +338,16 @@ est.productivity <- function(dat, set= NULL,
                lty=1, col = c("dodgerblue2","darkgreen"))
 
         if(FALSE){
-        plot(tsb1/refs$B0, prod1/refs$MSY, ty='n',
-             xlim = c(0,1.05), ylim = c(0,1.5))
-        lines(tsb1/refs$B0, prod1/refs$MSY, ty='b',
-              col = "dodgerblue2")
-        lines(tsb2/refs$B0, prod2/refs$MSY, ty='b',
-              col = "darkgreen")
-        legend("topright",
-               title = "Effort",
-               legend = c("increasing","decreasing"),
-               lty=1, col = c("dodgerblue2","darkgreen"))
+            plot(tsb1/refs$B0, prod1/refs$MSY, ty='n',
+                 xlim = c(0,1.05), ylim = c(0,1.5))
+            lines(tsb1/refs$B0, prod1/refs$MSY, ty='b',
+                  col = "dodgerblue2")
+            lines(tsb2/refs$B0, prod2/refs$MSY, ty='b',
+                  col = "darkgreen")
+            legend("topright",
+                   title = "Effort",
+                   legend = c("increasing","decreasing"),
+                   lty=1, col = c("dodgerblue2","darkgreen"))
         }
 
         ## abs plot
@@ -382,11 +382,11 @@ est.productivity <- function(dat, set= NULL,
 #' @title est.productivity
 #' @export
 est.productivity.stochastic <- function(dat, set= NULL,
-                         fmax = 10,
-                         nf = 1e3,
-                         prob = c(0.1,0.9),
-                         mc.cores = parallel::detectCores()-1,
-                         plot = TRUE){
+                                        fmax = 10,
+                                        nf = 1e3,
+                                        prob = c(0.1,0.9),
+                                        mc.cores = parallel::detectCores()-1,
+                                        plot = TRUE){
 
     amax <- dat$amax + 1
     ny <- dat$ny
@@ -512,15 +512,15 @@ est.productivity.stochastic <- function(dat, set= NULL,
         }
 
         means[[i]] <- as.data.frame(do.call(rbind,lapply(tmp2,
-                                                    function(x) apply(x,2, mean, na.rm=TRUE))))
+                                                         function(x) apply(x,2, mean, na.rm=TRUE))))
         meds[[i]] <- as.data.frame(do.call(rbind,lapply(tmp2,
-                                                   function(x) apply(x,2, median, na.rm=TRUE))))
+                                                        function(x) apply(x,2, median, na.rm=TRUE))))
         lo[[i]] <- as.data.frame(do.call(rbind,lapply(tmp2,
-                                                 function(x) apply(x,2, quantile, prob=min(prob),
-                                                                   na.rm=TRUE))))
+                                                      function(x) apply(x,2, quantile, prob=min(prob),
+                                                                        na.rm=TRUE))))
         up[[i]] <- as.data.frame(do.call(rbind,lapply(tmp2,
-                                                 function(x) apply(x,2, quantile, prob=max(prob),
-                                                                   na.rm=TRUE))))
+                                                      function(x) apply(x,2, quantile, prob=max(prob),
+                                                                        na.rm=TRUE))))
     }
 
 
@@ -607,9 +607,11 @@ predCatch <- function(logFM,
                       R0, SR, bp, recBeta, recGamma, eR,
                       indage0,
                       iaFM,
-                      TAC = NULL,
+                      target = NULL,  ## TAC or B
+                      type = "catch",
                       out = 0){
     Ctmp <- 0
+    TBtmp <- SSBtmp <- rep(NA, length(seasons))
     NAAtmp <- NAA
 
     for(i in 1:length(seasons)){
@@ -620,65 +622,94 @@ predCatch <- function(logFM,
         ## recruitment
         if(spawning[s] > 0 && i > 1){
             SSB0 <- get.ssb0(MAA, mat, weight,
-                               fecun=1, asmax, ns, spawning,
+                             fecun=1, asmax, ns, spawning,
                              R0, indage0, s)
             ## Survivors from previous season/year
             SSBtmp <- sum(NAAtmp * weight  * mat  * exp(-pzbm * Ztmp))
             rec <- spawning[s] * recfunc(h = h2, SPR0 = SSB0/R0, SSB = SSBtmp,
-                             R0 = R0, method = SR, bp = bp,
-                             beta = recBeta, gamma = recGamma) * eR
+                                         R0 = R0, method = SR, bp = bp,
+                                         beta = recBeta, gamma = recGamma) * eR
             rec[rec<0] <- 1e-10
             NAAtmp[indage0] <- rec
         }
         Ctmp <- Ctmp + sum(baranov(FAA, MAA, NAAtmp) * weight)
+
         ## print(paste0("TSB: ",round(sum(NAAtmp*weight))))
         ## print(paste0("Ctmp: ",round(Ctmp)))
-        ## Aging
+
+        ## Exponential decay
         NAAtmp <- NAAtmp * exp(-Ztmp)
+        TBtmp[i] <- sum(NAAtmp * weight)
+        SSBtmp[i] <- sum(NAAtmp * weight * mat)
+
+        ## Aging
         NAAtmp[asmax] <- NAAtmp[asmax] + NAAtmp[asmax-1]
         for(as in (asmax-1):2) NAAtmp[as] <- NAAtmp[as-1]
         NAAtmp[indage0] <- 0
     }
 
+    if(type == "catch"){
+        res <- Ctmp
+    }else if(type == "TB"){
+        res <- tail(TBtmp, 1)  ## CHECK: or mean?
+    }else if(type == "SSB"){
+        res <- mean(SSBtmp, na.rm = TRUE)
+    }
+
     if(out == 0){
-        return(Ctmp)
-    }else{
-##         return((Ctmp - TAC)^2)  ## CHECK: needs if clause if Ctmp or TAC == 0?
-##         return((log(Ctmp) - log(TAC))^2)  ## CHECK: needs if clause if Ctmp or TAC == 0?
-         return(sqrt(mean(Ctmp - TAC)^2))
+        return(res)
+    }else if(out == 1){
+        ##         return((Ctmp - target)^2)  ## CHECK: needs if clause if Ctmp or TAC == 0?
+        return(sqrt(mean(res - target)^2))
     }
 }
 
 #' @title get.f
 #' @details get FM accounting for seasons
 #' @export
-get.f <- function(TAC,
-                   NAA, MAA,
-                   sel, weight,
-                   seasons, ns, y, h, asmax, mat,
-                   pzbm, spawning,
-                   R0, SR, bp, recBeta,
+get.f <- function(target,
+                  NAA, MAA,
+                  sel, weight,
+                  seasons, ns, y, h, asmax, mat,
+                  pzbm, spawning,
+                  R0, SR, bp, recBeta,
                   recGamma, eR,
                   indage0,
                   iaFM,
                   lastFM = 0.01, upper = 100,
-                  tac_cut_off = 0.01){
+                  target_cut_off = 0.01,
+                  type = "catch"){
 
     ## browser()
 
-    ## TAC
-    ## iaFM
-    ## predCatch(log(0.48), NAA, MAA, sel, weight,
+    ## target
+    ## predCatch(log(5), NAA, MAA, sel, weight,
     ##           seasons, ns, y, h, asmax, mat, pzbm, spawning,
     ##           R0, SR, bp, recBeta, recGamma, eR,
     ##           indage0,
     ##           iaFM,
-    ##           TAC = TAC,
+    ##           type = type,
     ##           out = 0)
 
-    if(TAC < tac_cut_off){
+    if(target < target_cut_off){
         return(0)
     }else{
+        if(type %in% c("TB","SSB")){
+            tmp <- predCatch(-20, NAA = NAA, MAAy = MAA,
+                             sel = sel, weight = weight,
+                             seasons = seasons, ns = ns, y = y,
+                             h2 = h, asmax = asmax, mat = mat,
+                             pzbm = pzbm, spawning = spawning,
+                             R0 = R0, SR = SR, bp = bp, recBeta = recBeta,
+                             recGamma = recGamma, eR = eR,
+                             indage0 = indage0,
+                             iaFM = iaFM,
+                             target = target,
+                             out = 0,
+                             type = type)
+            if(tmp < target) return(0)  ## Cannot reach target B even with F=0
+        }
+
         opt <- nlminb(start = log(lastFM), objective = predCatch,
                       NAA = NAA, MAAy = MAA,
                       sel = sel, weight = weight,
@@ -689,14 +720,15 @@ get.f <- function(TAC,
                       recGamma = recGamma, eR = eR,
                       indage0 = indage0,
                       iaFM = iaFM,
-                      TAC = TAC,
+                      target = target,
                       out = 1,
+                      type = type,
                       lower = -10, upper = log(upper),
                       control = list(rel.tol = 1e-3,
                                      iter.max = 1e4,
                                      eval.max = 1e4))
 
-##    print(paste0("obj: ",round(opt$objective,2), "- fm: ",round(exp(opt$par),3)))
+        ## print(paste0("obj: ",round(opt$objective,4), "- fm: ",round(exp(opt$par),3)))
         return(exp(opt$par))
     }
 }
@@ -813,8 +845,8 @@ getMat <- function(Lm50, Lm95, mids, plba){
     for(i in 1:dim(plba)[3]){
         matA[,i] <- apply(t(plba[,,i]) * matL, 2, sum)
     }
-##    matA <- apply(t(plba) * matL, 2, sum)
-##    matA <- c(1e-9,matA[-1])
+    ##    matA <- apply(t(plba) * matL, 2, sum)
+    ##    matA <- c(1e-9,matA[-1])
     return(matA)
 }
 
@@ -873,7 +905,7 @@ getMsel <- function(Linf, K, mids, plba, a = 0.55, b = 1.61, c = 1.44, below10 =
 #' @return spawning biomass per recruit
 #' @export
 get.ssb0 <- function (M, mat, weight, fecun = 1,
-                       asmax, ns, spawning,
+                      asmax, ns, spawning,
                       R0, indage0, season, FM=NULL){
 
     if(is.null(FM)){
@@ -882,7 +914,7 @@ get.ssb0 <- function (M, mat, weight, fecun = 1,
     ZAA <-  M + FM
 
     NAAS <- initdistR(M, FM=FM, ns, asmax, indage0, spawning, R0)
-##    print(NAAS)
+    ##    print(NAAS)
 
     ## SSB0 season dependent
     while(season > 1){
@@ -1105,34 +1137,34 @@ mclapply.windows <- function(...,mc.cores = parallel::detectCores()-1) {
         names( sessionInfo()$otherPkgs ))
 
     tryCatch( {
-       ## Copy over all of the objects within scope to all clusters
-       this.env <- environment()
-       while( identical( this.env, globalenv() ) == FALSE ) {
-           parallel::clusterExport(cl,
-                         ls(all.names=TRUE, env=this.env),
-                         envir=this.env)
-           this.env <- parent.env(environment())
-       }
-       parallel::clusterExport(cl,
-                     ls(all.names=TRUE, env=globalenv()),
-                     envir=globalenv())
+        ## Copy over all of the objects within scope to all clusters
+        this.env <- environment()
+        while( identical( this.env, globalenv() ) == FALSE ) {
+            parallel::clusterExport(cl,
+                                    ls(all.names=TRUE, env=this.env),
+                                    envir=this.env)
+            this.env <- parent.env(environment())
+        }
+        parallel::clusterExport(cl,
+                                ls(all.names=TRUE, env=globalenv()),
+                                envir=globalenv())
 
-       ## Load the libraries on all the clusters
-       ## N.B. length(cl) returns the number of clusters
-       parallel::parLapply(
-                     cl,
-                     1:length(cl),
-                     function(xx){
-           lapply(loaded.package.names, function(yy) {
-               require(yy , character.only=TRUE)})
-       })
+        ## Load the libraries on all the clusters
+        ## N.B. length(cl) returns the number of clusters
+        parallel::parLapply(
+                      cl,
+                      1:length(cl),
+                      function(xx){
+                          lapply(loaded.package.names, function(yy) {
+                              require(yy , character.only=TRUE)})
+                      })
 
-       ## Run the lapply in parallel
-       return(parallel::parLapply( cl, ...))
+        ## Run the lapply in parallel
+        return(parallel::parLapply( cl, ...))
 
     }, finally = {
-       ## Stop the cluster
-       parallel::stopCluster(cl)
+        ## Stop the cluster
+        parallel::stopCluster(cl)
     })
 }
 
@@ -1145,7 +1177,7 @@ mclapply.windows <- function(...,mc.cores = parallel::detectCores()-1) {
 #' @export
 mclapply.all.os <- switch(
     Sys.info()[['sysname']],
-   Windows = {mclapply.windows},
-   Linux   = {parallel::mclapply},
-   Darwin  = {parallel::mclapply}
+    Windows = {mclapply.windows},
+    Linux   = {parallel::mclapply},
+    Darwin  = {parallel::mclapply}
 )

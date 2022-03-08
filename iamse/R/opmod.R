@@ -906,6 +906,7 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE, dbg = 0){
                                             "b" = TSBtmp,
                                             "fmsy" = refs$Fmsy[y + s - 1],
                                             "bmsy" = refs$Bmsy[y + s - 1],
+                                            "blim" = refs$Blim[y + s - 1],
                                             "sel" = sely,
                                             "weight" = weightFy,
                                             "m" = MAA,
@@ -957,6 +958,12 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE, dbg = 0){
                     print(paste0("TAC[",y,"]: ",round(TACs[y],1)))
                 }
 
+                if(tacID2 == "escapement"){
+                    type <- "TB"
+                }else{
+                    type <- "catch"
+                }
+
                 FMtac <- min(set$maxF,
                              get.f(TACs[y],
                                    NAA = NAAS, MAA = MAAy,
@@ -971,7 +978,8 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE, dbg = 0){
                                    indage0 = indage0,
                                    iaFM = iaFM,
                                    lastFM = sum(FM[y-1,]),  ## or 0.01 CHECK: had some issues with too high FM
-                                   upper = set$maxF
+                                   upper = set$maxF,
+                                   type = type
                                    )
                              )
 

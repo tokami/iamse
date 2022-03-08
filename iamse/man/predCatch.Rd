@@ -26,7 +26,8 @@ predCatch(
   eR,
   indage0,
   iaFM,
-  TAC = NULL,
+  target = NULL,
+  type = "catch",
   out = 0
 )
 }

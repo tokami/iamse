@@ -173,7 +173,7 @@ List simpop(double logFM, List dat, List set, int out) {
   }
   for(int s=0; s<ns; s++){
     iaFM(s) = FMmat(FMmat.nrow()-1,s) / maxFM;
-//    std::cout << "iaFM(" << s << "): " << iaFM(s) << std::endl;
+    //    std::cout << "iaFM(" << s << "): " << iaFM(s) << std::endl;
     if(NumericVector::is_na(iaFM(s))){
       iaFM(s) = 1;
     }
@@ -196,12 +196,12 @@ List simpop(double logFM, List dat, List set, int out) {
 
 
   // Initialise
-//  std::fill( CW.begin(), CW.end(), 0);
-//  std::fill( SP.begin(), SP.end(), 0);
+  //  std::fill( CW.begin(), CW.end(), 0);
+  //  std::fill( SP.begin(), SP.end(), 0);
   // std::fill( SSB2.begin(), SSB2.end(), 0);
   // std::fill( TSB.begin(), TSB.end(), 0);
   // std::fill( ESB.begin(), ESB.end(), 0);
-//  std::fill( F0.begin(), F0.end(), 0);
+  //  std::fill( F0.begin(), F0.end(), 0);
   // NumericMatrix Msel = as<NumericMatrix>(MselList[tvmsel-1]);
   // NumericMatrix sel = as<NumericMatrix>(selList[tvsel-1]);
   NumericMatrix Msel = as<NumericMatrix>(MselList[0]);
@@ -309,16 +309,16 @@ List simpop(double logFM, List dat, List set, int out) {
       for(int a=0; a<asmax; a++){
         NAAS(a) = NAAS(a) * exp(-ZAA(a));
       }
-//      if(s == (ns-1)){
-        for(int a=0; a<asmax; a++){
-          // biomasses
-          Bage(a) = NAAS(a) * weighty(a);
-          SSBage(a) = Bage(a) * maty(a) * exp(-pzbm * ZAA(a));
-          ESBage(a) = Bage(a) * sely(a);
-          TSB(y,s) += Bage(a);
-          SSB2(y,s) += SSBage(a);
-          ESB(y,s) += ESBage(a);
-//        }
+      //      if(s == (ns-1)){
+      for(int a=0; a<asmax; a++){
+        // biomasses
+        Bage(a) = NAAS(a) * weighty(a);
+        SSBage(a) = Bage(a) * maty(a) * exp(-pzbm * ZAA(a));
+        ESBage(a) = Bage(a) * sely(a);
+        TSB(y,s) += Bage(a);
+        SSB2(y,s) += SSBage(a);
+        ESB(y,s) += ESBage(a);
+        //        }
       }
       // Continuous ageing
       NAAS(asmax-1) = NAAS(asmax-1) + NAAS(asmax-2);

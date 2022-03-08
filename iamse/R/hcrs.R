@@ -1372,3 +1372,47 @@ structure(
     ## allow for assigning names
     invisible(id)
 }
+
+
+
+#' @title def.hcr.escape
+#' @title Define harvest control rule
+#'
+#' @export
+#'
+def.hcr.escape <- function(id = "escapement",
+                           Btarget = "Blim",
+                           assessmentInterval = 1,
+                           env = globalenv()
+                           ){
+    Btar <- Btarget
+
+    template  <- expression(paste0(
+        '
+structure(
+    function(obs, tacs = NULL, pars=NULL){
+
+
+        if(is.numeric(Btar)){
+            tac <- Btar
+        }else if(Btar == "Blim"){
+            if(!is.numeric(pars$blim)) stop("Blim is not numeric! Is Blim specified in dat$ref?")
+            tac <- pars$blim
+        }else if(Btar == "Bmsy"){
+            tac <- pars$bmsy
+        }
+
+        tacs <- gettacs(tacs, id = "',id,'", TAC = tac, obs=obs)
+        return(tacs)
+    },
+    class="hcr"
+)
+'))
+
+    ## create HCR as functions
+    templati <- eval(parse(text=paste(parse(text = eval(template)),collapse=" ")))
+    assign(value=templati, x=id, envir=env)
+
+    ## allow for assigning names
+    invisible(id)
+}
