@@ -14,7 +14,8 @@ est.tac <- function(obs, hcr, tacs=NULL, pars=NULL){
 gettacs <- function(tacs=NULL, id="", TAC=NA, obs=NULL){
     if(!is.null(obs) && is.list(obs$obsI) && length(obs$obsI) != 0)
         nis <- length(obs$obsI) else nis <- 1
-    tactmp <- data.frame(TAC=TAC, id=id,
+    names(TAC) <- paste0("TAC", seq(length(TAC)))
+    tactmp <- data.frame(t(TAC), id=id,
                          hitSC=NA,
                          red=NA,
                          barID=FALSE,
@@ -59,6 +60,7 @@ gettacs <- function(tacs=NULL, id="", TAC=NA, obs=NULL){
 #'
 def.hcr.ref <- function(consF = 0,
                         fracFmsy = NULL,
+                        set = set,
                         env = globalenv()
                         ){
 
@@ -78,7 +80,7 @@ structure(
              inp <- obs[c("obsC","timeC","obsI","timeI","obsE","timeE")]
         }
         inp <- spict::check.inp(inp, verbose = FALSE)
-        tacs <- gettacs(tacs, id="',id,'", TAC=NA, obs=inp)
+        tacs <- gettacs(tacs, id="',id,'", TAC=rep(0, set$assessmentInterval), obs=inp)
         return(tacs)
     },
     class="hcr"
@@ -103,7 +105,7 @@ structure(
              inp <- obs[c("obsC","timeC","obsI","timeI","obsE","timeE")]
         }
         inp <- spict::check.inp(inp, verbose = FALSE)
-        tacs <- gettacs(tacs, id="',id,'", TAC=NA, obs=inp)
+        tacs <- gettacs(tacs, id="',id,'", TAC=rep(0, set$assessmentInterval), obs=inp)
         return(tacs)
     },
     class="hcr"
@@ -125,7 +127,7 @@ structure(
              inp <- obs[c("obsC","timeC","obsI","timeI","obsE","timeE")]
         }
         inp <- spict::check.inp(inp, verbose = FALSE)
-        tacs <- gettacs(tacs, id="',id,'", TAC=NA, obs=inp)
+        tacs <- gettacs(tacs, id="',id,'", TAC=rep(NA, set$assessmentInterval), obs=inp)
         return(tacs)
     },
     class="hcr"
@@ -147,7 +149,7 @@ structure(
              inp <- obs[c("obsC","timeC","obsI","timeI","obsE","timeE")]
         }
         inp <- spict::check.inp(inp, verbose = FALSE)
-        tacs <- gettacs(tacs, id="',id,'", TAC=0, obs=inp)
+        tacs <- gettacs(tacs, id="',id,'", TAC=rep(0, set$assessmentInterval), obs=inp)
         return(tacs)
     },
     class="hcr"
@@ -182,6 +184,7 @@ def.hcr.conscat <- function(id = "conscat",
                             ffmsySD = 0,
                             bbtriggerSD = 0,
                             rightRef=1,
+                            set = set,
                             env = globalenv()
                             ){
 
@@ -246,6 +249,7 @@ structure(
         if(barID){
             tac <- tac * (1-red)
         }
+        tac <- rep(tac, set$assessmentInterval)
         tacs <- gettacs(tacs, id = "',id,'", TAC = tac, obs=obs)
         tacs$hitSC[nrow(tacs)] <- NA
         tacs$barID[nrow(tacs)] <- barID
@@ -360,7 +364,7 @@ structure(
                 ## Account for non-annual assessments
                 cl <- cl * assessInt
             }else{
-                cl <- tacs$TAC[nrow(tacs)]
+                cl <- tacs[nrow(tacs),paste0("TAC",assessInt)]
             }
         }
         tac <- cl * r * 1 * 1 ## Clast * r * f * b
@@ -482,6 +486,7 @@ def.hcr.spict <- function(id = "spict-msy",
                                            bmsy = 0.5,
                                            fmsy = 0.5),
                           breakpointB = 0.0,
+                          evalBreakpointB = 0,
                           safeguard = list(limitB = 0, prob = 0.95),
                           dteuler = 1/4,
                           reportmode = 1,
@@ -492,6 +497,7 @@ def.hcr.spict <- function(id = "spict-msy",
                           priorlogalpha = c(log(1),2,1),
                           priorlogbeta = c(log(1),2,1),
                           priorlogbkfrac = c(log(0.5),2,0),
+                          priorlogr = c(log(0.4),2,0),
                           fixn = NA,
                           bfac = NA,
                           bref = "current", ## lowest or "highest" or "average" or "last"
@@ -506,6 +512,8 @@ def.hcr.spict <- function(id = "spict-msy",
                           rai = 0.2,
                           manstartdY = 0,
                           assessmentInterval = 1,
+                          cpvec = FALSE,
+                          halfAssessInt = FALSE,
                           intC = NA,
                           nonconvHCR = "conscat",
                           clType = "TAC",
@@ -534,15 +542,7 @@ def.hcr.spict <- function(id = "spict-msy",
     breakpointB1 <- breakpointB[1]
     breakpointB2 <- breakpointB[2]
 
-    template  <- expression(paste0(' structure(function(obs, tacs = NULL, pars=NULL){
-        if(is.null(obs$timeE)){
-             inp <- obs[c("obsC","timeC","obsI","timeI")]
-        }else if(is.null(obs$timeI)){
-             inp <- obs[c("obsC","timeC","obsE","timeE")]
-        }else{
-             inp <- obs[c("obsC","timeC","obsI","timeI","obsE","timeE")]
-        }
-
+    template  <- expression(paste0(' structure(function(obs, tacs = NULL, pars=NULL){if(is.null(obs$timeE)){inp <- obs[c("obsC","timeC","obsI","timeI")]}else if(is.null(obs$timeI)){inp <- obs[c("obsC","timeC","obsE","timeE")]}else{inp <- obs[c("obsC","timeC","obsI","timeI","obsE","timeE")]}
         func <- get("',nonconvHCR,'")
         inp$reportmode <- ',reportmode,'
         inp$dteuler <- ',dteuler,'
@@ -564,7 +564,11 @@ def.hcr.spict <- function(id = "spict-msy",
         nyBref <- ',nyBref,'
         ## Intermediate year
         manstart <- inp$timeC[length(inp$timeC)] + 1 + ',manstartdY,' ## assumes annual catches
-        inp$maninterval <- c(manstart, manstart + assessInt)
+        if(',halfAssessInt,'){
+            inp$maninterval <- c(manstart, manstart + 1)
+        }else{
+            inp$maninterval <- c(manstart, manstart + assessInt)
+        }
         inp$maneval <- max(inp$maninterval)
         ## Check inp
         inp <- spict::check.inp(inp, verbose = FALSE)
@@ -580,14 +584,16 @@ def.hcr.spict <- function(id = "spict-msy",
         priorlogbeta[3],')
         inp$priors$logbkfrac <- c(',priorlogbkfrac[1],',',priorlogbkfrac[2],',',
         priorlogbkfrac[3],')
+        inp$priors$logr <- c(',priorlogr[1],',',priorlogr[2],',',priorlogr[3],')
         ## Catch for intermediate year
         if(is.na(',intC,')){
             intC2 <- NULL
         }else{
             if(is.null(tacs)){
-                intC2 <- tail(inp$obsC,1) ## does not account for seasonal catches!
+                intC2 <- tail(inp$obsC,',manstartdY,') ## does not account for seasonal catches!
             }else{
-                intC2 <- tacs$TAC[nrow(tacs)]
+                intC2 <- tacs[nrow(tacs),paste0("TAC",assessInt)] * ',
+        manstartdY,'
             }
         }
         if(is.numeric(fixn) && !is.na(fixn)){
@@ -648,7 +654,7 @@ def.hcr.spict <- function(id = "spict-msy",
                 cl <- mean(tail(inp$obsC, clyears))
                 cl <- cl * assessInt
             }else{
-                cl <- tacs$TAC[nrow(tacs)]
+                cl <- tacs[nrow(tacs),paste0("TAC",assessInt)]
             }
         }
         fmfmsy <- try(get.par("logFmFmsynotS",fit, exp=TRUE)[,c(2,4)],silent=TRUE)
@@ -817,6 +823,8 @@ def.hcr.spict <- function(id = "spict-msy",
                                                         fmsy  = ',frf,'),
                                        breakpointB = c(',breakpointB1,',',
 breakpointB2,'),
+                                       evalBreakpointB = ',evalBreakpointB,',
+                                       cpvec = ',cpvec,',
                                        safeguardB = list(limitB = ',limitB,',prob = prob),
                                        intermediatePeriodCatch = intC2,
                                        verbose = FALSE),
@@ -845,6 +853,8 @@ breakpointB2,'),
                                                         fmsy  = ',frf,'),
                                        breakpointB = c(',breakpointB1,',',
 breakpointB2,'),
+                                       evalBreakpointB = ',evalBreakpointB,',
+                                       cpvec = ',cpvec,',
                                        safeguardB = list(limitB = ',limitB,',prob = prob),
                                        intermediatePeriodCatch = intC2,
                                        verbose = FALSE),
@@ -897,6 +907,8 @@ breakpointB2,'),
                                                             fmsy  = ',frf,'),
                                            breakpointB = c(',breakpointB1,',',
 breakpointB2,'),
+                                           evalBreakpointB = ',evalBreakpointB,',
+                                           cpvec = ',cpvec,',
                                            safeguardB = list(limitB = ',limitB,',prob = prob),
                                            intermediatePeriodCatch = intC2,
                                            verbose = FALSE),
@@ -933,7 +945,7 @@ breakpointB2,'),
             ## }
         }
 
-        if(inherits(tac, "try-error") || !is.numeric(tac) || is.na(tac)){
+        if(any(inherits(tac, "try-error")) || any(!is.numeric(tac)) || any(is.na(tac))){
             tacs <- func(inp, tacs=tacs, pars=pars)
             tacs$conv[nrow(tacs)] <- FALSE
             tacs$indBref[nrow(tacs)] <- indBref2
@@ -958,7 +970,16 @@ breakpointB2,'),
         if(barID){
             tac <- tac * (1-red)
         }
-        tactmp <- data.frame(TAC=tac, id="',id,'", hitSC=hitSC,
+
+        if(!',cpvec,' && assessInt > 1){
+             tac <- rep(tac / assessInt, assessInt)
+        }
+        if(',halfAssessInt,'){
+            tac <- rep(tac, assessInt)
+        }
+
+        names(tac) <- paste0("TAC", seq(length(tac)))
+        tactmp <- data.frame(t(tac), id="',id,'", hitSC=hitSC,
                              red=red, barID=barID, sd=NA, conv = TRUE)
         tactmp <- data.frame(c(tactmp, quantstmp,
                                indBref = indBref2, bmID=bmID,
@@ -1103,6 +1124,7 @@ class="hcr")
 #' @param priorlogalpha prior
 #' @param priorlogbeta prior
 #' @param priorlogbkfrac prior
+#' @param priorlogr prior
 #' @param fixn fixn
 #' @param bfac bfac
 #' @param bref bref
@@ -1224,7 +1246,7 @@ structure(
                 cl <- mean(tail(inp$obsC, clyears))
                 cl <- cl ## * assessInt
             }else{
-                cl <- tacs$TAC[nrow(tacs)]
+                cl <- tacs[nrow(tacs),paste0("TAC",assessInt)]
             }
         }
 

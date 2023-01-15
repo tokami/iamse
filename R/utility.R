@@ -173,6 +173,7 @@ est.depletion <- function(dat, set=NULL, fmin = 0.0001,
         blim <- dat$ref$SSBlim[ny]
     }else stop("depl.quant not implemented. Please use Bmsy, Blim,SSBmsy or SSBlim. Or implement others.")
 
+    browser()
 
     ## errors
     errs <- list()

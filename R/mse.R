@@ -6,7 +6,7 @@
 ##' @export
 run.mse <- function(dat, set, ncores=parallel::detectCores()-1, verbose=TRUE){if(ncores > 1) verbose <- FALSE
     ## define constant catch (resort HCR if something not converging)
-    def.hcr.conscat()
+    def.hcr.conscat(set = set)
 
     ## Variables
     hcrs <- set$hcr

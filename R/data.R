@@ -5,11 +5,11 @@
 #' @return Updated data list
 #' @export
 check.dat <- function(dat = NULL, verbose = TRUE){
-
     if(is.null(dat)) dat <- list()
 
     ## Do not change processes (sel, mat, weight, weightF) when re-running check.dat()
     if(is.null(dat$fixProcs)) dat$fixProcs <- FALSE
+
 
 
     ## Number of historic years
@@ -188,6 +188,7 @@ check.dat <- function(dat = NULL, verbose = TRUE){
     if(!any(names(dat) == "fecun")) dat$fecun <- 1
 
 
+
     ## natural mortality over time
     ##------------------
     if(is.null(LA)){
@@ -202,7 +203,7 @@ check.dat <- function(dat = NULL, verbose = TRUE){
         if(!any(names(dat) == "M")){
             if(verbose) writeLines("No natural mortality provided. Setting time-invariant M corresponding to annual M based Gislason's formula and growth parameters.")
             dat$M <- matrix(getM(Linf, K, mids) / ns, nrow = ny, ncol = ns)
-        }else if(nrow(dat$M) == 1 && !dat$fixProcs){
+        }else if(length(dat$M) == 1 && !dat$fixProcs){
             dat$M <- matrix(rep(dat$M,ny), nrow = ny, ncol = ns, byrow=TRUE)
         }else if(any(dim(dat$M) != c(ny,ns))){
             stop(paste0("Intra-annual natural mortality ('dat$M') has dimensions ",

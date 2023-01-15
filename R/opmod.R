@@ -696,13 +696,13 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
     weightFy <- as.numeric(t(weightF)) * eW
 
     ## TAC from previous year (if e.g. interim advice)
-    ntac <- ns * set$assessmentInterval
+    ntac <- ns
     TACprev <- hist$TACprev ## TAC for full interval
     if(is.null(TACprev)){
         TACprev <- tail(as.numeric(t(hist$CW)),ntac)
     }
     ## Use only part before assessment from previous TAC in assessment year
-    if(year %in% assessYears){
+    if(year %in% assessYears){ ## TODO: here also account for intY?
         TACreal <- rep(NA, ntac)
         if(min(set$assessmentTiming) > 1){
             ind <- 1:(min(set$assessmentTiming)-1)
@@ -767,7 +767,13 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
 
 
         ## Assessment
-        if(year %in% assessYears && s %in% assessmentTiming){
+        if(any(year > assessYears)){
+            yearsAfterAssessment <- year - max(assessYears[assessYears < year])
+        }else{
+            yearsAfterAssessment <- 1
+        }
+        if((year %in% assessYears && s %in% assessmentTiming)){
+
 
             ## Estimate TAC
             if(tacID2 %in% c("refFmsy","consF")){
@@ -803,62 +809,93 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
                                             "ns" = ns
                                             ))
 
-                TACs[y] <- as.numeric(as.character(tacs$TAC[nrow(tacs)])) * eImp
-                TACreal <- rep(TACs[y] / ntac, ntac)
-                ## CHECK: do not equally split tac among time steps! (only used for TACprev)
-            }
+                if(set$assessmentIntYear > 0){
+                    if(year > set$assessmentIntYear){
+                        tmp <- tacs[nrow(tacs)-set$assessmentIntYear,
+                                    paste0("TAC", yearsAfterAssessment)]
+                        TACs[y] <- as.numeric(as.character(tmp)) * eImp
+                        TACreal <- rep(TACs[y] / ntac, ntac)
+                    }else{
+                        TACs[y] <-  TACprev * eImp  ## * set$assessmentIntYear
+                        TACreal <- rep(TACs[y] / ntac, ntac)
+                    }
 
-            ## Find F given TAC
-            if(tacID2 == "refFmsy"){
-                if(tacID == "refFmsy"){
-                    ## Fishing at Fmsy
-                    FMtac <- refs$Fmsy[y + s - 1] / ns
                 }else{
-                    fraci <- as.numeric(unlist(strsplit(as.character(tacID), "_"))[2])
-                    ## Fishing at fraction of Fmsy
-                    FMtac <- (fraci * refs$Fmsy[y]) / ns
-                    ## ## percentile
-                    ## fraci <- as.numeric(unlist(strsplit(as.character(tacID), "_"))[2])
-                    ## ## uncertainty
-                    ## fraci2 <- as.numeric(unlist(strsplit(as.character(tacID), "_"))[3])
-                    ## ## bias
-                    ## fraci3 <- as.numeric(unlist(strsplit(as.character(tacID), "_"))[4])
-                    ## ## Fishing at fraction of Fmsy
-                    ## ## FMtac <- (fraci * refs$Fmsy[y]) / ns
-                    ## FMtac <- exp(qnorm(fraci,log((refs$Fmsy[y] * fraci3)/ns), sd = fraci2))
-
+                    tmp <- tacs[nrow(tacs), "TAC1"]
+                    TACs[y] <- as.numeric(as.character(tmp)) * eImp
+                    TACreal <- rep(TACs[y] / ntac, ntac)
                 }
-            }else if(tacID2 == "noF"){
-                ## noF
-                FMtac <- 0
-            }else if(tacID2 == "consF"){
-                ## constant F
-                fraci <- as.numeric(unlist(strsplit(as.character(tacID), "_"))[2])
-                FMtac <- fraci / ns
-            }else{
-                ## any other HCR
 
-                ## CHECK: shouldn't this give a vector FM of length ns?
-                ## what if F cannot be assumed to be constant throughout the year? seasonal fishing effort?
-                ## but which pattern to use? from last year? or in sel?
-
-                FMtac <- min(set$maxF/ns,
-                             get.f(TACs[y],
-                                   NAA = NAAS, MAA = MAA,
-                                   sel = sely, weight = weighty,
-                                   seasons = assessSeasons[[s]], ns = ns, y = y,
-                                   h = hy, asmax = asmax, mat = maty,
-                                   pzbm = pzbm, spawning = spawning,
-                                   R0 = R0y, SR = dat$SR, bp = dat$pb, recBeta = dat$recBeta,
-                                   recGamma = dat$recGamma, eR = eR,
-                                   indage0 = indage0,
-                                   lastFM = 0.01, ## FM[y-1,s],  ## CHECK: had some issues with too high FM
-                                   upper = log(set$maxF/ns)
-                                   )
-                             )
             }
-            FM[y,] <- FMtac
+
+            ## CHECK: do not equally split tac among time steps! (only used for TACprev)
+
+        }else{
+
+            if(s %in% assessmentTiming){
+
+                tmp <- tacs[nrow(tacs), paste0("TAC", yearsAfterAssessment)]
+                TACs[y] <- as.numeric(as.character(tmp)) * eImp
+                TACreal <- rep(TACs[y] / ntac, ntac)
+
+            }
         }
+        ## TODO: not tested for ns > 1 & assessmentIntYear > 1
+
+
+        ## Find F given TAC
+        if(tacID2 == "refFmsy"){
+            if(tacID == "refFmsy"){
+                ## Fishing at Fmsy
+                FMtac <- refs$Fmsy[y + s - 1] / ns
+            }else{
+                fraci <- as.numeric(unlist(strsplit(as.character(tacID), "_"))[2])
+                ## Fishing at fraction of Fmsy
+                FMtac <- (fraci * refs$Fmsy[y]) / ns
+                ## ## percentile
+                ## fraci <- as.numeric(unlist(strsplit(as.character(tacID), "_"))[2])
+                ## ## uncertainty
+                ## fraci2 <- as.numeric(unlist(strsplit(as.character(tacID), "_"))[3])
+                ## ## bias
+                ## fraci3 <- as.numeric(unlist(strsplit(as.character(tacID), "_"))[4])
+                ## ## Fishing at fraction of Fmsy
+                ## ## FMtac <- (fraci * refs$Fmsy[y]) / ns
+                ## FMtac <- exp(qnorm(fraci,log((refs$Fmsy[y] * fraci3)/ns), sd = fraci2))
+
+            }
+        }else if(tacID2 == "noF"){
+            ## noF
+            FMtac <- 0
+        }else if(tacID2 == "consF"){
+            ## constant F
+            fraci <- as.numeric(unlist(strsplit(as.character(tacID), "_"))[2])
+            FMtac <- fraci / ns
+        }else{
+            ## any other HCR
+
+            ## CHECK: shouldn't this give a vector FM of length ns?
+            ## what if F cannot be assumed to be constant throughout the year? seasonal fishing effort?
+            ## but which pattern to use? from last year? or in sel?
+
+            ## TODO: this does not consider assessmentInterval!! (e.g. if TAC corresponds to 2 years!)
+
+            FMtac <- min(set$maxF/ns,
+                         get.f(TACs[y],
+                               NAA = NAAS, MAA = MAA,
+                               sel = sely, weight = weighty,
+                               seasons = assessSeasons[[s]], ns = ns, y = y,
+                               h = hy, asmax = asmax, mat = maty,
+                               pzbm = pzbm, spawning = spawning,
+                               R0 = R0y, SR = dat$SR, bp = dat$pb, recBeta = dat$recBeta,
+                               recGamma = dat$recGamma, eR = eR,
+                               indage0 = indage0,
+                               lastFM = 0.01, ## FM[y-1,s],  ## CHECK: had some issues with too high FM
+                               upper = log(set$maxF/ns)
+                               )
+                         )
+        }
+        FM[y,] <- FMtac
+
 
         ## Population dynamics
         FAA <- FM[y,] * sely
@@ -891,7 +928,7 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
         ## }
         if(tacID2 == "refFmsy"){
             TACreal[indtac] <- sum(CAA[,s] * weightF[,s], na.rm = TRUE)
-            if(indtac == ntac) TACs[y] <- tacs$TAC[nrow(tacs)] <- sum(TACreal)
+            if(indtac == ntac) TACs[y] <- tacs$TAC1[nrow(tacs)] <- sum(TACreal)
         }
         ## TSB
         TSB[y,s] <- sum(NAAS * weighty)
