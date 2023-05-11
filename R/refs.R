@@ -100,7 +100,7 @@ est.ref.levels <- function(dat, set=NULL, fvec = seq(0,5,0.1),
 #'
 est.ref.levels.stochastic <- function(dat, set=NULL, fmax = 10,
                         ncores = parallel::detectCores()-1,
-                        ref = c("Fmsy","Bmsy","MSY","B0","ESBmsy","SSBmsy"),
+                        ref = c("Fmsy","Bmsy","MSY","B0","ESBmsy","SSBmsy","ESB0"),
                         plot = FALSE){
 
     ## Checks
@@ -146,7 +146,7 @@ est.ref.levels.stochastic <- function(dat, set=NULL, fmax = 10,
     alltv <- max(c(alltv,seltv))
 
     ##
-    refall <- c("Fmsy","MSY","Bmsy","ESBmsy","SSBmsy","B0")
+    refall <- c("Fmsy","MSY","Bmsy","ESBmsy","SSBmsy","B0","ESB0")
     ##
 
     ## errors (have to be re-used for estimation of Bmsy)
@@ -245,14 +245,15 @@ est.ref.levels.stochastic <- function(dat, set=NULL, fmax = 10,
                                   lapply(as.list(1:nrep),
                                          function(x) sapply(1:alltv, function(j) res[[x]][[j]][[i]])))
         }
+
     }
 
     ## B0
-    if(any(ref == "B0")){
+    if(any(ref %in% c("B0","ESB0"))){
 
         res <- parallel::mclapply(as.list(1:nrep), function(x){
             setx <- c(set, errs[[x]])
-            tmp <- rep(NA, alltv)
+            tmp <- vector("list", alltv)
             for(i in 1:alltv){
                 ## datx$M <- rep(dat$M[i], nyref)
                 ## ind <- (i-1)*ns+1
@@ -263,28 +264,39 @@ est.ref.levels.stochastic <- function(dat, set=NULL, fmax = 10,
                 setx$tvm <- 1
                 setx$tvmsel <- 1
                 setx$tvsel <- 1
-                tmp0 <- simpop(log(1e-20), datx, setx, out=0)$TSB
+                tmp0 <- simpop(log(1e-20), datx, setx, out=0)
                 if(set$refMethod == "mean"){
-                    tmp[i] <- mean(tail(tmp0,nyrefmsy))
+                    tmp[[i]] <- c(mean(tail(tmp0$TSB,nyrefmsy)),
+                                mean(tail(tmp0$ESB,nyrefmsy)))
                 }else if(set$refMethod == "median"){
-                    tmp[i] <- median(tail(tmp0,nyrefmsy))
+                    tmp[[i]] <- c(median(tail(tmp0$TSB,nyrefmsy)),
+                                median(tail(tmp0$ESB,nyrefmsy)))
                 }
             }
             return(tmp)
         }, mc.cores = ncores)
 
-        b0s <- do.call(rbind, res)
+        ## b0s <- do.call(rbind, res)
+
+        ## sort in list by reference point with matrix (nrep, ntv)
+        b0s <- vector("list", 2) ## b("B0","ESB0")
+        for(i in 1:2){
+            b0s[[i]] <- do.call(rbind,
+                                  lapply(as.list(1:nrep),
+                                         function(x) sapply(1:alltv, function(j) res[[x]][[j]][[i]])))
+        }
+
     }
 
 
     ## all refs in one list
-    refs <- c(list(fmsys), brefs, list(b0s))
+    refs <- c(list(fmsys), brefs, b0s)
 
     ## remove runs where long-term SP is smaller or equal to 0
     for(i in 1:alltv){
         ind <- which(brefs[[1]][,i] <= 0)
         if(length(ind) > 0){
-            for(j in 1:6) refs[[j]][,i] <- refs[[j]][-ind,i]
+            for(j in 1:length(refs)) refs[[j]][ind,i] <- NA ## refs[[j]][-ind,i]
         }
     }
 
@@ -292,13 +304,13 @@ est.ref.levels.stochastic <- function(dat, set=NULL, fmax = 10,
     if(set$refMethod == "mean"){
         meds <- lapply(refs, function(x){
             tmp <- rep(NA, alltv)
-            for(i in 1:alltv) tmp[i] <- mean(x[,i])
+            for(i in 1:alltv) tmp[i] <- mean(x[,i], na.rm = TRUE)
             return(tmp)
         })
     }else if(set$refMethod == "median"){
         meds <- lapply(refs, function(x){
             tmp <- rep(NA, alltv)
-            for(i in 1:alltv) tmp[i] <- median(x[,i])
+            for(i in 1:alltv) tmp[i] <- median(x[,i], na.rm = TRUE)
             return(tmp)
         })
     }
@@ -318,8 +330,8 @@ est.ref.levels.stochastic <- function(dat, set=NULL, fmax = 10,
     if(plot){
         if(alltv < 4){
             cols <- c("dodgerblue2","darkorange","darkgreen","purple")
-            nr <- floor(length(refdist)/2)
-            par(mfrow=c(nr,2))
+            nr <- ceiling(length(refdist)/3)
+            par(mfrow=c(nr,3))
             for(i in 1:length(refdist)){
                 hist(refdist[[i]][,1], main = names(refdist)[i],
                      breaks=20, freq = TRUE, xlim = range(refdist[[i]]),
