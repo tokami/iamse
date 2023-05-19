@@ -125,6 +125,9 @@ check.set <- function(set = NULL){
     ## SP based on TSB (spType == 0) or on ESB (spType == 1)
     if(is.null(set$spType)) set$spType <- 0
 
+    ## Record states at end of year or beginning?
+    if(is.null(set$recordLast)) set$recordLast <- 0
+
     ## return
     return(set)
 }

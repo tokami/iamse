@@ -117,6 +117,7 @@ List simpop(double logFM, List dat, List set, int out) {
   NumericVector initN = as<NumericVector>(dat["initN"]);
   int sptype = as<int>(set["spType"]);
   NumericVector spawning = as<NumericVector>(dat["spawning"]);
+  int recordLast = as<int>(set["recordLast"]);
   // temporary entries
   // int tvm = as<int>(set["tvm"]);
   // int tvmsel = as<int>(set["tvmsel"]);
@@ -221,6 +222,18 @@ List simpop(double logFM, List dat, List set, int out) {
     // Seasons
     for(int s=0; s<ns; s++){
 
+      if(s == (ns-1) && recordLast == 0){
+        for(int a=0; a<asmax; a++){
+          // biomasses
+          Bage(a) = NAAS(a) * weighty(a);
+          SSBage(a) = Bage(a) * maty(a) * exp(-pzbm * ZAA(a));
+          ESBage(a) = Bage(a) * sely(a);
+          TSB(y) += Bage(a);
+          SSB2(y) += SSBage(a);
+          ESB(y) += ESBage(a);
+        }
+      }
+
       // Recruitment
       SSB = 0.0;
       for(int a=0; a<asmax; a++){
@@ -281,7 +294,7 @@ List simpop(double logFM, List dat, List set, int out) {
       for(int a=0; a<asmax; a++){
         NAAS(a) = NAAS(a) * exp(-ZAA(a));
       }
-      if(s == (ns-1)){
+      if(s == (ns-1) && recordLast == 1){
         for(int a=0; a<asmax; a++){
           // biomasses
           Bage(a) = NAAS(a) * weighty(a);
@@ -311,6 +324,7 @@ List simpop(double logFM, List dat, List set, int out) {
   }
 
   List res;
+  double tmp;
   if(out == 0){
     res["CW"] = CW;
     res["TSB"] = TSB;
@@ -320,7 +334,6 @@ List simpop(double logFM, List dat, List set, int out) {
   }else if(out == 1){
     // median SP over last 50 years (or mean)
     NumericVector sp2 = tail(SP, nyrefmsy);
-    double tmp;
     if(refmethod == "mean"){
       tmp = mean(sp2);
     }else if(refmethod == "median"){

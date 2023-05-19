@@ -152,7 +152,7 @@ est.ref.levels.stochastic <- function(dat, set=NULL, fmax = 10,
     ## errors (have to be re-used for estimation of Bmsy)
     errs <- vector("list", nrep)
     for(i in 1:nrep){
-        errs[[i]] <- vector("list", 9)
+        errs[[i]] <- list() ##vector("list", 9)
         errs[[i]]$eF <- gen.noise(nyref, set$noiseF[1], set$noiseF[2], set$noiseF[3])
 ##        errs[[i]]$eF <- rep(1.0, nyref)
         errs[[i]]$eR <- gen.noise(nyref, set$noiseR[1], set$noiseR[2], set$noiseR[3])
@@ -183,6 +183,7 @@ est.ref.levels.stochastic <- function(dat, set=NULL, fmax = 10,
     ## x = 1
     ## setx <- c(set, errs[[x]])
     ## simpop(log(f), datx, setx, out=1)
+
 
 
     if(any(ref %in% c("Fmsy","Bmsy","MSY","ESBmsy","SSBmsy"))){

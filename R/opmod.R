@@ -248,6 +248,37 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){## indices
 
         ## seasons
         for(s in 1:ns){
+
+            if(s == ns && set$recordLast == 0){
+                ## end of year biomasses
+                TSBfinal[y] <- sum(NAAS * weighty)
+                ESBfinal[y] <- sum(NAAS * weighty * sely)
+                SSBfinal[y] <- sum(NAAS * weighty * maty * exp(-pzbm * ZAA))
+            }
+
+            ## index observations
+            if(is.numeric(nyI)){
+                if(s %in% idxS){
+                    idxi <- which(idxS == s)
+                    for(i in 1:length(idxi)){
+                        surveyTime <- surveyTimes[idxi[i]] - seasonStart[idxS[idxi[i]]]
+                        NAAsurv <- exp(log(NAAS) - ZAA * surveyTime)
+                        ESBsurv <- NAAsurv * weightFy * as.numeric(t(dat$selI[[idxi[i]]]))
+                        ## Total index (for spict)
+                        obsI[[idxi[i]]] <- c(obsI[[idxi[i]]], q[idxi[i]] * sum(ESBsurv) * eI[[idxi[i]]][y])
+                        if(is.null(timeI[[idxi[i]]]))
+                            timeIi <- 0 else timeIi <- floor(tail(timeI[[idxi[i]]],1))
+                        timeI[[idxi[i]]] <- c(timeI[[idxi[i]]], timeIi + 1 + surveyTimes[idxi[i]])
+                        ## Index by age (sam, sms)
+                        obsIA[[idxi[i]]][y,] <- q[idxi[i]] * as.numeric(by(NAAsurv *
+                                                                           as.numeric(t(dat$selI[[idxi[i]]])),
+                                                                           as2a, sum)) * eImv[[idxi[[i]]]][y,]
+                    }
+                }
+            }
+            ## observing annual M
+            obsMAA[y,] <- obsMAA[y,] + MAA[seq(s,asmax,ns)]
+
             ## recruitment
             if(spawning[s] > 0){
                 ## Survivors from previous season/year
@@ -294,32 +325,9 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){## indices
             ## SSB
             SSB[y,s] <- sum(NAAS * weighty * maty * exp(-pzbm * ZAA))
 
-            ## index observations
-            if(is.numeric(nyI)){
-                if(s %in% idxS){
-                    idxi <- which(idxS == s)
-                    for(i in 1:length(idxi)){
-                        surveyTime <- surveyTimes[idxi[i]] - seasonStart[idxS[idxi[i]]]
-                        NAAsurv <- exp(log(NAAS) - ZAA * surveyTime)
-                        ESBsurv <- NAAsurv * weightFy * as.numeric(t(dat$selI[[idxi[i]]]))
-                        ## Total index (for spict)
-                        obsI[[idxi[i]]] <- c(obsI[[idxi[i]]], q[idxi[i]] * sum(ESBsurv) * eI[[idxi[i]]][y])
-                        if(is.null(timeI[[idxi[i]]]))
-                            timeIi <- 0 else timeIi <- floor(tail(timeI[[idxi[i]]],1))
-                        timeI[[idxi[i]]] <- c(timeI[[idxi[i]]], timeIi + 1 + surveyTimes[idxi[i]])
-                        ## Index by age (sam, sms)
-                        obsIA[[idxi[i]]][y,] <- q[idxi[i]] * as.numeric(by(NAAsurv *
-                                                                           as.numeric(t(dat$selI[[idxi[i]]])),
-                                                                           as2a, sum)) * eImv[[idxi[[i]]]][y,]
-                    }
-                }
-            }
-            ## observing annual M
-            obsMAA[y,] <- obsMAA[y,] + MAA[seq(s,asmax,ns)]
-
             ## Exponential decay
             NAAS <- NAAS * exp(-ZAA)
-            if(s == ns){
+            if(s == ns && set$recordLast == 1){
                 ## end of year biomasses
                 TSBfinal[y] <- sum(NAAS * weighty)
                 ESBfinal[y] <- sum(NAAS * weighty * sely)
