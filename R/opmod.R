@@ -249,8 +249,8 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){## indices
         ## seasons
         for(s in 1:ns){
 
-            if(s == ns && set$recordLast == 0){
-                ## end of year biomasses
+            if(s == 1 && set$recordLast == 0){
+                ## beginning of year biomasses
                 TSBfinal[y] <- sum(NAAS * weighty)
                 ESBfinal[y] <- sum(NAAS * weighty * sely)
                 SSBfinal[y] <- sum(NAAS * weighty * maty * exp(-pzbm * ZAA))

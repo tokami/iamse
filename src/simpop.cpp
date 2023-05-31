@@ -222,7 +222,7 @@ List simpop(double logFM, List dat, List set, int out) {
     // Seasons
     for(int s=0; s<ns; s++){
 
-      if(s == (ns-1) && recordLast == 0){
+      if(s == 0 && recordLast == 0){
         for(int a=0; a<asmax; a++){
           // biomasses
           Bage(a) = NAAS(a) * weighty(a);
