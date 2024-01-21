@@ -535,7 +535,7 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
     idxS <- rep(0, nsurv)
     if(all(!is.na(dat$surveyTimes))){
         for(i in 1:nsurv){
-            tmp <- seasonStart[seasonStart < dat$surveyTimes[i]]
+            tmp <- min(seasonStart[seasonStart <= dat$surveyTimes[i]])
             idxS[i] <- which.min((tmp - dat$surveyTimes[i])^2)
         }
     }
@@ -601,7 +601,7 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
     eC <- set$eC[ysim]
     eI <- list()
     for(i in 1:nsurv){
-        eI[[i]] <- set$eI[[i]][ysim]
+        eI[[i]] <- try(set$eI[[i]][ysim], silent = TRUE)
     }
     eCmv <- set$eCmv[ysim,]
     eImv <- set$eImv[ysim,]
@@ -616,7 +616,7 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
     if(is.null(eW)) eW <- gen.noise(1, set$noiseW[1], set$noiseW[2], bias.cor = set$noiseW[3])
     if(is.null(eImp)) eImp <- gen.noise(1, set$noiseImp[1], set$noiseImp[2], bias.cor = set$noiseImp[3])
     if(is.null(eC)) eC <- gen.noise(1, set$noiseC[1], set$noiseC[2], bias.cor = set$noiseC[3])
-    if(is.null(eI)){
+    if(is.null(eI) || length(eI) == 0){
         eI <- list()
         for(i in 1:nsurv){
             eI[[i]] <- gen.noise(1, set$noiseI[1], set$noiseI[2], bias.cor = set$noiseI[3])
@@ -694,7 +694,7 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
     ## project forward
     R0y <- dat$R0 * eR0
     mselInd <- ifelse(mselFlag, y, 1)
-##    MAA <- M[s1vec[y]:(s1vec[y]+ns-1)] * as.numeric(t(Msel[[mselInd]])) * eM
+    ##    MAA <- M[s1vec[y]:(s1vec[y]+ns-1)] * as.numeric(t(Msel[[mselInd]])) * eM
     MAA <- M[y,] * as.numeric(t(Msel[[mselInd]])) * eM
     hy <- dat$h * eH
     maty <- as.numeric(t(mat)) * eMat
@@ -795,10 +795,10 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
                 FMtmp <- as.numeric(t(FM))
                 ffmsy <- sum(tail(FMtmp[1:((y*ns)-ns-(s-1))],ns)) / refs$Fmsy[y + s - 1]
                 ## TAC
-                tacs <- est.tac(obs = obs,
-                                hcr = hcr,
-                                tacs = tacs,
-                                pars = list("ffmsy" = ffmsy,
+                tacs <- est.tac(obs. = obs,
+                                hcr. = hcr,
+                                tacs. = tacs,
+                                pars. = list("ffmsy" = ffmsy,
                                             "bbmsy" = bbmsy,
                                             "f" = FMtmp,
                                             "b" = TSBtmp,

@@ -108,6 +108,7 @@ check.set <- function(set = NULL){
     ## Assessment
     if(is.null(set$assessmentTiming)) set$assessmentTiming <- 1
     if(is.null(set$assessmentInterval)) set$assessmentInterval <- 1
+    if(is.null(set$assessmentIntYear)) set$assessmentIntYear <- 0
 
     ## HCR
     if(is.null(set$hcr)) set$hcr <- c(def.hcr.ref(),def.hcr.ref(consF = "fmsy"))

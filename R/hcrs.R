@@ -3,10 +3,10 @@
 
 #' @name est.tac
 #' @export
-est.tac <- function(obs, hcr, tacs=NULL, pars=NULL){
-    func <- get(hcr)
-    tacs <- func(obs, tacs, pars)
-    return(tacs)
+est.tac <- function(obs., hcr., tacs.=NULL, pars.=NULL){
+    func <- get(hcr.)
+    res <- func(obs., tacs., pars.)
+    return(res)
 }
 
 
@@ -183,8 +183,8 @@ def.hcr.conscat <- function(id = "conscat",
                             assessmentInterval = 1,
                             ffmsySD = 0,
                             bbtriggerSD = 0,
-                            rightRef=1,
-                            set = set,
+                            rightRef = 1,
+                            set. = set,
                             env = globalenv()
                             ){
 
@@ -249,7 +249,7 @@ structure(
         if(barID){
             tac <- tac * (1-red)
         }
-        tac <- rep(tac, set$assessmentInterval)
+        tac <- rep(tac, set.$assessmentInterval)
         tacs <- gettacs(tacs, id = "',id,'", TAC = tac, obs=obs)
         tacs$hitSC[nrow(tacs)] <- NA
         tacs$barID[nrow(tacs)] <- barID
@@ -522,8 +522,11 @@ def.hcr.spict <- function(id = "spict-msy",
                           lower = 0.8,
                           upper = 1.2,
                           bm = FALSE,  ## e.g. 5 => re-defining Bref at every benchmark
-                          env = globalenv()
+                          env = globalenv(),
+                          scenario = NA
                           ){
+
+    if(is.null(scenario)) stop("Set scenario to NA!")
 
     frc <- fractiles$catch
     if(is.null(frc)) frc <- 0.5
@@ -543,7 +546,7 @@ def.hcr.spict <- function(id = "spict-msy",
     breakpointB2 <- breakpointB[2]
 
     template  <- expression(paste0(' structure(function(obs, tacs = NULL, pars=NULL){if(is.null(obs$timeE)){inp <- obs[c("obsC","timeC","obsI","timeI")]}else if(is.null(obs$timeI)){inp <- obs[c("obsC","timeC","obsE","timeE")]}else{inp <- obs[c("obsC","timeC","obsI","timeI","obsE","timeE")]}
-        func <- get("',nonconvHCR,'")
+        func2 <- get("',nonconvHCR,'")
         inp$reportmode <- ',reportmode,'
         inp$dteuler <- ',dteuler,'
         inp$stabilise <- ',stabilise,'
@@ -631,12 +634,26 @@ def.hcr.spict <- function(id = "spict-msy",
 
         ## fit spict
         rwF  <- FALSE
-##  inp$reportmode <- 0
+save.fits <- TRUE ## HERE:
+if(save.fits){
+inp$reportmode <- 0
+}
+if(',scenario,' == 1){
+if(inp$nobsC > 50) inp$stdevfacC[51] <- 0.1
+if(inp$nobsC > 51) inp$stdevfacC[52] <- 0.1
+}
+if(',scenario,' == 2){
+inp$priors$logsdf <- c(2,0.5,1)
+inp$priors$logsdc <- c(log(0.15),0.5,1)
+}
         fit <- try(fit.spict(inp), silent=TRUE)
+if(save.fits){
+save(fit, file = paste0("fit_",inp$nobsC,"_",',scenario,',".RData"))
+}
 ##  try(plot(fit),silent=TRUE)
         ## non-convergence
         if(class(fit) == "try-error" || fit$opt$convergence != 0 || any(is.infinite(fit$sd))){
-            tacs <- func(inp, tacs=tacs, pars=pars)
+            tacs <- func2(inp, tacs, pars)
             tacs$conv[nrow(tacs)] <- FALSE
             tacs$indBref[nrow(tacs)] <- indBref2
             tacs$bmID[nrow(tacs)] <- bmID
@@ -733,7 +750,7 @@ def.hcr.spict <- function(id = "spict-msy",
         if(is.na(fixn) &&
            reportmode %in% c(0,1) && any(is.na(quantstmp)[-which(names(quantstmp) == "sdi.sd1")])){
             ## n.sd is NA if schaefer (n fixed), reportmode 3 does not report most quantities
-            tacs <- func(inp, tacs=tacs, pars=pars)
+            tacs <- func2(inp, tacs, pars)
             tacs$conv[nrow(tacs)] <- FALSE
             tacs$indBref[nrow(tacs)] <- indBref2
             tacs$bmID[nrow(tacs)] <- bmID
@@ -770,7 +787,7 @@ def.hcr.spict <- function(id = "spict-msy",
             indBref <- as.numeric(as.character(unlist(strsplit(as.character(tacs$indBref[nrow(tacs)]), "-"))))
         }
         if(any(is.na(indBref)) || length(indBref) < 1 || any(is.infinite(indBref))){
-            tacs <- func(inp, tacs=tacs, pars=pars)
+            tacs <- func2(inp, tacs, pars)
             tacs$conv[nrow(tacs)] <- FALSE
             tacs$indBref[nrow(tacs)] <- indBref2
             tacs$bmID[nrow(tacs)] <- bmID
@@ -785,7 +802,7 @@ def.hcr.spict <- function(id = "spict-msy",
 
         ## get TAC
         if(inherits(fit, "try-error")){
-            tacs <- func(inp, tacs=tacs, pars=pars)
+            tacs <- func2(inp, tacs, pars)
             tacs$conv[nrow(tacs)] <- FALSE
             tacs$indBref[nrow(tacs)] <- indBref2
             tacs$bmID[nrow(tacs)] <- bmID
@@ -833,7 +850,7 @@ breakpointB2,'),
             ## standard bref rule + pa buffer
             if(!is.numeric(bindi) || is.na(bindi) || !is.numeric(findi) || is.na(findi) ||
                !is.numeric(bpbref) || is.na(bpbref)){
-                tacs <- func(inp, tacs=tacs, pars=pars)
+                tacs <- func2(inp, tacs=tacs, pars=pars)
                 tacs$conv[nrow(tacs)] <- FALSE
                 tacs$indBref[nrow(tacs)] <- indBref2
                 tacs$bmID[nrow(tacs)] <- bmID
@@ -881,7 +898,7 @@ breakpointB2,'),
             ## decision tree using spict reference levels qualitatively
             if(!is.numeric(bindi) || is.na(bindi) || !is.numeric(findi) || is.na(findi) ||
                !is.numeric(bpbref) || is.na(bpbref)){
-                tacs <- func(inp, tacs=tacs, pars=pars)
+                tacs <- func2(inp, tacs=tacs, pars=pars)
                 tacs$conv[nrow(tacs)] <- FALSE
                 tacs$indBref[nrow(tacs)] <- indBref2
                 tacs$bmID[nrow(tacs)] <- bmID
@@ -946,7 +963,7 @@ breakpointB2,'),
         }
 
         if(any(inherits(tac, "try-error")) || any(!is.numeric(tac)) || any(is.na(tac))){
-            tacs <- func(inp, tacs=tacs, pars=pars)
+            tacs <- func2(inp, tacs=tacs, pars=pars)
             tacs$conv[nrow(tacs)] <- FALSE
             tacs$indBref[nrow(tacs)] <- indBref2
             tacs$bmID[nrow(tacs)] <- bmID
