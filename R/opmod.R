@@ -180,6 +180,8 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){## indices
     obsCA <- matrix(0, nrow = length(idxC), ncol = amax)
     obsIA <- vector("list", nsurv)
     for(i in 1:nsurv) obsIA[[i]] <- matrix(0, nrow = ny, ncol = amax)
+    obsIL <- vector("list", nsurv)
+    for(i in 1:nsurv) obsIL[[i]] <- matrix(0, nrow = ny, ncol = length(dat$mids))
 
     ## Initialise NAA
     hy <- h * eH[1]
@@ -194,6 +196,7 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){## indices
     Mbi <- M[1,] * eM[1] * msely
     Fbi <- FM[1,] * eF[1] * sely ## TODO: F,M different in various seasons?
     ZAA <-  Mbi + Fbi
+
 
     NAASbi <- initdistR(Mbi, Fbi, ns, asmax, indage0, spawning, R0y)
 
@@ -246,6 +249,7 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){## indices
         hy <- h * eH[y]
         R0y <- R0 * eR0[y]
 
+
         ## seasons
         for(s in 1:ns){
 
@@ -273,6 +277,8 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){## indices
                         obsIA[[idxi[i]]][y,] <- q[idxi[i]] * as.numeric(by(NAAsurv *
                                                                            as.numeric(t(dat$selI[[idxi[i]]])),
                                                                            as2a, sum)) * eImv[[idxi[[i]]]][y,]
+                        ## Index by length NEW:
+                        obsIL[[idxi[i]]][y,] <- q[idxi[i]] * (NAAsurv * as.numeric(t(dat$selI[[idxi[i]]])) * rep(eImv[[idxi[[i]]]][y,],each=ns)) %*% dat$plba
                     }
                 }
             }
@@ -346,9 +352,13 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){## indices
             timeI[[i]] <- timeI[[i]][(ny-nyI[i]+1):ny]
             obsI[[i]] <- obsI[[i]][(ny-nyI[i]+1):ny]
             obsIA[[i]] <- obsIA[[i]][(ny-nyI[i]+1):ny,]
+            obsIL[[i]] <- obsIL[[i]][(ny-nyI[i]+1):ny,]
             rownames(obsIA[[i]]) <- as.character((ny-nyI[i]+1):ny)
             colnames(obsIA[[i]]) <- as.character(0:dat$amax)
             attributes(obsIA[[i]]) <- c(attributes(obsIA[[i]]), list(time = dat$surveyTimes))
+            rownames(obsIL[[i]]) <- as.character((ny-nyI[i]+1):ny)
+            colnames(obsIL[[i]]) <- as.character(dat$mids)
+            attributes(obsIL[[i]]) <- c(attributes(obsIL[[i]]), list(time = dat$surveyTimes))
         }
     }
     obsMAA <- obsMAA[(ny-nyC+1):ny,]
@@ -433,17 +443,17 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){## indices
     ## colnames(obsMAA) = as.character(0:dat$amax)
 
     ## proportion mature
-    propMature <- matrix(rowSums(dat$mat), length(idxC), amax, byrow = TRUE)
+    propMature <- matrix(NA, length(idxC), amax, byrow = TRUE) ## matrix(rowSums(dat$mat), length(idxC), amax, byrow = TRUE)
     rownames(propMature) = as.character((ny-nyC+1):ny)
     colnames(propMature) = as.character(0:dat$amax)
 
     ## mean stock weight
-    WAAs <- matrix(rowSums(dat$weight), length(idxC), amax, byrow = TRUE)
+    WAAs <- matrix(NA, length(idxC), amax, byrow = TRUE) ## matrix(rowSums(dat$weight), length(idxC), amax, byrow = TRUE)
     rownames(WAAs) = as.character((ny-nyC+1):ny)
     colnames(WAAs) = as.character(0:dat$amax)
 
     ## mean catch weight
-    WAAc <- matrix(rowSums(dat$weightF), length(idxC), amax, byrow = TRUE)
+    WAAc <- matrix(NA, length(idxC), amax, byrow = TRUE) ## matrix(rowSums(dat$weightF), length(idxC), amax, byrow = TRUE)
     rownames(WAAc) = as.character((ny-nyC+1):ny)
     colnames(WAAc) = as.character(0:dat$amax)
 
@@ -457,6 +467,7 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){## indices
     rownames(landFrac) <- as.character((ny-nyC+1):ny)
     colnames(landFrac) <- as.character(0:dat$amax)
 
+
     obs <- list(obsC = obsC,
                 timeC = timeC,
                 obsI = obsI,
@@ -465,6 +476,7 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){## indices
                 timeE = timeE,
                 obsCA = obsCA,
                 obsIA = obsIA,
+                obsIL = obsIL,
                 obsMAA = obsMAA,
                 propMature = propMature,
                 WAAs = WAAs,

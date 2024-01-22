@@ -686,13 +686,13 @@ getSel <- function(L50, L95, mids, plba){
     sel <- vector("list", n)
     for(i in 1:n){
         selL <- (1 /(1 + exp(-log(19)*(mids - L50[i])/(L95[i] - L50[i]))))
-        dims <- dim(plba)
-        selA <- matrix(NA, ncol = dims[3], nrow = dims[1])
-        for(j in 1:dim(plba)[3]){
-            selA[,j] <- apply(t(plba[,,j]) * selL, 2, sum)
-        }
-        ##    selA <- apply(t(plba) * selL, 2, sum)
-        ##    selA[1] <- 1e-9 # it should be zero for age 0
+        ## dims <- dim(plba)
+        ## selA <- matrix(NA, ncol = dims[3], nrow = dims[1])
+        ## for(j in 1:dim(plba)[3]){
+        ##     selA[,j] <- apply(t(plba[,,j]) * selL, 2, sum)
+        ## }
+        selA <- apply(t(plba) * selL, 2, sum)
+        selA[1] <- 1e-9 # it should be zero for age 0
         sel[[i]] <- selA
     }
     return(sel)
@@ -709,13 +709,13 @@ getMat <- function(Lm50, Lm95, mids, plba){
     ## maturity at length
     matL <- (1 /(1 + exp(-log(19)*(mids - Lm50)/(Lm95 - Lm50))))
     ## maturity at age
-    dims <- dim(plba)
-    matA <- matrix(NA, ncol = dims[3], nrow = dims[1])
-    for(i in 1:dim(plba)[3]){
-        matA[,i] <- apply(t(plba[,,i]) * matL, 2, sum)
-    }
-##    matA <- apply(t(plba) * matL, 2, sum)
-##    matA <- c(1e-9,matA[-1])
+    ## dims <- dim(plba)
+    ## matA <- matrix(NA, ncol = dims[3], nrow = dims[1])
+    ## for(i in 1:dim(plba)[3]){
+    ##     matA[,i] <- apply(t(plba[,,i]) * matL, 2, sum)
+    ## }
+   matA <- apply(t(plba) * matL, 2, sum)
+   matA <- c(1e-9,matA[-1])
     return(matA)
 }
 
@@ -750,11 +750,12 @@ getMsel <- function(Linf, K, mids, plba, a = 0.55, b = 1.61, c = 1.44){
     for(i in 1:n){
         selL <- exp(a[i] - b[i] * log(mids) + c[i] * log(Linf) + log(K))
         selL[mids < 10] <- exp(a[i] - b[i] * log(10) + c[i] * log(Linf) + log(K))
-        dims <- dim(plba)
-        selA <- matrix(NA, ncol = dims[3], nrow = dims[1])
-        for(j in 1:dim(plba)[3]){
-            selA[,j] <- apply(t(plba[,,j]) * selL, 2, sum)
-        }
+        ## dims <- dim(plba)
+        ## selA <- matrix(NA, ncol = dims[3], nrow = dims[1])
+        ## for(j in 1:dim(plba)[3]){
+        ##     selA[,j] <- apply(t(plba[,,j]) * selL, 2, sum)
+        ## }
+        selA <- apply(t(plba) * selL, 2, sum)
         maxM <- max(selA)
         sel[[i]] <- selA/maxM
     }

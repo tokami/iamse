@@ -36,8 +36,13 @@ check.dat <- function(dat = NULL, verbose = TRUE){
     ages <- 0:(amax-1)
     ## OLD: ages <- t(t(matrix(rep(ages,ns),ncol=ns,nrow=amax)) + seq(0, 1-1/ns, 1/ns))
     ds05 <- 1/ns/2
-    ages <- t(t(matrix(rep(ages,each = ns),ncol=ns,nrow=amax, byrow=TRUE)) + seq(ds05, 1-ds05, length.out=ns))
+    ages <- t(t(matrix(rep(0:(amax-1),each = ns),ncol=ns,nrow=amax, byrow=TRUE)) + seq(ds05, 1-ds05, length.out=ns))
     dat$ages <- ages
+
+    agesAll <- matrix(rep(0:(amax-1),each = ns*ns),ncol=ns,nrow=asmax, byrow=TRUE) +
+        matrix(rep(seq(ds05,1-ds05,length.out=ns),ns),ncol=ns,nrow=asmax, byrow=TRUE) +
+        matrix(rep(ds05,ns*asmax),ncol=ns,nrow=asmax, byrow=TRUE) *
+        matrix(rep(seq(0,(2*ns-1),2),amax),ncol=ns,nrow=asmax)
 
     dat$yvec <- rep(1:ny, each = ns)
     dat$svec <- rep(1:ns, ny)
@@ -62,7 +67,7 @@ check.dat <- function(dat = NULL, verbose = TRUE){
     if(is.null(dat$K) && any(!is.null(dat$Linf), !is.null(dat$t0))) dat$K <- 0.1 ## stop("dat$K not provided.")
     if(is.null(dat$t0) && any(!is.null(dat$Linf), !is.null(dat$K))) dat$t0 <- -0.1 ## stop("dat$t0 not provided.")
     if(!any(is.null(dat$t0), is.null(dat$Linf), is.null(dat$K))){
-        LA <- dat$Linf * (1 - exp(-dat$K * (ages - dat$t0)))
+        LA <- dat$Linf * (1 - exp(-dat$K * (as.vector(t(ages)) - dat$t0)))
     }else{
         LA <- NULL
     }
@@ -85,18 +90,20 @@ check.dat <- function(dat = NULL, verbose = TRUE){
         if(!any(names(dat) == "CVlen")){
             dat$CVlen <- 0.1
         }
-        LA2 <- array(LA, dim = c(amax,1,ns))
-        plba <- apply(apply(LA2, c(1,3), function(x) vlprobs(x, x * dat$CVlen)), c(1,3), t)
-        for(i in 1:dim(plba)[3]){
-            tmp <- rowSums(plba[,,i])
-            plba[,,i] <- plba[,,i] / tmp
-            plba[tmp == 0,,i] <- 0
-        }
+        LA2 <- array(LA, dim = c(asmax,1))
+        plba <- apply(apply(LA2, c(1), function(x) vlprobs(x, x * dat$CVlen)), c(1), t)
+        ## for(i in 1:dim(plba)[3]){
+        ##     tmp <- rowSums(plba[,,i])
+        ##     plba[,,i] <- plba[,,i] / tmp
+        ##     plba[tmp == 0,,i] <- 0
+        ## }
+        tmp <- rowSums(plba)
+        plba <- plba / tmp
+##            plba[tmp == 0] <- 0
         ## plba <- t(vlprobs(LA, LA * dat$CVlen))
         ## plba <- plba / rowSums(plba)
     }else plba <- NULL
     dat$plba <- plba
-
 
 
     ## weight at age
