@@ -195,7 +195,6 @@ check.dat <- function(dat = NULL, verbose = TRUE){
     if(!any(names(dat) == "fecun")) dat$fecun <- 1
 
 
-
     ## natural mortality over time
     ##------------------
     if(is.null(LA)){
@@ -211,7 +210,7 @@ check.dat <- function(dat = NULL, verbose = TRUE){
             if(verbose) writeLines("No natural mortality provided. Setting time-invariant M corresponding to annual M based Gislason's formula and growth parameters.")
             dat$M <- matrix(getM(Linf, K, mids) / ns, nrow = ny, ncol = ns)
         }else if(length(dat$M) == 1 && !dat$fixProcs){
-            dat$M <- matrix(rep(dat$M,ny), nrow = ny, ncol = ns, byrow=TRUE)
+            dat$M <- matrix(rep(dat$M,ny)/ns, nrow = ny, ncol = ns, byrow=TRUE)
         }else if(any(dim(dat$M) != c(ny,ns))){
             stop(paste0("Intra-annual natural mortality ('dat$M') has dimensions ",
                         paste0(dim(dat$M),collapse=" x "),

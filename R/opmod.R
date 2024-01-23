@@ -10,7 +10,8 @@
 #' @name initpop
 #'
 #' @export
-initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){## indices
+initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE,
+                    plot = FALSE){## indices
     if(is.null(set)) set <- check.set()
     ny <- dat$ny
     ns <- dat$ns
@@ -249,6 +250,11 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){## indices
         hy <- h * eH[y]
         R0y <- R0 * eR0[y]
 
+        if(plot){
+            par(mfrow = n2mfrow(ns),
+                mar = c(2,2,1,1), oma = c(4,4,3,1))
+        }
+
 
         ## seasons
         for(s in 1:ns){
@@ -259,6 +265,9 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE){## indices
                 ESBfinal[y] <- sum(NAAS * weighty * sely)
                 SSBfinal[y] <- sum(NAAS * weighty * maty * exp(-pzbm * ZAA))
             }
+
+            if(plot) plot(as.vector(NAAS %*% dat$plba), ty= 'b',
+                          xlab = "", ylab = "")
 
             ## index observations
             if(is.numeric(nyI)){
