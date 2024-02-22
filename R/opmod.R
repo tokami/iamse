@@ -451,18 +451,20 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE,
     ## rownames(obsMAA) = as.character((ny-nyC+1):ny)
     ## colnames(obsMAA) = as.character(0:dat$amax)
 
+
     ## proportion mature
-    propMature <- matrix(NA, length(idxC), amax, byrow = TRUE) ## matrix(rowSums(dat$mat), length(idxC), amax, byrow = TRUE)
+    propMature <- matrix(as.numeric(by(dat$mat,dat$as2a,mean)),
+                         length(idxC), amax, byrow = TRUE) ## matrix(rowSums(dat$mat), length(idxC), amax, byrow = TRUE)
     rownames(propMature) = as.character((ny-nyC+1):ny)
     colnames(propMature) = as.character(0:dat$amax)
 
     ## mean stock weight
-    WAAs <- matrix(NA, length(idxC), amax, byrow = TRUE) ## matrix(rowSums(dat$weight), length(idxC), amax, byrow = TRUE)
+    WAAs <- matrix(as.numeric(by(dat$weight,dat$as2a,mean)), length(idxC), amax, byrow = TRUE) ## matrix(rowSums(dat$weight), length(idxC), amax, byrow = TRUE)
     rownames(WAAs) = as.character((ny-nyC+1):ny)
     colnames(WAAs) = as.character(0:dat$amax)
 
     ## mean catch weight
-    WAAc <- matrix(NA, length(idxC), amax, byrow = TRUE) ## matrix(rowSums(dat$weightF), length(idxC), amax, byrow = TRUE)
+    WAAc <- matrix(as.numeric(by(dat$weightF,dat$as2a,mean)), length(idxC), amax, byrow = TRUE) ## matrix(rowSums(dat$weightF), length(idxC), amax, byrow = TRUE)
     rownames(WAAc) = as.character((ny-nyC+1):ny)
     colnames(WAAc) = as.character(0:dat$amax)
 
@@ -492,6 +494,23 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE,
                 WAAc = WAAc,
                 propFemale = propFemale,
                 landFrac = landFrac)
+
+    atti <- attributes(obs$obsCA)
+    for(j in 1:length(atti$dimnames)){
+        maxi <- max(nchar(atti$dimnames[[j]]))
+        attributes(obs$obsCA)$dimnames[[j]][ nchar(atti$dimnames[[j]]) < maxi] <- paste0(sapply(maxi - nchar(atti$dimnames[[j]])[nchar(atti$dimnames[[j]]) < maxi], function(x)
+            rep("0",x)),
+            atti$dimnames[[j]][ nchar(atti$dimnames[[j]]) < maxi])
+    }
+    for(i in 1:length(obs$obsIA)){
+        atti <- attributes(obs$obsIA[[i]])
+        for(j in 1:length(atti$dimnames)){
+            maxi <- max(nchar(atti$dimnames[[j]]))
+            attributes(obs$obsIA[[i]])$dimnames[[j]][ nchar(atti$dimnames[[j]]) < maxi] <- paste0(sapply(maxi - nchar(atti$dimnames[[j]])[nchar(atti$dimnames[[j]]) < maxi], function(x)
+                rep("0",x)),
+                atti$dimnames[[j]][ nchar(atti$dimnames[[j]]) < maxi])
+        }
+    }
 
 
     ## return
