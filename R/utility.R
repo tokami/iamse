@@ -692,7 +692,7 @@ getSel <- function(L50, L95, mids, plba){
         ##     selA[,j] <- apply(t(plba[,,j]) * selL, 2, sum)
         ## }
         selA <- apply(t(plba) * selL, 2, sum)
-        selA[1] <- 1e-9 # it should be zero for age 0
+##        selA[1] <- 1e-9 # it should be zero for age 0
         sel[[i]] <- selA
     }
     return(sel)
@@ -774,7 +774,7 @@ getMsel <- function(Linf, K, mids, plba, a = 0.55, b = 1.61, c = 1.44){
 #' @return spawning biomass per recruit
 #' @export
 get.ssb0 <- function (M, mat, weight, fecun = 1,
-                       asmax, ns, spawning,
+                      asmax, ns, spawning,
                       R0, indage0, season, FM=NULL){
 
     if(is.null(FM)){
@@ -812,7 +812,7 @@ get.ssb0 <- function (M, mat, weight, fecun = 1,
 #'
 #' @export
 recfunc <- function(h, SSBPR0, SSB,  R0 = 1e6, method = "bevholt", bp = 0,
-                    beta = 0, gamma = 0){
+                    beta = 0, gamma = 0, alpha = 0){
 
     if(method == "bevholt"){
         alpha <- SSBPR0 * (1-h)/(4*h)
@@ -829,6 +829,8 @@ recfunc <- function(h, SSBPR0, SSB,  R0 = 1e6, method = "bevholt", bp = 0,
         rec <- ifelse(SSB > bp, R0, SSB * R0/bp)
     }else if(method == "bent-hyperbola"){  ## Watts-Bacon bent hyperbola
         rec <- beta * (SSB + sqrt(bp^2 + (gamma^2)/4) - sqrt((SSB-bp)^2 + (gamma^2)/4))
+    }else if(method == "bevholt2"){
+        rec <- SSB / (alpha + beta * SSB)
     }else print("Stock-recruitment method not known! Implemented methods: 'bevholt', 'ricker', 'average', and 'hockey-stick'.")
 
     return (rec)
@@ -868,4 +870,9 @@ initdistR <- function(M, FM=NULL, ns, asmax, indage0, spawning, R0=1){
     NAAS[indage0] <- 0
 
     return(NAAS)
+}
+
+
+check.par <- function(x, n){
+    if(length(x) != n) c(x, rep(x, n-length(x))) else x
 }

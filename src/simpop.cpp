@@ -107,13 +107,13 @@ List simpop(double logFM, List dat, List set, int out) {
   double maxF = as<double>(set["maxF"]);
   std::string refmethod = as<std::string>(set["refMethod"]);
   int nyrefmsy = as<int>(set["refYearsMSY"]);
-  NumericMatrix weight = as<NumericMatrix>(dat["weight"]);
-  NumericMatrix weightF = as<NumericMatrix>(dat["weightF"]);
+  NumericVector weight = as<NumericVector>(dat["weight"]);
+  NumericVector weightF = as<NumericVector>(dat["weightF"]);
   NumericMatrix M = as<NumericMatrix>(dat["M"]);
   List MselList = as<List>(dat["Msel"]);
   List selList = as<List>(dat["sel"]);
   IntegerVector s1vec = as<IntegerVector>(dat["s1vec"]);
-  NumericMatrix mat = as<NumericMatrix>(dat["mat"]);
+  NumericVector mat = as<NumericVector>(dat["mat"]);
   NumericVector initN = as<NumericVector>(dat["initN"]);
   int sptype = as<int>(set["spType"]);
   NumericVector spawning = as<NumericVector>(dat["spawning"]);
@@ -178,14 +178,14 @@ List simpop(double logFM, List dat, List set, int out) {
   std::fill( F0.begin(), F0.end(), 0);
   // NumericMatrix Msel = as<NumericMatrix>(MselList[tvmsel-1]);
   // NumericMatrix sel = as<NumericMatrix>(selList[tvsel-1]);
-  NumericMatrix Msel = as<NumericMatrix>(MselList[0]);
-  NumericMatrix sel = as<NumericMatrix>(selList[0]);
+  NumericVector Msel = as<NumericVector>(MselList[0]);
+  NumericVector sel = as<NumericVector>(selList[0]);
 
   for(int a=0; a<asmax; a++){
     //    MAA0(a) = M(tvm-1,as2s(a)) * Msel(as2a(a),as2s(a));
-    MAA0(a) = M(0,as2s(a)) * Msel(as2a(a),as2s(a));
+    MAA0(a) = M(0,as2s(a)) * Msel(a);
     //     for(int a=0; a<asmax; a++) MAA(a,_) = Mtmp(a,_) * M[Rcpp::Range(s1vec(y), s1vec(y)+ns-1)];
-    FAA0(a) = fs * sel(as2a(a),as2s(a));
+    FAA0(a) = fs * sel(a);
   }
 
   // for(int a=0; a<asmax; a++){
@@ -208,12 +208,12 @@ List simpop(double logFM, List dat, List set, int out) {
     hy = h * eH(y);
     R0y = R0 * eR0(y);
     for(int a=0; a<asmax; a++){
-      maty(a) = mat(as2a(a),as2s(a)) * eMat(y);
-      sely(a) = sel(as2a(a),as2s(a)) * eSel(y);
+      maty(a) = mat(a) * eMat(y);
+      sely(a) = sel(a) * eSel(y);
       FAA(a) = fs * eF(y) * sely(a);
       //      std::cout << "sely(" << a << "): " << sely(a) << std::endl;
-      weighty(a) = weight(as2a(a),as2s(a)) * eW(y);
-      weightFy(a) = weightF(as2a(a),as2s(a)) * eW(y);
+      weighty(a) = weight(a) * eW(y);
+      weightFy(a) = weightF(a) * eW(y);
     }
     MAA = MAA0 * eM(y);
     ZAA = MAA + FAA;

@@ -5,6 +5,11 @@
 
 using namespace Rcpp;
 
+#ifdef RCPP_USE_GLOBAL_ROSTREAM
+Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
+Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
+#endif
+
 // initdist
 NumericVector initdist(NumericVector MAA, NumericVector FAA, double R0, NumericVector spawning, int indage0);
 RcppExport SEXP _iamse_initdist(SEXP MAASEXP, SEXP FAASEXP, SEXP R0SEXP, SEXP spawningSEXP, SEXP indage0SEXP) {

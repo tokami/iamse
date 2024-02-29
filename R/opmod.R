@@ -66,13 +66,21 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE,
     M <- dat$M
     FM <- dat$FM
     weight <- dat$weight
+    if(!inherits(weight,"matrix")){
+        weight <- matrix(weight, asmax, ny)
+    }
     weightF <- dat$weightF
+    if(!inherits(weightF,"matrix")){
+        weightF <- matrix(weightF, asmax, ny)
+    }
     mat <- dat$mat
     sel <- dat$sel
     Msel <- dat$Msel
     pzbm <- dat$pzbm
-    R0 <- dat$R0
-    h <- dat$h
+    R0 <- check.par(dat$R0, ny)
+    h <- check.par(dat$h, ny)
+    alpha <- check.par(dat$recAlpha, ny)
+    beta <- check.par(dat$recBeta, ny)
     initN <- dat$initN
     q <- dat$q
     if(length(q) < nsurv) q <- rep(q, nsurv)
@@ -87,6 +95,8 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE,
         eM <- set$eM
         eH <- set$eH
         eR0 <- set$eR0
+        eAlpha <- set$eAlpha
+        eBeta <- set$eBeta
         eMat <- set$eMat
         eSel <- set$eSel
         eW <- set$eW
@@ -101,6 +111,8 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE,
         if(is.null(eM)) eM <- gen.noise(ny, set$noiseM[1], set$noiseM[2], bias.cor = set$noiseM[3])
         if(is.null(eH)) eH <- gen.noise(ny, set$noiseH[1], set$noiseH[2], bias.cor = set$noiseH[3])
         if(is.null(eR0)) eR0 <- gen.noise(ny, set$noiseR0[1], set$noiseR0[2], bias.cor = set$noiseR0[3])
+        if(is.null(eAlpha)) eAlpha <- gen.noise(ny, set$noiseAlpha[1], set$noiseAlpha[2], bias.cor = set$noiseAlpha[3])
+        if(is.null(eBeta)) eBeta <- gen.noise(ny, set$noiseBeta[1], set$noiseBeta[2], bias.cor = set$noiseBeta[3])
         if(is.null(eMat)) eMat <- gen.noise(ny, set$noiseMat[1], set$noiseMat[2], bias.cor = set$noiseMat[3])
         if(is.null(eSel)) eSel <- gen.noise(ny, set$noiseSel[1], set$noiseSel[2], bias.cor = set$noiseSel[3])
         if(is.null(eW)) eW <- gen.noise(ny, set$noiseW[1], set$noiseW[2], bias.cor = set$noiseW[3])
@@ -129,6 +141,8 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE,
         eR <- rep(1, ny)
         eM <- rep(1, ny)
         eH <- rep(1, ny)
+        eAlpha <- rep(1, ny)
+        eBeta <- rep(1, ny)
         eR0 <- rep(1, ny)
         eMat <- rep(1, ny)
         eSel <- rep(1, ny)
@@ -150,6 +164,8 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE,
                  eR = eR,
                  eM = eM,
                  eH = eH,
+                 eAlpha = eAlpha,
+                 eBeta = eBeta,
                  eR0 = eR0,
                  eMat = eMat,
                  eSel = eSel,
@@ -185,19 +201,20 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE,
     for(i in 1:nsurv) obsIL[[i]] <- matrix(0, nrow = ny, ncol = length(dat$mids))
 
     ## Initialise NAA
-    hy <- h * eH[1]
-    R0y <- R0 * eR0[1]
+    hy <- h[1] * eH[1]
+    R0y <- R0[1] * eR0[1]
     maty <- as.numeric(t(mat)) * eMat[1]
-    weighty <- as.numeric(t(weight)) * eW[1]
-    weightFy <- as.numeric(t(weightF)) * eW[1]
+    weighty <- as.numeric(t(weight[,1])) * eW[1]
+    weightFy <- as.numeric(t(weightF[,1])) * eW[1]
     sely <- as.numeric(t(sel[[1]])) * eSel[1]
     msely <- as.numeric(t(Msel[[1]]))
     NAAbi2 <- NAAbi <- matrix(0, asmax, ns)
     NAAbi[indage0,] <- R0y * spawning ## * exp(initN[1])
-    Mbi <- M[1,] * eM[1] * msely
-    Fbi <- FM[1,] * eF[1] * sely ## TODO: F,M different in various seasons?
+    Mbi <- M[1,dat$as2s] * eM[1] * msely
+    Fbi <- FM[1,dat$as2s] * eF[1] * sely ## TODO: F,M different in various seasons?
     ZAA <-  Mbi + Fbi
-
+    alphay <- alpha[1] * eAlpha[1]
+    betay <- beta[1] * eBeta[1]
 
     NAASbi <- initdistR(Mbi, Fbi, ns, asmax, indage0, spawning, R0y)
 
@@ -218,7 +235,9 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE,
   ##                  print(paste0("SSB0: ",round(SSB0), " - SSBt: ",round(SSBtmp)))
                     recbi <- spawning[s] * recfunc(h = hy, SSBPR0 = SSB0/R0y, SSB = SSBtmp,
                                                    R0 = R0y, method = dat$SR, bp = dat$bp,
-                                                   beta = dat$recBeta, gamma = dat$recGamma)
+                                                   beta = betay,
+                                                   gamma = dat$recGamma,
+                                                   alpha = alphay)
                     recbi[recbi<0] <- 1e-10
                     NAASbi[indage0] <- recbi
                 }
@@ -245,10 +264,12 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE,
         MAA <- M[y,] * as.numeric(t(Msel[[mselInd]])) * eM[y]
         ZAA <- MAA + FAA
         maty <- as.numeric(t(mat)) * eMat[y]
-        weighty <- as.numeric(t(weight)) * eW[y]
-        weightFy <- as.numeric(t(weightF)) * eW[y]
-        hy <- h * eH[y]
-        R0y <- R0 * eR0[y]
+        weighty <- as.numeric(t(weight[,y])) * eW[y]
+        weightFy <- as.numeric(t(weightF[,y])) * eW[y]
+        hy <- h[y] * eH[y]
+        R0y <- R0[y] * eR0[y]
+        alphay <- alpha[y] * eAlpha[1]
+        betay <- beta[y] * eBeta[1]
 
         if(plot){
             par(mfrow = n2mfrow(ns),
@@ -270,7 +291,7 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE,
                           xlab = "", ylab = "")
 
             ## index observations
-            if(is.numeric(nyI)){
+            if(is.numeric(nyI) && set$surveyBeforeRec){
                 if(s %in% idxS){
                     idxi <- which(idxS == s)
                     for(i in 1:length(idxi)){
@@ -303,8 +324,11 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE,
                                  ns, spawning, indage0 = indage0, R0=R0y,
                                  season = s)
                 rec[y,s] <-  spawning[s] * recfunc(h = hy, SSBPR0 = SSB0/R0y, SSB = SSB[y,s],
-                                                   R0 = R0y, method = dat$SR, bp = dat$bp,
-                                                   beta = dat$recBeta, gamma = dat$recGamma) * eR[y]
+                                                   R0 = R0y, method = dat$SR,
+                                                   bp = dat$bp,
+                                                   beta = betay,
+                                                   gamma = dat$recGamma,
+                                                   alpha = alphay) * eR[y]
                 rec[rec<0] <- 1e-10
                 NAAS[indage0] <- rec[y,s]
             }
@@ -339,6 +363,29 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE,
             ESB[y,s] <- sum(NAAS * weighty * sely)
             ## SSB
             SSB[y,s] <- sum(NAAS * weighty * maty * exp(-pzbm * ZAA))
+
+            ##
+            if(is.numeric(nyI) && !set$surveyBeforeRec){
+                if(s %in% idxS){
+                    idxi <- which(idxS == s)
+                    for(i in 1:length(idxi)){
+                        surveyTime <- surveyTimes[idxi[i]] - seasonStart[idxS[idxi[i]]]
+                        NAAsurv <- exp(log(NAAS) - ZAA * surveyTime)
+                        ESBsurv <- NAAsurv * weightFy * as.numeric(t(dat$selI[[idxi[i]]]))
+                        ## Total index (for spict)
+                        obsI[[idxi[i]]] <- c(obsI[[idxi[i]]], q[idxi[i]] * sum(ESBsurv) * eI[[idxi[i]]][y])
+                        if(is.null(timeI[[idxi[i]]]))
+                            timeIi <- 0 else timeIi <- floor(tail(timeI[[idxi[i]]],1))
+                        timeI[[idxi[i]]] <- c(timeI[[idxi[i]]], timeIi + 1 + surveyTimes[idxi[i]])
+                        ## Index by age (sam, sms)
+                        obsIA[[idxi[i]]][y,] <- q[idxi[i]] * as.numeric(by(NAAsurv *
+                                                                           as.numeric(t(dat$selI[[idxi[i]]])),
+                                                                           as2a, sum)) * eImv[[idxi[[i]]]][y,]
+                        ## Index by length NEW:
+                        obsIL[[idxi[i]]][y,] <- q[idxi[i]] * (NAAsurv * as.numeric(t(dat$selI[[idxi[i]]])) * rep(eImv[[idxi[[i]]]][y,],each=ns)) %*% dat$plba
+                    }
+                }
+            }
 
             ## Exponential decay
             NAAS <- NAAS * exp(-ZAA)
@@ -459,12 +506,16 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE,
     colnames(propMature) = as.character(0:dat$amax)
 
     ## mean stock weight
-    WAAs <- matrix(as.numeric(by(dat$weight,dat$as2a,mean)), length(idxC), amax, byrow = TRUE) ## matrix(rowSums(dat$weight), length(idxC), amax, byrow = TRUE)
+    tmp <- sapply(1:ny, function(x) as.numeric(by(weight[,x],dat$as2a,mean)))
+    WAAs <- t(tmp)[idxC,]
+        ## matrix(, length(idxC), amax, byrow = TRUE) ## matrix(rowSums(dat$weight), length(idxC), amax, byrow = TRUE)
     rownames(WAAs) = as.character((ny-nyC+1):ny)
     colnames(WAAs) = as.character(0:dat$amax)
 
     ## mean catch weight
-    WAAc <- matrix(as.numeric(by(dat$weightF,dat$as2a,mean)), length(idxC), amax, byrow = TRUE) ## matrix(rowSums(dat$weightF), length(idxC), amax, byrow = TRUE)
+    tmp <- sapply(1:ny, function(x) as.numeric(by(weightF[,x],dat$as2a,mean)))
+    WAAc <- t(tmp)[idxC,]
+##    WAAc <- matrix(as.numeric(by(dat$weightF,dat$as2a,mean)), length(idxC), amax, byrow = TRUE) ## matrix(rowSums(dat$weightF), length(idxC), amax, byrow = TRUE)
     rownames(WAAc) = as.character((ny-nyC+1):ny)
     colnames(WAAc) = as.character(0:dat$amax)
 
@@ -634,6 +685,8 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
     eM <- set$eM[ysim]
     eH <- set$eH[ysim]
     eR0 <- set$eR0[ysim]
+    eAlpha <- set$eAlpha[ysim]
+    eBeta <- set$eBeta[ysim]
     eMat <- set$eMat[ysim]
     eSel <- set$eSel[ysim]
     eW <- set$eW[ysim]
@@ -651,6 +704,8 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
     if(is.null(eM)) eM <- gen.noise(1, set$noiseM[1], set$noiseM[2], bias.cor = set$noiseM[3])
     if(is.null(eH)) eH <- gen.noise(1, set$noiseH[1], set$noiseH[2], bias.cor = set$noiseH[3])
     if(is.null(eR0)) eR0 <- gen.noise(1, set$noiseR0[1], set$noiseR0[2], bias.cor = set$noiseR0[3])
+    if(is.null(eAlpha)) eAlpha <- gen.noise(1, set$noiseAlpha[1], set$noiseAlpha[2], bias.cor = set$noiseAlpha[3])
+    if(is.null(eBeta)) eBeta <- gen.noise(1, set$noiseBeta[1], set$noiseBeta[2], bias.cor = set$noiseBeta[3])
     if(is.null(eMat)) eMat <- gen.noise(1, set$noiseMat[1], set$noiseMat[2], bias.cor = set$noiseMat[3])
     if(is.null(eSel)) eSel <- gen.noise(1, set$noiseSel[1], set$noiseSel[2], bias.cor = set$noiseSel[3])
     if(is.null(eW)) eW <- gen.noise(1, set$noiseW[1], set$noiseW[2], bias.cor = set$noiseW[3])
@@ -680,6 +735,8 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
                      eM = c(hist$errs$eM, eM),
                      eH = c(hist$errs$eH, eH),
                      eR0 = c(hist$errs$eR0,eR0),
+                     eAlpha = c(hist$errs$eAlpha, eAlpha),
+                     eBeta = c(hist$errs$eBeta, eBeta),
                      eMat = c(hist$errs$eMat, eMat),
                      eSel = c(hist$errs$eSel, eSel),
                      eW = c(hist$errs$eW, eW),
@@ -701,6 +758,8 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
                      eM = eM,
                      eH = eH,
                      eR0 = eR0,
+                     eAlpha = eAlpha,
+                     eBeta = eBeta,
                      eMat = eMat,
                      eSel = eSel,
                      eW = eW,
@@ -742,6 +801,8 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
     sely <- as.numeric(t(sel[[selInd]])) * eSel
     weighty <- as.numeric(t(weight)) * eW
     weightFy <- as.numeric(t(weightF)) * eW
+    alphay <- dat$recAlpha * eAlpha
+    betay <- dat$recBeta * eBeta
 
     ## TAC from previous year (if e.g. interim advice)
     ntac <- ns
@@ -784,7 +845,9 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
                              R0 = R0y, season = s)
             rec[y,s] <- spawning[s] * recfunc(h = hy, SSBPR0 = SSB0/R0y, SSB = SSBtmp, R0 = R0y,
                                               method = dat$SR, bp = dat$bp,
-                                              beta = dat$recBeta, gamma = dat$recGamma) * eR
+                                              beta = betay,
+                                              gamma = dat$recGamma,
+                                              alpha = alphay) * eR
             rec[rec<0] <- 1e-10
             NAAS[indage0] <- rec[y,s]
         }

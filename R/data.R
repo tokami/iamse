@@ -119,7 +119,15 @@ check.dat <- function(dat = NULL, verbose = TRUE){
     if(is.null(LA) && !is.null(lwa) && verbose) writeLines("Parameters of the length-weight relationship not used because growth parameters for the age-length key not provided.")
     if(any(is.null(LA),is.null(lwb),is.null(lwa))){
         if(!any(names(dat) == "weight")) dat$weight <- matrix(NA, nrow = amax, ncol = ns)
-    }else dat$weight <- lwa * LA ^ lwb
+    }else{
+        if(length(lwa) == 1 && length(lwb) == 1){
+            dat$weight <- lwa * LA ^ lwb
+        }else if((length(lwa) == 1 && length(lwb) == ny) ||
+                 (length(lwa) == ny && length(lwb) == 1) ||
+                 (length(lwa) == ny && length(lwb) == ny)){
+            dat$weight <- sapply(1:dat$ny, function(x) lwa[x] * LA ^ lwb[x])
+        }else stop("Length of lwa and lwb is neither 1 nor ny. Don't know what to do.")
+    }
 
 
 
@@ -145,7 +153,15 @@ check.dat <- function(dat = NULL, verbose = TRUE){
     dat$lwbF <- lwbF
     if(any(is.null(LA),is.null(lwbF),is.null(lwaF))){
         if(!any(names(dat) == "weightF")) dat$weightF <- matrix(NA, nrow = amax, ncol = ns)
-    }else dat$weightF <- lwaF * LA ^ lwbF
+    }else{
+        if(length(lwaF) == 1 && length(lwbF) == 1){
+            dat$weightF <- lwaF * LA ^ lwbF
+        }else if((length(lwaF) == 1 && length(lwbF) == ny) ||
+                 (length(lwaF) == ny && length(lwbF) == 1) ||
+                 (length(lwaF) == ny && length(lwbF) == ny)){
+            dat$weightF <- sapply(1:dat$ny, function(x) lwaF[x] * LA ^ lwbF[x])
+        }else stop("Length of lwaF and lwbF is neither 1 nor ny. Don't know what to do.")
+    }
 
 
     ## maturity
@@ -302,6 +318,12 @@ check.dat <- function(dat = NULL, verbose = TRUE){
     }
     if(!"recGamma" %in% names(dat)){
         dat$recGamma <- 0  ## measure of the radius of curvature near the breakpoint (as gamma -> 0 = sharp bent like hockey-stick)
+    }
+    if(!"recAlpha" %in% names(dat)){
+        dat$recAlpha <- 0
+    }
+    if(!"recBeta" %in% names(dat)){
+        dat$recBeta <- 0
     }
     if(is.null(dat$spawning)){
         if(ns == 1){

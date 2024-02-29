@@ -101,7 +101,7 @@ est.ref.levels <- function(dat, set=NULL, fvec = seq(0,5,0.1),
 est.ref.levels.stochastic <- function(dat, set=NULL, fmax = 10,
                         ncores = parallel::detectCores()-1,
                         ref = c("Fmsy","Bmsy","MSY","B0","ESBmsy","SSBmsy","ESB0"),
-                        plot = FALSE){
+                        plot = FALSE, get.final = FALSE){
 
     ## Checks
     if(is.null(set)) set <- check.set()
@@ -175,18 +175,31 @@ est.ref.levels.stochastic <- function(dat, set=NULL, fmax = 10,
     ## datx$as2s <- rep(1:ns, amax)
     ## datx$inds <- seq(1,asmax,ns)
 
+    ## HERE: debugging
     ## browser()
 
+    ## x = 1
+    ## setx <- c(set, errs[[x]])
     ## setx$refMethod <- "median"
     ## setx$refYearsMSY <- 10
     ## f <- 1
-    ## x = 1
-    ## setx <- c(set, errs[[x]])
+    ## str(datx,2)
+    ## datx$weight <- dat$weight[,40]
+    ## datx$weightF <- dat$weightF[,40]
+    ## datx$M
+
+    ## datx$h
+    ## str(datx)
+
     ## simpop(log(f), datx, setx, out=1)
 
 
+    ## For now
+    alltv <- 1
+
 
     if(any(ref %in% c("Fmsy","Bmsy","MSY","ESBmsy","SSBmsy"))){
+
         ## Fmsy
         res <- parallel::mclapply(as.list(1:nrep), function(x){
             setx <- c(set, errs[[x]])
@@ -204,6 +217,20 @@ est.ref.levels.stochastic <- function(dat, set=NULL, fmax = 10,
                 ## ind2 <- ifelse(ntv2 > 1, i, 1)
                 ## datx$Msels <- msels[ind2]
                 ## datx$Msel <- lapply(datx$Msels, rowMeans)
+                ## TODO: for now overall average ref levels for time-varying pars
+                if(get.final){
+                    if(inherits(dat$weight,"matrix")) datx$weight <- dat$weight[,ncol(dat$weight)]
+                    if(inherits(dat$weightF,"matrix")) datx$weightF <- dat$weightF[,ncol(dat$weightF)]
+                    datx$M <- matrix(datx$M[nrow(datx$M),], 1, dat$ns)
+                    datx$h <- tail(datx$h,1)
+                    datx$R0 <- tail(datx$R0,1)
+                }else{
+                    if(inherits(dat$weight,"matrix")) datx$weight <- rowMeans(dat$weight)
+                    if(inherits(dat$weightF,"matrix")) datx$weightF <- rowMeans(dat$weightF)
+                    datx$M <- matrix(colMeans(datx$M), 1, dat$ns)
+                    datx$h <- mean(datx$h)
+                    datx$R0 <- mean(datx$R0)
+                }
                 opt <- optimise(function(x) unlist(simpop(x, datx, setx, out=1)),
                                 log(c(0.001,fmax)), maximum = TRUE)
                 tmp[i] <- exp(opt$maximum)
@@ -227,6 +254,20 @@ est.ref.levels.stochastic <- function(dat, set=NULL, fmax = 10,
                 setx$tvm <- 1
                 setx$tvmsel <- 1
                 setx$tvsel <- 1
+                ## TODO: for now overall average ref levels for time-varying pars
+                if(get.final){
+                    if(inherits(dat$weight,"matrix")) datx$weight <- dat$weight[,ncol(dat$weight)]
+                    if(inherits(dat$weightF,"matrix")) datx$weightF <- dat$weightF[,ncol(dat$weightF)]
+                    datx$M <- matrix(datx$M[nrow(datx$M),], 1, dat$ns)
+                    datx$h <- tail(datx$h,1)
+                    datx$R0 <- tail(datx$R0,1)
+                }else{
+                    if(inherits(dat$weight,"matrix")) datx$weight <- rowMeans(dat$weight)
+                    if(inherits(dat$weightF,"matrix")) datx$weightF <- rowMeans(dat$weightF)
+                    datx$M <- matrix(colMeans(datx$M), 1, dat$ns)
+                    datx$h <- mean(datx$h)
+                    datx$R0 <- mean(datx$R0)
+                }
                 tmp0 <- simpop(log(fmsys[x,i]), datx, setx, out=0)
                 if(set$refMethod == "mean"){
                     tmp[[i]] <- c(mean(tail(tmp0$CW,nyrefmsy)), mean(tail(tmp0$TSB,nyrefmsy)),
@@ -265,6 +306,20 @@ est.ref.levels.stochastic <- function(dat, set=NULL, fmax = 10,
                 setx$tvm <- 1
                 setx$tvmsel <- 1
                 setx$tvsel <- 1
+                ## TODO: for now overall average ref levels for time-varying pars
+                if(get.final){
+                    if(inherits(dat$weight,"matrix")) datx$weight <- dat$weight[,ncol(dat$weight)]
+                    if(inherits(dat$weightF,"matrix")) datx$weightF <- dat$weightF[,ncol(dat$weightF)]
+                    datx$M <- matrix(datx$M[nrow(datx$M),], 1, dat$ns)
+                    datx$h <- tail(datx$h,1)
+                    datx$R0 <- tail(datx$R0,1)
+                }else{
+                    if(inherits(dat$weight,"matrix")) datx$weight <- rowMeans(dat$weight)
+                    if(inherits(dat$weightF,"matrix")) datx$weightF <- rowMeans(dat$weightF)
+                    datx$M <- matrix(colMeans(datx$M), 1, dat$ns)
+                    datx$h <- mean(datx$h)
+                    datx$R0 <- mean(datx$R0)
+                }
                 tmp0 <- simpop(log(1e-20), datx, setx, out=0)
                 if(set$refMethod == "mean"){
                     tmp[[i]] <- c(mean(tail(tmp0$TSB,nyrefmsy)),

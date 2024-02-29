@@ -31,6 +31,16 @@ check.set <- function(set = NULL){
     }else if(length(set$noiseR0) != 3){
         writeLines("'set$noiseR0' needs to be a vector with 3 values corresponding to: sd, rho, bias.cor (see gen.noise). Setting to c(0,0,0)!")
     }
+    if(is.null(set$noiseAlpha)){
+        set$noiseAlpha <- c(0,0,0)
+    }else if(length(set$noiseAlpha) != 3){
+        writeLines("'set$noiseAlpha' needs to be a vector with 3 values corresponding to: sd, rho, bias.cor (see gen.noise). Setting to c(0,0,0)!")
+    }
+    if(is.null(set$noiseBeta)){
+        set$noiseBeta <- c(0,0,0)
+    }else if(length(set$noiseBeta) != 3){
+        writeLines("'set$noiseBeta' needs to be a vector with 3 values corresponding to: sd, rho, bias.cor (see gen.noise). Setting to c(0,0,0)!")
+    }
     if(is.null(set$noiseMat)){
         set$noiseMat <- c(0,0,0)
     }else if(length(set$noiseMat) != 3){
@@ -128,6 +138,8 @@ check.set <- function(set = NULL){
 
     ## Record states at end of year or beginning?
     if(is.null(set$recordLast)) set$recordLast <- 0
+
+    if(is.null(set$surveyBeforeRec)) set$surveyBeforeRec <- FALSE
 
     ## return
     return(set)
