@@ -175,7 +175,7 @@ est.ref.levels.stochastic <- function(dat, set=NULL, fmax = 10,
     ## datx$as2s <- rep(1:ns, amax)
     ## datx$inds <- seq(1,asmax,ns)
 
-    ## HERE: debugging
+    ## ## HERE: debugging
     ## browser()
 
     ## x = 1
@@ -188,10 +188,12 @@ est.ref.levels.stochastic <- function(dat, set=NULL, fmax = 10,
     ## datx$weightF <- dat$weightF[,40]
     ## datx$M
 
-    ## datx$h
-    ## str(datx)
+    ## ## datx$h
+    ## ## str(datx)
 
-    ## simpop(log(f), datx, setx, out=1)
+    ## f <- 0.7
+    ## simpop(log(f), datx, setx, out=0)
+
 
 
     ## For now
@@ -233,6 +235,12 @@ est.ref.levels.stochastic <- function(dat, set=NULL, fmax = 10,
                 }
                 opt <- optimise(function(x) unlist(simpop(x, datx, setx, out=1)),
                                 log(c(0.001,fmax)), maximum = TRUE)
+                ## opt <- optimise(function(x){
+                ##     datx$FM <- matrix(exp(x)/datx$ns, dat$ny, dat$ns)
+                ##     datx$M <- matrix(datx$M[1,], dat$ny, dat$ns)
+                ##     initpop(datx, setx, out=5)
+                ## },
+                ##                 log(c(0.001,fmax)), maximum = TRUE)
                 tmp[i] <- exp(opt$maximum)
             }
             return(tmp)
@@ -390,7 +398,7 @@ est.ref.levels.stochastic <- function(dat, set=NULL, fmax = 10,
             par(mfrow=c(nr,3))
             for(i in 1:length(refdist)){
                 hist(refdist[[i]][,1], main = names(refdist)[i],
-                     breaks=20, freq = TRUE, xlim = range(refdist[[i]]),
+                     breaks=20, freq = TRUE, xlim = range(refdist[[i]],na.rm=TRUE),
                      xlab = "", col = rgb(t(col2rgb(cols[1]))/255,alpha=0.4))
                 if(alltv > 1){
                     for(j in 2:alltv) hist(refdist[[i]][,j],

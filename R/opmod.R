@@ -104,7 +104,8 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE,
         eC <- set$eC
         eI <- set$eI
         eCmv <- set$eCmv
-        eImv <- set$eImv
+        eImvA <- set$eImvA
+        eImvL <- set$eImvL
         eE <- set$eE
         if(is.null(eF)) eF <- gen.noise(ny, set$noiseF[1], set$noiseF[2], bias.cor = set$noiseF[3])
         if(is.null(eR)) eR <- gen.noise(ny, set$noiseR[1], set$noiseR[2], bias.cor = set$noiseR[3])
@@ -127,12 +128,20 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE,
         if(is.null(eCmv)) eCmv <- gen.noise(ny, set$noiseCmv[1], set$noiseCmv[2],
                                                bias.cor = set$noiseCmv[3],
                                                mv = TRUE, dat = dat)
-        if(is.null(eImv)){
-            eImv <- list()
+        if(is.null(eImvA)){
+            eImvA <- list()
             for(i in 1:nsurv){
-                eImv[[i]] <- gen.noise(ny, set$noiseImv[1], set$noiseImv[2],
+                eImvA[[i]] <- gen.noise(ny, set$noiseImv[1], set$noiseImv[2],
                                     bias.cor = set$noiseImv[3],
-                                    mv = TRUE, dat = dat)
+                                    mv = TRUE, dat = dat, by.asmax = FALSE)
+            }
+        }
+        if(is.null(eImvL)){
+            eImvL <- list()
+            for(i in 1:nsurv){
+                eImvL[[i]] <- gen.noise(ny, set$noiseImv[1], set$noiseImv[2],
+                                    bias.cor = set$noiseImv[3],
+                                    mv = TRUE, dat = dat, by.asmax = TRUE)
             }
         }
         if(is.null(eE)) eE <- gen.noise(ny, set$noiseE[1], set$noiseE[2], bias.cor = set$noiseE[3])
@@ -154,9 +163,13 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE,
             eI[[i]] <- rep(1, ny)
         }
         eCmv <- matrix(1, nrow=ny, ncol=amax)
-        eImv <- list()
+        eImvA <- list()
         for(i in 1:nsurv){
-            eImv[[i]] <- matrix(1, nrow=ny, ncol=amax)
+            eImvA[[i]] <- matrix(1, nrow=ny, ncol=amax)
+        }
+        eImvL <- list()
+        for(i in 1:nsurv){
+            eImvL[[i]] <- matrix(1, nrow=ny, ncol=asmax)
         }
         eE <- rep(1, ny)
     }
@@ -174,7 +187,8 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE,
                  eC = eC,
                  eI = eI,
                  eCmv = eCmv,
-                 eImv = eImv,
+                 eImvA = eImvA,
+                 eImvL = eImvL,
                  eE = eE)
 
     ## Flags
@@ -306,9 +320,9 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE,
                         ## Index by age (sam, sms)
                         obsIA[[idxi[i]]][y,] <- q[idxi[i]] * as.numeric(by(NAAsurv *
                                                                            as.numeric(t(dat$selI[[idxi[i]]])),
-                                                                           as2a, sum)) * eImv[[idxi[[i]]]][y,]
+                                                                           as2a, sum)) * eImvA[[idxi[[i]]]][y,]
                         ## Index by length NEW:
-                        obsIL[[idxi[i]]][y,] <- q[idxi[i]] * (NAAsurv * as.numeric(t(dat$selI[[idxi[i]]])) * rep(eImv[[idxi[[i]]]][y,],each=ns)) %*% dat$plba
+                        obsIL[[idxi[i]]][y,] <- q[idxi[i]] * (NAAsurv * as.numeric(t(dat$selI[[idxi[i]]])) * eImvL[[idxi[[i]]]][y,]) %*% dat$plba
                     }
                 }
             }
@@ -380,9 +394,9 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE,
                         ## Index by age (sam, sms)
                         obsIA[[idxi[i]]][y,] <- q[idxi[i]] * as.numeric(by(NAAsurv *
                                                                            as.numeric(t(dat$selI[[idxi[i]]])),
-                                                                           as2a, sum)) * eImv[[idxi[[i]]]][y,]
+                                                                           as2a, sum)) * eImvA[[idxi[[i]]]][y,]
                         ## Index by length NEW:
-                        obsIL[[idxi[i]]][y,] <- q[idxi[i]] * (NAAsurv * as.numeric(t(dat$selI[[idxi[i]]])) * rep(eImv[[idxi[[i]]]][y,],each=ns)) %*% dat$plba
+                        obsIL[[idxi[i]]][y,] <- q[idxi[i]] * (NAAsurv * as.numeric(t(dat$selI[[idxi[i]]])) * eImvL[[idxi[[i]]]][y,]) %*% dat$plba
                     }
                 }
             }
@@ -593,6 +607,8 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE,
         }
     }else if(out.opt == 4){
         out <- TSBfinal[ny]
+    }else if(out.opt == 5){
+        out <- CW[ny]
     }
     return(out)
 }

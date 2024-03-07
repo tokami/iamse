@@ -104,12 +104,16 @@ muconv <- function(mu, sd) log(mu) - 0.5 * log(1 + ((sd^2)/(mu^2)))
 
 #' @name gen.noise
 #' @export
-gen.noise <- function(n, sd, rho=0, bias.cor = 0, mv=FALSE, dat=NULL){
+gen.noise <- function(n, sd, rho=0, bias.cor = 0, mv=FALSE, dat=NULL, by.asmax = FALSE){
 
     if(mv){
         ## multivariate noise
         stopifnot(!is.null(dat))
-        amax <- dat$amax + 1
+        if(by.asmax){
+            amax <- dat$asmax
+        }else{
+            amax <- dat$amax + 1
+        }
         Sigma <- matrix(NA, amax, amax)
         for(i in 1:amax) for(j in 1:amax) Sigma[i,j] = rho^abs(i - j) * sd^2
         res <- MASS::mvrnorm(n, rep(0,ncol(Sigma)), Sigma)
