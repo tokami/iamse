@@ -175,7 +175,8 @@ check.dat <- function(dat = NULL, verbose = TRUE){
     if(is.null(Lm50) && !is.null(Lm95)) stop("Length at 95% maturity missing: dat$Lm95")
     if(is.null(Lm95) && !is.null(Lm50)) stop("Length at 50% maturity missing: dat$Lm50")
     if(any(is.null(LA),is.null(Lm50),is.null(Lm95))){
-        if(!any(names(dat) == "mat")) dat$mat <- matrix(NA, nrow = amax, ncol = ns)
+        if(!any(names(dat) == "mat"))
+            dat$mat <- matrix(NA, nrow = amax, ncol = ns)
     }else if(!dat$fixProcs) dat$mat <- getMat(Lm50, Lm95, mids, plba)
 
 

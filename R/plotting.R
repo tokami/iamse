@@ -101,7 +101,7 @@ plotiamse.b <- function(dat, set, resMSE,
     idxsim <- (dat$ny):(dat$ny+set$nysim)
     idxhist <- 1:dat$ny
     xall <- 1:(dat$ny+set$nysim)
-    if(is.null(ylim)) ylim <- c(0.8,1.2) * range(lapply(res,function(x) x$TSBfinal))
+    if(is.null(ylim)) ylim <- c(0,1.2) * range(lapply(res,function(x) x$TSBfinal))
     cols <- rainbow(nms)
     ## historic
     i <- 1 ## historic pattern the same between mss
@@ -118,13 +118,14 @@ plotiamse.b <- function(dat, set, resMSE,
          ty='n', lwd=2,
          ylab=ylab, xlab = xlab)
     polygon(x = c((dat$ny-(dat$nyC-1)):dat$ny,rev((dat$ny-(dat$nyC-1)):dat$ny)),
-            y = c(rep(ylim[1]-1e4,dat$nyC),rep(1.5*ylim[2],dat$nyC)),
+            y = c(rep(-1e8,dat$nyC),rep(1.5*ylim[2],dat$nyC)),
             border=NA, col="grey95")
     polygon(x = c(xhist,rev(xhist)), y = c(llhist,rev(ulhist)),
             border=NA, col=rgb(t(col2rgb("grey30"))/255,alpha=0.2))
     lines(xhist, medhist, lwd=2)
     polygon(x = c(-2,rep(1.2*max(xall),2),-2), y = c(rep(llbmsy,2),rep(ulbmsy,2)),
             border=NA, col=rgb(t(col2rgb("grey40"))/255,alpha=0.2))
+    abline(h=0,lty=2)
     if(!is.null(dat$ref$Bmsy)) abline(h=bmsy,lty=2)
     if(!is.null(dat$ref$B0)) abline(h=dat$ref$B0,lty=2)
     ## projection

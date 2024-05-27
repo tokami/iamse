@@ -11,7 +11,7 @@
 #'
 #' @export
 initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE,
-                    plot = FALSE){## indices
+                    plot = FALSE, dbg = 0){## indices
     if(is.null(set)) set <- check.set()
     ny <- dat$ny
     ns <- dat$ns
@@ -246,9 +246,11 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE,
                     SSB0 <- get.ssb0(Mbi, maty, weighty, fecun = 1, asmax, ns,
                                      spawning, indage0 = indage0,
                                      R0 = R0y, season = s, FM = 0)
-  ##                  print(paste0("SSB0: ",round(SSB0), " - SSBt: ",round(SSBtmp)))
-                    recbi <- spawning[s] * recfunc(h = hy, SSBPR0 = SSB0/R0y, SSB = SSBtmp,
-                                                   R0 = R0y, method = dat$SR, bp = dat$bp,
+                    ##                  print(paste0("SSB0: ",round(SSB0), " - SSBt: ",round(SSBtmp)))
+                    recbi <- spawning[s] * recfunc(h = hy, SSBPR0 = SSB0/R0y,
+                                                   SSB = SSBtmp,
+                                                   R0 = R0y, method = dat$SR,
+                                                   bp = dat$bp,
                                                    beta = betay,
                                                    gamma = dat$recGamma,
                                                    alpha = alphay)
@@ -266,6 +268,12 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE,
     }
     NAAS <- NAASbi
 
+    if(dbg > 0){
+        print(data.frame(initR = initdistR(Mbi, Fbi, dat$ns, dat$asmax,
+                                           dat$indage0, dat$spawning, dat$R0),
+                         initC = initdist(Mbi, Fbi, dat$R0, dat$spawning,  dat$indage0),
+                         burnIn = NAASbi))
+    }
 
     ## main loop
     for(y in 1:ny){
@@ -337,7 +345,10 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE,
                 SSB0 <- get.ssb0(MAA, maty, weighty, fecun=1, asmax,
                                  ns, spawning, indage0 = indage0, R0=R0y,
                                  season = s)
-                rec[y,s] <-  spawning[s] * recfunc(h = hy, SSBPR0 = SSB0/R0y, SSB = SSB[y,s],
+
+                rec[y,s] <-  spawning[s] * recfunc(h = hy,
+                                                   SSBPR0 = SSB0/R0y,
+                                                   SSB = SSB[y,s],
                                                    R0 = R0y, method = dat$SR,
                                                    bp = dat$bp,
                                                    beta = betay,
@@ -666,6 +677,7 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
         assessSeasons <- as.list(1)
     }else{
         if(length(assessmentTiming) == 1){
+            ## CHECK: not sure if that's correct! used as assessSeasons[[s]] later, but here always in position 1
             assessSeasons <- list(rep(1:ns, 20)[assessmentTiming:(assessmentTiming+ns-1)])
         }else{
             if(verbose) writeLines("You specified several assessmentTimings. I hope you know what you are doing!")
@@ -844,6 +856,13 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
     ## seasons
     for(s in 1:ns){
 
+        if(s == 1 && set$recordLast == 0){
+            ## beginning of year biomasses
+            TSBfinal[y] <- sum(NAAS * weighty)
+            ESBfinal[y] <- sum(NAAS * weighty * sely)
+            SSBfinal[y] <- sum(NAAS * weighty * maty * exp(-pzbm * ZAA))
+        }
+
         ## Indices
         indtac <- (year - assessYears[max(which(assessYears <= year))]) * ns + s
 
@@ -859,7 +878,8 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
             SSB0 <- get.ssb0(MAA, maty, weighty, fecun=1, asmax, ns,
                              spawning, indage0 = indage0,
                              R0 = R0y, season = s)
-            rec[y,s] <- spawning[s] * recfunc(h = hy, SSBPR0 = SSB0/R0y, SSB = SSBtmp, R0 = R0y,
+            rec[y,s] <- spawning[s] * recfunc(h = hy, SSBPR0 = SSB0/R0y,
+                                              SSB = SSBtmp, R0 = R0y,
                                               method = dat$SR, bp = dat$bp,
                                               beta = betay,
                                               gamma = dat$recGamma,
@@ -899,8 +919,7 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
         }else{
             yearsAfterAssessment <- 1
         }
-        if((year %in% assessYears && s %in% assessmentTiming)){
-
+        if(year %in% assessYears && s %in% assessmentTiming){
 
             ## Estimate TAC
             if(tacID2 %in% c("refFmsy","consF")){
@@ -969,59 +988,61 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
         }
         ## TODO: not tested for ns > 1 & assessmentIntYear > 1
 
+        if(year %in% assessYears && s %in% assessmentTiming){
+            ## Find F given TAC
+            if(tacID2 == "refFmsy"){
+                if(tacID == "refFmsy"){
+                    ## Fishing at Fmsy
+                    FMtac <- refs$Fmsy[y + s - 1] / ns
+                }else{
+                    fraci <- as.numeric(unlist(strsplit(as.character(tacID), "_"))[2])
+                    ## Fishing at fraction of Fmsy
+                    FMtac <- (fraci * refs$Fmsy[y]) / ns
+                    ## ## percentile
+                    ## fraci <- as.numeric(unlist(strsplit(as.character(tacID), "_"))[2])
+                    ## ## uncertainty
+                    ## fraci2 <- as.numeric(unlist(strsplit(as.character(tacID), "_"))[3])
+                    ## ## bias
+                    ## fraci3 <- as.numeric(unlist(strsplit(as.character(tacID), "_"))[4])
+                    ## ## Fishing at fraction of Fmsy
+                    ## ## FMtac <- (fraci * refs$Fmsy[y]) / ns
+                    ## FMtac <- exp(qnorm(fraci,log((refs$Fmsy[y] * fraci3)/ns), sd = fraci2))
 
-        ## Find F given TAC
-        if(tacID2 == "refFmsy"){
-            if(tacID == "refFmsy"){
-                ## Fishing at Fmsy
-                FMtac <- refs$Fmsy[y + s - 1] / ns
-            }else{
+                }
+            }else if(tacID2 == "noF"){
+                ## noF
+                FMtac <- 0
+            }else if(tacID2 == "consF"){
+                ## constant F
                 fraci <- as.numeric(unlist(strsplit(as.character(tacID), "_"))[2])
-                ## Fishing at fraction of Fmsy
-                FMtac <- (fraci * refs$Fmsy[y]) / ns
-                ## ## percentile
-                ## fraci <- as.numeric(unlist(strsplit(as.character(tacID), "_"))[2])
-                ## ## uncertainty
-                ## fraci2 <- as.numeric(unlist(strsplit(as.character(tacID), "_"))[3])
-                ## ## bias
-                ## fraci3 <- as.numeric(unlist(strsplit(as.character(tacID), "_"))[4])
-                ## ## Fishing at fraction of Fmsy
-                ## ## FMtac <- (fraci * refs$Fmsy[y]) / ns
-                ## FMtac <- exp(qnorm(fraci,log((refs$Fmsy[y] * fraci3)/ns), sd = fraci2))
+                FMtac <- fraci / ns
+            }else{
+                ## any other HCR
 
+                ## CHECK: shouldn't this give a vector FM of length ns?
+                ## what if F cannot be assumed to be constant throughout the year? seasonal fishing effort?
+                ## but which pattern to use? from last year? or in sel?
+
+                ## TODO: this does not consider assessmentInterval!! (e.g. if TAC corresponds to 2 years!)
+
+                FMtac <- min(set$maxF/ns,
+                             get.f(TACs[y],
+                                   NAA = NAAS, MAA = MAA,
+                                   sel = sely, weight = weighty,
+                                   seasons = assessSeasons[[s]], ns = ns, y = y,
+                                   h = hy, asmax = asmax, mat = maty,
+                                   pzbm = pzbm, spawning = spawning,
+                                   R0 = R0y, SR = dat$SR, bp = dat$pb,
+                                   recBeta = dat$recBeta,
+                                   recGamma = dat$recGamma, eR = eR,
+                                   indage0 = indage0,
+                                   lastFM = 0.01, ## FM[y-1,s],  ## CHECK: had some issues with too high FM
+                                   upper = log(set$maxF/ns)
+                                   )
+                             )
             }
-        }else if(tacID2 == "noF"){
-            ## noF
-            FMtac <- 0
-        }else if(tacID2 == "consF"){
-            ## constant F
-            fraci <- as.numeric(unlist(strsplit(as.character(tacID), "_"))[2])
-            FMtac <- fraci / ns
-        }else{
-            ## any other HCR
-
-            ## CHECK: shouldn't this give a vector FM of length ns?
-            ## what if F cannot be assumed to be constant throughout the year? seasonal fishing effort?
-            ## but which pattern to use? from last year? or in sel?
-
-            ## TODO: this does not consider assessmentInterval!! (e.g. if TAC corresponds to 2 years!)
-
-            FMtac <- min(set$maxF/ns,
-                         get.f(TACs[y],
-                               NAA = NAAS, MAA = MAA,
-                               sel = sely, weight = weighty,
-                               seasons = assessSeasons[[s]], ns = ns, y = y,
-                               h = hy, asmax = asmax, mat = maty,
-                               pzbm = pzbm, spawning = spawning,
-                               R0 = R0y, SR = dat$SR, bp = dat$pb, recBeta = dat$recBeta,
-                               recGamma = dat$recGamma, eR = eR,
-                               indage0 = indage0,
-                               lastFM = 0.01, ## FM[y-1,s],  ## CHECK: had some issues with too high FM
-                               upper = log(set$maxF/ns)
-                               )
-                         )
+            FM[y,] <- FMtac
         }
-        FM[y,] <- FMtac
 
 
         ## Population dynamics
@@ -1054,7 +1075,7 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
         ##     TACreal[indtac] <- CW[y,s]
         ## }
         if(tacID2 == "refFmsy"){
-            TACreal[indtac] <- sum(CAA[,s] * weightF[,s], na.rm = TRUE)
+            TACreal[indtac] <- sum(CAA[,s] * weightF, na.rm = TRUE) ## weightF[,s]
             if(indtac == ntac) TACs[y] <- tacs$TAC1[nrow(tacs)] <- sum(TACreal)
         }
         ## TSB
@@ -1101,7 +1122,7 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
 
         ## Eponential decay
         NAAS <- NAAS * exp(-ZAA)
-        if(s == ns){
+        if(s == ns && set$recordLast == 1){
             ## end of year biomasses
             TSBfinal[y] <- sum(NAAS * weighty)
             ESBfinal[y] <- sum(NAAS * weighty * sely)
@@ -1171,15 +1192,26 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
     rownames(obs$obsMAA)[nrow(obs$obsMAA)] = as.character(y)
 
     ## proportion mature
-    obs$propMature <- rbind(obs$propMature, matrix(rowSums(dat$mat), 1, amax, byrow = TRUE))
+    obs$propMature <- rbind(obs$propMature,
+                            matrix(as.numeric(by(dat$mat,dat$as2a,mean)),
+                                   1, amax, byrow = TRUE))
+    ## obs$propMature <- rbind(obs$propMature, matrix(rowSums(dat$mat), 1, amax, byrow = TRUE))
     rownames(obs$propMature)[nrow(obs$propMature)] = as.character(y)
 
     ## mean stock weight
-    obs$WAAs <- rbind(obs$WAAs, matrix(rowSums(dat$weight), 1, amax, byrow = TRUE))
+    tmp <- sapply(year,
+                  function(x) as.numeric(by(dat$weight,dat$as2a,mean))) ## weight[,x]
+    WAAs <- t(tmp)
+    obs$WAAs <- rbind(obs$WAAs, matrix(WAAs, 1, amax, byrow = TRUE))
+    ## obs$WAAs <- rbind(obs$WAAs, matrix(rowSums(dat$weight), 1, amax, byrow = TRUE))
     rownames(obs$WAAs)[nrow(obs$WAAs)] = as.character(y)
 
     ## mean catch weight
-    obs$WAAc <- rbind(obs$WAAc, matrix(rowSums(dat$weightF), 1, amax, byrow = TRUE))
+    tmp <- sapply(year,
+                  function(x) as.numeric(by(dat$weightF,dat$as2a,mean))) ## weightF[,x]
+    WAAc <- t(tmp)
+    obs$WAAc <- rbind(obs$WAAc, matrix(WAAc, 1, amax, byrow = TRUE))
+    ## obs$WAAc <- rbind(obs$WAAc, matrix(rowSums(dat$weightF), 1, amax, byrow = TRUE))
     rownames(obs$WAAc)[nrow(obs$WAAc)] = as.character(y)
 
     ## proportion females

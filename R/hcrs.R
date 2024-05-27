@@ -11,11 +11,11 @@ est.tac <- function(obs., hcr., tacs.=NULL, pars.=NULL){
 
 
 #' @name gettacs
-gettacs <- function(tacs=NULL, id="", TAC=NA, obs=NULL){
-    if(!is.null(obs) && is.list(obs$obsI) && length(obs$obsI) != 0)
-        nis <- length(obs$obsI) else nis <- 1
-    names(TAC) <- paste0("TAC", seq(length(TAC)))
-    tactmp <- data.frame(t(TAC), id=id,
+gettacs <- function(tacs.=NULL, id.="", TAC.=NA, obs.=NULL){
+    if(!is.null(obs.) && is.list(obs.$obsI) && length(obs.$obsI) != 0)
+        nis <- length(obs.$obsI) else nis <- 1
+    names(TAC.) <- paste0("TAC", seq_len(length(TAC.)))
+    tactmp <- data.frame(t(TAC.), id=id.,
                          hitSC=NA,
                          red=NA,
                          barID=FALSE,
@@ -41,12 +41,12 @@ gettacs <- function(tacs=NULL, id="", TAC=NA, obs=NULL){
                            bmID=NA, assessInt=NA,
                            medbpbref=NA, bpbref=NA,
                            rwF=NA))
-    if(is.null(tacs)){
-        tacs <- tactmp
+    if(is.null(tacs.)){
+        tacs. <- tactmp
     }else{
-        tacs <- rbind(tacs, tactmp)
+        tacs. <- rbind(tacs., tactmp)
     }
-    return(tacs)
+    return(tacs.)
 }
 
 
@@ -60,7 +60,7 @@ gettacs <- function(tacs=NULL, id="", TAC=NA, obs=NULL){
 #'
 def.hcr.ref <- function(consF = 0,
                         fracFmsy = NULL,
-                        set = set,
+                        set. = set,
                         env = globalenv()
                         ){
 
@@ -80,7 +80,7 @@ structure(
              inp <- obs[c("obsC","timeC","obsI","timeI","obsE","timeE")]
         }
         inp <- spict::check.inp(inp, verbose = FALSE)
-        tacs <- gettacs(tacs, id="',id,'", TAC=rep(0, set$assessmentInterval), obs=inp)
+        tacs <- gettacs(tacs.=tacs, id.="',id,'", TAC.=rep(0, set.$assessmentInterval), obs.=inp)
         return(tacs)
     },
     class="hcr"
@@ -105,7 +105,7 @@ structure(
              inp <- obs[c("obsC","timeC","obsI","timeI","obsE","timeE")]
         }
         inp <- spict::check.inp(inp, verbose = FALSE)
-        tacs <- gettacs(tacs, id="',id,'", TAC=rep(0, set$assessmentInterval), obs=inp)
+        tacs <- gettacs(tacs.=tacs, id.="',id,'", TAC.=rep(0, set.$assessmentInterval), obs.=inp)
         return(tacs)
     },
     class="hcr"
@@ -127,7 +127,7 @@ structure(
              inp <- obs[c("obsC","timeC","obsI","timeI","obsE","timeE")]
         }
         inp <- spict::check.inp(inp, verbose = FALSE)
-        tacs <- gettacs(tacs, id="',id,'", TAC=rep(NA, set$assessmentInterval), obs=inp)
+        tacs <- gettacs(tacs.=tacs, id.="',id,'", TAC.=rep(NA, set.$assessmentInterval), obs.=inp)
         return(tacs)
     },
     class="hcr"
@@ -149,7 +149,7 @@ structure(
              inp <- obs[c("obsC","timeC","obsI","timeI","obsE","timeE")]
         }
         inp <- spict::check.inp(inp, verbose = FALSE)
-        tacs <- gettacs(tacs, id="',id,'", TAC=rep(0, set$assessmentInterval), obs=inp)
+        tacs <- gettacs(tacs.=tacs, id.="',id,'", TAC.=rep(0, set.$assessmentInterval), obs.=inp)
         return(tacs)
     },
     class="hcr"
@@ -250,7 +250,7 @@ structure(
             tac <- tac * (1-red)
         }
         tac <- rep(tac, set.$assessmentInterval)
-        tacs <- gettacs(tacs, id = "',id,'", TAC = tac, obs=obs)
+        tacs <- gettacs(tacs.=tacs, id. = "',id,'", TAC. = tac, obs.=obs)
         tacs$hitSC[nrow(tacs)] <- NA
         tacs$barID[nrow(tacs)] <- barID
         tacs$red[nrow(tacs)] <- red
@@ -406,7 +406,7 @@ structure(
         if(barID){
             tac <- tac * (1-red)
         }
-        tacs <- gettacs(tacs, id = "',id,'", TAC = tac, obs = obs)
+        tacs <- gettacs(tacs.=tacs, id. = "',id,'", TAC. = tac, obs. = obs)
         tacs$hitSC[nrow(tacs)] <- hitSC
         tacs$barID[nrow(tacs)] <- barID
         tacs$red[nrow(tacs)] <- red
@@ -1108,7 +1108,7 @@ structure(function(obs, tacs = NULL, pars=NULL){
             ## fitplot(fit)
 
             ## write output object
-            tacs <- gettacs(tacs, id="',id,'", TAC=tac, obs=obs)
+            tacs <- gettacs(tacs.=tacs, id.="',id,'", TAC.=tac, obs.=obs)
             tacs$conv[nrow(tacs)] <- TRUE
             return(tacs)
         }
@@ -1276,7 +1276,7 @@ structure(
             tac[tac > clup] <- clup
         }else hitSC <- 0
 
-        tacs <- gettacs(tacs, id="',id,'", TAC=tac, obs=obs)
+        tacs <- gettacs(tacs.=tacs, id.="',id,'", TAC.=tac, obs.=obs)
         tacs$hitSC[nrow(tacs)] <- hitSC
         return(tacs)
     },

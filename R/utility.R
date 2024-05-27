@@ -719,7 +719,7 @@ getMat <- function(Lm50, Lm95, mids, plba){
     ##     matA[,i] <- apply(t(plba[,,i]) * matL, 2, sum)
     ## }
    matA <- apply(t(plba) * matL, 2, sum)
-   matA <- c(1e-9,matA[-1])
+##   matA <- c(1e-9,matA[-1])
     return(matA)
 }
 
@@ -868,6 +868,7 @@ initdistR <- function(M, FM=NULL, ns, asmax, indage0, spawning, R0=1){
     NAA2[asmax,indi] <- NAA[asmax,indi] * exp(-ZAA[asmax])
     ## plus group correction
     NAA2[asmax,] <- NAA2[asmax,] / (1 - exp(-sum(ZAA[(asmax-ns+1):asmax])))
+    ## NAA2[(asmax-ns+1):asmax,] <- NAA2[(asmax-ns+1):asmax,] / (1 - exp(-sum(ZAA[(asmax-ns+1):asmax])))
     ## combine seasons
     NAAS <- rowSums(NAA2)
     ## remove recruits

@@ -29,14 +29,14 @@ NumericVector initdist(NumericVector MAA, NumericVector FAA, double R0, NumericV
   }
   // distribution each season
   for(int s=0; s<ns; s++){
-    NAA(indage0,s) = R0 * spawning(s);
-    for(int a=(indage0+1); a<asmax; a++){
+    NAA(indage0-1,s) = R0 * spawning(s);
+    for(int a=indage0; a<asmax; a++){
       NAA(a,s) = NAA(a-1,s) * exp(-ZAA(a-1));
     }
   }
   // only keep age groups present relative to end of year (last season)
   for(int s=0; s<ns; s++){
-    int j=ns-s+indage0;  // differs to R as s=[0,ns-1], ns-1, and indage0-1
+    int j=ns-s+indage0-1;  // differs to R as s=[0,ns-1], ns-1, and indage0-1
     while(j < asmax){
       NAA2(j,s) = NAA(j,s);
       j += ns;
@@ -62,7 +62,7 @@ NumericVector initdist(NumericVector MAA, NumericVector FAA, double R0, NumericV
     }
   }
   // remove recruits
-  NAAS(indage0) = 0;
+  NAAS(indage0-1) = 0;
 
   return NAAS;
 
@@ -123,9 +123,9 @@ List simpop(double logFM, List dat, List set, int out) {
   // int tvmsel = as<int>(set["tvmsel"]);
   // int tvsel = as<int>(set["tvsel"]);
   // still to figure out
-  IntegerVector as2a = as<IntegerVector>(dat["as2a"]) - 1;
-  IntegerVector as2s = as<IntegerVector>(dat["as2s"]) - 1;
-  int indage0 = as<int>(dat["indage0"]) - 1;
+  IntegerVector as2a = as<IntegerVector>(dat["as2a"]);
+  IntegerVector as2s = as<IntegerVector>(dat["as2s"]);
+  int indage0 = as<int>(dat["indage0"]);
 
   // Containers
   NumericVector Bage (asmax);
@@ -183,7 +183,7 @@ List simpop(double logFM, List dat, List set, int out) {
 
   for(int a=0; a<asmax; a++){
     //    MAA0(a) = M(tvm-1,as2s(a)) * Msel(as2a(a),as2s(a));
-    MAA0(a) = M(0,as2s(a)) * Msel(a);
+    MAA0(a) = M(0,as2s(a)-1) * Msel(a);
     //     for(int a=0; a<asmax; a++) MAA(a,_) = Mtmp(a,_) * M[Rcpp::Range(s1vec(y), s1vec(y)+ns-1)];
     FAA0(a) = fs * sel(a);
   }
@@ -249,7 +249,7 @@ List simpop(double logFM, List dat, List set, int out) {
             NAAStmp(a) = NAAStmp(a) * exp(-MAA(a));
           }
           NAAStmp(asmax-1) += NAAStmp(asmax-2);
-          for(int a=(asmax-1); a>0; a--){
+          for(int a=(asmax-2); a>0; a--){
             NAAStmp(a) = NAAStmp(a-1);
           }
           s2 = s2 - 1;
@@ -273,7 +273,7 @@ List simpop(double logFM, List dat, List set, int out) {
         rec = recBeta * (SSB + sqrt(pow(bp,2) + pow(recGamma,2)/4) -
                          sqrt(pow(SSB-bp,2) + pow(recGamma,2)/4));
       }
-      NAAS(indage0) = rec * spawning(s) * eR(y);
+      NAAS(indage0-1) = rec * spawning(s) * eR(y);
 
 
 
@@ -306,10 +306,10 @@ List simpop(double logFM, List dat, List set, int out) {
         }
       }
       NAAS(asmax-1) = NAAS(asmax-1) + NAAS(asmax-2);
-      for(int a=(asmax-1); a>0; a--){
+      for(int a=(asmax-2); a>0; a--){
         NAAS(a) = NAAS(a-1);
       }
-      NAAS(indage0) = 0;
+      NAAS(indage0-1) = 0;
     }
   }
 
@@ -324,13 +324,19 @@ List simpop(double logFM, List dat, List set, int out) {
   }
 
   List res;
-  double tmp;
+  double tmp=0.0;
   if(out == 0){
     res["CW"] = CW;
     res["TSB"] = TSB;
     res["SP"] = SP;
     res["ESB"] = ESB;
     res["SSB"] = SSB2;
+    res["SPR"] = SPR;
+    res["rec"] = rec;
+    res["SSB2"] = SSB;
+    res["NAAS"] = NAAS;
+    res["maty"] = maty;
+    res["weighty"] = weighty;
   }else if(out == 1){
     // median SP over last 50 years (or mean)
     NumericVector sp2 = tail(SP, nyrefmsy);
