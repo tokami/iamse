@@ -2,6 +2,7 @@
 % Please edit documentation in R/zzz.R
 \docType{package}
 \name{iamse}
+\alias{iamse-package}
 \alias{iamse}
 \title{iamse}
 \description{

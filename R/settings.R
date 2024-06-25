@@ -6,85 +6,178 @@ check.set <- function(set = NULL){
     if(is.null(set)) set <- list()
 
     ## noise vectors (SD, rho, bias correction)
-    if(is.null(set$noiseR)){
-        set$noiseR <- c(0,0,0)
-    }else if(length(set$noiseR) != 3){
-        writeLines("'set$noiseR' needs to be a vector with 3 values corresponding to: sd, rho, bias.cor (see gen.noise). Setting to c(0,0,0)!")
+    if(is.null(set$noise)){
+        set$noise <- list()
     }
-    if(is.null(set$noiseF)){
-        set$noiseF <- c(0,0,0)
-    }else if(length(set$noiseF) != 3){
-        writeLines("'set$noiseF' needs to be a vector with 3 values corresponding to: sd, rho, bias.cor (see gen.noise). Setting to c(0,0,0)!")
+
+    ## for noise over time
+    if(is.null(set$noise$time)){
+        set$noise$time <- list()
     }
-    if(is.null(set$noiseM)){
-        set$noiseM <- c(0,0,0)
-    }else if(length(set$noiseM) != 3){
-        writeLines("'set$noiseM' needs to be a vector with 3 values corresponding to: sd, rho, bias.cor (see gen.noise). Setting to c(0,0,0)!")
+    if(is.null(set$noise$time$R)){
+        set$noise$time$R <- c(0,0,0)
+    }else if(length(set$noise$time$R) != 3){
+        writeLines("'set$noise$time$R' needs to be a vector with 3 values corresponding to: sd, rho, bias.cor (see gen.noise). Setting to c(0,0,0)!")
     }
-    if(is.null(set$noiseH)){
-        set$noiseH <- c(0,0,0)
-    }else if(length(set$noiseH) != 3){
-        writeLines("'set$noiseH' needs to be a vector with 3 values corresponding to: sd, rho, bias.cor (see gen.noise). Setting to c(0,0,0)!")
+    if(is.null(set$noise$time$F)){
+        set$noise$time$F <- c(0,0,0)
+    }else if(length(set$noise$time$F) != 3){
+        writeLines("'set$noise$time$F' needs to be a vector with 3 values corresponding to: sd, rho, bias.cor (see gen.noise). Setting to c(0,0,0)!")
     }
-    if(is.null(set$noiseR0)){
-        set$noiseR0 <- c(0,0,0)
-    }else if(length(set$noiseR0) != 3){
-        writeLines("'set$noiseR0' needs to be a vector with 3 values corresponding to: sd, rho, bias.cor (see gen.noise). Setting to c(0,0,0)!")
+    if(is.null(set$noise$time$M)){
+        set$noise$time$M <- c(0,0,0)
+    }else if(length(set$noise$time$M) != 3){
+        writeLines("'set$noise$time$M' needs to be a vector with 3 values corresponding to: sd, rho, bias.cor (see gen.noise). Setting to c(0,0,0)!")
     }
-    if(is.null(set$noiseAlpha)){
-        set$noiseAlpha <- c(0,0,0)
-    }else if(length(set$noiseAlpha) != 3){
-        writeLines("'set$noiseAlpha' needs to be a vector with 3 values corresponding to: sd, rho, bias.cor (see gen.noise). Setting to c(0,0,0)!")
+    if(is.null(set$noise$time$H)){
+        set$noise$time$H <- c(0,0,0)
+    }else if(length(set$noise$time$H) != 3){
+        writeLines("'set$noise$time$H' needs to be a vector with 3 values corresponding to: sd, rho, bias.cor (see gen.noise). Setting to c(0,0,0)!")
     }
-    if(is.null(set$noiseBeta)){
-        set$noiseBeta <- c(0,0,0)
-    }else if(length(set$noiseBeta) != 3){
-        writeLines("'set$noiseBeta' needs to be a vector with 3 values corresponding to: sd, rho, bias.cor (see gen.noise). Setting to c(0,0,0)!")
+    if(is.null(set$noise$time$R0)){
+        set$noise$time$R0 <- c(0,0,0)
+    }else if(length(set$noise$time$R0) != 3){
+        writeLines("'set$noise$time$R0' needs to be a vector with 3 values corresponding to: sd, rho, bias.cor (see gen.noise). Setting to c(0,0,0)!")
     }
-    if(is.null(set$noiseMat)){
-        set$noiseMat <- c(0,0,0)
-    }else if(length(set$noiseMat) != 3){
-        writeLines("'set$noiseMat' needs to be a vector with 3 values corresponding to: sd, rho, bias.cor (see gen.noise). Setting to c(0,0,0)!")
+    if(is.null(set$noise$time$Alpha)){
+        set$noise$time$Alpha <- c(0,0,0)
+    }else if(length(set$noise$time$Alpha) != 3){
+        writeLines("'set$noise$time$Alpha' needs to be a vector with 3 values corresponding to: sd, rho, bias.cor (see gen.noise). Setting to c(0,0,0)!")
     }
-    if(is.null(set$noiseSel)){
-        set$noiseSel <- c(0,0,0)
-    }else if(length(set$noiseSel) != 3){
-        writeLines("'set$noiseSel' needs to be a vector with 3 values corresponding to: sd, rho, bias.cor (see gen.noise). Setting to c(0,0,0)!")
+    if(is.null(set$noise$time$Beta)){
+        set$noise$time$Beta <- c(0,0,0)
+    }else if(length(set$noise$time$Beta) != 3){
+        writeLines("'set$noise$time$Beta' needs to be a vector with 3 values corresponding to: sd, rho, bias.cor (see gen.noise). Setting to c(0,0,0)!")
     }
-    if(is.null(set$noiseW)){
-        set$noiseW <- c(0,0,0)
-    }else if(length(set$noiseW) != 3){
-        writeLines("'set$noiseW' needs to be a vector with 3 values corresponding to: sd, rho, bias.cor (see gen.noise). Setting to c(0,0,0)!")
+    if(is.null(set$noise$time$Mat)){
+        set$noise$time$Mat <- c(0,0,0)
+    }else if(length(set$noise$time$Mat) != 3){
+        writeLines("'set$noise$time$Mat' needs to be a vector with 3 values corresponding to: sd, rho, bias.cor (see gen.noise). Setting to c(0,0,0)!")
     }
-    if(is.null(set$noiseImp)){
-        set$noiseImp <- c(0,0,0)
-    }else if(length(set$noiseImp) != 3){
-        writeLines("'set$noiseImp' needs to be a vector with 3 values corresponding to: sd, rho, bias.cor (see gen.noise). Setting to c(0,0,0)!")
+    if(is.null(set$noise$time$Sel)){
+        set$noise$time$Sel <- c(0,0,0)
+    }else if(length(set$noise$time$Sel) != 3){
+        writeLines("'set$noise$time$Sel' needs to be a vector with 3 values corresponding to: sd, rho, bias.cor (see gen.noise). Setting to c(0,0,0)!")
     }
-    if(is.null(set$noiseC)){
-        set$noiseC <- c(0,0,0)
-    }else if(length(set$noiseC) != 3){
-        writeLines("'set$noiseC' needs to be a vector with 3 values corresponding to: sd, rho, bias.cor (see gen.noise). Setting to c(0,0,0)!")
+    if(is.null(set$noise$time$W)){
+        set$noise$time$W <- c(0,0,0)
+    }else if(length(set$noise$time$W) != 3){
+        writeLines("'set$noise$time$W' needs to be a vector with 3 values corresponding to: sd, rho, bias.cor (see gen.noise). Setting to c(0,0,0)!")
+    }
+    if(is.null(set$noise$time$Imp)){
+        set$noise$time$Imp <- c(0,0,0)
+    }else if(length(set$noise$time$Imp) != 3){
+        writeLines("'set$noise$time$Imp' needs to be a vector with 3 values corresponding to: sd, rho, bias.cor (see gen.noise). Setting to c(0,0,0)!")
+    }
+    if(is.null(set$noise$time$C)){
+        set$noise$time$C <- c(0,0,0)
+    }else if(length(set$noise$time$C) != 3){
+        writeLines("'set$noise$time$C' needs to be a vector with 3 values corresponding to: sd, rho, bias.cor (see gen.noise). Setting to c(0,0,0)!")
     }
     if(is.null(set[['noiseI']])){
-        set$noiseI <- c(0,0,0)
-    }else if(length(set$noiseI) != 3){
-        writeLines("'set$noiseI' needs to be a vector with 3 values corresponding to: sd, rho, bias.cor (see gen.noise). Setting to c(0,0,0)!")
+        set$noise$time$I <- c(0,0,0)
+    }else if(length(set$noise$time$I) != 3){
+        writeLines("'set$noise$time$I' needs to be a vector with 3 values corresponding to: sd, rho, bias.cor (see gen.noise). Setting to c(0,0,0)!")
     }
-    if(is.null(set$noiseCmv)){
-        set$noiseCmv <- c(0,0,0)
-    }else if(length(set$noiseCmv) != 3){
-        writeLines("'set$noiseCmv' needs to be a vector with 3 values corresponding to: sd, rho, bias.cor. Setting to c(0,0,0)!")
+    if(is.null(set$noise$time$Cmv)){
+        set$noise$time$Cmv <- c(0,0,0)
+    }else if(length(set$noise$time$Cmv) != 3){
+        writeLines("'set$noise$time$Cmv' needs to be a vector with 3 values corresponding to: sd, rho, bias.cor. Setting to c(0,0,0)!")
     }
-    if(is.null(set$noiseImv)){
-        set$noiseImv <- c(0,0,0)
-    }else if(length(set$noiseImv) != 3){
-        writeLines("'set$noiseImv' needs to be a vector with 3 values corresponding to: sd, rho, bias.cor. Setting to c(0,0,0)!")
+    if(is.null(set$noise$time$Imv)){
+        set$noise$time$Imv <- c(0,0,0)
+    }else if(length(set$noise$time$Imv) != 3){
+        writeLines("'set$noise$time$Imv' needs to be a vector with 3 values corresponding to: sd, rho, bias.cor. Setting to c(0,0,0)!")
     }
-    if(is.null(set$noiseE)){
-        set$noiseE <- c(0,0,0)
-    }else if(length(set$noiseE) != 3){
-        writeLines("'set$noiseE' needs to be a vector with 3 values corresponding to: sd, rho, bias.cor (see gen.noise). Setting to c(0,0,0)!")
+    if(is.null(set$noise$time$E)){
+        set$noise$time$E <- c(0,0,0)
+    }else if(length(set$noise$time$E) != 3){
+        writeLines("'set$noise$time$E' needs to be a vector with 3 values corresponding to: sd, rho, bias.cor (see gen.noise). Setting to c(0,0,0)!")
+    }
+
+    ## noise between replicates
+    if(is.null(set$noise$rep)){
+        set$noise$rep <- list()
+    }
+    if(is.null(set$noise$rep$R)){
+        set$noise$rep$R <- c(0,0,0)
+    }else if(length(set$noise$rep$R) != 3){
+        writeLines("'set$noise$rep$R' needs to be a vector with 3 values corresponding to: sd, rho, bias.cor (see gen.noise). Setting to c(0,0,0)!")
+    }
+    if(is.null(set$noise$rep$F)){
+        set$noise$rep$F <- c(0,0,0)
+    }else if(length(set$noise$rep$F) != 3){
+        writeLines("'set$noise$rep$F' needs to be a vector with 3 values corresponding to: sd, rho, bias.cor (see gen.noise). Setting to c(0,0,0)!")
+    }
+    if(is.null(set$noise$rep$M)){
+        set$noise$rep$M <- c(0,0,0)
+    }else if(length(set$noise$rep$M) != 3){
+        writeLines("'set$noise$rep$M' needs to be a vector with 3 values corresponding to: sd, rho, bias.cor (see gen.noise). Setting to c(0,0,0)!")
+    }
+    if(is.null(set$noise$rep$H)){
+        set$noise$rep$H <- c(0,0,0)
+    }else if(length(set$noise$rep$H) != 3){
+        writeLines("'set$noise$rep$H' needs to be a vector with 3 values corresponding to: sd, rho, bias.cor (see gen.noise). Setting to c(0,0,0)!")
+    }
+    if(is.null(set$noise$rep$R0)){
+        set$noise$rep$R0 <- c(0,0,0)
+    }else if(length(set$noise$rep$R0) != 3){
+        writeLines("'set$noise$rep$R0' needs to be a vector with 3 values corresponding to: sd, rho, bias.cor (see gen.noise). Setting to c(0,0,0)!")
+    }
+    if(is.null(set$noise$rep$Alpha)){
+        set$noise$rep$Alpha <- c(0,0,0)
+    }else if(length(set$noise$rep$Alpha) != 3){
+        writeLines("'set$noise$rep$Alpha' needs to be a vector with 3 values corresponding to: sd, rho, bias.cor (see gen.noise). Setting to c(0,0,0)!")
+    }
+    if(is.null(set$noise$rep$Beta)){
+        set$noise$rep$Beta <- c(0,0,0)
+    }else if(length(set$noise$rep$Beta) != 3){
+        writeLines("'set$noise$rep$Beta' needs to be a vector with 3 values corresponding to: sd, rho, bias.cor (see gen.noise). Setting to c(0,0,0)!")
+    }
+    if(is.null(set$noise$rep$Mat)){
+        set$noise$rep$Mat <- c(0,0,0)
+    }else if(length(set$noise$rep$Mat) != 3){
+        writeLines("'set$noise$rep$Mat' needs to be a vector with 3 values corresponding to: sd, rho, bias.cor (see gen.noise). Setting to c(0,0,0)!")
+    }
+    if(is.null(set$noise$rep$Sel)){
+        set$noise$rep$Sel <- c(0,0,0)
+    }else if(length(set$noise$rep$Sel) != 3){
+        writeLines("'set$noise$rep$Sel' needs to be a vector with 3 values corresponding to: sd, rho, bias.cor (see gen.noise). Setting to c(0,0,0)!")
+    }
+    if(is.null(set$noise$rep$W)){
+        set$noise$rep$W <- c(0,0,0)
+    }else if(length(set$noise$rep$W) != 3){
+        writeLines("'set$noise$rep$W' needs to be a vector with 3 values corresponding to: sd, rho, bias.cor (see gen.noise). Setting to c(0,0,0)!")
+    }
+    if(is.null(set$noise$rep$Imp)){
+        set$noise$rep$Imp <- c(0,0,0)
+    }else if(length(set$noise$rep$Imp) != 3){
+        writeLines("'set$noise$rep$Imp' needs to be a vector with 3 values corresponding to: sd, rho, bias.cor (see gen.noise). Setting to c(0,0,0)!")
+    }
+    if(is.null(set$noise$rep$C)){
+        set$noise$rep$C <- c(0,0,0)
+    }else if(length(set$noise$rep$C) != 3){
+        writeLines("'set$noise$rep$C' needs to be a vector with 3 values corresponding to: sd, rho, bias.cor (see gen.noise). Setting to c(0,0,0)!")
+    }
+    if(is.null(set[['noiseI']])){
+        set$noise$rep$I <- c(0,0,0)
+    }else if(length(set$noise$rep$I) != 3){
+        writeLines("'set$noise$rep$I' needs to be a vector with 3 values corresponding to: sd, rho, bias.cor (see gen.noise). Setting to c(0,0,0)!")
+    }
+    if(is.null(set$noise$rep$Cmv)){
+        set$noise$rep$Cmv <- c(0,0,0)
+    }else if(length(set$noise$rep$Cmv) != 3){
+        writeLines("'set$noise$rep$Cmv' needs to be a vector with 3 values corresponding to: sd, rho, bias.cor. Setting to c(0,0,0)!")
+    }
+    if(is.null(set$noise$rep$Imv)){
+        set$noise$rep$Imv <- c(0,0,0)
+    }else if(length(set$noise$rep$Imv) != 3){
+        writeLines("'set$noise$rep$Imv' needs to be a vector with 3 values corresponding to: sd, rho, bias.cor. Setting to c(0,0,0)!")
+    }
+    if(is.null(set$noise$rep$E)){
+        set$noise$rep$E <- c(0,0,0)
+    }else if(length(set$noise$rep$E) != 3){
+        writeLines("'set$noise$rep$E' needs to be a vector with 3 values corresponding to: sd, rho, bias.cor (see gen.noise). Setting to c(0,0,0)!")
     }
 
     ## maximum F for baranov solution for F given TAC
@@ -140,6 +233,7 @@ check.set <- function(set = NULL){
     if(is.null(set$recordLast)) set$recordLast <- 0
 
     if(is.null(set$surveyBeforeRec)) set$surveyBeforeRec <- FALSE
+
 
     ## return
     return(set)

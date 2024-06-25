@@ -51,6 +51,8 @@ def.hcr.pseudo(
 
 \item{priorlogbkfrac}{prior}
 
+\item{priorlogr}{prior}
+
 \item{fixn}{fixn}
 
 \item{bfac}{bfac}

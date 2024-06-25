@@ -237,7 +237,7 @@ plotiamse.f <- function(dat, set, resMSE,
 #' @name plotiamse.tradeoff
 #' @export
 plotiamse.tradeoff <- function(mets, metrics = c("avRelCatch","PBBlim"),
-                             hcrs=NA, plot.legend = TRUE){
+                               hcrs=NA, plot.legend = TRUE){
     if(any(!is.na(hcrs))){
         metsnew <- vector("list",length(hcrs))
         for(i in 1:length(hcrs)){
@@ -253,8 +253,10 @@ plotiamse.tradeoff <- function(mets, metrics = c("avRelCatch","PBBlim"),
     yvar <- metrics[1]
     idx <- which(xvar == allmets)
     idy <- which(yvar == allmets)
-    xlim <- c(0.8,1.2) * range(lapply(mets, function(x) x[allmets == xvar]),na.rm=TRUE)
-    ylim <- c(0.8,1.2) * range(lapply(mets, function(x) x[allmets == yvar]),na.rm=TRUE)
+    xlim <- c(0,1.2) * range(lapply(mets, function(x) x[allmets == xvar,1:3]),
+                               na.rm=TRUE)
+    ylim <- c(0.8,1.2) * range(lapply(mets, function(x) x[allmets == yvar,1:3]),
+                               na.rm=TRUE)
     cols <- rainbow(nms)
     ## metric specific settings
     if(length(c(grep("converged",xvar))>1)) xlim <- c(0,100)
@@ -273,14 +275,16 @@ plotiamse.tradeoff <- function(mets, metrics = c("avRelCatch","PBBlim"),
     if(length(grep("PBBlim",yvar)==1)) abline(h=0.05,lty=2)
     ## MS
     for(i in 1:nms){
-        xs <- mets[[i]][idx,]
-        ys <- mets[[i]][idy,]
+        xs <- mets[[i]][idx,1:3]
+        ys <- mets[[i]][idy,1:3]
         segments(x0 = xs[1], y0 = ys[2], x1 = xs[3], y1 = ys[2], col=cols[i], lwd=1.5)
         segments(x0 = xs[2], y0 = ys[1], x1 = xs[2], y1 = ys[3], col=cols[i], lwd=1.5)
         points(xs[2],ys[2], col=cols[i], pch=16, cex=1.5)
     }
-    if(plot.legend) legend("topright", legend=set$hcr,
-           col=cols, bty="n", lwd=2,lty=1)
+    if(plot.legend)
+        legend("topright", legend=names(mets),
+               col=cols, lwd=2, lty=1,
+               bg = "white")
     box()
 }
 

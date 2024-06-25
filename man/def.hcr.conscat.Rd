@@ -15,6 +15,7 @@ def.hcr.conscat(
   ffmsySD = 0,
   bbtriggerSD = 0,
   rightRef = 1,
+  set. = set,
   env = globalenv()
 )
 }

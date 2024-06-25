@@ -4,13 +4,21 @@
 ##' @importFrom parallel detectCores
 ##'
 ##' @export
-run.mse <- function(dat, set, ncores=parallel::detectCores()-1, verbose=TRUE){if(ncores > 1) verbose <- FALSE
+run.mse <- function(dat, set,
+                    fest = NULL,
+                    ncores=parallel::detectCores()-1,
+                    verbose=TRUE){
+
+    if(ncores > 1) verbose <- FALSE
+
     ## define constant catch (resort HCR if something not converging)
     def.hcr.conscat(set = set)
 
     ## Variables
     hcrs <- set$hcr
-    hcrs2 <- sapply(hcrs, function(x) unlist(strsplit(as.character(x), "-"))[1])
+    hcrs2 <- sapply(hcrs,
+                    function(x)
+                        unlist(strsplit(as.character(x), "-"))[1])
     nhcrs <- length(hcrs)
     nysim <- set$nysim
     nrep <- set$nrep
@@ -19,6 +27,7 @@ run.mse <- function(dat, set, ncores=parallel::detectCores()-1, verbose=TRUE){if
     nt <- ny * ns
     nyall <- ny + nysim
     ntall <- nyall * ns
+
 
     ## Checks
     ## --------------------
@@ -30,6 +39,17 @@ run.mse <- function(dat, set, ncores=parallel::detectCores()-1, verbose=TRUE){if
     nrefs <- nrow(refs)
     if(nrefs < ntall){
         refs <- rbind(refs, refs[rep((nrefs-ns+1):nrefs, ntall-nt),])
+    }
+
+    if(!is.null(fest)){
+        if(nrow(fest) < nrep) stop("Provided fishing mortality has to have as many rows as requested replicates (set$nrep)! Please check.")
+        if(any(is.null(set$errs)) ||
+           length(set$errs$time) < nrep) stop("No errors provided in set or number of erros do not correspond to number of replicates (set$nrep)! Please check.")
+        fhist.flag <- TRUE
+        errs <- set$errs
+        set$errs <- NULL
+    }else{
+        fhist.flag <- FALSE
     }
 
     ## Natural mortality
@@ -81,8 +101,19 @@ run.mse <- function(dat, set, ncores=parallel::detectCores()-1, verbose=TRUE){if
             ## set seed
             if(is.numeric(set$seed)) set.seed(set$seed + x)
 
+            setx <- set
+            datx <- dat
+            ## errors
+            if(fhist.flag){
+                datx$FM <- matrix(fest[x,]/datx$ns,
+                                  datx$ny, datx$ns)
+                setx$errs <- list()
+                setx$errs$time <- errs$time[[x]]
+                setx$errs$rep <- errs$rep[[x]]
+            }
+
             ## pop list with errors
-            pop <- initpop(dat, set)
+            pop <- initpop(datx, setx)
             ## add reference levels
             pop$refs <- refs
             popList <- vector("list", nhcrs)
@@ -92,23 +123,6 @@ run.mse <- function(dat, set, ncores=parallel::detectCores()-1, verbose=TRUE){if
 
             repList <- vector("list", nhcrs)
             popListx <- popList
-            setx <- set
-            ## errors
-            setx$eF <- gen.noise(nysim, set$noiseF[1], set$noiseF[2], set$noiseF[3])
-            setx$eR <- gen.noise(nysim, set$noiseR[1], set$noiseR[2], set$noiseR[3])
-            setx$eM <- gen.noise(nysim, set$noiseM[1], set$noiseM[2], set$noiseM[3])
-            setx$eH <- gen.noise(nysim, set$noiseH[1], set$noiseH[2], set$noiseH[3])
-            setx$eW <- gen.noise(nysim, set$noiseW[1], set$noiseW[2], set$noiseW[3])
-            setx$eR0 <- gen.noise(nysim, set$noiseR0[1], set$noiseR0[2], set$noiseR0[3])
-            setx$eMat <- gen.noise(nysim, set$noiseMat[1], set$noiseMat[2], set$noiseMat[3])
-            setx$eSel <- gen.noise(nysim, set$noiseSel[1], set$noiseSel[2], set$noiseSel[3])
-            setx$eImp <- gen.noise(nysim, set$noiseImp[1], set$noiseImp[2], set$noiseImp[3])
-            setx$eC <- gen.noise(nysim, set$noiseC[1], set$noiseC[2], set$noiseC[3])
-            setx$eI <- list()
-            for(i in 1:length(dat$surveyTimes)){
-                setx$eI[[i]] <- gen.noise(nysim, set$noiseI[1], set$noiseI[2], set$noiseI[3])
-            }
-            setx$eE <- gen.noise(nysim, set$noiseE[1], set$noiseE[2], set$noiseE[3])
 
             ## loop
             for(i in 1:nhcrs){
@@ -116,7 +130,7 @@ run.mse <- function(dat, set, ncores=parallel::detectCores()-1, verbose=TRUE){if
                 poptmp <- popListx[[i]]
                 poptmp$tacs <- NULL
                 for(y in 1:nysim){
-                    poptmp <- advancepop(dat = dat,
+                    poptmp <- advancepop(dat = datx,
                                          hist = poptmp,
                                          set = setx,
                                          hcr = hcri,
@@ -140,8 +154,19 @@ run.mse <- function(dat, set, ncores=parallel::detectCores()-1, verbose=TRUE){if
             ## set seed
             if(is.numeric(set$seed)) set.seed(set$seed + x)
 
+            setx <- set
+            datx <- dat
+            ## errors
+            if(fhist.flag){
+                datx$FM <- matrix(fest[x,]/datx$ns,
+                                  datx$ny, datx$ns)
+                setx$errs <- list()
+                setx$errs$time <- errs$time[[x]]
+                setx$errs$rep <- errs$rep[[x]]
+            }
+
             ## pop list with errors
-            pop <- initpop(dat, set)
+            pop <- initpop(datx, setx)
             ## add reference levels
             pop$refs <- refs
             popList <- vector("list", nhcrs)
@@ -151,24 +176,10 @@ run.mse <- function(dat, set, ncores=parallel::detectCores()-1, verbose=TRUE){if
 
             repList <- vector("list", nhcrs)
             popListx <- popList
-            setx <- set
-            ## errors
-            setx$eF <- gen.noise(nysim, set$noiseF[1], set$noiseF[2], set$noiseF[3])
-            setx$eR <- gen.noise(nysim, set$noiseR[1], set$noiseR[2], set$noiseR[3])
-            setx$eM <- gen.noise(nysim, set$noiseM[1], set$noiseM[2], set$noiseM[3])
-            setx$eH <- gen.noise(nysim, set$noiseH[1], set$noiseH[2], set$noiseH[3])
-            setx$eW <- gen.noise(nysim, set$noiseW[1], set$noiseW[2], set$noiseW[3])
-            setx$eR0 <- gen.noise(nysim, set$noiseR0[1], set$noiseR0[2], set$noiseR0[3])
-            setx$eMat <- gen.noise(nysim, set$noiseMat[1], set$noiseMat[2], set$noiseMat[3])
-            setx$eSel <- gen.noise(nysim, set$noiseSel[1], set$noiseSel[2], set$noiseSel[3])
-            setx$eImp <- gen.noise(nysim, set$noiseImp[1], set$noiseImp[2], set$noiseImp[3])
-            setx$eC <- gen.noise(nysim, set$noiseC[1], set$noiseC[2], set$noiseC[3])
-            setx$eI <- list()
-            for(i in 1:length(dat$surveyTimes)){
-                setx$eI[[i]] <- gen.noise(nysim, set$noiseI[1], set$noiseI[2], set$noiseI[3])
-            }
-            setx$eE <- gen.noise(nysim, set$noiseE[1], set$noiseE[2], set$noiseE[3])
 
+            ## setx$errs <- list()
+            ## setx$errs$time <- get.errs(dat, set, (ny+1):(ny+nysim), pop)
+            ## setx$errs$rep <- pop$errs$rep
 
             ## loop
             for(i in 1:nhcrs){
@@ -176,7 +187,7 @@ run.mse <- function(dat, set, ncores=parallel::detectCores()-1, verbose=TRUE){if
                 poptmp <- popListx[[i]]
                 poptmp$tacs <- NULL
                 for(y in 1:nysim){
-                    poptmp <- advancepop(dat = dat,
+                    poptmp <- advancepop(dat = datx,
                                          hist = poptmp,
                                          set = setx,
                                          hcr = hcri,

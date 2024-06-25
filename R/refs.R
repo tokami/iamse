@@ -150,21 +150,13 @@ est.ref.levels.stochastic <- function(dat, set=NULL, fmax = 10,
     ##
 
     ## errors (have to be re-used for estimation of Bmsy)
-    errs <- vector("list", nrep)
+    errs <- list()
+    errs$time <- errs$rep <- vector("list", nrep)
     for(i in 1:nrep){
-        errs[[i]] <- list() ##vector("list", 9)
-        errs[[i]]$eF <- gen.noise(nyref, set$noiseF[1], set$noiseF[2], set$noiseF[3])
-##        errs[[i]]$eF <- rep(1.0, nyref)
-        errs[[i]]$eR <- gen.noise(nyref, set$noiseR[1], set$noiseR[2], set$noiseR[3])
-        errs[[i]]$eM <- gen.noise(nyref, set$noiseM[1], set$noiseM[2], set$noiseM[3])
-        errs[[i]]$eH <- gen.noise(nyref, set$noiseH[1], set$noiseH[2], set$noiseH[3])
-        errs[[i]]$eW <- gen.noise(nyref, set$noiseW[1], set$noiseW[2], set$noiseW[3])
-        errs[[i]]$eR0 <- gen.noise(nyref, set$noiseR0[1], set$noiseR0[2], set$noiseR0[3])
-        errs[[i]]$eMat <- gen.noise(nyref, set$noiseMat[1], set$noiseMat[2], set$noiseMat[3])
-        errs[[i]]$eSel <- gen.noise(nyref, set$noiseSel[1], set$noiseSel[2], set$noiseSel[3])
-        errs[[i]]$eImp <- gen.noise(nyref, set$noiseImp[1], set$noiseImp[2], set$noiseImp[3])
+        errs$time[[i]] <- get.errs(dat, set, 1:nyref)
+        errs$rep[[i]] <- get.errs(dat, set, 1, rep = TRUE)
     }
-    ##
+
     datx <- dat
 
     ##
@@ -194,18 +186,33 @@ est.ref.levels.stochastic <- function(dat, set=NULL, fmax = 10,
     ## f <- 0.7
     ## simpop(log(f), datx, setx, out=0)
 
-
-
     ## For now
     alltv <- 1
 
+
+    ## browser()
+
+    ## x = 1
+    ## i = 1
+    ## setx <- set
+    ## setx$errs <- list(time = errs$time[[x]],
+    ##                   rep = errs$rep[[x]])
+    ## ## setx$errs$time$eR[setx$errs$time$eR != 1] <- 1
+    ## ## setx$errs$time$eF[setx$errs$time$eF != 1] <- 1
+    ## opt <- optimise(function(x) unlist(simpop(x, datx, setx, out=1)),
+    ##                 log(c(0.001,fmax)), maximum = TRUE)
+    ## exp(opt$maximum)
+
+    ## mean(setx$errs$time$eR)
 
     if(any(ref %in% c("Fmsy","Bmsy","MSY","ESBmsy","SSBmsy"))){
 
 
         ## Fmsy
         res <- parallel::mclapply(as.list(1:nrep), function(x){
-            setx <- c(set, errs[[x]])
+            setx <- set
+            setx$errs <- list(time = errs$time[[x]],
+                              rep = errs$rep[[x]])
             tmp <- rep(NA, alltv)
             for(i in 1:alltv){
                 ## datx$M <- as.matrix(ms[mtv[i],])
@@ -251,7 +258,9 @@ est.ref.levels.stochastic <- function(dat, set=NULL, fmax = 10,
 
         ## MSY and Biomass reference points
         res <- parallel::mclapply(as.list(1:nrep), function(x){
-            setx <- c(set, errs[[x]])
+            setx <- set
+            setx$errs <- list(time = errs$time[[x]],
+                              rep = errs$rep[[x]])
             tmp <- vector("list", alltv)
             for(i in 1:alltv){
                 ## datx$M <- rep(dat$M[i], nyref)
@@ -303,7 +312,9 @@ est.ref.levels.stochastic <- function(dat, set=NULL, fmax = 10,
     if(any(ref %in% c("B0","ESB0"))){
 
         res <- parallel::mclapply(as.list(1:nrep), function(x){
-            setx <- c(set, errs[[x]])
+            setx <- set
+            setx$errs <- list(time = errs$time[[x]],
+                              rep = errs$rep[[x]])
             tmp <- vector("list", alltv)
             for(i in 1:alltv){
                 ## datx$M <- rep(dat$M[i], nyref)

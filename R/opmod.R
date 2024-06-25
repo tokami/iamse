@@ -87,109 +87,10 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE,
     qE <- dat$qE
     spawning <- dat$spawning
 
-
     ## errors
-    if(!is.null(set)){
-        eF <- set$eF
-        eR <- set$eR
-        eM <- set$eM
-        eH <- set$eH
-        eR0 <- set$eR0
-        eAlpha <- set$eAlpha
-        eBeta <- set$eBeta
-        eMat <- set$eMat
-        eSel <- set$eSel
-        eW <- set$eW
-        eImp <- set$eImp
-        eC <- set$eC
-        eI <- set$eI
-        eCmv <- set$eCmv
-        eImvA <- set$eImvA
-        eImvL <- set$eImvL
-        eE <- set$eE
-        if(is.null(eF)) eF <- gen.noise(ny, set$noiseF[1], set$noiseF[2], bias.cor = set$noiseF[3])
-        if(is.null(eR)) eR <- gen.noise(ny, set$noiseR[1], set$noiseR[2], bias.cor = set$noiseR[3])
-        if(is.null(eM)) eM <- gen.noise(ny, set$noiseM[1], set$noiseM[2], bias.cor = set$noiseM[3])
-        if(is.null(eH)) eH <- gen.noise(ny, set$noiseH[1], set$noiseH[2], bias.cor = set$noiseH[3])
-        if(is.null(eR0)) eR0 <- gen.noise(ny, set$noiseR0[1], set$noiseR0[2], bias.cor = set$noiseR0[3])
-        if(is.null(eAlpha)) eAlpha <- gen.noise(ny, set$noiseAlpha[1], set$noiseAlpha[2], bias.cor = set$noiseAlpha[3])
-        if(is.null(eBeta)) eBeta <- gen.noise(ny, set$noiseBeta[1], set$noiseBeta[2], bias.cor = set$noiseBeta[3])
-        if(is.null(eMat)) eMat <- gen.noise(ny, set$noiseMat[1], set$noiseMat[2], bias.cor = set$noiseMat[3])
-        if(is.null(eSel)) eSel <- gen.noise(ny, set$noiseSel[1], set$noiseSel[2], bias.cor = set$noiseSel[3])
-        if(is.null(eW)) eW <- gen.noise(ny, set$noiseW[1], set$noiseW[2], bias.cor = set$noiseW[3])
-        if(is.null(eImp)) eImp <- gen.noise(ny, set$noiseImp[1], set$noiseImp[2], bias.cor = set$noiseImp[3])
-        if(is.null(eC)) eC <- gen.noise(ny, set$noiseC[1], set$noiseC[2], bias.cor = set$noiseC[3])
-        if(is.null(eI)){
-            eI <- list()
-            for(i in 1:nsurv){
-                eI[[i]] <- gen.noise(ny, set$noiseI[1], set$noiseI[2], bias.cor = set$noiseI[3])
-            }
-        }
-        if(is.null(eCmv)) eCmv <- gen.noise(ny, set$noiseCmv[1], set$noiseCmv[2],
-                                               bias.cor = set$noiseCmv[3],
-                                               mv = TRUE, dat = dat)
-        if(is.null(eImvA)){
-            eImvA <- list()
-            for(i in 1:nsurv){
-                eImvA[[i]] <- gen.noise(ny, set$noiseImv[1], set$noiseImv[2],
-                                    bias.cor = set$noiseImv[3],
-                                    mv = TRUE, dat = dat, by.asmax = FALSE)
-            }
-        }
-        if(is.null(eImvL)){
-            eImvL <- list()
-            for(i in 1:nsurv){
-                eImvL[[i]] <- gen.noise(ny, set$noiseImv[1], set$noiseImv[2],
-                                    bias.cor = set$noiseImv[3],
-                                    mv = TRUE, dat = dat, by.asmax = TRUE)
-            }
-        }
-        if(is.null(eE)) eE <- gen.noise(ny, set$noiseE[1], set$noiseE[2], bias.cor = set$noiseE[3])
-    }else{
-        eF <- rep(1, ny)
-        eR <- rep(1, ny)
-        eM <- rep(1, ny)
-        eH <- rep(1, ny)
-        eAlpha <- rep(1, ny)
-        eBeta <- rep(1, ny)
-        eR0 <- rep(1, ny)
-        eMat <- rep(1, ny)
-        eSel <- rep(1, ny)
-        eW <- rep(1, ny)
-        eImp <- rep(1, ny)
-        eC <- rep(1, ny)
-        eI <- list()
-        for(i in 1:nsurv){
-            eI[[i]] <- rep(1, ny)
-        }
-        eCmv <- matrix(1, nrow=ny, ncol=amax)
-        eImvA <- list()
-        for(i in 1:nsurv){
-            eImvA[[i]] <- matrix(1, nrow=ny, ncol=amax)
-        }
-        eImvL <- list()
-        for(i in 1:nsurv){
-            eImvL[[i]] <- matrix(1, nrow=ny, ncol=asmax)
-        }
-        eE <- rep(1, ny)
-    }
-    errs <- list(eF = eF,
-                 eR = eR,
-                 eM = eM,
-                 eH = eH,
-                 eAlpha = eAlpha,
-                 eBeta = eBeta,
-                 eR0 = eR0,
-                 eMat = eMat,
-                 eSel = eSel,
-                 eW = eW,
-                 eImp = eImp,
-                 eC = eC,
-                 eI = eI,
-                 eCmv = eCmv,
-                 eImvA = eImvA,
-                 eImvL = eImvL,
-                 eE = eE)
+    errs <- list()
+    errs$time <- get.errs(dat, set, 1:dat$ny)
+    errs$rep <- get.errs(dat, set, 1, rep = TRUE)
 
     ## Flags
     mselFlag <- inherits(Msel, "list") && length(Msel) > 1
@@ -215,45 +116,46 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE,
     for(i in 1:nsurv) obsIL[[i]] <- matrix(0, nrow = ny, ncol = length(dat$mids))
 
     ## Initialise NAA
-    hy <- h[1] * eH[1]
-    R0y <- R0[1] * eR0[1]
-    maty <- as.numeric(t(mat)) * eMat[1]
-    weighty <- as.numeric(t(weight[,1])) * eW[1]
-    weightFy <- as.numeric(t(weightF[,1])) * eW[1]
-    sely <- as.numeric(t(sel[[1]])) * eSel[1]
+    ## TODO: use mean for all!
+    hy <- h[1] * errs$time$eH[1] * errs$rep$eH
+    R0y <- R0[1] * mean(errs$time$eR0 * errs$rep$eR0) ## * errs$time$eR0[1] * errs$rep$eR0
+    maty <- as.numeric(t(mat)) * errs$time$eMat[1] * errs$rep$eMat
+    weighty <- as.numeric(t(weight[,1])) * errs$time$eW[1] * errs$rep$eW
+    weightFy <- as.numeric(t(weightF[,1])) * errs$time$eW[1] * errs$rep$eW
+    sely <- as.numeric(t(sel[[1]])) * errs$time$eSel[1] * errs$rep$eSel
     msely <- as.numeric(t(Msel[[1]]))
     NAAbi2 <- NAAbi <- matrix(0, asmax, ns)
     NAAbi[indage0,] <- R0y * spawning ## * exp(initN[1])
-    Mbi <- M[1,dat$as2s] * eM[1] * msely
-    Fbi <- FM[1,dat$as2s] * eF[1] * sely ## TODO: F,M different in various seasons?
+    Mbi <- M[1,dat$as2s] * msely * mean(errs$time$eM * errs$rep$eM) ## BEFORE: * errs$time$eM[1] * errs$rep$eM
+    Fbi <- FM[1,dat$as2s] * sely  * mean(errs$time$eF * errs$rep$eF) ## TODO: F,M different in various seasons?
     ZAA <-  Mbi + Fbi
-    alphay <- alpha[1] * eAlpha[1]
-    betay <- beta[1] * eBeta[1]
+    alphay <- alpha[1] * errs$time$eAlpha[1] * errs$rep$eAlpha
+    betay <- beta[1] * errs$time$eBeta[1] * errs$rep$eBeta
 
-    NAASbi <- initdistR(Mbi, Fbi, ns, asmax, indage0, spawning, R0y)
+    NAASbi <- initdistR(Mbi, Fbi, ns, asmax, indage0, spawning, R0y * mean(errs$time$eR * errs$rep$eR))
 
     ## Burn-in period
     if(is.null(set)) burnin <- 5e2 else burnin <- set$burnin
     if(is.numeric(burnin) && burnin > 0){
         for(y in 1:burnin){
-            Fbi <- FM[1,] * eF[1] * sely
-            Mbi <- M[1,] * eM[1] * msely
+            Fbi <- FM[1,] * sely * mean(errs$time$eF * errs$rep$eF)
+            Mbi <- M[1,] * msely * mean(errs$time$eM * errs$rep$eM)
             Zbi <- Mbi + Fbi
             for(s in 1:ns){
-                ## recruitment
                 if(spawning[s] > 0){
                     SSBtmp <- sum(NAASbi * weighty * maty * exp(-pzbm * Zbi))
                     SSB0 <- get.ssb0(Mbi, maty, weighty, fecun = 1, asmax, ns,
-                                     spawning, indage0 = indage0,
-                                     R0 = R0y, season = s, FM = 0)
+                                     spawning, R0 = R0y * mean(errs$time$eR * errs$rep$eR),
+                                     indage0 = indage0,
+                                     season = s, FM = 0)
                     ##                  print(paste0("SSB0: ",round(SSB0), " - SSBt: ",round(SSBtmp)))
-                    recbi <- spawning[s] * recfunc(h = hy, SSBPR0 = SSB0/R0y,
+                    recbi <- spawning[s] * recfunc(h = hy, SSBPR0 = SSB0/(R0y * mean(errs$time$eR * errs$rep$eR)),
                                                    SSB = SSBtmp,
                                                    R0 = R0y, method = dat$SR,
                                                    bp = dat$bp,
                                                    beta = betay,
                                                    gamma = dat$recGamma,
-                                                   alpha = alphay)
+                                                   alpha = alphay) * mean(errs$time$eR * errs$rep$eR)
                     recbi[recbi<0] <- 1e-10
                     NAASbi[indage0] <- recbi
                 }
@@ -269,29 +171,38 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE,
     NAAS <- NAASbi
 
     if(dbg > 0){
+        Mbi <- M[1,dat$as2s] * msely * mean(errs$time$eM * errs$rep$eM) ## BEFORE: * errs$time$eM[1] * errs$rep$eM
+        Fbi <- FM[1,dat$as2s] * sely  * mean(errs$time$eF * errs$rep$eF) ## TODO: F,M different in various seasons?
+        ## initdist  only correct if F=0, so okay for get.ssb0
         print(data.frame(initR = initdistR(Mbi, Fbi, dat$ns, dat$asmax,
-                                           dat$indage0, dat$spawning, dat$R0),
-                         initC = initdist(Mbi, Fbi, dat$R0, dat$spawning,  dat$indage0),
+                                           dat$indage0, dat$spawning,
+                                           dat$R0 * mean(errs$time$eR * errs$rep$eR)),
+                         initC = initdist(Mbi, Fbi,
+                                          dat$R0 * mean(errs$time$eR * errs$rep$eR),
+                                          dat$spawning,  dat$indage0),
                          burnIn = NAASbi))
     }
+
+    SSB0vec <- rep(NA,ny)
+    SPRvec <- rep(NA,ny)
 
     ## main loop
     for(y in 1:ny){
 
         ## Adding noise
         selInd <- ifelse(selFlag, y, 1)
-        sely <- as.numeric(t(sel[[selInd]])) * eSel[y]
-        FAA <- FM[y,] * eF[y] * sely
+        sely <- as.numeric(t(sel[[selInd]])) * errs$time$eSel[y] * errs$rep$eSel
+        FAA <- FM[y,dat$as2s] * errs$time$eF[y] * errs$rep$eF * sely
         mselInd <- ifelse(mselFlag, y, 1)
-        MAA <- M[y,] * as.numeric(t(Msel[[mselInd]])) * eM[y]
+        MAA <- M[y,dat$as2s] * as.numeric(t(Msel[[mselInd]])) * errs$time$eM[y] * errs$rep$eM
         ZAA <- MAA + FAA
-        maty <- as.numeric(t(mat)) * eMat[y]
-        weighty <- as.numeric(t(weight[,y])) * eW[y]
-        weightFy <- as.numeric(t(weightF[,y])) * eW[y]
-        hy <- h[y] * eH[y]
-        R0y <- R0[y] * eR0[y]
-        alphay <- alpha[y] * eAlpha[1]
-        betay <- beta[y] * eBeta[1]
+        maty <- as.numeric(t(mat)) * errs$time$eMat[y] * errs$rep$eMat
+        weighty <- as.numeric(t(weight[,y])) * errs$time$eW[y] * errs$rep$eW
+        weightFy <- as.numeric(t(weightF[,y])) * errs$time$eW[y] * errs$rep$eW
+        hy <- h[y] * errs$time$eH[y] * errs$rep$eH
+        R0y <- R0[y] * errs$time$eR0[y] * errs$rep$eR0
+        alphay <- alpha[y] * errs$time$eAlpha[1] * errs$rep$eAlpha
+        betay <- beta[y] * errs$time$eBeta[1] * errs$rep$eBeta
 
         if(plot){
             par(mfrow = n2mfrow(ns),
@@ -321,16 +232,16 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE,
                         NAAsurv <- exp(log(NAAS) - ZAA * surveyTime)
                         ESBsurv <- NAAsurv * weightFy * as.numeric(t(dat$selI[[idxi[i]]]))
                         ## Total index (for spict)
-                        obsI[[idxi[i]]] <- c(obsI[[idxi[i]]], q[idxi[i]] * sum(ESBsurv) * eI[[idxi[i]]][y])
+                        obsI[[idxi[i]]] <- c(obsI[[idxi[i]]], q[idxi[i]] * sum(ESBsurv) * errs$time$eI[[idxi[i]]][y] * errs$rep$eI[[idxi[i]]])
                         if(is.null(timeI[[idxi[i]]]))
                             timeIi <- 0 else timeIi <- floor(tail(timeI[[idxi[i]]],1))
                         timeI[[idxi[i]]] <- c(timeI[[idxi[i]]], timeIi + 1 + surveyTimes[idxi[i]])
                         ## Index by age (sam, sms)
                         obsIA[[idxi[i]]][y,] <- q[idxi[i]] * as.numeric(by(NAAsurv *
                                                                            as.numeric(t(dat$selI[[idxi[i]]])),
-                                                                           as2a, sum)) * eImvA[[idxi[[i]]]][y,]
-                        ## Index by length NEW:
-                        obsIL[[idxi[i]]][y,] <- q[idxi[i]] * (NAAsurv * as.numeric(t(dat$selI[[idxi[i]]])) * eImvL[[idxi[[i]]]][y,]) %*% dat$plba
+                                                                           as2a, sum)) * errs$time$eImvA[[idxi[[i]]]][y,] * as.numeric(errs$rep$eImvA[[idxi[[i]]]])
+                        ## Index by length
+                        obsIL[[idxi[i]]][y,] <- q[idxi[i]] * (NAAsurv * as.numeric(t(dat$selI[[idxi[i]]])) * errs$time$eImvL[[idxi[[i]]]][y,] * as.numeric(errs$rep$eImvL[[idxi[[i]]]])) %*% dat$plba
                     }
                 }
             }
@@ -343,17 +254,21 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE,
                 SSB[y,s] <- sum(NAAS * weighty * maty * exp(-pzbm * ZAA)) ## pre-recruitment mort
 ##                print(SSB[y,s])
                 SSB0 <- get.ssb0(MAA, maty, weighty, fecun=1, asmax,
-                                 ns, spawning, indage0 = indage0, R0=R0y,
-                                 season = s)
+                                 ns, spawning, indage0 = indage0,
+                                 R0 = R0y * errs$time$eR[y] * errs$rep$eR,
+                                 season = s, FM = 0)
+
+                SSB0vec[y] <- SSB0
+                SPRvec[y] <- SSB0/(R0y * errs$time$eR[y] * errs$rep$eR)
 
                 rec[y,s] <-  spawning[s] * recfunc(h = hy,
-                                                   SSBPR0 = SSB0/R0y,
+                                                   SSBPR0 = SSB0/(R0y * errs$time$eR[y] * errs$rep$eR),
                                                    SSB = SSB[y,s],
                                                    R0 = R0y, method = dat$SR,
                                                    bp = dat$bp,
                                                    beta = betay,
                                                    gamma = dat$recGamma,
-                                                   alpha = alphay) * eR[y]
+                                                   alpha = alphay) * errs$time$eR[y] * errs$rep$eR
                 rec[rec<0] <- 1e-10
                 NAAS[indage0] <- rec[y,s]
             }
@@ -398,16 +313,16 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE,
                         NAAsurv <- exp(log(NAAS) - ZAA * surveyTime)
                         ESBsurv <- NAAsurv * weightFy * as.numeric(t(dat$selI[[idxi[i]]]))
                         ## Total index (for spict)
-                        obsI[[idxi[i]]] <- c(obsI[[idxi[i]]], q[idxi[i]] * sum(ESBsurv) * eI[[idxi[i]]][y])
+                        obsI[[idxi[i]]] <- c(obsI[[idxi[i]]], q[idxi[i]] * sum(ESBsurv) * errs$time$eI[[idxi[i]]][y] * errs$rep$eI[[idxi[i]]])
                         if(is.null(timeI[[idxi[i]]]))
                             timeIi <- 0 else timeIi <- floor(tail(timeI[[idxi[i]]],1))
                         timeI[[idxi[i]]] <- c(timeI[[idxi[i]]], timeIi + 1 + surveyTimes[idxi[i]])
                         ## Index by age (sam, sms)
                         obsIA[[idxi[i]]][y,] <- q[idxi[i]] * as.numeric(by(NAAsurv *
                                                                            as.numeric(t(dat$selI[[idxi[i]]])),
-                                                                           as2a, sum)) * eImvA[[idxi[[i]]]][y,]
-                        ## Index by length NEW:
-                        obsIL[[idxi[i]]][y,] <- q[idxi[i]] * (NAAsurv * as.numeric(t(dat$selI[[idxi[i]]])) * eImvL[[idxi[[i]]]][y,]) %*% dat$plba
+                                                                           as2a, sum)) * errs$time$eImvA[[idxi[[i]]]][y,] * as.numeric(errs$rep$eImvA[[idxi[[i]]]])
+                        ## Index by length
+                        obsIL[[idxi[i]]][y,] <- q[idxi[i]] * (NAAsurv * as.numeric(t(dat$selI[[idxi[i]]])) * errs$time$eImvL[[idxi[[i]]]][y,] * as.numeric(errs$rep$eImvL[[idxi[[i]]]])) %*% dat$plba
                     }
                 }
             }
@@ -456,19 +371,25 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE,
             ## annual catches
             ## ----------------
             ## total catches (spict)
-            obsC <- apply(CW[idxC,], 1, sum) * eC[idxC]
+            obsC <- apply(CW[idxC,], 1, sum) *
+                errs$time$eC[idxC] * errs$rep$eC
             timeC <- idxC
             ## catch observations at age (SAM, SMS)
-            for(y in 1:length(idxC)) obsCA[y,] <- as.numeric(by(apply(CAA[[idxC[y]]], 1, sum) *
-                                                                eCmv[y,],as2a,sum))
+            for(y in 1:length(idxC))
+                obsCA[y,] <- as.numeric(by(apply(CAA[[idxC[y]]],
+                                                 1, sum), as2a, sum)) *
+                    errs$time$eCmv[y,] * as.numeric(errs$rep$eCmv)
         }else if(nsC == ns){
             ## seasonal catches (for each season in OM)
             ## ----------------
-            obsC <- as.numeric(t(CW[idxC,] * eC[idxC]))
+            obsC <- as.numeric(t(CW[idxC,] *
+                                 errs$time$eC[idxC] * errs$rep$eC))
             timeC <- rep(idxC, each = ns) + rep(seasonStart, nyC)
             ## catch observations at age (seasonal CAA observations not yet implemented, what is target format?)
-            for(y in 1:length(idxC)) obsCA[y,] <- as.numeric(by(apply(CAA[[idxC[y]]], 1, sum) *
-                                                                eCmv[y,],as2a,sum))
+            for(y in 1:length(idxC))
+                obsCA[y,] <- as.numeric(by(apply(CAA[[idxC[y]]],
+                                                 1, sum),as2a,sum)) *
+                    errs$time$eCmv[y,] * as.numeric(errs$rep$eCmv)
         }else{
             ## seasonal catches not aligning with seasones in OM (not implemented)
             stop("Catch observation seasons and operating model seasons do not match. Not yet implemented!")
@@ -479,12 +400,12 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE,
             if(nsE == 1){
                 ## annual effort
                 ## ----------------
-                obsE <- apply(FM[idxE,], 1, sum) * eF[idxE] * qE * eE[idxE]
+                obsE <- apply(FM[idxE,], 1, sum) * errs$time$eF[idxE] * errs$rep$eF * qE * errs$time$eE[idxE] * errs$rep$eE
                 timeE <- idxE
             }else if(nsE == ns){
                 ## seasonal effort (for each season in OM)
                 ## ----------------
-                obsE <- as.numeric(t(FM[idxE,] * eF[idxE] * qE * eE[idxE]))
+                obsE <- as.numeric(t(FM[idxE,] * errs$time$eF[idxE] * errs$rep$eF * qE * errs$time$eE[idxE] * errs$rep$eE))
                 timeE <- rep(idxE, each = ns) + rep(seasonStart, nyE)
             }else{
                 ## seasonal effort not aligning with seasones in OM (not implemented)
@@ -498,15 +419,15 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE,
         ## annual OM
         ## Catch
         if(nsC > 1) writeLines("Set dat$ns to > 1 for seasonal catches. Generating annual catches!")
-        obsC <- CW[idxC,] * eC[idxC]
+        obsC <- CW[idxC,] * errs$time$eC[idxC] * errs$rep$eC
         timeC <- idxC
         ## catch observations at age
-        for(y in 1:length(idxC)) obsCA[y,] <- as.numeric(by(CAA[[idxC[y]]] * eCmv[y,],as2a,sum))
+        for(y in 1:length(idxC)) obsCA[y,] <- as.numeric(by(CAA[[idxC[y]]], as2a, sum)) * errs$time$eCmv[y,] * as.numeric(errs$rep$eCmv)
 
         ## Effort
         if(is.numeric(nyE)){
             if(nsE > 1) writeLines("Set dat$ns to > 1 for seasonal effort. Generating annual catches!")
-            obsE <- FM[idxE,] * eF[idxE] * qE * eE[idxE]
+            obsE <- FM[idxE,] * errs$time$eF[idxE] * errs$rep$eF * qE * errs$time$eE[idxE] * errs$rep$eE
             timeE <- idxE
         }else{
             obsE <- NULL
@@ -598,11 +519,13 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE,
         out$SSBfinal <- SSBfinal
         out$ESBfinal <- ESBfinal
         out$rec <- rec
+        out$SPR <- SPRvec
+        out$SSB0 <- SSB0vec
         out$TSB <- TSB
         out$TSB1plus <- TSB1plus
         out$ESB <- ESB
         out$SSB <- SSB
-        out$FM <- FM * eF
+        out$FM <- FM * errs$time$eF * errs$rep$eF
         out$CW <- CW
         out$TACs <- TACs
         out$errs <- errs
@@ -707,97 +630,9 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
     Msel <- dat$Msel
 
     ## errors
-    ## TODO: put this in external wrapper function
-    eF <- set$eF[ysim]
-    eR <- set$eR[ysim]
-    eM <- set$eM[ysim]
-    eH <- set$eH[ysim]
-    eR0 <- set$eR0[ysim]
-    eAlpha <- set$eAlpha[ysim]
-    eBeta <- set$eBeta[ysim]
-    eMat <- set$eMat[ysim]
-    eSel <- set$eSel[ysim]
-    eW <- set$eW[ysim]
-    eImp <- set$eImp[ysim]
-    eC <- set$eC[ysim]
-    eI <- list()
-    for(i in 1:nsurv){
-        eI[[i]] <- try(set$eI[[i]][ysim], silent = TRUE)
-    }
-    eCmv <- set$eCmv[ysim,]
-    eImv <- set$eImv[ysim,]
-    eE <- set$eE[ysim]
-    if(is.null(eF)) eF <- gen.noise(1, set$noiseF[1], set$noiseF[2], bias.cor = set$noiseF[3])
-    if(is.null(eR)) eR <- gen.noise(1, set$noiseR[1], set$noiseR[2], bias.cor = set$noiseR[3])
-    if(is.null(eM)) eM <- gen.noise(1, set$noiseM[1], set$noiseM[2], bias.cor = set$noiseM[3])
-    if(is.null(eH)) eH <- gen.noise(1, set$noiseH[1], set$noiseH[2], bias.cor = set$noiseH[3])
-    if(is.null(eR0)) eR0 <- gen.noise(1, set$noiseR0[1], set$noiseR0[2], bias.cor = set$noiseR0[3])
-    if(is.null(eAlpha)) eAlpha <- gen.noise(1, set$noiseAlpha[1], set$noiseAlpha[2], bias.cor = set$noiseAlpha[3])
-    if(is.null(eBeta)) eBeta <- gen.noise(1, set$noiseBeta[1], set$noiseBeta[2], bias.cor = set$noiseBeta[3])
-    if(is.null(eMat)) eMat <- gen.noise(1, set$noiseMat[1], set$noiseMat[2], bias.cor = set$noiseMat[3])
-    if(is.null(eSel)) eSel <- gen.noise(1, set$noiseSel[1], set$noiseSel[2], bias.cor = set$noiseSel[3])
-    if(is.null(eW)) eW <- gen.noise(1, set$noiseW[1], set$noiseW[2], bias.cor = set$noiseW[3])
-    if(is.null(eImp)) eImp <- gen.noise(1, set$noiseImp[1], set$noiseImp[2], bias.cor = set$noiseImp[3])
-    if(is.null(eC)) eC <- gen.noise(1, set$noiseC[1], set$noiseC[2], bias.cor = set$noiseC[3])
-    if(is.null(eI) || length(eI) == 0){
-        eI <- list()
-        for(i in 1:nsurv){
-            eI[[i]] <- gen.noise(1, set$noiseI[1], set$noiseI[2], bias.cor = set$noiseI[3])
-        }
-    }
-    if(is.null(eCmv)) eCmv <- gen.noise(1, set$noiseCmv[1], set$noiseCmv[2],
-                                       bias.cor = set$noiseCmv[3],
-                                       mv = TRUE, dat = dat)
-    if(is.null(eImv)){
-        eImv <- list()
-        for(i in 1:nsurv){
-            eImv[[i]] <- gen.noise(1, set$noiseImv[1], set$noiseImv[2],
-                                  bias.cor = set$noiseImv[3],
-                                  mv = TRUE, dat = dat)
-        }
-    }
-    if(is.null(eE)) eE <- gen.noise(1, set$noiseE[1], set$noiseE[2], bias.cor = set$noiseE[3])
-    if("errs" %in% names(hist)){
-        errs <- list(eF = c(hist$errs$eF, eF),
-                     eR = c(hist$errs$eR, eR),
-                     eM = c(hist$errs$eM, eM),
-                     eH = c(hist$errs$eH, eH),
-                     eR0 = c(hist$errs$eR0,eR0),
-                     eAlpha = c(hist$errs$eAlpha, eAlpha),
-                     eBeta = c(hist$errs$eBeta, eBeta),
-                     eMat = c(hist$errs$eMat, eMat),
-                     eSel = c(hist$errs$eSel, eSel),
-                     eW = c(hist$errs$eW, eW),
-                     eImp = c(hist$errs$eImp, eImp),
-                     eC = c(hist$errs$eC, eC))
-        errs$eI <- list()
-        for(i in 1:nsurv){
-            errs$eI[[i]] = c(hist$errs$eI[[i]], eI[[i]])
-        }
-        errs$eCmv <- rbind(hist$errs$eCmv, eCmv)
-        errs$eImv <- list()
-        for(i in 1:nsurv){
-            errs$eImv[[i]] = rbind(hist$errs$eImv[[i]], eImv[[i]])
-        }
-        errs$eE <- c(hist$errs$eE, eE)
-    }else{
-        errs <- list(eF = eF,
-                     eR = eR,
-                     eM = eM,
-                     eH = eH,
-                     eR0 = eR0,
-                     eAlpha = eAlpha,
-                     eBeta = eBeta,
-                     eMat = eMat,
-                     eSel = eSel,
-                     eW = eW,
-                     eImp = eImp,
-                     eC = eC,
-                     eI = eI,
-                     eCmv = eCmv,
-                     eImv = eImv,
-                     eE = eE)
-    }
+    errs <- list()
+    errs$time <- get.errs(dat, set, ysim, hist)
+    errs$rep <- get.errs(dat, set, 1, hist, rep = TRUE)
 
     ## Flags
     mselFlag <- inherits(Msel, "list") && length(Msel) > 1
@@ -819,18 +654,18 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
     ESBfinal <- c(hist$ESBfinal, NA)
 
     ## project forward
-    R0y <- dat$R0 * eR0
+    R0y <- dat$R0 * errs$time$eR0[y] * errs$rep$eR0
     mselInd <- ifelse(mselFlag, y, 1)
     ##    MAA <- M[s1vec[y]:(s1vec[y]+ns-1)] * as.numeric(t(Msel[[mselInd]])) * eM
-    MAA <- M[y,] * as.numeric(t(Msel[[mselInd]])) * eM
-    hy <- dat$h * eH
-    maty <- as.numeric(t(mat)) * eMat
+    MAA <- M[y,] * as.numeric(t(Msel[[mselInd]])) * errs$time$eM[y] * errs$rep$eM
+    hy <- dat$h * errs$time$eH[y]
+    maty <- as.numeric(t(mat)) * errs$time$eMat[y] * errs$rep$eMat
     selInd <- ifelse(selFlag, y, 1)
-    sely <- as.numeric(t(sel[[selInd]])) * eSel
-    weighty <- as.numeric(t(weight)) * eW
-    weightFy <- as.numeric(t(weightF)) * eW
-    alphay <- dat$recAlpha * eAlpha
-    betay <- dat$recBeta * eBeta
+    sely <- as.numeric(t(sel[[selInd]])) * errs$time$eSel[y] * errs$rep$eSel
+    weighty <- as.numeric(t(weight)) * errs$time$eW[y] * errs$rep$eW
+    weightFy <- as.numeric(t(weightF)) * errs$time$eW[y] * errs$rep$eW
+    alphay <- dat$recAlpha * errs$time$eAlpha[y] * errs$rep$eAlpha
+    betay <- dat$recBeta * errs$time$eBeta[y] * errs$rep$eBeta
 
     ## TAC from previous year (if e.g. interim advice)
     ntac <- ns
@@ -877,13 +712,13 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
             SSBtmp <- sum(NAAS * weighty * maty * exp(-pzbm * Ztmp)) ## pre-recruitment mort
             SSB0 <- get.ssb0(MAA, maty, weighty, fecun=1, asmax, ns,
                              spawning, indage0 = indage0,
-                             R0 = R0y, season = s)
-            rec[y,s] <- spawning[s] * recfunc(h = hy, SSBPR0 = SSB0/R0y,
+                             R0 = R0y * errs$time$eR[y] * errs$rep$eR, season = s)
+            rec[y,s] <- spawning[s] * recfunc(h = hy, SSBPR0 = SSB0/(R0y * errs$time$eR[y] * errs$rep$eR),
                                               SSB = SSBtmp, R0 = R0y,
                                               method = dat$SR, bp = dat$bp,
                                               beta = betay,
                                               gamma = dat$recGamma,
-                                              alpha = alphay) * eR
+                                              alpha = alphay) * errs$time$eR[y] * errs$rep$eR
             rec[rec<0] <- 1e-10
             NAAS[indage0] <- rec[y,s]
         }
@@ -900,7 +735,7 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
                         NAAsurv <- exp(log(NAAS) - ZAA * surveyTime)
                         ESBsurv <- NAAsurv * weightFy * as.numeric(t(dat$selI[[idxi[i]]]))
                         obs$obsI[[idxi[i]]] <-
-                            c(obs$obsI[[idxi[i]]], q[idxi[i]] * sum(ESBsurv) * eI[[idxi[i]]])
+                            c(obs$obsI[[idxi[i]]], q[idxi[i]] * sum(ESBsurv) * errs$time$eI[[idxi[i]]][y] * errs$rep$eI[[idxi[i]]])
                         if(is.null(obs$timeI[[idxi[i]]])){
                             timeIi <- ny-nyI[idxi[i]]+1
                         }else timeIi <- floor(tail(obs$timeI[[idxi[i]]],1))
@@ -959,16 +794,16 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
                     if(year > set$assessmentIntYear){
                         tmp <- tacs[nrow(tacs)-set$assessmentIntYear,
                                     paste0("TAC", yearsAfterAssessment)]
-                        TACs[y] <- as.numeric(as.character(tmp)) * eImp
+                        TACs[y] <- as.numeric(as.character(tmp)) * errs$time$eImp[y] * errs$rep$eImp
                         TACreal <- rep(TACs[y] / ntac, ntac)
                     }else{
-                        TACs[y] <-  TACprev * eImp  ## * set$assessmentIntYear
+                        TACs[y] <-  TACprev * errs$time$eImp[y] * errs$rep$eImp  ## * set$assessmentIntYear
                         TACreal <- rep(TACs[y] / ntac, ntac)
                     }
 
                 }else{
                     tmp <- tacs[nrow(tacs), "TAC1"]
-                    TACs[y] <- as.numeric(as.character(tmp)) * eImp
+                    TACs[y] <- as.numeric(as.character(tmp)) * errs$time$eImp[y] * errs$rep$eImp
                     TACreal <- rep(TACs[y] / ntac, ntac)
                 }
 
@@ -981,7 +816,7 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
             if(s %in% assessmentTiming){
 
                 tmp <- tacs[nrow(tacs), paste0("TAC", yearsAfterAssessment)]
-                TACs[y] <- as.numeric(as.character(tmp)) * eImp
+                TACs[y] <- as.numeric(as.character(tmp)) * errs$time$eImp[y] * errs$rep$eImp
                 TACreal <- rep(TACs[y] / ntac, ntac)
 
             }
@@ -1034,7 +869,7 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
                                    pzbm = pzbm, spawning = spawning,
                                    R0 = R0y, SR = dat$SR, bp = dat$pb,
                                    recBeta = dat$recBeta,
-                                   recGamma = dat$recGamma, eR = eR,
+                                   recGamma = dat$recGamma, eR = errs$time$eR[y] * errs$rep$eR,
                                    indage0 = indage0,
                                    lastFM = 0.01, ## FM[y-1,s],  ## CHECK: had some issues with too high FM
                                    upper = log(set$maxF/ns)
@@ -1096,7 +931,7 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
                         NAAsurv <- exp(log(NAAS) - ZAA * surveyTime)
                         ESBsurv <- NAAsurv * weightFy * as.numeric(t(dat$selI[[idxi[i]]]))
                         obs$obsI[[idxi[i]]] <-
-                            c(obs$obsI[[idxi[i]]], q[idxi[i]] * sum(ESBsurv) * eI[[idxi[i]]])
+                            c(obs$obsI[[idxi[i]]], q[idxi[i]] * sum(ESBsurv) * errs$time$eI[[idxi[i]]][y] * errs$rep$eI[[idxi[i]]])
                         if(is.null(obs$timeI[[idxi[i]]])){
                             timeIi <- ny-nyI[idxi[i]]+1
                         }else timeIi <- floor(tail(obs$timeI[[idxi[i]]],1))
@@ -1107,7 +942,7 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
                                                       q[idxi[i]] *
                                                       as.numeric(by(NAAsurv * as.numeric(t(dat$selI[[idxi[i]]])), as2a,
                                                                     sum)) *
-                                                      eImv[[idxi[[i]]]])
+                                                      errs$time$eImvA[[idxi[[i]]]][ysim,] * errs$rep$eImvA[[idxi[[i]]]])
                         rownames(obs$obsIA[[idxi[i]]])[nrow(obs$obsIA[[idxi[i]]])] <- as.character(y)  ## CHECK: instead of 1 (assuming one survey a year) this should allow for s surveys
                     }
                 }
@@ -1138,29 +973,32 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
     if(ns > 1){
         ## Catch
         if(nsC == 1){
-            obs$obsC <- c(obs$obsC, sum(CW[y,]) * eC)
-            if(!is.null(obs$timeC)) timeCi <- tail(obs$timeC,1) else timeCi <- ny-nyC+1
+            obs$obsC <- c(obs$obsC, sum(CW[y,]) *
+                                    errs$time$eC[y] * errs$rep$eC)
+            if(!is.null(obs$timeC))
+                timeCi <- tail(obs$timeC,1) else timeCi <- ny-nyC+1
             obs$timeC <- c(obs$timeC, timeCi + 1)
             ## catch observations at age (SAM, SMS)
-            obs$obsCA <- rbind(obs$obsCA, as.numeric(by(apply(CAA, 1, sum) * eCmv, as2a, sum)))
+            obs$obsCA <- rbind(obs$obsCA, as.numeric(by(apply(CAA, 1, sum), as2a, sum)) * errs$time$eCmv[ysim,] * as.numeric(errs$rep$eCmv))
         }else if(nsC == ns){
-            obs$obsC <- c(obs$obsC, CW[y,] * eC)
+            obs$obsC <- c(obs$obsC, CW[y,] *
+                                    errs$time$eC[y] * errs$rep$eC)
             if(!is.null(obs$timeC))
                 timeCi <- floor(tail(obs$timeC,1)) else timeCi <- ny-nyC+1
             obs$timeC <- c(obs$timeC, timeCi + 1 + rep(seasonStart, ny))
             ## catch observations at age (SAM, SMS)
-            obs$obsCA <- rbind(obs$obsCA, as.numeric(by(apply(CAA, 1, sum) * eCmv, as2a, sum)))
+            obs$obsCA <- rbind(obs$obsCA, as.numeric(by(apply(CAA, 1, sum), as2a, sum)) * errs$time$eCmv[ysim,] * as.numeric(errs$rep$eCmv))
         }else{
             stop("Catch observation seasons and operating model seasons do not match. Not yet implemented!")
         }
         ## Effort
         if(is.numeric(nyE)){
             if(nsE == 1){
-                obs$obsE <- c(obs$obsE, sum(FM[y,]) * qE * eE)
+                obs$obsE <- c(obs$obsE, sum(FM[y,]) * qE * errs$time$eE[y] * errs$rep$eE)
                 if(!is.null(obs$timeE)) timeEi <- tail(obs$timeE,1) else timeEi <- ny-nyE+1
                 obs$timeE <- c(obs$timeE, timeEi + 1)
             }else if(nsE == ns){
-                obs$obsE <- c(obs$obsE, FM[y,] * qE * eE)
+                obs$obsE <- c(obs$obsE, FM[y,] * qE * errs$time$eE[y] * errs$rep$eE)
                 if(!is.null(obs$timeE))
                     timeEi <- floor(tail(obs$timeE,1)) else timeEi <- ny-nyE+1
                 obs$timeE <- c(obs$timeE, timeEi + 1 + rep(seasonStart, ny))
@@ -1172,15 +1010,16 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
         ## annual obs
         ## Catch
         if(nsC > 1) writeLines("Set dat$ns to > 1 for seasonal catches. Generating annual catches!")
-        obs$obsC <- c(obs$obsC, sum(CW[y,]) * eC)
+        obs$obsC <- c(obs$obsC, sum(CW[y,]) *
+                                errs$time$eC[y] * errs$rep$eC)
         if(!is.null(obs$timeC)) timeCi <- tail(obs$timeC,1) else timeCi <- ny-nyC+1
         obs$timeC <- c(obs$timeC, timeCi + 1)
         ## catch observations at age (SAM, SMS)
-        obs$obsCA <- rbind(obs$obsCA, as.numeric(by(CAA * eCmv, as2a, sum)))
+        obs$obsCA <- rbind(obs$obsCA, as.numeric(by(CAA, as2a, sum)) * errs$time$eCmv[ysim,] * as.numeric(errs$rep$eCmv))
         ## Effort
         if(is.numeric(nyE)){
             if(nsE > 1) writeLines("Set dat$ns to > 1 for seasonal effort data. Generating annual effort observations!")
-            obs$obsE <- c(obs$obsE, sum(FM[y,]) * qE * eE)
+            obs$obsE <- c(obs$obsE, sum(FM[y,]) * qE * errs$time$eE[y] * errs$rep$eE)
             if(!is.null(obs$timeE)) timeEi <- tail(obs$timeE,1) else timeEi <- ny-nyE+1
             obs$timeE <- c(obs$timeE, timeEi + 1)
         }

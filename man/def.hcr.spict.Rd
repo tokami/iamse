@@ -8,6 +8,7 @@ def.hcr.spict(
   id = "spict-msy",
   fractiles = list(catch = 0.5, ffmsy = 0.5, bbmsy = 0.5, bmsy = 0.5, fmsy = 0.5),
   breakpointB = 0,
+  evalBreakpointB = 0,
   safeguard = list(limitB = 0, prob = 0.95),
   dteuler = 1/4,
   reportmode = 1,
@@ -18,6 +19,7 @@ def.hcr.spict(
   priorlogalpha = c(log(1), 2, 1),
   priorlogbeta = c(log(1), 2, 1),
   priorlogbkfrac = c(log(0.5), 2, 0),
+  priorlogr = c(log(0.4), 2, 0),
   fixn = NA,
   bfac = NA,
   bref = "current",
@@ -32,6 +34,8 @@ def.hcr.spict(
   rai = 0.2,
   manstartdY = 0,
   assessmentInterval = 1,
+  cpvec = FALSE,
+  halfAssessInt = FALSE,
   intC = NA,
   nonconvHCR = "conscat",
   clType = "TAC",
@@ -40,7 +44,8 @@ def.hcr.spict(
   lower = 0.8,
   upper = 1.2,
   bm = FALSE,
-  env = globalenv()
+  env = globalenv(),
+  scenario = NA
 )
 }
 \arguments{

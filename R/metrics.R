@@ -199,15 +199,20 @@ est.metrics <- function(mse, dat, mets = "all"){
         }
         ## "PBBlim" # used for probHCR, but not averaged over years first!
         if(any(mets == "PBBlim")){
+            if(is.null(refs$Blim)) stop("There is no Blim in dat$ref! Please add a Blim!")
             metsUsed <- c(metsUsed, "PBBlim")
             tmp <- unlist(lapply(msei, function(x) mean(x$TSBfinal[simYears] / refs$Blim < 1)))
             vari <- var(tmp)
             ni <- length(tmp)
             sei <- sqrt(vari/ni)
-            tmp <- prop.test(sum(tmp), n = length(tmp), conf.level = 0.95, correct = FALSE)
+            tmp <- prop.test(sum(tmp),
+                             n = length(tmp),
+                             conf.level = 0.95,
+                             correct = FALSE)
             res <- rbind(res, c(tmp$conf.int[1], tmp$estimate, tmp$conf.int[2], sei, ni))
         }
         if(any(mets == "PBBlimSSB")){
+            if(is.null(refs$SSBlim)) stop("There is no Blim in dat$ref! Please add a SSBlim!")
             metsUsed <- c(metsUsed, "PBBlimSSB")
             tmp <- unlist(lapply(msei, function(x) mean(x$SSBfinal[simYears] / refs$SSBlim < 1)))
             vari <- var(tmp)
@@ -251,6 +256,7 @@ est.metrics <- function(mse, dat, mets = "all"){
         }
         ## "PBBlim1"
         if(any(mets == "PBBlim1")){
+            if(is.null(refs$Blim)) stop("There is no Blim in dat$ref! Please add a Blim!")
             metsUsed <- c(metsUsed, "PBBlim1")
             ry <- vector("list",nysim)
             for(y in 1:nysim){
@@ -264,6 +270,7 @@ est.metrics <- function(mse, dat, mets = "all"){
         }
         ## "PBBlim3"
         if(any(mets == "PBBlim3")){
+            if(is.null(refs$Blim)) stop("There is no Blim in dat$ref! Please add a Blim!")
             metsUsed <- c(metsUsed, "PBBlim3")
             ry <- vector("list",nysim)
             for(y in 1:nysim){
@@ -313,6 +320,7 @@ est.metrics <- function(mse, dat, mets = "all"){
         }
         ## "PBBlimST"
         if(any(mets == "PBBlimST")){
+            if(is.null(refs$Blim)) stop("There is no Blim in dat$ref! Please add a Blim!")
             metsUsed <- c(metsUsed, "PBBlimST")
             tmp <- unlist(lapply(msei, function(x) mean(x$TSBfinal[first5Years] / refs$Blim[first5Years] < 1)))
             vari <- var(tmp)
@@ -383,6 +391,7 @@ est.metrics <- function(mse, dat, mets = "all"){
         }
         ## "PBBlimLT"
         if(any(mets == "PBBlimLT")){
+            if(is.null(refs$Blim)) stop("There is no Blim in dat$ref! Please add a Blim!")
             metsUsed <- c(metsUsed, "PBBlimLT")
             tmp <- unlist(lapply(msei, function(x) mean(x$TSBfinal[last15Years] / refs$Blim[last15Years] < 1)))
             vari <- var(tmp)
@@ -392,6 +401,7 @@ est.metrics <- function(mse, dat, mets = "all"){
             res <- rbind(res, c(tmp$conf.int[1], tmp$estimate, tmp$conf.int[2], sei, ni))
         }
         if(any(mets == "PBBlim1LT")){
+            if(is.null(refs$Blim)) stop("There is no Blim in dat$ref! Please add a Blim!")
             metsUsed <- c(metsUsed, "PBBlim1LT")
             ry <- vector("list",nysim)
             for(y in 1:nysim){
@@ -455,6 +465,7 @@ est.metrics <- function(mse, dat, mets = "all"){
         }
         ## "PBBlimamax"
         if(any(mets == "PBBlimamax")){
+            if(is.null(refs$Blim)) stop("There is no Blim in dat$ref! Please add a Blim!")
             metsUsed <- c(metsUsed, "PBBlimamax")
             tmp <- unlist(lapply(msei, function(x) mean(x$TSBfinal[amaxYears] / refs$Blim[amaxYears] < 1)))
             vari <- var(tmp)
@@ -666,6 +677,7 @@ est.metrics <- function(mse, dat, mets = "all"){
         }
         ## "PBBlimlast5"
         if(any(mets == "PBBlimlast5")){
+            if(is.null(refs$Blim)) stop("There is no Blim in dat$ref! Please add a Blim!")
             metsUsed <- c(metsUsed, "PBBlimlast5")
             tmp <- unlist(lapply(msei, function(x) mean(x$TSBfinal[last5Years] / refs$Blim[last5Years] < 1)))
             vari <- var(tmp)
@@ -676,6 +688,7 @@ est.metrics <- function(mse, dat, mets = "all"){
         }
         ## "PBBlimlast10"
         if(any(mets == "PBBlimlast10")){
+            if(is.null(refs$Blim)) stop("There is no Blim in dat$ref! Please add a Blim!")
             metsUsed <- c(metsUsed, "PBBlimlast10")
             tmp <- unlist(lapply(msei, function(x) mean(x$TSBfinal[last10Years] / refs$Blim[last10Years] < 1)))
             vari <- var(tmp)
@@ -686,6 +699,7 @@ est.metrics <- function(mse, dat, mets = "all"){
         }
         ## "PBBlimlast10"
         if(any(mets == "PBBlimlast10SSB")){
+            if(is.null(refs$Blim)) stop("There is no Blim in dat$ref! Please add a Blim!")
             metsUsed <- c(metsUsed, "PBBlimlast10SSB")
             tmp <- unlist(lapply(msei, function(x) mean(x$SSBfinal[last10Years] / refs$SSBlim[last10Years] < 1)))
             vari <- var(tmp)
@@ -696,6 +710,7 @@ est.metrics <- function(mse, dat, mets = "all"){
         }
         ## "PBBlimfirst10"
         if(any(mets == "PBBlimfirst10")){
+            if(is.null(refs$Blim)) stop("There is no Blim in dat$ref! Please add a Blim!")
             metsUsed <- c(metsUsed, "PBBlimfirst10")
             tmp <- unlist(lapply(msei, function(x) mean(x$TSBfinal[first10Years] / refs$Blim[first10Years] < 1)))
             vari <- var(tmp)
@@ -706,6 +721,7 @@ est.metrics <- function(mse, dat, mets = "all"){
         }
         ## "PBBlimfirst10"
         if(any(mets == "PBBlimfirst10SSB")){
+            if(is.null(refs$Blim)) stop("There is no Blim in dat$ref! Please add a Blim!")
             metsUsed <- c(metsUsed, "PBBlimfirst10SSB")
             tmp <- unlist(lapply(msei, function(x) mean(x$SSBfinal[first10Years] / refs$SSBlim[first10Years] < 1)))
             vari <- var(tmp)
@@ -887,6 +903,7 @@ est.metrics <- function(mse, dat, mets = "all"){
         }
         ## "PBBlimMaxAge"
         if(any(mets == "PBBlimMaxAge")){
+            if(is.null(refs$Blim)) stop("There is no Blim in dat$ref! Please add a Blim!")
             metsUsed <- c(metsUsed, "PBBlimMaxAge")
             tmp <- unlist(lapply(msei, function(x) mean(x$TSBfinal[min(simYears):(min(simYears)+dat$amax)]/
                                                         refs$Blim < 1)))
@@ -957,6 +974,7 @@ est.metrics <- function(mse, dat, mets = "all"){
         ## }
         ## "PBBlim2"
         if(any(mets == "PBBlim2")){
+            if(is.null(refs$Blim)) stop("There is no Blim in dat$ref! Please add a Blim!")
             tmp <- unlist(lapply(msei, function(x) mean(x$TSB[simYears,1]/refs$Blim < 1)))
             tmp <- prop.test(sum(tmp), n = length(tmp), conf.level = 0.95, correct = FALSE)
             res <- rbind(res, c(tmp$conf.int[1],tmp$estimate,tmp$conf.int[2]))
@@ -964,6 +982,7 @@ est.metrics <- function(mse, dat, mets = "all"){
         ##quantile(tmp, probs = c(0.025, 0.5, 0.975), na.rm=TRUE)
         ## "PBBlimFirst5y"
         if(any(mets == "PBBlimFirst5y")){
+            if(is.null(refs$Blim)) stop("There is no Blim in dat$ref! Please add a Blim!")
             tmp <- unlist(lapply(msei, function(x) mean(x$TSBfinal[first5Years]/refs$Blim < 1)))
             tmp <- prop.test(sum(tmp), n = length(tmp), conf.level = 0.95, correct = FALSE)
             res <- rbind(res, c(tmp$conf.int[1],tmp$estimate,tmp$conf.int[2]))
@@ -971,6 +990,7 @@ est.metrics <- function(mse, dat, mets = "all"){
         ##        res[6,] <- c(sd(tmp),mean(tmp),NA) ##quantile(tmp, probs = c(0.025, 0.5, 0.975), na.rm=TRUE)
         ## "PBBlimLast5y"
         if(any(mets == "PBBlimLast5y")){
+            if(is.null(refs$Blim)) stop("There is no Blim in dat$ref! Please add a Blim!")
             tmp <- unlist(lapply(msei, function(x) mean(x$TSBfinal[last5Years]/refs$Blim < 1)))
             tmp <- prop.test(sum(tmp), n = length(tmp), conf.level = 0.95, correct = FALSE)
             res <- rbind(res, c(tmp$conf.int[1],tmp$estimate,tmp$conf.int[2]))
@@ -983,13 +1003,20 @@ est.metrics <- function(mse, dat, mets = "all"){
         }
         ## "avRelCatch"
         if(any(mets == "avRelCatch")){
+            metsUsed <- c(metsUsed, "avRelCatch")
             if("refFmsy" %in% hcrs){
                 tmpRef <- lapply(resMSE[[which(hcrs == "refFmsy")]], function(x) apply(x$CW,1,mean)[simYears])
                 tmp0 <- lapply(msei, function(x) apply(x$CW,1,sum)[simYears])
                 tmp <- unlist(lapply(1:nrep, function(x) tmp0[[x]] / tmpRef[[x]]))
-                res <- rbind(res, quantile(tmp, probs = c(0.025, 0.5, 0.975), na.rm=TRUE))
+                mu <- mean(tmp,na.rm=TRUE)
+                vari <- var(tmp,na.rm=TRUE)
+                sei <- sqrt(vari/length(tmp))
+                res <- rbind(res, c(quantile(tmp, probs = c(0.025, 0.5, 0.975),
+                                             na.rm=TRUE),
+                                    sei,
+                                    length(tmp)))
             }else{
-                res <- rbind(res, rep(NA,3))
+                res <- rbind(res, rep(NA,5))
             }
         }
         ## "avCRelatchLast5y"
@@ -1083,6 +1110,7 @@ est.metrics <- function(mse, dat, mets = "all"){
         }
         ## "PBBlimamax"
         if(any(mets == "PBBlimnew")){
+            if(is.null(refs$Blim)) stop("There is no Blim in dat$ref! Please add a Blim!")
             metsUsed <- c(metsUsed, "PBBlimnew")
             tmp <- unlist(lapply(msei, function(x) mean(x$TSBfinal[newYears] / refs$Blim[newYears] < 1)))
             vari <- var(tmp)
@@ -1176,6 +1204,7 @@ est.metrics <- function(mse, dat, mets = "all"){
         }
         ## "PBBlimamax5"
         if(any(mets == "PBBlimamax5")){
+            if(is.null(refs$Blim)) stop("There is no Blim in dat$ref! Please add a Blim!")
             metsUsed <- c(metsUsed, "PBBlimamax5")
             tmp <- unlist(lapply(msei, function(x) mean(x$TSBfinal[amaxYears5] / refs$Blim[amaxYears5] < 1)))
             vari <- var(tmp)
@@ -1217,7 +1246,6 @@ est.metrics <- function(mse, dat, mets = "all"){
                                     ni))
             }
         }
-
 
         ## names
         rownames(res) <- metsUsed

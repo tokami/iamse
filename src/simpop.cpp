@@ -158,15 +158,26 @@ List simpop(double logFM, List dat, List set, int out) {
   double SPR = 0.0;
 
   // errors
-  NumericVector eF = as<NumericVector>(set["eF"]);
-  NumericVector eR = as<NumericVector>(set["eR"]);
-  NumericVector eM = as<NumericVector>(set["eM"]);
-  NumericVector eH = as<NumericVector>(set["eH"]);
-  NumericVector eR0 = as<NumericVector>(set["eR0"]);
-  NumericVector eMat = as<NumericVector>(set["eMat"]);
-  NumericVector eSel = as<NumericVector>(set["eSel"]);
-  NumericVector eW = as<NumericVector>(set["eW"]);
+  List errs = as<List>(set["errs"]);
+  List errsTime = as<List>(errs["time"]);
+  NumericVector eTimeF = as<NumericVector>(errsTime["eF"]);
+  NumericVector eTimeR = as<NumericVector>(errsTime["eR"]);
+  NumericVector eTimeM = as<NumericVector>(errsTime["eM"]);
+  NumericVector eTimeH = as<NumericVector>(errsTime["eH"]);
+  NumericVector eTimeR0 = as<NumericVector>(errsTime["eR0"]);
+  NumericVector eTimeMat = as<NumericVector>(errsTime["eMat"]);
+  NumericVector eTimeSel = as<NumericVector>(errsTime["eSel"]);
+  NumericVector eTimeW = as<NumericVector>(errsTime["eW"]);
   //  NumericVector eImp = as<NumericVector>(set["eImp"]);
+  List errsRep = as<List>(errs["rep"]);
+  double eRepF = as<double>(errsRep["eF"]);
+  double eRepR = as<double>(errsRep["eR"]);
+  double eRepM = as<double>(errsRep["eM"]);
+  double eRepH = as<double>(errsRep["eH"]);
+  double eRepR0 = as<double>(errsRep["eR0"]);
+  double eRepMat = as<double>(errsRep["eMat"]);
+  double eRepSel = as<double>(errsRep["eSel"]);
+  double eRepW = as<double>(errsRep["eW"]);
 
 
   // Initialise
@@ -196,26 +207,44 @@ List simpop(double logFM, List dat, List set, int out) {
   //   std::cout << "FAA(" << a << "): " << FAA(a) << std::endl;
   // }
 
-  NumericVector NAAS = initdist(MAA0 * eM(0), FAA0 * eF(0), R0 * eR0(0), spawning, indage0);
+  double eMeanM = 0.0;
+  double eMeanF = 0.0;
+  double eMeanR = 0.0;
+  double eMeanR0 = 0.0;
+  for(int y=0; y<ny; y++){
+    eMeanM += eTimeM(0) * eRepM;
+    eMeanF += eTimeF(0) * eRepF;
+    eMeanR += eTimeR(0) * eRepR;
+    eMeanR0 += eTimeR0(0) * eRepR0;
+  }
+  eMeanM /= ny;
+  eMeanF /= ny;
+  eMeanR /= ny;
+  eMeanR0 /= ny;
+
+  NumericVector NAAS = initdist(MAA0 * eMeanM, FAA0, R0 * eMeanR * eMeanR0, spawning, indage0); //  * eTimeF(0) * eRepF
 
   // for(int a=0; a<asmax; a++){
   //   std::cout << "NAAS(" << a << "): " << NAAS(a) << std::endl;
   // }
 
+  NumericVector recvec(ny);
+  NumericVector SSB2vec(ny);
+  NumericVector SPRvec(ny);
+
   // Years
   for(int y=0; y<ny; y++){
     // Adding noise
-    hy = h * eH(y);
-    R0y = R0 * eR0(y);
+    hy = h * eTimeH(y) * eRepH;
+    R0y = R0 * eTimeR0(y) * eRepR0;
     for(int a=0; a<asmax; a++){
-      maty(a) = mat(a) * eMat(y);
-      sely(a) = sel(a) * eSel(y);
-      FAA(a) = fs * eF(y) * sely(a);
-      //      std::cout << "sely(" << a << "): " << sely(a) << std::endl;
-      weighty(a) = weight(a) * eW(y);
-      weightFy(a) = weightF(a) * eW(y);
+      maty(a) = mat(a) * eTimeMat(y) * eRepMat;
+      sely(a) = sel(a) * eTimeSel(y) * eRepSel;
+      FAA(a) = fs * sely(a); // * eTimeF(y) * eRepF;
+      weighty(a) = weight(a) * eTimeW(y) * eRepW;
+      weightFy(a) = weightF(a) * eTimeW(y) * eRepW;
     }
-    MAA = MAA0 * eM(y);
+    MAA = MAA0 * eTimeM(y) * eRepM;
     ZAA = MAA + FAA;
 
 
@@ -239,10 +268,11 @@ List simpop(double logFM, List dat, List set, int out) {
       for(int a=0; a<asmax; a++){
         SSB += NAAS(a) * maty(a) * weighty(a) * exp(-pzbm * MAA(a));
       }
+      SSB2vec(y) = SSB;
       //    std::cout << "SSB(" << s << "): " << SSB << std::endl;
       // SR
       if(SR == "bevholt"){
-        NAAStmp = initdist(MAA, F0, 1, spawning, indage0);
+        NAAStmp = initdist(MAA, F0, R0y * eTimeR(y) * eRepR, spawning, indage0);
         int s2 = s;
         while(s2 > 0){
           for(int a=0; a<asmax; a++){
@@ -258,6 +288,8 @@ List simpop(double logFM, List dat, List set, int out) {
         for(int a=0; a<asmax; a++){
           SPR += NAAStmp(a) * maty(a) * weighty(a) * fecun; // SPR(s) += NnatM(a,s) * maty(a,s) * weighty(a,s) * fecun;
         }
+        SPR /= (R0y * eTimeR(y) * eRepR);
+        SPRvec(y) = SPR;
         rec = 4 * hy * R0y * SSB / (SPR * R0y * (1-hy) + SSB * (5*hy-1));
       }else if(SR == "ricker"){
         rec = bp * SSB * exp(-recBeta * SSB);
@@ -273,9 +305,8 @@ List simpop(double logFM, List dat, List set, int out) {
         rec = recBeta * (SSB + sqrt(pow(bp,2) + pow(recGamma,2)/4) -
                          sqrt(pow(SSB-bp,2) + pow(recGamma,2)/4));
       }
-      NAAS(indage0-1) = rec * spawning(s) * eR(y);
-
-
+      NAAS(indage0-1) = rec * spawning(s) * eTimeR(y) * eRepR;
+      recvec(y) = NAAS(indage0-1);
 
       // for(int a=0; a<asmax; a++){
       //    std::cout << "NAAS("<< a <<"," << s << ","<< y << "): " << NAAS(a) << std::endl;
@@ -331,9 +362,9 @@ List simpop(double logFM, List dat, List set, int out) {
     res["SP"] = SP;
     res["ESB"] = ESB;
     res["SSB"] = SSB2;
-    res["SPR"] = SPR;
-    res["rec"] = rec;
-    res["SSB2"] = SSB;
+    res["SPR"] = SPRvec;
+    res["rec"] = recvec;
+    res["SSB2"] = SSB2vec;
     res["NAAS"] = NAAS;
     res["maty"] = maty;
     res["weighty"] = weighty;
