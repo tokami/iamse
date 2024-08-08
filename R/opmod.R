@@ -816,7 +816,6 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
             if(s %in% assessmentTiming){
 
                 tmp <- tacs[nrow(tacs), paste0("TAC", yearsAfterAssessment+1)]
-                print(tmp)
                 TACs[y] <- as.numeric(as.character(tmp)) * errs$time$eImp[y] * errs$rep$eImp
                 TACreal <- rep(TACs[y] / ntac, ntac)
 
