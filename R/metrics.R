@@ -43,13 +43,16 @@ est.metrics <- function(mse, dat, mets = "all"){
     nquant <- length(mse[[1]][[1]])
     ## IMPROVE:
     if(any(names(mse[[1]][[1]]$tacs) == "assessInt") &&
-       any(!names(mse) %in% c("noF","refFmsy"))){
+       any(!names(mse) %in% c("noF","refFmsy")) &&
+       !is.na(mse[[which(!names(mse) %in%
+                                c("noF","refFmsy"))[1]]][[1]]$tacs$assessInt[1])){
         assessInt <- mse[[which(!names(mse) %in%
                                 c("noF","refFmsy"))[1]]][[1]]$tacs$assessInt[1]
         nysim <- nrow(mse[[1]][[1]]$tacs) * assessInt
     }else{
         nysim <- nrow(mse[[1]][[1]]$tacs)
     }
+
     ## REMOVE:
     ## nysim <- 40
     dims <- dim(mse[[1]][[1]]$CW)

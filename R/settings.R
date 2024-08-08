@@ -214,9 +214,9 @@ check.set <- function(set = NULL){
     if(is.null(set$assessmentIntYear)) set$assessmentIntYear <- 0
 
     ## HCR
-    if(is.null(set$hcr)) set$hcr <- c(def.hcr.ref(),def.hcr.ref(consF = "fmsy"))
+    if(is.null(set$hcr)) set$hcr <- NULL ## c(def.hcr.ref(),def.hcr.ref(consF = "fmsy"))
     ## define constant catch rule
-    def.hcr.conscat()
+    ## def.hcr.conscat()
     if(is.null(set$stab)) set$stab <- FALSE
 
     ## burn in period

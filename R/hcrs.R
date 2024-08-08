@@ -80,7 +80,8 @@ structure(
              inp <- obs[c("obsC","timeC","obsI","timeI","obsE","timeE")]
         }
         inp <- spict::check.inp(inp, verbose = FALSE)
-        tacs <- gettacs(tacs.=tacs, id.="',id,'", TAC.=rep(0, set.$assessmentInterval), obs.=inp)
+        tacs <- gettacs(tacs.=tacs, id.="',id,'",
+                        TAC.=rep(0, ',set.$assessmentInterval,'), obs.=inp)
         return(tacs)
     },
     class="hcr"
@@ -105,7 +106,8 @@ structure(
              inp <- obs[c("obsC","timeC","obsI","timeI","obsE","timeE")]
         }
         inp <- spict::check.inp(inp, verbose = FALSE)
-        tacs <- gettacs(tacs.=tacs, id.="',id,'", TAC.=rep(0, set.$assessmentInterval), obs.=inp)
+        tacs <- gettacs(tacs.=tacs, id.="',id,'",
+                        TAC.=rep(0, ',set.$assessmentInterval,'), obs.=inp)
         return(tacs)
     },
     class="hcr"
@@ -127,7 +129,8 @@ structure(
              inp <- obs[c("obsC","timeC","obsI","timeI","obsE","timeE")]
         }
         inp <- spict::check.inp(inp, verbose = FALSE)
-        tacs <- gettacs(tacs.=tacs, id.="',id,'", TAC.=rep(NA, set.$assessmentInterval), obs.=inp)
+        tacs <- gettacs(tacs.=tacs, id.="',id,'",
+                        TAC.=rep(NA, ',set.$assessmentInterval,'), obs.=inp)
         return(tacs)
     },
     class="hcr"
@@ -149,7 +152,8 @@ structure(
              inp <- obs[c("obsC","timeC","obsI","timeI","obsE","timeE")]
         }
         inp <- spict::check.inp(inp, verbose = FALSE)
-        tacs <- gettacs(tacs.=tacs, id.="',id,'", TAC.=rep(0, set.$assessmentInterval), obs.=inp)
+        tacs <- gettacs(tacs.=tacs, id.="',id,'",
+                        TAC.=rep(0, ',set.$assessmentInterval,'), obs.=inp)
         return(tacs)
     },
     class="hcr"
@@ -249,7 +253,7 @@ structure(
         if(barID){
             tac <- tac * (1-red)
         }
-        tac <- rep(tac, set.$assessmentInterval)
+        tac <- rep(tac, ',set.$assessmentInterval,')
         tacs <- gettacs(tacs.=tacs, id. = "',id,'", TAC. = tac, obs.=obs)
         tacs$hitSC[nrow(tacs)] <- NA
         tacs$barID[nrow(tacs)] <- barID

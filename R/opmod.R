@@ -758,7 +758,8 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
             ## Estimate TAC
             if(tacID2 %in% c("refFmsy","consF")){
                 ## Reference rule Fmsy
-                tacs <- gettacs(tacs = tacs, id = hcr, TAC=NA)
+                tacs <- gettacs(tacs = tacs, id = hcr,
+                                TAC=rep(NA, set$assessmentInterval))
             }else{
                 ## True stock status
                 TSBtmp <- sum(NAAS * weighty)
@@ -815,6 +816,7 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
             if(s %in% assessmentTiming){
 
                 tmp <- tacs[nrow(tacs), paste0("TAC", yearsAfterAssessment+1)]
+                print(tmp)
                 TACs[y] <- as.numeric(as.character(tmp)) * errs$time$eImp[y] * errs$rep$eImp
                 TACreal <- rep(TACs[y] / ntac, ntac)
 
