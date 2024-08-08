@@ -42,6 +42,9 @@ run.mse <- function(dat, set,
     }
 
     if(!is.null(fest)){
+        if(!inherits(fest, "matrix")){
+            fest <- t(as.matrix(fest))
+        }
         if(nrow(fest) < nrep) stop("Provided fishing mortality has to have as many rows as requested replicates (set$nrep)! Please check.")
         if(any(is.null(set$errs)) ||
            length(set$errs$time) < nrep) stop("No errors provided in set or number of erros do not correspond to number of replicates (set$nrep)! Please check.")
@@ -177,9 +180,9 @@ run.mse <- function(dat, set,
             repList <- vector("list", nhcrs)
             popListx <- popList
 
-            ## setx$errs <- list()
-            ## setx$errs$time <- get.errs(dat, set, (ny+1):(ny+nysim), pop)
-            ## setx$errs$rep <- pop$errs$rep
+            setx$errs <- list()
+            setx$errs$time <- get.errs(dat, set, (ny+1):(ny+nysim), pop)
+            setx$errs$rep <- pop$errs$rep
 
             ## loop
             for(i in 1:nhcrs){

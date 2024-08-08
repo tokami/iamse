@@ -42,14 +42,16 @@ est.metrics <- function(mse, dat, mets = "all"){
     nrep <- length(mse[[1]])
     nquant <- length(mse[[1]][[1]])
     ## IMPROVE:
-    if(any(names(mse[[1]][[1]]$tacs) == "assessInt") && !is.na(mse[[length(mse)-1]][[1]]$tacs$assessInt[1])){
-        assessInt <- mse[[length(mse)-1]][[1]]$tacs$assessInt[1]
+    if(any(names(mse[[1]][[1]]$tacs) == "assessInt") &&
+       any(!names(mse) %in% c("noF","refFmsy"))){
+        assessInt <- mse[[which(!names(mse) %in%
+                                c("noF","refFmsy"))[1]]][[1]]$tacs$assessInt[1]
         nysim <- nrow(mse[[1]][[1]]$tacs) * assessInt
     }else{
         nysim <- nrow(mse[[1]][[1]]$tacs)
     }
     ## REMOVE:
-    nysim <- 40
+    ## nysim <- 40
     dims <- dim(mse[[1]][[1]]$CW)
     ny <- dims[1] - nysim
     ns <- dims[2]
@@ -71,32 +73,35 @@ est.metrics <- function(mse, dat, mets = "all"){
     amaxYears2 <- amax + ny
     amaxYears3 <- 1:amax + ny ## floor(amax/2):amax + ny
     amaxYears4 <- floor(amax/2) + ny
-    newYears <- 3:nysim + ny
+    newYears <- 1:nysim + ny
     newYears2 <- nysim + ny
     amaxYears5 <- 3:amax + ny
 
     hcrs <- names(mse)
     reffmsyInd <- which(hcrs == "refFmsy")
-    refyield <- list(
-        "simYears" = lapply(mse[[reffmsyInd]], function(x) apply(x$CW,1,sum)[simYears]),
-        "first5Years" = lapply(mse[[reffmsyInd]], function(x) apply(x$CW,1,sum)[first5Years]),
-        "first10Years" = lapply(mse[[reffmsyInd]], function(x) apply(x$CW,1,sum)[first10Years]),
-        "last15Years" = lapply(mse[[reffmsyInd]], function(x) apply(x$CW,1,sum)[last15Years]),
-        "last35Years" = lapply(mse[[reffmsyInd]], function(x) apply(x$CW,1,sum)[last35Years]),
-        "last5Years" = lapply(mse[[reffmsyInd]], function(x) apply(x$CW,1,sum)[last5Years]),
-        "last10Years" = lapply(mse[[reffmsyInd]], function(x) apply(x$CW,1,sum)[last10Years]),
-        "last5AmaxYears" = lapply(mse[[reffmsyInd]], function(x) apply(x$CW,1,sum)[last5AmaxYears]),
-        "amaxYears" = lapply(mse[[reffmsyInd]], function(x) apply(x$CW,1,sum)[amaxYears]),
-        "newYears" = lapply(mse[[reffmsyInd]], function(x) apply(x$CW,1,sum)[newYears]),
-        "amaxYears5" = lapply(mse[[reffmsyInd]], function(x) apply(x$CW,1,sum)[amaxYears5])
+    if(length(reffmsyInd) > 0){
+        refyield <- list(
+            "simYears" = lapply(mse[[reffmsyInd]], function(x) apply(x$CW,1,sum)[simYears]),
+            "first5Years" = lapply(mse[[reffmsyInd]], function(x) apply(x$CW,1,sum)[first5Years]),
+            "first10Years" = lapply(mse[[reffmsyInd]], function(x) apply(x$CW,1,sum)[first10Years]),
+            "last15Years" = lapply(mse[[reffmsyInd]], function(x) apply(x$CW,1,sum)[last15Years]),
+            "last35Years" = lapply(mse[[reffmsyInd]], function(x) apply(x$CW,1,sum)[last35Years]),
+            "last5Years" = lapply(mse[[reffmsyInd]], function(x) apply(x$CW,1,sum)[last5Years]),
+            "last10Years" = lapply(mse[[reffmsyInd]], function(x) apply(x$CW,1,sum)[last10Years]),
+            "last5AmaxYears" = lapply(mse[[reffmsyInd]], function(x) apply(x$CW,1,sum)[last5AmaxYears]),
+            "amaxYears" = lapply(mse[[reffmsyInd]], function(x) apply(x$CW,1,sum)[amaxYears]),
+            "newYears" = lapply(mse[[reffmsyInd]], function(x) apply(x$CW,1,sum)[newYears]),
+            "amaxYears5" = lapply(mse[[reffmsyInd]], function(x) apply(x$CW,1,sum)[amaxYears5])
         )
-
     refF <- list(
         "finalYear" = lapply(mse[[reffmsyInd]], function(x) apply(x$FM,1,sum)[finalYear]),
         "tenthYear" = lapply(mse[[reffmsyInd]], function(x) apply(x$FM,1,sum)[tenthYear]))
     refB <- list(
         "finalYear" = lapply(mse[[reffmsyInd]], function(x) x$TSBfinal[finalYear]),
         "tenthYear" = lapply(mse[[reffmsyInd]], function(x) x$TSBfinal[tenthYear]))
+
+    }
+
 
     metsAll <- c("CMSY",
                  "PBBlim",
@@ -1112,11 +1117,15 @@ est.metrics <- function(mse, dat, mets = "all"){
         if(any(mets == "PBBlimnew")){
             if(is.null(refs$Blim)) stop("There is no Blim in dat$ref! Please add a Blim!")
             metsUsed <- c(metsUsed, "PBBlimnew")
-            tmp <- unlist(lapply(msei, function(x) mean(x$TSBfinal[newYears] / refs$Blim[newYears] < 1)))
+            ## Average risk over years per rep
+            tmp <- unlist(lapply(msei, function(x) mean((x$TSBfinal[newYears] / refs$Blim[newYears]) < 1)))
+            ## Average risk over reps per year
+            ## tmp <- sapply(newYears, function(x) mean(sapply(msei, function(y) y$TSBfinal[x] / refs$Blim[x] < 1)))
             vari <- var(tmp)
             ni <- length(tmp)
             sei <- sqrt(vari/ni)
-            tmp <- prop.test(sum(tmp), n = length(tmp), conf.level = 0.95, correct = FALSE)
+            tmp <- prop.test(sum(tmp), n = length(tmp), conf.level = 0.95,
+                             correct = FALSE)
             res <- rbind(res, c(tmp$conf.int[1], tmp$estimate, tmp$conf.int[2], sei, ni))
         }
         ## "AAVCamax"

@@ -747,7 +747,6 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
         }
 
 
-
         ## Assessment
         if(any(year > assessYears)){
             yearsAfterAssessment <- year - max(assessYears[assessYears < year])
@@ -790,22 +789,22 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
                                             "ns" = ns
                                             ))
 
-                if(set$assessmentIntYear > 0){
-                    if(year > set$assessmentIntYear){
-                        tmp <- tacs[nrow(tacs)-set$assessmentIntYear,
-                                    paste0("TAC", yearsAfterAssessment)]
-                        TACs[y] <- as.numeric(as.character(tmp)) * errs$time$eImp[y] * errs$rep$eImp
-                        TACreal <- rep(TACs[y] / ntac, ntac)
-                    }else{
-                        TACs[y] <-  TACprev * errs$time$eImp[y] * errs$rep$eImp  ## * set$assessmentIntYear
-                        TACreal <- rep(TACs[y] / ntac, ntac)
-                    }
+                ## if(set$assessmentIntYear > 0){
+                ##     if(year > set$assessmentIntYear){
+                ##         tmp <- tacs[nrow(tacs)-set$assessmentIntYear,
+                ##                     paste0("TAC", yearsAfterAssessment)]
+                ##         TACs[y] <- as.numeric(as.character(tmp)) * errs$time$eImp[y] * errs$rep$eImp
+                ##         TACreal <- rep(TACs[y] / ntac, ntac)
+                ##     }else{
+                ##         TACs[y] <-  TACprev * errs$time$eImp[y] * errs$rep$eImp  ## * set$assessmentIntYear
+                ##         TACreal <- rep(TACs[y] / ntac, ntac)
+                ##     }
 
-                }else{
+                ## }else{
                     tmp <- tacs[nrow(tacs), "TAC1"]
                     TACs[y] <- as.numeric(as.character(tmp)) * errs$time$eImp[y] * errs$rep$eImp
                     TACreal <- rep(TACs[y] / ntac, ntac)
-                }
+                ## }
 
             }
 
@@ -815,7 +814,7 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
 
             if(s %in% assessmentTiming){
 
-                tmp <- tacs[nrow(tacs), paste0("TAC", yearsAfterAssessment)]
+                tmp <- tacs[nrow(tacs), paste0("TAC", yearsAfterAssessment+1)]
                 TACs[y] <- as.numeric(as.character(tmp)) * errs$time$eImp[y] * errs$rep$eImp
                 TACreal <- rep(TACs[y] / ntac, ntac)
 
@@ -823,7 +822,8 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
         }
         ## TODO: not tested for ns > 1 & assessmentIntYear > 1
 
-        if(year %in% assessYears && s %in% assessmentTiming){
+        ## if(year %in% assessYears && s %in% assessmentTiming){
+        if(s %in% assessmentTiming){
             ## Find F given TAC
             if(tacID2 == "refFmsy"){
                 if(tacID == "refFmsy"){
@@ -869,7 +869,8 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
                                    pzbm = pzbm, spawning = spawning,
                                    R0 = R0y, SR = dat$SR, bp = dat$pb,
                                    recBeta = dat$recBeta,
-                                   recGamma = dat$recGamma, eR = errs$time$eR[y] * errs$rep$eR,
+                                   recGamma = dat$recGamma,
+                                   eR = errs$time$eR[y] * errs$rep$eR,
                                    indage0 = indage0,
                                    lastFM = 0.01, ## FM[y-1,s],  ## CHECK: had some issues with too high FM
                                    upper = log(set$maxF/ns)
