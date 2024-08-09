@@ -406,19 +406,14 @@ est.depletion <- function(dat, set=NULL, fmin = 0.0001,
         blim <- dat$ref$SSBlim[ny]
     }else stop("depl.quant not implemented. Please use Bmsy, Blim,SSBmsy or SSBlim. Or implement others.")
 
-    browser()
 
     ## errors
-    ## TODO: use get.errs here
     errs <- list()
-    errs$eF <- lapply(as.list(1:nrep), function(x) gen.noise(ny, set$noiseF[1], set$noiseF[2], bias.cor = set$noiseF[3]))
-    errs$eR <- lapply(as.list(1:nrep), function(x) gen.noise(ny, set$noiseR[1], set$noiseR[2], bias.cor = set$noiseR[3]))
-    errs$eM <- lapply(as.list(1:nrep), function(x) gen.noise(ny, set$noiseM[1], set$noiseM[2], bias.cor = set$noiseM[3]))
-    errs$eH <- lapply(as.list(1:nrep), function(x) gen.noise(ny, set$noiseH[1], set$noiseH[2], bias.cor = set$noiseH[3]))
-    errs$eR0 <- lapply(as.list(1:nrep), function(x) gen.noise(ny, set$noiseR0[1], set$noiseR0[2], bias.cor = set$noiseR0[3]))
-    errs$eMat <- lapply(as.list(1:nrep), function(x) gen.noise(ny, set$noiseMat[1], set$noiseMat[2], bias.cor = set$noiseMat[3]))
-    errs$eSel <- lapply(as.list(1:nrep), function(x) gen.noise(ny, set$noiseSel[1], set$noiseSel[2], bias.cor = set$noiseSel[3]))
-    errs$eW <- lapply(as.list(1:nrep), function(x) gen.noise(ny, set$noiseW[1], set$noiseW[2], bias.cor = set$noiseW[3]))
+    errs$time <- errs$rep <- vector("list", nrep)
+    for(i in 1:nrep){
+        errs$time[[i]] <- get.errs(dat, set, 1:ny)
+        errs$rep[[i]] <- get.errs(dat, set, 1, rep = TRUE)
+    }
 
     frel <- dat$FM/max(dat$FM)
 
@@ -428,14 +423,8 @@ est.depletion <- function(dat, set=NULL, fmin = 0.0001,
         fpat <- frel * exp(logfabs) / dat$ns
         datx$FM <- fpat
         dreal <- sapply(1:nrep, function(x){
-            setx$eF <- errs$eF[[x]]
-            setx$eR <- errs$eR[[x]]
-            setx$eM <- errs$eM[[x]]
-            setx$eH <- errs$eH[[x]]
-            setx$eR0 <- errs$eR0[[x]]
-            setx$eMat <- errs$eMat[[x]]
-            setx$eSel <- errs$eSel[[x]]
-            setx$eW <- errs$eW[[x]]
+            setx$errs <- list(time = errs$time[[x]],
+                              rep = errs$rep[[x]])
             initpop(datx, setx, out.opt = outopt)
         })
         if(method == "mean"){
