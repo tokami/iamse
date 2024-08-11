@@ -127,6 +127,10 @@ run.mse <- function(dat, set,
             repList <- vector("list", nhcrs)
             popListx <- popList
 
+            ## setx$errs <- list()
+            ## setx$errs$time <- get.errs(datx, setx, (ny+1):(ny+nysim), pop)
+            ## setx$errs$rep <- pop$errs$rep
+
             ## loop
             for(i in 1:nhcrs){
                 hcri <- hcrs[i]
@@ -180,9 +184,9 @@ run.mse <- function(dat, set,
             repList <- vector("list", nhcrs)
             popListx <- popList
 
-            setx$errs <- list()
-            setx$errs$time <- get.errs(dat, set, (ny+1):(ny+nysim), pop)
-            setx$errs$rep <- pop$errs$rep
+            ## setx$errs <- list()
+            ## setx$errs$time <- get.errs(datx, setx, (ny+1):(ny+nysim), popList[[i]])
+            ## setx$errs$rep <- pop$errs$rep
 
             ## loop
             for(i in 1:nhcrs){

@@ -220,7 +220,8 @@ get.errs <- function(dat, set, x, hist = NULL, rep = FALSE){
         eCmv <- NULL
     }else{
         if(inherits(errs.in$eCmv, "matrix")){
-            eCmv <- errs.in$eCmv[x,]
+            eCmv <- try(errs.in$eCmv[x,], silent = TRUE)
+            if(inherits(eCmv, "try-error")) eCmv <- NA
         }else{
             eCmv <- t(as.matrix(errs.in$eCmv))
         }
@@ -231,7 +232,8 @@ get.errs <- function(dat, set, x, hist = NULL, rep = FALSE){
         eImvA <- list()
         for(i in 1:nsurv){
             if(inherits(errs.in$eImvA[[i]], "matrix")){
-                eImvA[[i]] <- errs.in$eImvA[[i]][x,]
+                eImvA[[i]] <- try(errs.in$eImvA[[i]][x,], silent = TRUE)
+                if(inherits(eImvA[[i]], "try-error")) eImvA[[i]] <- NA
             }else{
                 eImvA[[i]] <- t(as.matrix(errs.in$eImvA[[i]]))
             }
@@ -243,7 +245,8 @@ get.errs <- function(dat, set, x, hist = NULL, rep = FALSE){
         eImvL <- list()
         for(i in 1:nsurv){
             if(inherits(errs.in$eImvL[[i]], "matrix")){
-                eImvL[[i]] <- errs.in$eImvL[[i]][x,]
+                eImvL[[i]] <- try(errs.in$eImvL[[i]][x,], silent = TRUE)
+                if(inherits(eImvL[[i]], "try-error")) eImvL[[i]] <- NA
             }else{
                 eImvL[[i]] <- t(as.matrix(errs.in$eImvL[[i]]))
             }
@@ -251,43 +254,43 @@ get.errs <- function(dat, set, x, hist = NULL, rep = FALSE){
     }
     eE <- errs.in$eE[x]
 
-    if(is.null(eF)) eF <- gen.noise(n, noise$F[1], noise$F[2],
+    if(is.null(eF) || is.na(eF)) eF <- gen.noise(n, noise$F[1], noise$F[2],
                                     bias.cor = noise$F[3],
                                     hist = tail(hist.errs$eF,1))
-    if(is.null(eR)) eR <- gen.noise(n, noise$R[1], noise$R[2],
+    if(is.null(eR) || is.na(eR)) eR <- gen.noise(n, noise$R[1], noise$R[2],
                                     bias.cor = noise$R[3],
                                     hist = tail(hist.errs$eR,1))
-    if(is.null(eM)) eM <- gen.noise(n, noise$M[1], noise$M[2],
+    if(is.null(eM) || is.na(eM)) eM <- gen.noise(n, noise$M[1], noise$M[2],
                                     bias.cor = noise$M[3],
                                     hist = tail(hist.errs$eM,1))
-    if(is.null(eH)) eH <- gen.noise(n, noise$H[1], noise$H[2],
+    if(is.null(eH) || is.na(eH)) eH <- gen.noise(n, noise$H[1], noise$H[2],
                                     bias.cor = noise$H[3],
                                     hist = tail(hist.errs$eH,1))
-    if(is.null(eR0)) eR0 <- gen.noise(n, noise$R0[1], noise$R0[2],
+    if(is.null(eR0) || is.na(eR0)) eR0 <- gen.noise(n, noise$R0[1], noise$R0[2],
                                       bias.cor = noise$R0[3],
                                       hist = tail(hist.errs$eR0,1))
-    if(is.null(eAlpha)) eAlpha <- gen.noise(n, noise$Alpha[1], noise$Alpha[2],
+    if(is.null(eAlpha) || is.na(eAlpha)) eAlpha <- gen.noise(n, noise$Alpha[1], noise$Alpha[2],
                                             bias.cor = noise$Alpha[3],
                                             hist = tail(hist.errs$eAlpha,1))
-    if(is.null(eBeta)) eBeta <- gen.noise(n, noise$Beta[1], noise$Beta[2],
+    if(is.null(eBeta) || is.na(eBeta)) eBeta <- gen.noise(n, noise$Beta[1], noise$Beta[2],
                                           bias.cor = noise$Beta[3],
                                           hist = tail(hist.errs$eBeta,1))
-    if(is.null(eMat)) eMat <- gen.noise(n, noise$Mat[1], noise$Mat[2],
+    if(is.null(eMat) || is.na(eMat)) eMat <- gen.noise(n, noise$Mat[1], noise$Mat[2],
                                         bias.cor = noise$Mat[3],
                                         hist = tail(hist.errs$eMat,1))
-    if(is.null(eSel)) eSel <- gen.noise(n, noise$Sel[1], noise$Sel[2],
+    if(is.null(eSel) || is.na(eSel)) eSel <- gen.noise(n, noise$Sel[1], noise$Sel[2],
                                         bias.cor = noise$Sel[3],
                                       , hist = tail(hist.errs$eSel,1))
-    if(is.null(eW)) eW <- gen.noise(n, noise$W[1], noise$W[2],
+    if(is.null(eW) || is.na(eW)) eW <- gen.noise(n, noise$W[1], noise$W[2],
                                     bias.cor = noise$W[3],
                                     hist = tail(hist.errs$eW,1))
-    if(is.null(eImp)) eImp <- gen.noise(n, noise$Imp[1], noise$Imp[2],
+    if(is.null(eImp) || is.na(eImp)) eImp <- gen.noise(n, noise$Imp[1], noise$Imp[2],
                                         bias.cor = noise$Imp[3],
                                         hist = tail(hist.errs$eImp,1))
-    if(is.null(eC)) eC <- gen.noise(n, noise$C[1], noise$C[2],
+    if(is.null(eC) || is.na(eC)) eC <- gen.noise(n, noise$C[1], noise$C[2],
                                     bias.cor = noise$C[3],
                                     hist = tail(hist.errs$eC,1))
-    if(is.null(eI) || length(eI) == 0){
+    if(is.null(eI) || length(eI) == 0 || is.na(eI)){
         eI <- list()
         for(i in 1:nsurv){
             eI[[i]] <- gen.noise(n, noise$I[1], noise$I[2],
@@ -295,12 +298,12 @@ get.errs <- function(dat, set, x, hist = NULL, rep = FALSE){
                                  hist = tail(hist.errs$eI[[i]],1))
         }
     }
-    if(is.null(eCmv)) eCmv <- gen.noise(n, noise$Cmv[1], noise$Cmv[2],
+    if(is.null(eCmv) || is.na(eCmv)) eCmv <- gen.noise(n, noise$Cmv[1], noise$Cmv[2],
                                         bias.cor = noise$Cmv[3],
                                         mv = TRUE, dat = dat,
                                         by.asmax = FALSE,
                                         hist = tail(hist.errs$eCmv,1))
-    if(is.null(eImvA)){
+    if(is.null(eImvA) || is.na(eImvA)){
         eImvA <- list()
         for(i in 1:nsurv){
             eImvA[[i]] <- gen.noise(n, noise$Imv[1], noise$Imv[2],
@@ -310,7 +313,7 @@ get.errs <- function(dat, set, x, hist = NULL, rep = FALSE){
                                     hist = tail(hist.errs$eImvA[[i]],1))
         }
     }
-    if(is.null(eImvL)){
+    if(is.null(eImvL) || is.na(eImvL)){
         eImvL <- list()
         for(i in 1:nsurv){
             eImvL[[i]] <- gen.noise(n, noise$Imv[1], noise$Imv[2],
@@ -320,7 +323,7 @@ get.errs <- function(dat, set, x, hist = NULL, rep = FALSE){
                                     hist = tail(hist.errs$eImvL[[i]],1))
         }
     }
-    if(is.null(eE)) eE <- gen.noise(n, noise$E[1], noise$E[2],
+    if(is.null(eE) || is.na(eE)) eE <- gen.noise(n, noise$E[1], noise$E[2],
                                     bias.cor = noise$E[3],
                                     hist = tail(hist.errs$eE,1))
 

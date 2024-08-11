@@ -48,7 +48,7 @@ est.metrics <- function(mse, dat, mets = "all"){
                                 c("noF","refFmsy"))[1]]][[1]]$tacs$assessInt[1])){
         assessInt <- mse[[which(!names(mse) %in%
                                 c("noF","refFmsy"))[1]]][[1]]$tacs$assessInt[1]
-        nysim <- nrow(mse[[1]][[1]]$tacs) * assessInt
+        nysim <- nrow(mse[[1]][[1]]$tacs) * 2 ## assessInt  ##HERE:
     }else{
         nysim <- nrow(mse[[1]][[1]]$tacs)
     }
@@ -1121,7 +1121,9 @@ est.metrics <- function(mse, dat, mets = "all"){
             if(is.null(refs$Blim)) stop("There is no Blim in dat$ref! Please add a Blim!")
             metsUsed <- c(metsUsed, "PBBlimnew")
             ## Average risk over years per rep
-            tmp <- unlist(lapply(msei, function(x) mean((x$TSBfinal[newYears] / refs$Blim[newYears]) < 1)))
+            tmp <- unlist(lapply(msei, function(x)
+                mean((x$TSBfinal[newYears] / refs$Blim[newYears]) < 1)))
+
             ## Average risk over reps per year
             ## tmp <- sapply(newYears, function(x) mean(sapply(msei, function(y) y$TSBfinal[x] / refs$Blim[x] < 1)))
             vari <- var(tmp)
@@ -1129,7 +1131,8 @@ est.metrics <- function(mse, dat, mets = "all"){
             sei <- sqrt(vari/ni)
             tmp <- prop.test(sum(tmp), n = length(tmp), conf.level = 0.95,
                              correct = FALSE)
-            res <- rbind(res, c(tmp$conf.int[1], tmp$estimate, tmp$conf.int[2], sei, ni))
+            res <- rbind(res, c(tmp$conf.int[1], tmp$estimate,
+                                tmp$conf.int[2], sei, ni))
         }
         ## "AAVCamax"
         if(any(mets == "AAVCnew")){

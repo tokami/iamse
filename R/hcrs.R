@@ -200,7 +200,7 @@ structure(
     function(obs, tacs = NULL, pars=NULL){
         red <- ',red,'
         redyears <- ',redyears,'
-        assessInt <- ',assessmentInterval,'
+        assessInt <- ',set.$assessmentInterval,'
 
         ffmsy <- rnorm(1, pars$ffmsy, ',ffmsySD,')
         ## ffmsy <- runif(1, pars$ffmsy * ',ffmsySD,', pars$ffmsy)
