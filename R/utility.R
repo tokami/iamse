@@ -14,6 +14,7 @@ get.converged <- function(mse, convyears = "all", convhcrs = "all", out = 0, ver
     ny <- dims[1] - nysim
     ns <- dims[2]
 
+
     if(!is.na(convyears[1]) && convyears[1] == "all")
         convyears <- 1:nysim
     if(!is.na(convhcrs[1]) && convhcrs[1] == "all")

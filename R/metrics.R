@@ -101,6 +101,7 @@ est.metrics <- function(mse, dat, mets = "all"){
         "tenthYear" = lapply(mse[[reffmsyInd]], function(x) apply(x$FM,1,sum)[tenthYear]))
     refB <- list(
         "finalYear" = lapply(mse[[reffmsyInd]], function(x) x$TSBfinal[finalYear]),
+        "newYears" = lapply(mse[[reffmsyInd]], function(x) x$ESBfinal[newYears]),
         "tenthYear" = lapply(mse[[reffmsyInd]], function(x) x$TSBfinal[tenthYear]))
 
     }
@@ -133,7 +134,7 @@ est.metrics <- function(mse, dat, mets = "all"){
                  ## OLDER:
                  "avCatchFirst5y","avCatchLast5y","BBmsyLowest",
                  "PBBlim2",
-                 "PBBlimFirst5y","PBBlimLast5y","CatchCV", "avRelCatch",
+                 "PBBlimFirst5y","PBBlimFirst10y","PBBlimLast5y","CatchCV", "avRelCatch",
                  "avRelCatchLast5y","converged",
                  "avRelCatchFirst5y", "BBmsy5y","TimeRecov",
                  "AAVCFirst5y",
@@ -991,9 +992,27 @@ est.metrics <- function(mse, dat, mets = "all"){
         ## "PBBlimFirst5y"
         if(any(mets == "PBBlimFirst5y")){
             if(is.null(refs$Blim)) stop("There is no Blim in dat$ref! Please add a Blim!")
+            metsUsed <- c(metsUsed, "PBBlimFirst5y")
             tmp <- unlist(lapply(msei, function(x) mean(x$TSBfinal[first5Years]/refs$Blim < 1)))
-            tmp <- prop.test(sum(tmp), n = length(tmp), conf.level = 0.95, correct = FALSE)
-            res <- rbind(res, c(tmp$conf.int[1],tmp$estimate,tmp$conf.int[2]))
+            vari <- var(tmp)
+            ni <- length(tmp)
+            sei <- sqrt(vari/ni)
+            tmp <- prop.test(sum(tmp), n = length(tmp), conf.level = 0.95,
+                             correct = FALSE)
+            res <- rbind(res, c(tmp$conf.int[1], tmp$estimate,
+                                tmp$conf.int[2], sei, ni))
+        }
+        if(any(mets == "PBBlimFirst10y")){
+            if(is.null(refs$Blim)) stop("There is no Blim in dat$ref! Please add a Blim!")
+            metsUsed <- c(metsUsed, "PBBlimFirst10y")
+            tmp <- unlist(lapply(msei, function(x) mean(x$TSBfinal[first10Years]/refs$Blim < 1)))
+            vari <- var(tmp)
+            ni <- length(tmp)
+            sei <- sqrt(vari/ni)
+            tmp <- prop.test(sum(tmp), n = length(tmp), conf.level = 0.95,
+                             correct = FALSE)
+            res <- rbind(res, c(tmp$conf.int[1], tmp$estimate,
+                                tmp$conf.int[2], sei, ni))
         }
         ##        res[6,] <- c(sd(tmp),mean(tmp),NA) ##quantile(tmp, probs = c(0.025, 0.5, 0.975), na.rm=TRUE)
         ## "PBBlimLast5y"
@@ -1122,7 +1141,7 @@ est.metrics <- function(mse, dat, mets = "all"){
             metsUsed <- c(metsUsed, "PBBlimnew")
             ## Average risk over years per rep
             tmp <- unlist(lapply(msei, function(x)
-                mean((x$TSBfinal[newYears] / refs$Blim[newYears]) < 1)))
+                mean((x$ESBfinal[newYears] / refs$ESBlim[newYears]) < 1)))
 
             ## Average risk over reps per year
             ## tmp <- sapply(newYears, function(x) mean(sapply(msei, function(y) y$TSBfinal[x] / refs$Blim[x] < 1)))
@@ -1133,6 +1152,26 @@ est.metrics <- function(mse, dat, mets = "all"){
                              correct = FALSE)
             res <- rbind(res, c(tmp$conf.int[1], tmp$estimate,
                                 tmp$conf.int[2], sei, ni))
+
+            ## try B relative to B of Fmsy ref rule
+            ##     indi <- as.numeric(names(msei))
+            ##     tmp <- unlist(lapply(as.list(1:length(msei)), function(x)
+            ##         msei[[x]]$ESBfinal[newYears] / refB[["newYears"]][[indi[x]]]))
+            ##     meani <- mean(tmp)
+            ##     vari <- var(tmp)
+            ##     ni <- length(tmp)
+            ##     sei <- sqrt(vari/ni)
+            ##     erri <- 1.96 * (sqrt(vari)/sqrt(ni))
+            ##     tmp2 <- try(wilcox.test(as.numeric(tmp),
+            ##                        alternative="two.sided",
+            ##                        correct=TRUE,
+            ##                        conf.int=TRUE,
+            ##                        conf.level=0.95), silent=TRUE)
+            ## res <- rbind(res, c(tmp2$conf.int[1],
+            ##                     tmp2$estimate,
+            ##                     tmp2$conf.int[2],
+            ##                     sei,
+            ##                     ni))
         }
         ## "AAVCamax"
         if(any(mets == "AAVCnew")){
