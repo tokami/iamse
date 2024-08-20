@@ -237,7 +237,8 @@ plotiamse.f <- function(dat, set, resMSE,
 #' @name plotiamse.tradeoff
 #' @export
 plotiamse.tradeoff <- function(mets, metrics = c("avRelCatch","PBBlim"),
-                               hcrs=NA, plot.legend = TRUE){
+                               hcrs=NA, plot.legend = TRUE,
+                               xlim = NULL, ylim = NULL){
     if(any(!is.na(hcrs))){
         metsnew <- vector("list",length(hcrs))
         for(i in 1:length(hcrs)){
@@ -254,8 +255,10 @@ plotiamse.tradeoff <- function(mets, metrics = c("avRelCatch","PBBlim"),
     yvar <- metrics[1]
     idx <- which(xvar == allmets)
     idy <- which(yvar == allmets)
+    if(is.null(xlim))
     xlim <- c(0.9,1.1) * range(lapply(mets, function(x) x[allmets == xvar,1:3]),
                                na.rm=TRUE)
+    if(is.null(ylim))
     ylim <- c(0.9,1.1) * range(lapply(mets, function(x) x[allmets == yvar,1:3]),
                                na.rm=TRUE)
     cols <- rainbow(nms)
