@@ -141,13 +141,13 @@ gen.noise <- function(n, sd,
             res <- numeric(n)
 
             if(!is.null(hist)){
-                res[1] <- rho * tail(log(hist),1) + (1 - rho) * rnoise[1] ## sqrt(1 - rho^2) * rnoise[1]
+                res[1] <- rho * tail(log(hist),1) + sqrt(1 - rho^2) * rnoise[1]
             }else{
                 res[1] <- rnoise[1]
             }
 
             if(n > 1){
-                for(i in 2:n) res[i] <- rho * res[i-1] + (1 - rho) * rnoise[i] ## sqrt(1 - rho^2) * rnoise[i]
+                for(i in 2:n) res[i] <- rho * res[i-1] + sqrt(1 - rho^2) * rnoise[i]
             }
 
             res <- exp(res)

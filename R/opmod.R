@@ -84,6 +84,8 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE,
     initN <- dat$initN
     q <- dat$q
     if(length(q) < nsurv) q <- rep(q, nsurv)
+    beta <- dat$beta
+    if(length(beta) < nsurv) beta <- rep(beta, nsurv)
     qE <- dat$qE
     spawning <- dat$spawning
 
@@ -232,7 +234,7 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE,
                         NAAsurv <- exp(log(NAAS) - ZAA * surveyTime)
                         ESBsurv <- NAAsurv * weightFy * as.numeric(t(dat$selI[[idxi[i]]]))
                         ## Total index (for spict)
-                        obsI[[idxi[i]]] <- c(obsI[[idxi[i]]], q[idxi[i]] * sum(ESBsurv) * errs$time$eI[[idxi[i]]][y] * errs$rep$eI[[idxi[i]]])
+                        obsI[[idxi[i]]] <- c(obsI[[idxi[i]]], q[idxi[i]] * sum(ESBsurv)^beta[idxi[i]] * errs$time$eI[[idxi[i]]][y] * errs$rep$eI[[idxi[i]]])
                         if(is.null(timeI[[idxi[i]]]))
                             timeIi <- 0 else timeIi <- floor(tail(timeI[[idxi[i]]],1))
                         timeI[[idxi[i]]] <- c(timeI[[idxi[i]]], timeIi + 1 + surveyTimes[idxi[i]])
@@ -313,7 +315,7 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE,
                         NAAsurv <- exp(log(NAAS) - ZAA * surveyTime)
                         ESBsurv <- NAAsurv * weightFy * as.numeric(t(dat$selI[[idxi[i]]]))
                         ## Total index (for spict)
-                        obsI[[idxi[i]]] <- c(obsI[[idxi[i]]], q[idxi[i]] * sum(ESBsurv) * errs$time$eI[[idxi[i]]][y] * errs$rep$eI[[idxi[i]]])
+                        obsI[[idxi[i]]] <- c(obsI[[idxi[i]]], q[idxi[i]] * sum(ESBsurv^beta[idxi[i]]) * errs$time$eI[[idxi[i]]][y] * errs$rep$eI[[idxi[i]]])
                         if(is.null(timeI[[idxi[i]]]))
                             timeIi <- 0 else timeIi <- floor(tail(timeI[[idxi[i]]],1))
                         timeI[[idxi[i]]] <- c(timeI[[idxi[i]]], timeIi + 1 + surveyTimes[idxi[i]])
@@ -590,6 +592,8 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
     pzbm <- dat$pzbm
     q <- dat$q
     if(length(q) < nsurv) q <- rep(q, nsurv)
+    beta <- dat$beta
+    if(length(beta) < nsurv) beta <- rep(beta, nsurv)
     qE <- dat$qE
     tacID <- hcr
     tacID2 <- unlist(strsplit(as.character(tacID), "_"))[1]
@@ -735,7 +739,7 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
                         NAAsurv <- exp(log(NAAS) - ZAA * surveyTime)
                         ESBsurv <- NAAsurv * weightFy * as.numeric(t(dat$selI[[idxi[i]]]))
                         obs$obsI[[idxi[i]]] <-
-                            c(obs$obsI[[idxi[i]]], q[idxi[i]] * sum(ESBsurv) * errs$time$eI[[idxi[i]]][y] * errs$rep$eI[[idxi[i]]])
+                            c(obs$obsI[[idxi[i]]], q[idxi[i]] * sum(ESBsurv^beta[idxi[i]]) * errs$time$eI[[idxi[i]]][y] * errs$rep$eI[[idxi[i]]])
                         if(is.null(obs$timeI[[idxi[i]]])){
                             timeIi <- ny-nyI[idxi[i]]+1
                         }else timeIi <- floor(tail(obs$timeI[[idxi[i]]],1))
@@ -933,7 +937,7 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
                         NAAsurv <- exp(log(NAAS) - ZAA * surveyTime)
                         ESBsurv <- NAAsurv * weightFy * as.numeric(t(dat$selI[[idxi[i]]]))
                         obs$obsI[[idxi[i]]] <-
-                            c(obs$obsI[[idxi[i]]], q[idxi[i]] * sum(ESBsurv) * errs$time$eI[[idxi[i]]][y] * errs$rep$eI[[idxi[i]]])
+                            c(obs$obsI[[idxi[i]]], q[idxi[i]] * sum(ESBsurv^beta[idxi[i]]) * errs$time$eI[[idxi[i]]][y] * errs$rep$eI[[idxi[i]]])
                         if(is.null(obs$timeI[[idxi[i]]])){
                             timeIi <- ny-nyI[idxi[i]]+1
                         }else timeIi <- floor(tail(obs$timeI[[idxi[i]]],1))

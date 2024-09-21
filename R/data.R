@@ -374,6 +374,7 @@ check.dat <- function(dat = NULL, verbose = TRUE){
 
     ## catchability
     if(!any(names(dat) == "q")) dat$q <- 0.005
+    if(!any(names(dat) == "beta")) dat$beta <- 1  ## hyperstability (beta < 1)
 
     ## effort coefficient
     if(!any(names(dat) == "qE")) dat$qE <- 5e2
