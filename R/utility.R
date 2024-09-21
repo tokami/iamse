@@ -1086,8 +1086,11 @@ initdistR <- function(M, FM=NULL, ns, asmax, indage0, spawning, R0=1){
         NAA2[indi,s] <- NAA[indi,s]
     }
     ## keep last age group for every season
-    indi <- which(NAA2[asmax,]==0)
-    NAA2[asmax,indi] <- NAA[asmax,indi] * exp(-ZAA[asmax])
+    NAA2[asmax,] <- NAA2[asmax,] + NAA[asmax,] * exp(-ZAA[asmax]) - NAA2[asmax,] + NAA[asmax,] - NAA[asmax,] * exp(-ZAA[asmax])
+    ## better than which:
+    ## indi <- which(NAA2[asmax,]==0)
+    ## NAA2[asmax,indi] <- NAA[asmax,indi] * exp(-ZAA[asmax])
+
     ## plus group correction
     NAA2[asmax,] <- NAA2[asmax,] / (1 - exp(-sum(ZAA[(asmax-ns+1):asmax])))
     ## NAA2[(asmax-ns+1):asmax,] <- NAA2[(asmax-ns+1):asmax,] / (1 - exp(-sum(ZAA[(asmax-ns+1):asmax])))
