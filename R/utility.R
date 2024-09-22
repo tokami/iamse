@@ -982,7 +982,7 @@ getMsel <- function(Linf, K, mids, plba, a = 0.55, b = 1.61, c = 1.44){
         ##     selA[,j] <- apply(t(plba[,,j]) * selL, 2, sum)
         ## }
         selA <- apply(t(plba) * selL, 2, sum)
-        maxM <- max(selA)
+        maxM <- 1 ## max(selA) ## HERE:
         sel[[i]] <- selA/maxM
     }
     return(sel)
