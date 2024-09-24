@@ -143,7 +143,7 @@ gen.noise <- function(n, sd,
             if(!is.null(hist)){
                 res[1] <- rho * tail(log(hist),1) + sqrt(1 - rho^2) * rnoise[1]
             }else{
-                res[1] <- rnoise[1]
+                res[1] <- 0 ## rnoise[1]
             }
 
             if(n > 1){

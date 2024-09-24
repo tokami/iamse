@@ -222,7 +222,7 @@ List simpop(double logFM, List dat, List set, int out) {
   eMeanR /= ny;
   eMeanR0 /= ny;
 
-  NumericVector NAAS = initdist(MAA0 * eMeanM, FAA0, R0 * eMeanR * eMeanR0, spawning, indage0); //  * eTimeF(0) * eRepF
+  NumericVector NAAS = initdist(MAA0, FAA0, R0, spawning, indage0); //  * eTimeF(0) * eRepF   // R0 * eMeanR * eMeanR0 / MAA0 * eMeanM
 
   // for(int a=0; a<asmax; a++){
   //   std::cout << "NAAS(" << a << "): " << NAAS(a) << std::endl;
@@ -272,7 +272,7 @@ List simpop(double logFM, List dat, List set, int out) {
       //    std::cout << "SSB(" << s << "): " << SSB << std::endl;
       // SR
       if(SR == "bevholt"){
-        NAAStmp = initdist(MAA, F0, R0y * eTimeR(y) * eRepR, spawning, indage0);
+        NAAStmp = initdist(MAA, F0, R0y * eTimeR0(y) * eRepR0, spawning, indage0);
         int s2 = s;
         while(s2 > 0){
           for(int a=0; a<asmax; a++){
@@ -288,7 +288,7 @@ List simpop(double logFM, List dat, List set, int out) {
         for(int a=0; a<asmax; a++){
           SPR += NAAStmp(a) * maty(a) * weighty(a) * fecun; // SPR(s) += NnatM(a,s) * maty(a,s) * weighty(a,s) * fecun;
         }
-        SPR /= (R0y * eTimeR(y) * eRepR);
+        SPR /= (R0y * eTimeR0(y) * eRepR0);
         SPRvec(y) = SPR;
         rec = 4 * hy * R0y * SSB / (SPR * R0y * (1-hy) + SSB * (5*hy-1));
       }else if(SR == "ricker"){
