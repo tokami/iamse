@@ -768,10 +768,10 @@ est.productivity.stochastic <- function(dat, set= NULL,
             }
             lines(meds[[i]]$TSB, meds[[i]]$SP, col=cols[i], lwd=2)
         }
-        legend("topright",
-               legend = c("M = 0.2", "M = 0.3"),  ## CHECK: adjust
-               col = cols[1:alltv],
-               lwd = 1.5)
+        ## legend("topright",
+        ##        legend = c("M = 0.2", "M = 0.3"),  ## CHECK: adjust
+        ##        col = cols[1:alltv],
+        ##        lwd = 1.5)
     }
 
     res <- list(meds = meds,
