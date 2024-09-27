@@ -385,7 +385,7 @@ get.errs <- function(dat, set, x, hist = NULL, rep = FALSE){
 #' @export
 est.depletion <- function(dat, set=NULL, fmin = 0.0001,
                           fmax = 10, nrep = 100, verbose = TRUE,
-                          method = "percentile",
+                          method = "percentile", B0K = FALSE,
                           tol = 0.0001, do.opt = TRUE){
 
     if(!any(names(dat) == "ref")) stop("Reference points are missing in dat. Use est.ref.levels.stochastic to estimate reference points.")
@@ -402,13 +402,19 @@ est.depletion <- function(dat, set=NULL, fmin = 0.0001,
     depl.quant <- dat$depl.quant
     depl.prob <- dat$depl.prob
 
-    if(depl.quant %in% c("Bmsy","Blim")){
-        outopt <- 2
+    if(B0K){
+        outopt <- 6
         blim <- dat$ref$Blim[ny]
-    }else if(depl.quant %in% c("SSBmsy","SSBlim")){
-        outopt <- 3
-        blim <- dat$ref$SSBlim[ny]
-    }else stop("depl.quant not implemented. Please use Bmsy, Blim,SSBmsy or SSBlim. Or implement others.")
+    }else{
+        if(depl.quant %in% c("Bmsy","Blim")){
+            outopt <- 2
+            blim <- dat$ref$Blim[ny]
+        }else if(depl.quant %in% c("SSBmsy","SSBlim")){
+            outopt <- 3
+            blim <- dat$ref$SSBlim[ny]
+        }else stop("depl.quant not implemented. Please use Bmsy, Blim,SSBmsy or SSBlim. Or implement others.")
+    }
+
 
 
     ## errors

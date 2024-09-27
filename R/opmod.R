@@ -532,7 +532,7 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE,
         out$TACs <- TACs
         out$errs <- errs
         out$obs <- obs
-    }else if(out.opt %in% c(2,3)){
+    }else if(out.opt %in% c(2,3,6)){
         refs <- dat$ref
         if(is.null(refs)){
             warning("The reference points are not part of dat! Use est.ref.levels to estimate them")
@@ -540,7 +540,9 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE,
             out <- TSBfinal[ny]/refs[[dat$depl.quant]][ny]
         }else if(out.opt == 3){
             out <- SSBfinal[ny]/refs[[dat$depl.quant]][ny]
-        }
+        }else if(out.opt == 6){
+            out <- TSBfinal[1]/refs[[dat$depl.quant]][1]
+    }
     }else if(out.opt == 4){
         out <- TSBfinal[ny]
     }else if(out.opt == 5){
