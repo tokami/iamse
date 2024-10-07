@@ -24,5 +24,5 @@ def.hcr.sam(
 \item{env}{Environment. Default: globalenv()}
 }
 \description{
-Define harvest control rule for SAM
+def.hcr.sam
 }

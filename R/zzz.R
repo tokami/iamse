@@ -2,7 +2,7 @@
 #'
 #' Description of your package
 #'
-#' @docType package
+#' @docType _PACKAGE
 #' @author T.K. Mildenberger
 #' @import Rcpp
 #' @importFrom Rcpp evalCpp

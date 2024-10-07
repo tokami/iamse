@@ -7,11 +7,12 @@
 ## maturity-at-age (mat)
 ## proportion of Z before maturation (pzbm)
 
-#' @name initpop
+#' initpop
 #'
 #' @export
 initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE,
-                    plot = FALSE, dbg = 0){## indices
+                    plot = FALSE, dbg = 0){
+
     if(is.null(set)) set <- check.set()
     ny <- dat$ny
     ns <- dat$ns
@@ -110,7 +111,8 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE,
         obsI <- timeI <- NULL
     }
     ## observations at age
-    obsMAA <- obsCA <- matrix(0, nrow = ny, ncol = amax)
+    obsMAA <- matrix(0, nrow = ny, ncol = amax)
+    obsCL <- matrix(0, nrow = length(idxC), ncol = dim(dat$plba)[2])
     obsCA <- matrix(0, nrow = length(idxC), ncol = amax)
     obsIA <- vector("list", nsurv)
     for(i in 1:nsurv) obsIA[[i]] <- matrix(0, nrow = ny, ncol = amax)
@@ -376,22 +378,29 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE,
             obsC <- apply(CW[idxC,], 1, sum) *
                 errs$time$eC[idxC] * errs$rep$eC
             timeC <- idxC
-            ## catch observations at age (SAM, SMS)
-            for(y in 1:length(idxC))
+            ## catch observations at age (SAM, SMS) and length
+            for(y in 1:length(idxC)){
                 obsCA[y,] <- as.numeric(by(apply(CAA[[idxC[y]]],
                                                  1, sum), as2a, sum)) *
-                    errs$time$eCmv[y,] * as.numeric(errs$rep$eCmv)
+                    errs$time$eCmvA[y,] * as.numeric(errs$rep$eCmvA)
+                obsCL[y,] <- as.numeric(apply(CAA[[idxC[y]]], 1, sum) %*% dat$plba) *
+                    errs$time$eCmvL[y,] * as.numeric(errs$rep$eCmvL)
+            }
+
         }else if(nsC == ns){
             ## seasonal catches (for each season in OM)
             ## ----------------
             obsC <- as.numeric(t(CW[idxC,] *
                                  errs$time$eC[idxC] * errs$rep$eC))
             timeC <- rep(idxC, each = ns) + rep(seasonStart, nyC)
-            ## catch observations at age (seasonal CAA observations not yet implemented, what is target format?)
-            for(y in 1:length(idxC))
+            ## catch observations at age (TODO: seasonal CAA observations not yet implemented, TODO: what is target format?)
+            for(y in 1:length(idxC)){
                 obsCA[y,] <- as.numeric(by(apply(CAA[[idxC[y]]],
                                                  1, sum),as2a,sum)) *
-                    errs$time$eCmv[y,] * as.numeric(errs$rep$eCmv)
+                    errs$time$eCmvA[y,] * as.numeric(errs$rep$eCmvA)
+                obsCL[y,] <- as.numeric(apply(CAA[[idxC[y]]], 1, sum) %*% dat$plba) *
+                    errs$time$eCmvL[y,] * as.numeric(errs$rep$eCmvL)
+            }
         }else{
             ## seasonal catches not aligning with seasones in OM (not implemented)
             stop("Catch observation seasons and operating model seasons do not match. Not yet implemented!")
@@ -424,7 +433,10 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE,
         obsC <- CW[idxC,] * errs$time$eC[idxC] * errs$rep$eC
         timeC <- idxC
         ## catch observations at age
-        for(y in 1:length(idxC)) obsCA[y,] <- as.numeric(by(CAA[[idxC[y]]], as2a, sum)) * errs$time$eCmv[y,] * as.numeric(errs$rep$eCmv)
+        for(y in 1:length(idxC)){
+            obsCA[y,] <- as.numeric(by(CAA[[idxC[y]]], as2a, sum)) * errs$time$eCmvA[y,] * as.numeric(errs$rep$eCmvA)
+            obsCL[y,] <- as.numeric(CAA[[idxC[y]]] %*% dat$plba) * errs$time$eCmvL[y,] * as.numeric(errs$rep$eCmvL)
+        }
 
         ## Effort
         if(is.numeric(nyE)){
@@ -436,8 +448,10 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE,
             timeE <- NULL
         }
     }
-    rownames(obsCA) = as.character((ny-nyC+1):ny)
+    rownames(obsCA) <- rownames(obsCL) <- as.character((ny-nyC+1):ny)
     colnames(obsCA) <- as.character(0:dat$amax)
+    colnames(obsCL) <- as.character(1:dim(dat$plba)[2])
+
 
     ## other observations (required by SAM)
     ## ----------------
@@ -485,6 +499,7 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE,
                 obsE = obsE,
                 timeE = timeE,
                 obsCA = obsCA,
+                obsCL = obsCL,
                 obsIA = obsIA,
                 obsIL = obsIL,
                 obsMAA = obsMAA,
@@ -498,6 +513,13 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE,
     for(j in 1:length(atti$dimnames)){
         maxi <- max(nchar(atti$dimnames[[j]]))
         attributes(obs$obsCA)$dimnames[[j]][ nchar(atti$dimnames[[j]]) < maxi] <- paste0(sapply(maxi - nchar(atti$dimnames[[j]])[nchar(atti$dimnames[[j]]) < maxi], function(x)
+            rep("0",x)),
+            atti$dimnames[[j]][ nchar(atti$dimnames[[j]]) < maxi])
+    }
+    atti <- attributes(obs$obsCL)
+    for(j in 1:length(atti$dimnames)){
+        maxi <- max(nchar(atti$dimnames[[j]]))
+        attributes(obs$obsCL)$dimnames[[j]][ nchar(atti$dimnames[[j]]) < maxi] <- paste0(sapply(maxi - nchar(atti$dimnames[[j]])[nchar(atti$dimnames[[j]]) < maxi], function(x)
             rep("0",x)),
             atti$dimnames[[j]][ nchar(atti$dimnames[[j]]) < maxi])
     }
@@ -554,7 +576,7 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE,
 
 
 ## advancepopulation
-#' @name advancepop
+#' advancepop
 #' @export
 advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
 
@@ -987,15 +1009,17 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
                 timeCi <- tail(obs$timeC,1) else timeCi <- ny-nyC+1
             obs$timeC <- c(obs$timeC, timeCi + 1)
             ## catch observations at age (SAM, SMS)
-            obs$obsCA <- rbind(obs$obsCA, as.numeric(by(apply(CAA, 1, sum), as2a, sum)) * errs$time$eCmv[ysim,] * as.numeric(errs$rep$eCmv))
+            obs$obsCA <- rbind(obs$obsCA, as.numeric(by(apply(CAA, 1, sum), as2a, sum)) * errs$time$eCmvA[ysim,] * as.numeric(errs$rep$eCmvA))
+            obs$obsCL <- rbind(obs$obsCL, as.numeric(apply(CAA, 1, sum) %*% dat$plba) * errs$time$eCmvL[ysim,] * as.numeric(errs$rep$eCmvL))
         }else if(nsC == ns){
             obs$obsC <- c(obs$obsC, CW[y,] *
                                     errs$time$eC[y] * errs$rep$eC)
             if(!is.null(obs$timeC))
                 timeCi <- floor(tail(obs$timeC,1)) else timeCi <- ny-nyC+1
             obs$timeC <- c(obs$timeC, timeCi + 1 + rep(seasonStart, ny))
-            ## catch observations at age (SAM, SMS)
-            obs$obsCA <- rbind(obs$obsCA, as.numeric(by(apply(CAA, 1, sum), as2a, sum)) * errs$time$eCmv[ysim,] * as.numeric(errs$rep$eCmv))
+            ## catch observations at age (SAM, SMS) ## TODO: seasonal CAA not yet implemented
+            obs$obsCA <- rbind(obs$obsCA, as.numeric(by(apply(CAA, 1, sum), as2a, sum)) * errs$time$eCmvA[ysim,] * as.numeric(errs$rep$eCmvA))
+            obs$obsCL <- rbind(obs$obsCL, as.numeric(apply(CAA, 1, sum) %*% dat$plba) * errs$time$eCmvL[ysim,] * as.numeric(errs$rep$eCmvL))
         }else{
             stop("Catch observation seasons and operating model seasons do not match. Not yet implemented!")
         }
@@ -1023,7 +1047,8 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
         if(!is.null(obs$timeC)) timeCi <- tail(obs$timeC,1) else timeCi <- ny-nyC+1
         obs$timeC <- c(obs$timeC, timeCi + 1)
         ## catch observations at age (SAM, SMS)
-        obs$obsCA <- rbind(obs$obsCA, as.numeric(by(CAA, as2a, sum)) * errs$time$eCmv[ysim,] * as.numeric(errs$rep$eCmv))
+        obs$obsCA <- rbind(obs$obsCA, as.numeric(by(CAA, as2a, sum)) * errs$time$eCmvA[ysim,] * as.numeric(errs$rep$eCmvA))
+        obs$obsCL <- rbind(obs$obsCL, as.numeric(CAA %*% dat$plba) * errs$time$eCmvL[ysim,] * as.numeric(errs$rep$eCmvL))
         ## Effort
         if(is.numeric(nyE)){
             if(nsE > 1) writeLines("Set dat$ns to > 1 for seasonal effort data. Generating annual effort observations!")
@@ -1032,7 +1057,7 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
             obs$timeE <- c(obs$timeE, timeEi + 1)
         }
     }
-    rownames(obs$obsCA)[nrow(obs$obsCA)] <- as.character(y)
+    rownames(obs$obsCA)[nrow(obs$obsCA)] <- rownames(obs$obsCL)[nrow(obs$obsCL)] <- as.character(y)
 
     ## natural mortality
     obs$obsMAA <- rbind(obs$obsMAA, y = obsMAAtmp)

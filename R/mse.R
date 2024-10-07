@@ -1,4 +1,4 @@
-##' @name run.mse
+##' run.mse
 ##'
 ##' @importFrom parallel mclapply
 ##' @importFrom parallel detectCores
@@ -194,6 +194,7 @@ run.mse <- function(dat, set,
                 poptmp <- popListx[[i]]
                 poptmp$tacs <- NULL
                 for(y in 1:nysim){
+                    ## print(paste0("x: ",x ," - hcr: ", hcrs[i], " - i: ", i, " - y: ", y))
                     poptmp <- advancepop(dat = datx,
                                          hist = poptmp,
                                          set = setx,

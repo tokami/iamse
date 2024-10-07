@@ -24,7 +24,7 @@ def.hcr.index(
 )
 }
 \description{
-Define harvest control rule
+def.hcr.index
 }
 \details{
 This function allows to define harvest control rules (HCRs) which can be incorporated into a

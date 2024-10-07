@@ -88,5 +88,5 @@ def.hcr.pseudo(
 \item{bm}{Benchmark. Default: FALSE,  ## e.g. 5 => re-defining Bref at every benchmark}
 }
 \description{
-Define harvest control rule with pseudo assessment
+def.hcr.pseudo
 }

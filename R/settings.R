@@ -1,4 +1,4 @@
-#' @name check.set
+#' check.set
 #' @export
 check.set <- function(set = NULL){
 
@@ -79,10 +79,15 @@ check.set <- function(set = NULL){
     }else if(length(set$noise$time$I) != 3){
         writeLines("'set$noise$time$I' needs to be a vector with 3 values corresponding to: sd, rho, bias.cor (see gen.noise). Setting to c(0,0,0)!")
     }
-    if(is.null(set$noise$time$Cmv)){
-        set$noise$time$Cmv <- c(0,0,0)
-    }else if(length(set$noise$time$Cmv) != 3){
-        writeLines("'set$noise$time$Cmv' needs to be a vector with 3 values corresponding to: sd, rho, bias.cor. Setting to c(0,0,0)!")
+    if(is.null(set$noise$time$CmvA)){
+        set$noise$time$CmvA <- c(0,0,0)
+    }else if(length(set$noise$time$CmvA) != 3){
+        writeLines("'set$noise$time$CmvA' needs to be a vector with 3 values corresponding to: sd, rho, bias.cor. Setting to c(0,0,0)!")
+    }
+    if(is.null(set$noise$time$CmvL)){
+        set$noise$time$CmvL <- c(0,0,0)
+    }else if(length(set$noise$time$CmvL) != 3){
+        writeLines("'set$noise$time$CmvL' needs to be a vector with 3 values corresponding to: sd, rho, bias.cor. Setting to c(0,0,0)!")
     }
     if(is.null(set$noise$time$Imv)){
         set$noise$time$Imv <- c(0,0,0)
@@ -164,10 +169,15 @@ check.set <- function(set = NULL){
     }else if(length(set$noise$rep$I) != 3){
         writeLines("'set$noise$rep$I' needs to be a vector with 3 values corresponding to: sd, rho, bias.cor (see gen.noise). Setting to c(0,0,0)!")
     }
-    if(is.null(set$noise$rep$Cmv)){
-        set$noise$rep$Cmv <- c(0,0,0)
-    }else if(length(set$noise$rep$Cmv) != 3){
-        writeLines("'set$noise$rep$Cmv' needs to be a vector with 3 values corresponding to: sd, rho, bias.cor. Setting to c(0,0,0)!")
+    if(is.null(set$noise$rep$CmvA)){
+        set$noise$rep$CmvA <- c(0,0,0)
+    }else if(length(set$noise$rep$CmvA) != 3){
+        writeLines("'set$noise$rep$CmvA' needs to be a vector with 3 values corresponding to: sd, rho, bias.cor. Setting to c(0,0,0)!")
+    }
+    if(is.null(set$noise$rep$CmvL)){
+        set$noise$rep$CmvL <- c(0,0,0)
+    }else if(length(set$noise$rep$CmvL) != 3){
+        writeLines("'set$noise$rep$CmvL' needs to be a vector with 3 values corresponding to: sd, rho, bias.cor. Setting to c(0,0,0)!")
     }
     if(is.null(set$noise$rep$Imv)){
         set$noise$rep$Imv <- c(0,0,0)

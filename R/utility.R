@@ -1,6 +1,6 @@
 
 
-#' @name genConvs
+#' genConvs
 #' @description Get converged simulates from a resMSE object
 #' @export
 get.converged <- function(mse, convyears = "all", convhcrs = "all", out = 0, verbose = FALSE){
@@ -93,17 +93,17 @@ get.converged <- function(mse, convyears = "all", convhcrs = "all", out = 0, ver
 }
 
 
-#' @name sdconv
+#' sdconv
 #' @export
 sdconv <- function(mu, sd) (log(1 + ((sd^2)/(mu^2))))^0.5
 
 
-#' @name muconv
+#' muconv
 #' @export
 muconv <- function(mu, sd) log(mu) - 0.5 * log(1 + ((sd^2)/(mu^2)))
 
 
-#' @name gen.noise
+#' gen.noise
 #' @export
 gen.noise <- function(n, sd,
                       rho = 0,
@@ -111,15 +111,20 @@ gen.noise <- function(n, sd,
                       mv = FALSE,
                       dat = NULL,
                       by.asmax = FALSE,
+                      by.length = FALSE,
                       hist = NULL){
 
     if(mv){
         ## multivariate noise
         stopifnot(!is.null(dat))
-        if(by.asmax){
-            amax <- dat$asmax
+        if(by.length){
+            amax <- dim(dat$plba)[2]
         }else{
-            amax <- dat$amax + 1
+            if(by.asmax){
+                amax <- dat$asmax
+            }else{
+                amax <- dat$amax + 1
+            }
         }
         Sigma <- matrix(NA, amax, amax)
         for(i in 1:amax) for(j in 1:amax) Sigma[i,j] = rho^abs(i - j) * sd^2
@@ -143,7 +148,7 @@ gen.noise <- function(n, sd,
             if(!is.null(hist)){
                 res[1] <- rho * tail(log(hist),1) + sqrt(1 - rho^2) * rnoise[1]
             }else{
-                res[1] <- 0 ## rnoise[1]
+                res[1] <- 0 ## rnoise[1]  ## HERE:
             }
 
             if(n > 1){
@@ -161,7 +166,7 @@ gen.noise <- function(n, sd,
 }
 
 
-#' @name get.errs
+#' get.errs
 #' @export
 get.errs <- function(dat, set, x, hist = NULL, rep = FALSE){
 
@@ -188,7 +193,8 @@ get.errs <- function(dat, set, x, hist = NULL, rep = FALSE){
                           eImp = NULL,
                           eC = NULL)
         hist.errs$eI <- as.list(rep(NULL, nsurv))
-        hist.errs$eCmv <- NULL
+        hist.errs$eCmvA <- NULL
+        hist.errs$eCmvL <- NULL
         hist.errs$eImvA <- as.list(rep(NULL, nsurv))
         hist.errs$eImvL <- as.list(rep(NULL, nsurv))
         hist.errs$eE <- NULL
@@ -217,14 +223,24 @@ get.errs <- function(dat, set, x, hist = NULL, rep = FALSE){
     for(i in 1:nsurv){
         eI[[i]] <- errs.in$eI[[i]][x]
     }
-    if(is.null(errs.in$eCmv)){
-        eCmv <- NULL
+    if(is.null(errs.in$eCmvA)){
+        eCmvA <- NULL
     }else{
-        if(inherits(errs.in$eCmv, "matrix")){
-            eCmv <- try(errs.in$eCmv[x,], silent = TRUE)
-            if(inherits(eCmv, "try-error")) eCmv <- NA
+        if(inherits(errs.in$eCmvA, "matrix")){
+            eCmvA <- try(errs.in$eCmvA[x,], silent = TRUE)
+            if(inherits(eCmvA, "try-error")) eCmvA <- NA
         }else{
-            eCmv <- t(as.matrix(errs.in$eCmv))
+            eCmvA <- t(as.matrix(errs.in$eCmvA))
+        }
+    }
+    if(is.null(errs.in$eCmvL)){
+        eCmvL <- NULL
+    }else{
+        if(inherits(errs.in$eCmvL, "matrix")){
+            eCmvL <- try(errs.in$eCmvL[x,], silent = TRUE)
+            if(inherits(eCmvL, "try-error")) eCmvL <- NA
+        }else{
+            eCmvL <- t(as.matrix(errs.in$eCmvL))
         }
     }
     if(is.null(errs.in$eImvA)){
@@ -299,11 +315,18 @@ get.errs <- function(dat, set, x, hist = NULL, rep = FALSE){
                                  hist = tail(hist.errs$eI[[i]],1))
         }
     }
-    if(is.null(eCmv) || all(is.na(eCmv))) eCmv <- gen.noise(n, noise$Cmv[1], noise$Cmv[2],
-                                        bias.cor = noise$Cmv[3],
-                                        mv = TRUE, dat = dat,
-                                        by.asmax = FALSE,
-                                        hist = tail(hist.errs$eCmv,1))
+    if(is.null(eCmvA) || all(is.na(eCmvA)))
+        eCmvA <- gen.noise(n, noise$CmvA[1], noise$CmvA[2],
+                           bias.cor = noise$CmvA[3],
+                           mv = TRUE, dat = dat,
+                           by.asmax = FALSE,
+                           hist = tail(hist.errs$eCmvA,1))
+    if(is.null(eCmvL) || all(is.na(eCmvL)))
+        eCmvL <- gen.noise(n, noise$CmvL[1], noise$CmvL[2],
+                           bias.cor = noise$CmvL[3],
+                           mv = TRUE, dat = dat,
+                           by.length = TRUE,
+                           hist = tail(hist.errs$eCmvL,1))
     if(is.null(eImvA) || all(is.na(eImvA))){
         eImvA <- list()
         for(i in 1:nsurv){
@@ -346,7 +369,8 @@ get.errs <- function(dat, set, x, hist = NULL, rep = FALSE){
         for(i in 1:nsurv){
             errs$eI[[i]] = c(hist.errs$eI[[i]], eI[[i]])
         }
-        errs$eCmv <- rbind(hist.errs$eCmv, eCmv)
+        errs$eCmvA <- rbind(hist.errs$eCmvA, eCmvA)
+        errs$eCmvL <- rbind(hist.errs$eCmvL, eCmvL)
         errs$eImvA <- list()
         for(i in 1:nsurv){
             errs$eImvA[[i]] = rbind(hist.errs$eImvA[[i]], eImvA[[i]])
@@ -370,7 +394,8 @@ get.errs <- function(dat, set, x, hist = NULL, rep = FALSE){
                      eImp = eImp,
                      eC = eC,
                      eI = eI,
-                     eCmv = eCmv,
+                     eCmvA = eCmvA,
+                     eCmvL = eCmvL,
                      eImvA = eImvA,
                      eImvL = eImvL,
                      eE = eE)
@@ -381,7 +406,7 @@ get.errs <- function(dat, set, x, hist = NULL, rep = FALSE){
 
 
 
-#' @name est.depletion
+#' est.depletion
 #' @export
 est.depletion <- function(dat, set=NULL, fmin = 0.0001,
                           fmax = 10, nrep = 100, verbose = TRUE,
@@ -480,7 +505,7 @@ est.depletion <- function(dat, set=NULL, fmin = 0.0001,
 
 
 
-#' @name est.productivity
+#' est.productivity
 #' @export
 est.productivity <- function(dat, set= NULL,
                     ny = 100,
@@ -617,7 +642,7 @@ est.productivity <- function(dat, set= NULL,
 
 
 
-#' @name est.productivity
+#' est.productivity
 #' @export
 est.productivity.stochastic <- function(dat, set= NULL,
                          fmax = 10,
@@ -790,7 +815,7 @@ est.productivity.stochastic <- function(dat, set= NULL,
 }
 
 
-#' @name fpat
+#' fpat
 #' @export
 fpat <- function(fmax, fscen = 1){
     fscen <- as.character(fscen)
@@ -817,7 +842,7 @@ fpat <- function(fmax, fscen = 1){
 
 
 
-#' @name baranov
+#' baranov
 #' @export
 baranov <- function(F, M, N){
     Z <- F + M
@@ -825,7 +850,7 @@ baranov <- function(F, M, N){
 }
 
 
-#' @name predCatch
+#' predCatch
 #'
 #' @param seasons vector with season indices
 #' @param ns number of seasons
@@ -875,7 +900,7 @@ predCatch <- function(logFM,
     }
 }
 
-#' @name get.f
+#' get.f
 #' @details get FM accounting for seasons
 #' @export
 get.f <- function(TAC,
@@ -907,12 +932,15 @@ get.f <- function(TAC,
 }
 
 
-#' @name getSel
+#' getSel
+#'
 #' @description Function to estimate selectivity ogive
-#' @param L50 - length at 50% selectivity
-#' @param L95 - length at 95% selectivity
-#' @param mids - midlengths
-#' @param plba - probability of being in mids given age
+#'
+#' @param L50 length at 50\% selectivity
+#' @param L95 length at 95\% selectivity
+#' @param mids midlengths
+#' @param plba probability of being in mids given age
+#'
 getSel <- function(L50, L95, mids, plba){
     n <- max(c(length(L50),length(L95)))
     sel <- vector("list", n)
@@ -931,12 +959,15 @@ getSel <- function(L50, L95, mids, plba){
 }
 
 
-#' @name getMat
+#' getMat
+#'
 #' @description Function to estimate maturity at age
-#' @param Lm50 - length at 50% maturity
-#' @param Lm95 - length at 95% maturity
-#' @param mids - midlengths
-#' @param plba - probability of being in mids given age
+#'
+#' @param Lm50 length at 50\% maturity
+#' @param Lm95 length at 95\% maturity
+#' @param mids midlengths
+#' @param plba probability of being in mids given age
+#'
 getMat <- function(Lm50, Lm95, mids, plba){
     ## maturity at length
     matL <- (1 /(1 + exp(-log(19)*(mids - Lm50)/(Lm95 - Lm50))))
@@ -952,11 +983,14 @@ getMat <- function(Lm50, Lm95, mids, plba){
 }
 
 
-#' @name getM
+#' getM
+#'
 #' @description Function to estimate selectivity of natural mortality
-#' @param Linf - Linf of vBGF
-#' @param K - K of vBGF
-#' @param mids - midlengths
+#'
+#' @param Linf Linf of vBGF
+#' @param K K of vBGF
+#' @param mids midlengths
+#'
 getM <- function(Linf, K, mids, a = 0.55, b = 1.61, c = 1.44){
     n <- max(c(length(a),length(b),length(c)))
     maxM <- rep(NA, n)
@@ -970,12 +1004,15 @@ getM <- function(Linf, K, mids, a = 0.55, b = 1.61, c = 1.44){
 }
 
 
-#' @name getMsel
+#' getMsel
+#'
 #' @description Function to estimate selectivity of natural mortality
-#' @param Linf - Linf of vBGF
-#' @param K - K of vBGF
-#' @param mids - midlengths
-#' @param plba - probability of being in mids given age
+#'
+#' @param Linf Linf of vBGF
+#' @param K K of vBGF
+#' @param mids midlengths
+#' @param plba probability of being in mids given age
+#'
 getMsel <- function(Linf, K, mids, plba, a = 0.55, b = 1.61, c = 1.44){
     n <- max(c(length(a),length(b),length(c)))
     sel <- vector("list", n)
@@ -997,13 +1034,17 @@ getMsel <- function(Linf, K, mids, plba, a = 0.55, b = 1.61, c = 1.44){
 
 
 
-#' @name get.ssb0
+#' get.ssb0
+#'
 #' @description Function to calculate SSB (F=0)
-#' @param Z - total mortality
-#' @param mat - maturity ogive
-#' @param fecun - fecundity matrix
-#' @param amax - number of age classes
+#'
+#' @param Z total mortality
+#' @param mat maturity ogive
+#' @param fecun fecundity matrix
+#' @param amax number of age classes
+#'
 #' @return spawning biomass per recruit
+#'
 #' @export
 get.ssb0 <- function (M, mat, weight, fecun = 1,
                       asmax, ns, spawning,
@@ -1033,14 +1074,16 @@ get.ssb0 <- function (M, mat, weight, fecun = 1,
 }
 
 
-#' @name recfunc
+#' recfunc
+#'
 #' @description Function to calculate recruitment (Beverton - Holt)
-#' @param h - steepness
-#' @param R0 - recruitment in unfished population
-#' @param SSBPR0 - spawning biomass produced by one recrut in its lifetime
-#' @param SSB - spawning biomass
-#' @param bp - breakpoint for hockey-stick SR
-#' @param method - SR type
+#'
+#' @param h steepness
+#' @param R0 recruitment in unfished population
+#' @param SSBPR0 spawning biomass produced by one recrut in its lifetime
+#' @param SSB spawning biomass
+#' @param bp breakpoint for hockey-stick SR
+#' @param method SR type
 #'
 #' @export
 recfunc <- function(h, SSBPR0, SSB,  R0 = 1e6, method = "bevholt", bp = 0,
@@ -1070,7 +1113,7 @@ recfunc <- function(h, SSBPR0, SSB,  R0 = 1e6, method = "bevholt", bp = 0,
 
 
 
-#' @name initdistR
+#' initdistR
 #' @export
 initdistR <- function(M, FM=NULL, ns, asmax, indage0, spawning, R0=1){
 
@@ -1111,4 +1154,73 @@ initdistR <- function(M, FM=NULL, ns, asmax, indage0, spawning, R0=1){
 
 check.par <- function(x, n){
     if(length(x) != n) c(x, rep(x, n-length(x))) else x
+}
+
+
+##' get.leslie.r
+##'
+##' @description Function to estimate intrinsic growth rate r and generation
+##'     time
+##'
+##' @param dat iamse data set
+##'
+##' @details Function adopted from Henning Winker's spmpriors package
+##'
+##' @export
+get.leslie.r <- function(dat){
+
+    MAA <- dat$M[nrow(dat$M),] * dat$Msel[[1]]
+    FM <- 0
+    ns <- dat$ns
+    asmax <- dat$asmax
+    indage0 <- dat$indage0
+    spawning <- dat$spawning
+    R0 <- dat$R0
+    weight <- dat$weight
+    mat <- dat$mat
+    fecun <- dat$fecun
+    season <- 1
+
+    ## mean spawner weight at age
+    swt <- weight * mat
+
+    ZAA <- MAA + FM
+    NAAS <- initdistR(MAA, FM = FM, ns, asmax, indage0, spawning, R0)
+    while (season > 1) {
+        NAAS <- NAAS * exp(-ZAA)
+        NAAS[asmax] <- NAAS[asmax] + NAAS[asmax - 1]
+        for (as in (asmax - 1):2) NAAS[as] <- NAAS[as - 1]
+        season <- season - 1
+    }
+    NAAS[1] <- R0
+    NAAS <- NAAS / R0
+
+    ##  compute unfished Spawning biomass per recruit (SBR0)
+    ssb0 <- get.ssb0(MAA,
+                     mat, weight, fecun,
+                     asmax, ns, spawning,
+                     R0, indage0, season)
+    ssbpr0 <- ssb0 / R0
+    ## ssbpr0 <- sum(NAAS * weight * mat) ## same
+
+    R <- recfunc(dat$h, ssbpr0, 1, dat$R0, dat$SR, dat$bp,
+                 dat$recBeta, dat$recGamma, dat$recAlpha)
+
+    ## Make Leslie matrix
+    lm <- mat.or.vec(asmax, asmax)
+    lm[1,] <- R * swt
+
+    ## fill rest of Matrix with Survival
+    for(i  in 2:asmax){
+        lm[i,(i-1)] <- exp(-MAA[i-1])
+    }
+
+    ## Net reproductive rate
+    nrr <- sum(NAAS * swt)
+
+    ## Intrinsic rate of population increase and generation time
+    res <- list(r = log(as.numeric(eigen(lm)$values[1])),
+                gt = sum(as.vector(t(dat$ages)) * NAAS * swt) / nrr)
+
+    return(res)
 }

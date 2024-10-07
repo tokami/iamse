@@ -118,5 +118,5 @@ def.hcr.spict(
 \item{env}{Environment. Default: globalenv()}
 }
 \description{
-Define harvest control rule
+def.hcr.spict
 }

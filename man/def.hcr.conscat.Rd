@@ -20,5 +20,5 @@ def.hcr.conscat(
 )
 }
 \description{
-Define harvest control rule
+def.hcr.conscat
 }
