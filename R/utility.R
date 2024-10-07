@@ -330,8 +330,8 @@ get.errs <- function(dat, set, x, hist = NULL, rep = FALSE){
     if(is.null(eImvA) || all(is.na(eImvA))){
         eImvA <- list()
         for(i in 1:nsurv){
-            eImvA[[i]] <- gen.noise(n, noise$Imv[1], noise$Imv[2],
-                                    bias.cor = noise$Imv[3],
+            eImvA[[i]] <- gen.noise(n, noise$ImvA[1], noise$ImvA[2],
+                                    bias.cor = noise$ImvA[3],
                                     mv = TRUE, dat = dat,
                                     by.asmax = FALSE,
                                     hist = tail(hist.errs$eImvA[[i]],1))
@@ -340,8 +340,8 @@ get.errs <- function(dat, set, x, hist = NULL, rep = FALSE){
     if(is.null(eImvL) || all(is.na(eImvL))){
         eImvL <- list()
         for(i in 1:nsurv){
-            eImvL[[i]] <- gen.noise(n, noise$Imv[1], noise$Imv[2],
-                                    bias.cor = noise$Imv[3],
+            eImvL[[i]] <- gen.noise(n, noise$ImvL[1], noise$ImvL[2],
+                                    bias.cor = noise$ImvL[3],
                                     mv = TRUE, dat = dat,
                                     by.asmax = TRUE,
                                     hist = tail(hist.errs$eImvL[[i]],1))

@@ -89,10 +89,15 @@ check.set <- function(set = NULL){
     }else if(length(set$noise$time$CmvL) != 3){
         writeLines("'set$noise$time$CmvL' needs to be a vector with 3 values corresponding to: sd, rho, bias.cor. Setting to c(0,0,0)!")
     }
-    if(is.null(set$noise$time$Imv)){
-        set$noise$time$Imv <- c(0,0,0)
-    }else if(length(set$noise$time$Imv) != 3){
-        writeLines("'set$noise$time$Imv' needs to be a vector with 3 values corresponding to: sd, rho, bias.cor. Setting to c(0,0,0)!")
+    if(is.null(set$noise$time$ImvA)){
+        set$noise$time$ImvA <- c(0,0,0)
+    }else if(length(set$noise$time$ImvA) != 3){
+        writeLines("'set$noise$time$ImvA' needs to be a vector with 3 values corresponding to: sd, rho, bias.cor. Setting to c(0,0,0)!")
+    }
+    if(is.null(set$noise$time$ImvL)){
+        set$noise$time$ImvL <- c(0,0,0)
+    }else if(length(set$noise$time$ImvL) != 3){
+        writeLines("'set$noise$time$ImvL' needs to be a vector with 3 values corresponding to: sd, rho, bias.cor. Setting to c(0,0,0)!")
     }
     if(is.null(set$noise$time$E)){
         set$noise$time$E <- c(0,0,0)
@@ -179,10 +184,15 @@ check.set <- function(set = NULL){
     }else if(length(set$noise$rep$CmvL) != 3){
         writeLines("'set$noise$rep$CmvL' needs to be a vector with 3 values corresponding to: sd, rho, bias.cor. Setting to c(0,0,0)!")
     }
-    if(is.null(set$noise$rep$Imv)){
-        set$noise$rep$Imv <- c(0,0,0)
-    }else if(length(set$noise$rep$Imv) != 3){
-        writeLines("'set$noise$rep$Imv' needs to be a vector with 3 values corresponding to: sd, rho, bias.cor. Setting to c(0,0,0)!")
+    if(is.null(set$noise$rep$ImvA)){
+        set$noise$rep$ImvA <- c(0,0,0)
+    }else if(length(set$noise$rep$ImvA) != 3){
+        writeLines("'set$noise$rep$ImvA' needs to be a vector with 3 values corresponding to: sd, rho, bias.cor. Setting to c(0,0,0)!")
+    }
+    if(is.null(set$noise$rep$ImvL)){
+        set$noise$rep$ImvL <- c(0,0,0)
+    }else if(length(set$noise$rep$ImvL) != 3){
+        writeLines("'set$noise$rep$ImvL' needs to be a vector with 3 values corresponding to: sd, rho, bias.cor. Setting to c(0,0,0)!")
     }
     if(is.null(set$noise$rep$E)){
         set$noise$rep$E <- c(0,0,0)

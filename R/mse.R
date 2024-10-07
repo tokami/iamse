@@ -172,6 +172,7 @@ run.mse <- function(dat, set,
                 setx$errs$rep <- errs$rep[[x]]
             }
 
+
             ## pop list with errors
             pop <- initpop(datx, setx)
             ## add reference levels
