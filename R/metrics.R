@@ -80,8 +80,9 @@ est.metrics <- function(mse, dat, mets = "all"){
     ## for stand. metrics
     newYears <- 1:nysim + ny
     newYears_st <- 1:5 + ny
-    newYears_lt <- (nysim-9):nysim + ny
-    newYears_lt <- (nysim-4):nysim + ny     ## HERE:
+    newYears_lt <- (nysim-5):nysim + ny
+    ## newYears_lt <- (nysim-24):nysim + ny ## HERE:
+    ## newYears_lt <- (nysim-4):nysim + ny     ## HERE:
     newYears_y1 <- ny + 1
     newYears_y2 <- ny + 2
     ## for kobe plot
@@ -161,7 +162,8 @@ est.metrics <- function(mse, dat, mets = "all"){
                  "BBmsynew_lt","FFmsynew_lt",
                  "CMSYamax5","PBBlimamax5","AAVCamax5",
                  "CMSYnew_y1","PBBlimnew_y1",
-                 "CMSYnew_y2","PBBlimnew_y2"
+                 "CMSYnew_y2","PBBlimnew_y2",
+                 "timeBmsy"
                  )
     if(mets[1] == "all") mets <- metsAll
     if(any(which(!mets %in% metsAll))) writeLines(paste0("Metric ",
@@ -191,6 +193,7 @@ est.metrics <- function(mse, dat, mets = "all"){
         print(names(mse)[hcr])
         msei <- mse[[hcr]]
         res <- NULL
+        if(length(msei) == 0) break()
         ## CMSY
         if(any(mets == "CMSY")){
             metsUsed <- c(metsUsed, "CMSY")
@@ -1941,6 +1944,25 @@ if(any(mets == "AAVBnew_lt")){
                                     sei,
                                     ni))
             }
+        }
+
+        if(any(mets == "timeBmsy")){
+            if(is.null(refs$Bmsy)) stop("There is no Bmsy in dat$ref! Please add a Blim!")
+            metsUsed <- c(metsUsed, "timeBmsy")
+            tmp <- unlist(lapply(msei, function(x){
+                indi <- which(x$TSBfinal[simYears] > refs$Bmsy[1])
+                if(length(indi) > 0) min(indi) else tail(nysim,1)
+            }))
+            vari <- var(tmp)
+            ni <- length(tmp)
+            sei <- sqrt(vari/ni)
+            tmp2 <- try(wilcox.test(as.numeric(tmp),
+                                    alternative="two.sided",
+                                    correct=TRUE,
+                                    conf.int=TRUE,
+                                    conf.level=0.95), silent=TRUE)
+            res <- rbind(res, c(tmp2$conf.int[1], tmp2$estimate, tmp2$conf.int[2],
+                                sei, ni))
         }
 
         ## names
