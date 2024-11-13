@@ -80,7 +80,7 @@ est.metrics <- function(mse, dat, mets = "all"){
     ## for stand. metrics
     newYears <- 1:nysim + ny
     newYears_st <- 1:5 + ny
-    newYears_lt <- (nysim-5):nysim + ny
+    newYears_lt <- (nysim-10):nysim + ny
     ## newYears_lt <- (nysim-24):nysim + ny ## HERE:
     ## newYears_lt <- (nysim-4):nysim + ny     ## HERE:
     newYears_y1 <- ny + 1
