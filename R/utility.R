@@ -1012,8 +1012,10 @@ getM <- function(Linf, K, mids, a = 0.55, b = 1.61, c = 1.44){
 #' @param K K of vBGF
 #' @param mids midlengths
 #' @param plba probability of being in mids given age
+#' @param scale logical; scale to have maximum 1 (default: true)
 #'
-getMsel <- function(Linf, K, mids, plba, a = 0.55, b = 1.61, c = 1.44){
+getMsel <- function(Linf, K, mids, plba, a = 0.55, b = 1.61, c = 1.44,
+                    scale = TRUE){
     n <- max(c(length(a),length(b),length(c)))
     sel <- vector("list", n)
     for(i in 1:n){
@@ -1025,7 +1027,11 @@ getMsel <- function(Linf, K, mids, plba, a = 0.55, b = 1.61, c = 1.44){
         ##     selA[,j] <- apply(t(plba[,,j]) * selL, 2, sum)
         ## }
         selA <- apply(t(plba) * selL, 2, sum)
-        maxM <- 1 ## max(selA) ## HERE:
+        if(scale){
+            maxM <- max(selA)
+        }else{
+            maxM <- 1
+        }
         sel[[i]] <- selA/maxM
     }
     return(sel)
@@ -1186,10 +1192,10 @@ get.leslie.r <- function(dat){
 
     ZAA <- MAA + FM
     NAAS <- initdistR(MAA, FM = FM, ns, asmax, indage0, spawning, R0)
-    while (season > 1) {
+    while(season > 1){
         NAAS <- NAAS * exp(-ZAA)
         NAAS[asmax] <- NAAS[asmax] + NAAS[asmax - 1]
-        for (as in (asmax - 1):2) NAAS[as] <- NAAS[as - 1]
+        for(as in (asmax - 1):2) NAAS[as] <- NAAS[as - 1]
         season <- season - 1
     }
     NAAS[1] <- R0
@@ -1207,12 +1213,13 @@ get.leslie.r <- function(dat){
                  dat$recBeta, dat$recGamma, dat$recAlpha)
 
     ## Make Leslie matrix
-    lm <- mat.or.vec(asmax, asmax)
-    lm[1,] <- R * swt
+    lm <- mat.or.vec(dat$amax+1, dat$amax+1)
+    lm[1,] <- R * as.numeric(by(swt, dat$as2a, mean))
 
     ## fill rest of Matrix with Survival
-    for(i  in 2:asmax){
-        lm[i,(i-1)] <- exp(-MAA[i-1])
+    maa.annual <- as.numeric(by(MAA, dat$as2a, sum))
+    for(i in 2:dat$amax){
+        lm[i,(i-1)] <- exp(-maa.annual[i-1])
     }
 
     ## Net reproductive rate
