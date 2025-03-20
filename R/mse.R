@@ -202,6 +202,7 @@ run.mse <- function(dat, set,
                                          hcr = hcri,
                                          year = y,
                                          verbose = verbose)
+                    print(poptmp$tacs)
                 }
                 popListx[[i]] <- poptmp
                 gc()

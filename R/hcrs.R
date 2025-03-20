@@ -638,22 +638,22 @@ def.hcr.spict <- function(id = "spict-msy",
 
         ## fit spict
         rwF  <- FALSE
-save.fits <- TRUE ## HERE:
-if(save.fits){
-inp$reportmode <- 0
-}
-if(',scenario,' == 1){
-if(inp$nobsC > 50) inp$stdevfacC[51] <- 0.1
-if(inp$nobsC > 51) inp$stdevfacC[52] <- 0.1
-}
-if(',scenario,' == 2){
-inp$priors$logsdf <- c(2,0.5,1)
-inp$priors$logsdc <- c(log(0.15),0.5,1)
-}
+## save.fits <- TRUE ## HERE:
+## if(save.fits){
+## inp$reportmode <- 0
+## }
+## if(',scenario,' == 1){
+## if(inp$nobsC > 50) inp$stdevfacC[51] <- 0.1
+## if(inp$nobsC > 51) inp$stdevfacC[52] <- 0.1
+## }
+## if(',scenario,' == 2){
+## inp$priors$logsdf <- c(2,0.5,1)
+## inp$priors$logsdc <- c(log(0.15),0.5,1)
+## }
         fit <- try(fit.spict(inp), silent=TRUE)
-if(save.fits){
-save(fit, file = paste0("fit_",inp$nobsC,"_",',scenario,',".RData"))
-}
+## if(save.fits){
+## save(fit, file = paste0("fit_",inp$nobsC,"_",',scenario,',".RData"))
+## }
 ##  try(plot(fit),silent=TRUE)
         ## non-convergence
         if(class(fit) == "try-error" || fit$opt$convergence != 0 || any(is.infinite(fit$sd))){
