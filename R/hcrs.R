@@ -216,12 +216,15 @@ structure(
             indBref <- as.numeric(as.character(unlist(strsplit(as.character(tacs$indBref[nrow(tacs)]), "-"))))
         }
         indBref2 <- paste(indBref, collapse="-")
+
+
         tac <- ',constantC,'
         if(!is.numeric(tac)){
             annualcatch <- spict:::annual(obs$timeC, obs$obsC/obs$dtc, type = "mean") ## CHECK: why not sum?
             tac <- mean(tail(annualcatch$annvec, ',clyears,'))
-            ## Account for non-annual assessments
-            tac <- tac * assessInt
+            ## accounted for by rep(tac, assessInt) below
+            ## ## Account for non-annual assessments
+            ## tac <- tac * assessInt
         }
 
         ## PA buffer (e.g. 0.2 reduction of TAC) if B < Btrigger proxy or F > Fmsy
@@ -253,6 +256,7 @@ structure(
         if(barID){
             tac <- tac * (1-red)
         }
+
         tac <- rep(tac, ',set.$assessmentInterval,')
         tacs <- gettacs(tacs.=tacs, id. = "',id,'", TAC. = tac, obs.=obs)
         tacs$hitSC[nrow(tacs)] <- NA
