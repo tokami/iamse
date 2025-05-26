@@ -36,14 +36,20 @@ est.cons.mets <- function(mse, dat, mets = "all",
 
 #' est.metrics
 #' @export
-est.metrics <- function(mse, dat, mets = "all"){
+est.metrics <- function(mse, dat, set = NULL,
+                        mets = "all",
+                        nysim = NULL){
+
+    nysim0 <- nysim
 
 
     nhcr <- length(mse)
     nrep <- length(mse[[1]])
     nquant <- length(mse[[1]][[1]])
     ## IMPROVE:
-    if(any(names(mse[[1]][[1]]$tacs) == "assessInt") &&
+    if(!is.null(set)){
+        nysim <- set$nysim
+    }else if(any(names(mse[[1]][[1]]$tacs) == "assessInt") &&
        any(!names(mse) %in% c("noF","refFmsy")) &&
        !is.na(mse[[which(!names(mse) %in%
                                 c("noF","refFmsy"))[1]]][[1]]$tacs$assessInt[1])){
@@ -54,11 +60,12 @@ est.metrics <- function(mse, dat, mets = "all"){
         nysim <- nrow(mse[[1]][[1]]$tacs)
     }
 
-    ## REMOVE:
-    ## nysim <- 40
+    if(!is.null(nysim0)) nysim <- nysim0
     dims <- dim(mse[[1]][[1]]$CW)
-    ny <- dims[1] - nysim
-    ns <- dims[2]
+    ny <- dat$ny
+    ns <- dat$ns
+    ## ny <- dims[1] - nysim
+    ## ns <- dims[2]
     amax <- dat$amax
 
     finalYear <- ny + nysim
