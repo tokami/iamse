@@ -4,7 +4,7 @@
 \alias{getMsel}
 \title{getMsel}
 \usage{
-getMsel(Linf, K, mids, plba, a = 0.55, b = 1.61, c = 1.44)
+getMsel(Linf, K, mids, plba, a = 0.55, b = 1.61, c = 1.44, scale = TRUE)
 }
 \arguments{
 \item{Linf}{Linf of vBGF}
@@ -14,6 +14,8 @@ getMsel(Linf, K, mids, plba, a = 0.55, b = 1.61, c = 1.44)
 \item{mids}{midlengths}
 
 \item{plba}{probability of being in mids given age}
+
+\item{scale}{logical; scale to have maximum 1 (default: true)}
 }
 \description{
 Function to estimate selectivity of natural mortality

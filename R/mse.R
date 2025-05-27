@@ -2,6 +2,8 @@
 ##'
 ##' @importFrom parallel mclapply
 ##' @importFrom parallel detectCores
+##' @importFrom future.apply future_lapply
+##' @importFrom future plan multisession
 ##'
 ##' @export
 run.mse <- function(dat, set,
@@ -97,7 +99,9 @@ run.mse <- function(dat, set,
 
     ## parallel loop
     if(ncores > 1){
-        res <- parallel::mclapply(as.list(1:nrep), function(x){
+        ## res <- parallel::mclapply(as.list(1:nrep), function(x){
+        future::plan(multisession, workers = ncores)
+        res <- future.apply::future_lapply(1:nrep, function(x){
 
             if(verbose) writeLines(paste0("Running replicate: ", x))
 
@@ -149,7 +153,8 @@ run.mse <- function(dat, set,
             }
             ## repList[[x]] <- popListx
             return(popListx)
-        }, mc.cores = ncores)
+        })
+        ## }, mc.cores = ncores) ## for mclapply
 
     }else{
 
