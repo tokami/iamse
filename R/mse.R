@@ -1,15 +1,27 @@
 ##' run.mse
 ##'
-##' @importFrom parallel mclapply
-##' @importFrom parallel detectCores
+##' @description Run MSE
+##'
+##' @param dat data
+##' @param set settings
+##' @param fest F
+##' @param ncores for parallel
+##' @param globals list with extra objects to be passed on to cluseters (only if
+##'     ncores > 1)
+##' @param verbose logical; print info
+##'
+##' @return a list with MSE results
+##'
+##' @importFrom parallel detectCores makeCluster stopCluster clusterExport clusterEvalQ
 ##' @importFrom future.apply future_lapply
-##' @importFrom future plan multisession
+##' @importFrom future plan cluster
 ##'
 ##' @export
 run.mse <- function(dat, set,
                     fest = NULL,
-                    ncores=parallel::detectCores()-1,
-                    verbose=TRUE){
+                    ncores = parallel::detectCores()-1,
+                    globals = NULL,
+                    verbose = TRUE){
 
     if(ncores > 1) verbose <- FALSE
 
@@ -18,7 +30,7 @@ run.mse <- function(dat, set,
 
     ## Variables
     hcrs <- set$hcr
-    hcrs2 <- sapply(hcrs,
+    hcrs2 <- sapply(names(hcrs),
                     function(x)
                         unlist(strsplit(as.character(x), "-"))[1])
     nhcrs <- length(hcrs)
@@ -99,62 +111,86 @@ run.mse <- function(dat, set,
 
     ## parallel loop
     if(ncores > 1){
-        ## res <- parallel::mclapply(as.list(1:nrep), function(x){
-        future::plan(multisession, workers = ncores)
-        res <- future.apply::future_lapply(1:nrep, function(x){
 
-            if(verbose) writeLines(paste0("Running replicate: ", x))
+        cl <- parallel::makeCluster(ncores)
 
-            ## set seed
-            if(is.numeric(set$seed)) set.seed(set$seed + x)
+        tryCatch({
+            future::plan(cluster, workers = cl)
+            parallel::clusterExport(cl, varlist = c(globals,
+                                                    names(set$hcr)),
+                                    envir = .GlobalEnv)
+            parallel::clusterExport(cl, varlist = c("dat", "set",
+                                                    "refs", "hcrs", "nhcrs",
+                                                    "nysim", "nrep", "ny",
+                                                    "ns", "nt", "nyall","ntall"),
+                                    envir = environment())
 
-            setx <- set
-            datx <- dat
-            ## errors
-            if(fhist.flag){
-                datx$FM <- matrix(fest[x,]/datx$ns,
-                                  datx$ny, datx$ns)
-                setx$errs <- list()
-                setx$errs$time <- errs$time[[x]]
-                setx$errs$rep <- errs$rep[[x]]
-            }
+            seeds <- lapply(1:nrep, function(i) {
+                set.seed(set$seed + i)
+                .Random.seed
+            })
 
-            ## pop list with errors
-            pop <- initpop(datx, setx)
-            ## add reference levels
-            pop$refs <- refs
-            popList <- vector("list", nhcrs)
-            for(i in 1:nhcrs){
-                popList[[i]] <- pop
-            }
+            ## res <- parallel::mclapply(as.list(1:nrep), function(x){
+            res <- future.apply::future_lapply(1:nrep, function(x){
 
-            repList <- vector("list", nhcrs)
-            popListx <- popList
+                if(verbose) writeLines(paste0("Running replicate: ", x))
 
-            ## setx$errs <- list()
-            ## setx$errs$time <- get.errs(datx, setx, (ny+1):(ny+nysim), pop)
-            ## setx$errs$rep <- pop$errs$rep
+                ## set seed
+                ## if(is.numeric(set$seed)) set.seed(set$seed + x)
 
-            ## loop
-            for(i in 1:nhcrs){
-                hcri <- hcrs[i]
-                poptmp <- popListx[[i]]
-                poptmp$tacs <- NULL
-                for(y in 1:nysim){
-                    poptmp <- advancepop(dat = datx,
-                                         hist = poptmp,
-                                         set = setx,
-                                         hcr = hcri,
-                                         year = y,
-                                         verbose = verbose)
+                setx <- set
+                datx <- dat
+                ## errors
+                if(fhist.flag){
+                    datx$FM <- matrix(fest[x,]/datx$ns,
+                                      datx$ny, datx$ns)
+                    setx$errs <- list()
+                    setx$errs$time <- errs$time[[x]]
+                    setx$errs$rep <- errs$rep[[x]]
                 }
-                popListx[[i]] <- poptmp
-                gc()
-            }
-            ## repList[[x]] <- popListx
-            return(popListx)
+
+                ## pop list with errors
+                pop <- initpop(datx, setx)
+                ## add reference levels
+                pop$refs <- refs
+                popList <- vector("list", nhcrs)
+                for(i in 1:nhcrs){
+                    popList[[i]] <- pop
+                }
+
+                repList <- vector("list", nhcrs)
+                popListx <- popList
+
+                ## setx$errs <- list()
+                ## setx$errs$time <- get.errs(datx, setx, (ny+1):(ny+nysim), pop)
+                ## setx$errs$rep <- pop$errs$rep
+
+                ## loop
+                for(i in 1:nhcrs){
+                    hcri <- hcrs[[i]]
+                    poptmp <- popListx[[i]]
+                    poptmp$tacs <- NULL
+                    for(y in 1:nysim){
+                        poptmp <- advancepop(dat = datx,
+                                             hist = poptmp,
+                                             set = setx,
+                                             hcr = hcri,
+                                             year = y,
+                                             verbose = verbose)
+                    }
+                    popListx[[i]] <- poptmp
+                    gc()
+                }
+                ## repList[[x]] <- popListx
+                return(popListx)
+            }, future.seed = seeds)
+            ## }, mc.cores = ncores) ## for mclapply
+
+        }, error = function(e) {
+            stop("An error occurred: ", conditionMessage(e))
+        }, finally = {
+            parallel::stopCluster(cl)
         })
-        ## }, mc.cores = ncores) ## for mclapply
 
     }else{
 
@@ -196,7 +232,7 @@ run.mse <- function(dat, set,
 
             ## loop
             for(i in 1:nhcrs){
-                hcri <- hcrs[i]
+                hcri <- hcrs[[i]]
                 poptmp <- popListx[[i]]
                 poptmp$tacs <- NULL
                 for(y in 1:nysim){
@@ -232,7 +268,6 @@ run.mse <- function(dat, set,
         stop(paste0("Replicate ",ind," does not have the correct length."))
     }
 
-
     ## sort res of reps for each ms together
     resList <- vector("list", nhcrs)
 
@@ -244,9 +279,9 @@ run.mse <- function(dat, set,
         names(tmp) <- 1:nrep
         resList[[x]] <- tmp
     })
-    names(res2) <- hcrs
+    names(res2) <- names(hcrs)
 
-    class(res2) <- "iamse"
+    class(res2) <- c(class(res2), "iamse")
 
     return(res2)
 }

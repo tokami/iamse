@@ -619,7 +619,7 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
     beta <- dat$beta
     if(length(beta) < nsurv) beta <- rep(beta, nsurv)
     qE <- dat$qE
-    tacID <- hcr
+    tacID <- attributes(hcr)$id
     tacID2 <- unlist(strsplit(as.character(tacID), "_"))[1]
     M <- dat$M
     spawning <- dat$spawning
@@ -786,7 +786,7 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
             ## Estimate TAC
             if(tacID2 %in% c("refFmsy","consF")){
                 ## Reference rule Fmsy
-                tacs <- gettacs(tacs = tacs, id = hcr,
+                tacs <- gettacs(tacs = tacs, id = tacID,
                                 TAC=rep(NA, set$assessmentInterval))
             }else{
                 ## True stock status

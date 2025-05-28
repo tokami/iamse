@@ -3,10 +3,11 @@
 
 #' est.tac
 #' @export
-est.tac <- function(obs., hcr., tacs.=NULL, pars.=NULL){
-    func <- get(hcr.)
-    res <- func(obs., tacs., pars.)
-    return(res)
+est.tac <- function(obs., hcr.fun, tacs.=NULL, pars.=NULL){
+    ## func <- get(hcr.)
+    ## res <- func(obs., tacs., pars.)
+    ## return(res)
+    hcr.fun(obs., tacs., pars.)
 }
 
 
@@ -69,9 +70,7 @@ def.hcr.ref <- function(consF = 0,
     if(!is.null(fracFmsy)){
         id <- paste0("refFmsy_", as.character(fracFmsy))
         template  <- expression(paste0(
-            '
-structure(
-    function(obs, tacs=NULL, pars=NULL){
+            'function(obs, tacs=NULL, pars=NULL){
         if(is.null(obs$timeE)){
              inp <- obs[c("obsC","timeC","obsI","timeI")]
         }else if(is.null(obs$timeI)){
@@ -80,13 +79,10 @@ structure(
              inp <- obs[c("obsC","timeC","obsI","timeI","obsE","timeE")]
         }
         inp <- spict::check.inp(inp, verbose = FALSE)
-        tacs <- gettacs(tacs.=tacs, id.="',id,'",
+        tacs <- iamse:::gettacs(tacs.=tacs, id.="',id,'",
                         TAC.=rep(0, ',set.$assessmentInterval,'), obs.=inp)
         return(tacs)
-    },
-    class="hcr"
-)
-'))
+    }'))
     }else{
         if(!is.numeric(consF) && !(consF %in% c("fmsy","Fmsy","FMSY","refFmsy","refFMSY","reffmsy")))
             stop("'consF' has to be either the absolute F (numeric) or 'fmsy'.")
@@ -95,9 +91,7 @@ structure(
             ## TODO: don't think this is implemented, check mse.R
             id <- paste0("consF_",consF)
             template  <- expression(paste0(
-                '
-structure(
-    function(obs, tacs=NULL, pars=NULL){
+                'function(obs, tacs=NULL, pars=NULL){
         if(is.null(obs$timeE)){
              inp <- obs[c("obsC","timeC","obsI","timeI")]
         }else if(is.null(obs$timeI)){
@@ -106,21 +100,16 @@ structure(
              inp <- obs[c("obsC","timeC","obsI","timeI","obsE","timeE")]
         }
         inp <- spict::check.inp(inp, verbose = FALSE)
-        tacs <- gettacs(tacs.=tacs, id.="',id,'",
+        tacs <- iamse:::gettacs(tacs.=tacs, id.="',id,'",
                         TAC.=rep(0, ',set.$assessmentInterval,'), obs.=inp)
         return(tacs)
-    },
-    class="hcr"
-)
-'))
+    }'))
         }
 
         if(consF == "fmsy" || consF == "Fmsy" || consF == "FMSY"){
             id <- "refFmsy"
             template  <- expression(paste0(
-                '
-structure(
-    function(obs, tacs=NULL, pars=NULL){
+                'function(obs, tacs=NULL, pars=NULL){
         if(is.null(obs$timeE)){
              inp <- obs[c("obsC","timeC","obsI","timeI")]
         }else if(is.null(obs$timeI)){
@@ -129,21 +118,16 @@ structure(
              inp <- obs[c("obsC","timeC","obsI","timeI","obsE","timeE")]
         }
         inp <- spict::check.inp(inp, verbose = FALSE)
-        tacs <- gettacs(tacs.=tacs, id.="',id,'",
+        tacs <- iamse:::gettacs(tacs.=tacs, id.="',id,'",
                         TAC.=rep(NA, ',set.$assessmentInterval,'), obs.=inp)
         return(tacs)
-    },
-    class="hcr"
-)
-'))
+    }'))
         }
 
         if(consF == 0){
             id <- "noF"
             template  <- expression(paste0(
-                '
-structure(
-    function(obs, tacs=NULL, pars=NULL){
+                'function(obs, tacs=NULL, pars=NULL){
         if(is.null(obs$timeE)){
              inp <- obs[c("obsC","timeC","obsI","timeI")]
         }else if(is.null(obs$timeI)){
@@ -152,19 +136,21 @@ structure(
              inp <- obs[c("obsC","timeC","obsI","timeI","obsE","timeE")]
         }
         inp <- spict::check.inp(inp, verbose = FALSE)
-        tacs <- gettacs(tacs.=tacs, id.="',id,'",
+        tacs <- iamse:::gettacs(tacs.=tacs, id.="',id,'",
                         TAC.=rep(0, ',set.$assessmentInterval,'), obs.=inp)
         return(tacs)
-    },
-    class="hcr"
-)
-'))
+    }'))
         }
     }
 
 
     ## create HCR as functions
-    templati <- eval(parse(text=paste(parse(text = eval(template)),collapse=" ")))
+    ## templati <- eval(parse(text=paste(parse(text = eval(template)),collapse=" ")))
+    ## assign(value=templati, x=id, envir=env)
+
+    templati <- eval(parse(text = eval(template)))
+    class(templati) <- c(class(templati), "hcr")
+    attributes(templati)$id <- id
     assign(value=templati, x=id, envir=env)
 
     ## allow for assigning names
@@ -195,9 +181,7 @@ def.hcr.conscat <- function(id = "conscat",
     if(is.null(constantC)) constantC = NA
 
     template  <- expression(paste0(
-        '
-structure(
-    function(obs, tacs = NULL, pars=NULL){
+        'function(obs, tacs = NULL, pars=NULL){
         red <- ',red,'
         redyears <- ',redyears,'
         assessInt <- ',set.$assessmentInterval,'
@@ -258,20 +242,22 @@ structure(
         }
 
         tac <- rep(tac, ',set.$assessmentInterval,')
-        tacs <- gettacs(tacs.=tacs, id. = "',id,'", TAC. = tac, obs.=obs)
+        tacs <- iamse:::gettacs(tacs.=tacs, id. = "',id,'", TAC. = tac, obs.=obs)
         tacs$hitSC[nrow(tacs)] <- NA
         tacs$barID[nrow(tacs)] <- barID
         tacs$red[nrow(tacs)] <- red
         tacs$indBref[nrow(tacs)] <- indBref2
         tacs$assessInt[nrow(tacs)] <- assessInt
         return(tacs)
-    },
-class="hcr"
-)
-'))
+    }'))
 
     ## create HCR as functions
-    templati <- eval(parse(text=paste(parse(text = eval(template)),collapse=" ")))
+    ## templati <- eval(parse(text=paste(parse(text = eval(template)),collapse=" ")))
+    ## assign(value=templati, x=id, envir=env)
+
+    templati <- eval(parse(text = eval(template)))
+    class(templati) <- c(class(templati), "hcr")
+    attributes(templati)$id <- id
     assign(value=templati, x=id, envir=env)
 
     ## allow for assigning names
@@ -318,9 +304,7 @@ def.hcr.index <- function(id = "r23",
                           ){
 
     template  <- expression(paste0(
-        '
-structure(
-    function(obs, tacs = NULL, pars = NULL){
+        'function(obs, tacs = NULL, pars = NULL){
         x <- ',x,'
         y <- ',y,'
         stab <- ',stab,'
@@ -414,7 +398,7 @@ structure(
         if(barID){
             tac <- tac * (1-red)
         }
-        tacs <- gettacs(tacs.=tacs, id. = "',id,'", TAC. = tac, obs. = obs)
+        tacs <- iamse:::gettacs(tacs.=tacs, id. = "',id,'", TAC. = tac, obs. = obs)
         tacs$hitSC[nrow(tacs)] <- hitSC
         tacs$barID[nrow(tacs)] <- barID
         tacs$red[nrow(tacs)] <- red
@@ -427,13 +411,15 @@ structure(
         tacs$bmID[nrow(tacs)] <- bmID
         tacs$assessInt[nrow(tacs)] <- assessInt
         return(tacs)
-    },
-    class="hcr"
-)
-'))
+    }'))
 
     ## create HCR as functions
-    templati <- eval(parse(text=paste(parse(text = eval(template)),collapse=" ")))
+    ## templati <- eval(parse(text=paste(parse(text = eval(template)),collapse=" ")))
+    ## assign(value=templati, x=id, envir=env)
+
+    templati <- eval(parse(text = eval(template)))
+    class(templati) <- c(class(templati), "hcr")
+    attributes(templati)$id <- id
     assign(value=templati, x=id, envir=env)
 
     ## allow for assigning names
@@ -553,7 +539,7 @@ def.hcr.spict <- function(id = "spict-msy",
     breakpointB1 <- breakpointB[1]
     breakpointB2 <- breakpointB[2]
 
-    template  <- expression(paste0(' structure(function(obs, tacs = NULL, pars=NULL){if(is.null(obs$timeE)){inp <- obs[c("obsC","timeC","obsI","timeI")]}else if(is.null(obs$timeI)){inp <- obs[c("obsC","timeC","obsE","timeE")]}else{inp <- obs[c("obsC","timeC","obsI","timeI","obsE","timeE")]}
+    template  <- expression(paste0('function(obs, tacs = NULL, pars=NULL){if(is.null(obs$timeE)){inp <- obs[c("obsC","timeC","obsI","timeI")]}else if(is.null(obs$timeI)){inp <- obs[c("obsC","timeC","obsE","timeE")]}else{inp <- obs[c("obsC","timeC","obsI","timeI","obsE","timeE")]}
         func2 <- get("',nonconvHCR,'")
         inp$reportmode <- ',reportmode,'
         inp$dteuler <- ',dteuler,'
@@ -1018,12 +1004,15 @@ breakpointB2,'),
         }
 
         return(tacs)
-    },
-    class="hcr")
-'))
+    }'))
 
     ## create HCR as functions
-    templati <- eval(parse(text=paste(parse(text = eval(template)),collapse=" ")))
+    ## templati <- eval(parse(text=paste(parse(text = eval(template)),collapse=" ")))
+    ## assign(value=templati, x=id, envir=env)
+
+    templati <- eval(parse(text = eval(template)))
+    class(templati) <- c(class(templati), "hcr")
+    attributes(templati)$id <- id
     assign(value=templati, x=id, envir=env)
 
     ## allow for assigning names
@@ -1052,8 +1041,7 @@ def.hcr.sam <- function(id = "sam",
                         env = globalenv()
                         ){
 
-    template  <- expression(paste0('
-structure(function(obs, tacs = NULL, pars=NULL){
+    template  <- expression(paste0('function(obs, tacs = NULL, pars=NULL){
     silent <- ',silent,'
     verbose <- ',verbose,'
     func <- get("',nonconvHCR,'")
@@ -1116,17 +1104,20 @@ structure(function(obs, tacs = NULL, pars=NULL){
             ## fitplot(fit)
 
             ## write output object
-            tacs <- gettacs(tacs.=tacs, id.="',id,'", TAC.=tac, obs.=obs)
+            tacs <- iamse:::gettacs(tacs.=tacs, id.="',id,'", TAC.=tac, obs.=obs)
             tacs$conv[nrow(tacs)] <- TRUE
             return(tacs)
         }
     }
-},
-class="hcr")
-'))
+}'))
 
     ## create HCR as functions
-    templati <- eval(parse(text=paste(parse(text = eval(template)),collapse=" ")))
+    ## templati <- eval(parse(text=paste(parse(text = eval(template)),collapse=" ")))
+    ## assign(value=templati, x=id, envir=env)
+
+    templati <- eval(parse(text = eval(template)))
+    class(templati) <- c(class(templati), "hcr")
+    attributes(templati)$id <- id
     assign(value=templati, x=id, envir=env)
 
     ## allow for assigning names
@@ -1216,9 +1207,7 @@ def.hcr.pseudo <- function(id = "pseudo-msy",
     flagKE <- ifelse(blim == btrigger, TRUE, FALSE)
 
     template  <- expression(paste0(
-        '
-structure(
-    function(obs, tacs = NULL, pars=NULL){
+        'function(obs, tacs = NULL, pars=NULL){
 
 
         inp <- obs[c("obsC","timeC")]
@@ -1284,15 +1273,18 @@ structure(
             tac[tac > clup] <- clup
         }else hitSC <- 0
 
-        tacs <- gettacs(tacs.=tacs, id.="',id,'", TAC.=tac, obs.=obs)
+        tacs <- iamse:::gettacs(tacs.=tacs, id.="',id,'", TAC.=tac, obs.=obs)
         tacs$hitSC[nrow(tacs)] <- hitSC
         return(tacs)
-    },
-    class="hcr")
-'))
+    }'))
 
     ## create HCR as functions
-    templati <- eval(parse(text=paste(parse(text = eval(template)),collapse=" ")))
+    ## templati <- eval(parse(text=paste(parse(text = eval(template)),collapse=" ")))
+    ## assign(value=templati, x=id, envir=env)
+
+    templati <- eval(parse(text = eval(template)))
+    class(templati) <- c(class(templati), "hcr")
+    attributes(templati)$id <- id
     assign(value=templati, x=id, envir=env)
 
     ## allow for assigning names

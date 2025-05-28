@@ -9,9 +9,27 @@ run.mse(
   set,
   fest = NULL,
   ncores = parallel::detectCores() - 1,
+  globals = NULL,
   verbose = TRUE
 )
 }
+\arguments{
+\item{dat}{data}
+
+\item{set}{settings}
+
+\item{fest}{F}
+
+\item{ncores}{for parallel}
+
+\item{globals}{list with extra objects to be passed on to cluseters (only if
+ncores > 1)}
+
+\item{verbose}{logical; print info}
+}
+\value{
+a list with MSE results
+}
 \description{
-run.mse
+Run MSE
 }
