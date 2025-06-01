@@ -70,7 +70,7 @@ plotiamse.cw <- function(dat, set, resMSE,
     }
     abline(v=dat$ny, col="grey60",lwd=2)
     abline(v=max(which(dat$FM==0)), col="grey60",lwd=2,lty=2)
-    if(plot.legend) legend("topright", legend=set$hcr,
+    if(plot.legend) legend("topright", legend=names(set$hcr),
            col=cols, bty="n", lwd=2,lty=1)
     title("Catch")
     box()
@@ -148,7 +148,7 @@ plotiamse.b <- function(dat, set, resMSE,
     }
     abline(v=dat$ny, col="grey60",lwd=2)
     abline(v=max(which(dat$FM==0)), col="grey60",lwd=2,lty=2)
-    if(plot.legend) legend("topright", legend=set$hcr,
+    if(plot.legend) legend("topright", legend=names(set$hcr),
                            col=cols, bty="n", lwd=2,lty=1)
     title("Biomass")
     box()
@@ -226,7 +226,7 @@ plotiamse.f <- function(dat, set, resMSE,
     }
     abline(v=dat$ny, col="grey60",lwd=2)
     abline(v=max(which(dat$FM==0)), col="grey60",lwd=2,lty=2)
-    if(plot.legend) legend("topright", legend=set$hcr,
+    if(plot.legend) legend("topright", legend=names(set$hcr),
            col=cols, bty="n", lwd=2,lty=1)
     title("Fishing mortality")
     box()
@@ -332,7 +332,7 @@ plotiamse.quant <- function(dat, set, resMSE, hcrs=NULL,
     for(i in 1:nspict) lines(years, quant1[[i]], col = cols[i], lwd=1.5)
     mtext(quants[1],2,3)
     ## legend
-    legend("topright", legend=set$hcr[spicthcr],
+    legend("topright", legend=names(set$hcr)[spicthcr],
            col=cols, bty="n", lwd=2,lty=1)
     box()
     ## FmFmsy
