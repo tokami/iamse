@@ -170,7 +170,9 @@ est.metrics <- function(mse, dat, set = NULL,
                  "CMSYamax5","PBBlimamax5","AAVCamax5",
                  "CMSYnew_y1","PBBlimnew_y1",
                  "CMSYnew_y2","PBBlimnew_y2",
-                 "timeBmsy"
+                 "timeBmsy",
+                 "t2risk5",
+                 "t2bmsy"
                  )
     if(mets[1] == "all") mets <- metsAll
     if(any(which(!mets %in% metsAll))) writeLines(paste0("Metric ",
@@ -1970,6 +1972,60 @@ if(any(mets == "AAVBnew_lt")){
                                     conf.level=0.95), silent=TRUE)
             res <- rbind(res, c(tmp2$conf.int[1], tmp2$estimate, tmp2$conf.int[2],
                                 sei, ni))
+        }
+
+        if(any(mets == "t2risk5")){
+
+            if(is.null(refs$Blim)) stop("There is no Blim in dat$ref! Please add a Blim!")
+            metsUsed <- c(metsUsed, "t2risk5")
+            ## risk by year
+            ## x <- msei[[1]]
+            tmp <- lapply(msei, function(x) x$TSBfinal[newYears] / refs$Blim[newYears])
+            tmp2 <- do.call(rbind, tmp)
+            tmp3 <- apply(tmp2, 2, function(x) mean(x < 1))
+            est <- min(which(tmp3 < 0.05))
+
+            ## uncertainty for rebuilding time via bootstrapping
+            rebtimes <- replicate(500, {
+                indi <- sample(1:nrow(tmp2), nrow(tmp2), replace = TRUE)
+                tmp3u <- apply(tmp2[indi,], 2, function(x) mean(x < 1))
+                min(which(tmp3u < 0.05))
+            })
+
+            unc <- quantile(rebtimes, c(0.025, 0.5, 0.975))
+
+            unc[is.infinite(unc)] <- NA
+
+            res <- rbind(res, c(unc[1], unc[2],
+                                unc[3], NA, NA))
+
+        }
+
+        if(any(mets == "t2bmsy")){
+
+            if(is.null(refs$Bmsy)) stop("There is no Blim in dat$ref! Please add a Blim!")
+            metsUsed <- c(metsUsed, "t2bmsy")
+            ## risk by year
+            ## x <- msei[[1]]
+            tmp <- lapply(msei, function(x) x$TSBfinal[newYears] / refs$Bmsy[newYears])
+            tmp2 <- do.call(rbind, tmp)
+            tmp3 <- apply(tmp2, 2, function(x) mean(x < 1))
+            est <- min(which(tmp3 < 0.5))
+
+            ## uncertainty for rebuilding time via bootstrapping
+            rebtimes <- replicate(500, {
+                indi <- sample(1:nrow(tmp2), nrow(tmp2), replace = TRUE)
+                tmp3u <- apply(tmp2[indi,], 2, function(x) mean(x < 1))
+                min(which(tmp3u < 0.5))
+            })
+
+            unc <- quantile(rebtimes, c(0.025, 0.5, 0.975))
+
+            unc[is.infinite(unc)] <- NA
+
+            res <- rbind(res, c(unc[1], unc[2],
+                                unc[3], NA, NA))
+
         }
 
         ## names
