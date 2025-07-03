@@ -4,7 +4,7 @@
 \alias{est.metrics}
 \title{est.metrics}
 \usage{
-est.metrics(mse, dat, set = NULL, mets = "all", nysim = NULL)
+est.metrics(mse, dat, set = NULL, mets = "all", gen.time = NULL, nysim = NULL)
 }
 \description{
 est.metrics

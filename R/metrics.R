@@ -38,6 +38,7 @@ est.cons.mets <- function(mse, dat, mets = "all",
 #' @export
 est.metrics <- function(mse, dat, set = NULL,
                         mets = "all",
+                        gen.time = NULL,
                         nysim = NULL){
 
     nysim0 <- nysim
@@ -86,8 +87,13 @@ est.metrics <- function(mse, dat, set = NULL,
     amaxYears4 <- floor(amax/2) + ny
     ## for stand. metrics
     newYears <- 1:nysim + ny
-    newYears_st <- 1:5 + ny
-    newYears_lt <- (nysim-10):nysim + ny
+    if (!is.null(gen.time)) {
+        newYears_st <- 1:(2*gen.time) + ny
+        newYears_lt <- (nysim-(2*gen.time)+1):nysim + ny
+    } else {
+        newYears_st <- 1:5 + ny
+        newYears_lt <- (nysim-10):nysim + ny
+    }
     ## newYears_lt <- (nysim-24):nysim + ny ## HERE:
     ## newYears_lt <- (nysim-4):nysim + ny     ## HERE:
     newYears_y1 <- ny + 1
@@ -172,7 +178,8 @@ est.metrics <- function(mse, dat, set = NULL,
                  "CMSYnew_y2","PBBlimnew_y2",
                  "timeBmsy",
                  "t2risk5",
-                 "t2bmsy"
+                 "t2bmsy",
+                 "t2btrigger"
                  )
     if(mets[1] == "all") mets <- metsAll
     if(any(which(!mets %in% metsAll))) writeLines(paste0("Metric ",
@@ -2017,6 +2024,35 @@ if(any(mets == "AAVBnew_lt")){
                 indi <- sample(1:nrow(tmp2), nrow(tmp2), replace = TRUE)
                 tmp3u <- apply(tmp2[indi,], 2, function(x) mean(x < 1))
                 min(which(tmp3u < 0.5))
+            })
+
+            unc <- quantile(rebtimes, c(0.025, 0.5, 0.975))
+
+            unc[is.infinite(unc)] <- NA
+
+            res <- rbind(res, c(unc[1], unc[2],
+                                unc[3], NA, NA))
+
+        }
+
+        if(any(mets == "t2btrigger")){
+
+            percentile <- 0.05
+
+            if(is.null(refs$Bmsy)) stop("There is no Bmsy in dat$ref! Please add a Bmsy!")
+            metsUsed <- c(metsUsed, "t2btrigger")
+            ## risk by year
+            ## x <- msei[[1]]
+            tmp <- lapply(msei, function(x) x$TSBfinal[newYears] / (refs$Bmsy[newYears] * 0.5))  ## btrigger is defined as bmsy/2
+            tmp2 <- do.call(rbind, tmp)
+            tmp3 <- apply(tmp2, 2, function(x) mean(x < 1))
+            est <- min(which(tmp3 < percentile))
+
+            ## uncertainty for rebuilding time via bootstrapping
+            rebtimes <- replicate(500, {
+                indi <- sample(1:nrow(tmp2), nrow(tmp2), replace = TRUE)
+                tmp3u <- apply(tmp2[indi,], 2, function(x) mean(x < 1))
+                min(which(tmp3u < percentile))
             })
 
             unc <- quantile(rebtimes, c(0.025, 0.5, 0.975))
