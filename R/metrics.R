@@ -2043,21 +2043,34 @@ if(any(mets == "AAVBnew_lt")){
             metsUsed <- c(metsUsed, "t2btrigger")
             ## risk by year
             ## x <- msei[[1]]
-            tmp <- lapply(msei, function(x) x$TSBfinal[newYears] / (refs$Bmsy[newYears] * 0.5))  ## btrigger is defined as bmsy/2
-            tmp2 <- do.call(rbind, tmp)
-            tmp3 <- apply(tmp2, 2, function(x) mean(x < 1))
-            est <- min(which(tmp3 < percentile))
 
-            ## uncertainty for rebuilding time via bootstrapping
-            rebtimes <- replicate(500, {
-                indi <- sample(1:nrow(tmp2), nrow(tmp2), replace = TRUE)
-                tmp3u <- apply(tmp2[indi,], 2, function(x) mean(x < 1))
-                min(which(tmp3u < percentile))
-            })
+            below.ref <- sapply(msei, function(x) x$TSBfinal[newYears][1] / (refs$Bmsy[newYears][1] * 0.5) < 1)
 
-            unc <- quantile(rebtimes, c(0.025, 0.5, 0.975))
+            if (sum(below.ref) == 0) {
+                writeLines("No replicate below MSY B_trigger.")
+                unc <- rep(NA, 3)
+            } else {
 
-            unc[is.infinite(unc)] <- NA
+                tmp <- lapply(msei[below.ref], function(x){
+                    x$TSBfinal[newYears] / (refs$Bmsy[newYears] * 0.5)
+                })  ## btrigger is defined as bmsy/2
+
+                tmp2 <- do.call(rbind, tmp)
+                tmp3 <- apply(tmp2, 2, function(x) mean(x < 1))
+                est <- min(which(tmp3 < percentile))
+
+                ## uncertainty for rebuilding time via bootstrapping
+                rebtimes <- replicate(500, {
+                    indi <- sample(1:nrow(tmp2), nrow(tmp2), replace = TRUE)
+                    tmp3u <- apply(tmp2[indi,], 2, function(x) mean(x < 1))
+                    min(which(tmp3u < percentile))
+                })
+
+                unc <- quantile(rebtimes, c(0.025, 0.5, 0.975))
+
+                unc[is.infinite(unc)] <- NA
+
+            }
 
             res <- rbind(res, c(unc[1], unc[2],
                                 unc[3], NA, NA))
