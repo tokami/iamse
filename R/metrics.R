@@ -2016,7 +2016,7 @@ if(any(mets == "AAVBnew_lt")){
             ## risk by year
             ## x <- msei[[1]]
 
-            below.ref <- sapply(msei, function(x) (x$TSBfinal[newYears][1] / refs$Bmsy[newYears][1]) < 1)
+            below.ref <- sapply(msei, function(x) (x$TSBfinal[newYears[1]-1] / refs$Bmsy[newYears[1]-1]) < 1)
 
             if (sum(below.ref) == 0) {
                 writeLines("No replicate below B_MSY.")
@@ -2040,8 +2040,8 @@ if(any(mets == "AAVBnew_lt")){
                 unc[is.infinite(unc)] <- NA
             }
 
-            res <- rbind(res, c(unc[1], unc[2],
-                                unc[3], NA, NA))
+                res <- rbind(res, c(unc[1], unc[2],
+                                    unc[3], NA, NA))
 
         }
 
@@ -2054,7 +2054,7 @@ if(any(mets == "AAVBnew_lt")){
             ## risk by year
             ## x <- msei[[1]]
 
-            below.ref <- sapply(msei, function(x) (x$TSBfinal[newYears][1] / (refs$Bmsy[newYears][1] * 0.5)) < 1)
+            below.ref <- sapply(msei, function(x) (x$TSBfinal[newYears[1]-1] / (refs$Bmsy[newYears[1]-1] * 0.5)) < 1)
 
             if (sum(below.ref) == 0) {
                 writeLines("No replicate below MSY B_trigger.")
