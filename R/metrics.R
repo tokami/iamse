@@ -39,7 +39,8 @@ est.cons.mets <- function(mse, dat, mets = "all",
 est.metrics <- function(mse, dat, set = NULL,
                         mets = "all",
                         gen.time = NULL,
-                        nysim = NULL){
+                        nysim = NULL,
+                        kobe.probs = c(0.25, 0.5, 0.75)){
 
     nysim0 <- nysim
 
@@ -100,10 +101,17 @@ est.metrics <- function(mse, dat, set = NULL,
     newYears_y2 <- ny + 2
     ## for kobe plot
     newYears2 <- round(nysim - nysim/2) + ny
-    newYears2_st <- 1 + ny
-    newYears2_lt <- nysim + ny
-    newYears2_mt <- round(nysim - nysim/2) + ny  + (-2:2)
+    if (!is.null(gen.time)) {
+        newYears2_st <- ny
+        newYears2_lt <- min((4*gen.time) + ny, nysim + ny)
+        newYears2_mt <- (2*gen.time) + ny
+    } else {
+        newYears2_st <- 1 + ny
+        newYears2_lt <- nysim + ny
+        newYears2_mt <- round(nysim - nysim/2) + ny  + (-2:2)
+    }
     amaxYears5 <- 3:amax + ny
+
 
     hcrs <- names(mse)
     reffmsyInd <- which(hcrs == "refFmsy")
@@ -124,13 +132,13 @@ est.metrics <- function(mse, dat, set = NULL,
             "amaxYears5" = lapply(mse[[reffmsyInd]], function(x) apply(x$CW,1,sum)[amaxYears5]),
             "newYears_y1" = lapply(mse[[reffmsyInd]], function(x) apply(x$CW,1,sum)[newYears_y1]),   "newYears_y2" = lapply(mse[[reffmsyInd]], function(x) apply(x$CW,1,sum)[newYears_y2])
         )
-    refF <- list(
-        "finalYear" = lapply(mse[[reffmsyInd]], function(x) apply(x$FM,1,sum)[finalYear]),
-        "tenthYear" = lapply(mse[[reffmsyInd]], function(x) apply(x$FM,1,sum)[tenthYear]))
-    refB <- list(
-        "finalYear" = lapply(mse[[reffmsyInd]], function(x) x$TSBfinal[finalYear]),
-        "newYears" = lapply(mse[[reffmsyInd]], function(x) x$ESBfinal[newYears]),
-        "tenthYear" = lapply(mse[[reffmsyInd]], function(x) x$TSBfinal[tenthYear]))
+        refF <- list(
+            "finalYear" = lapply(mse[[reffmsyInd]], function(x) apply(x$FM,1,sum)[finalYear]),
+            "tenthYear" = lapply(mse[[reffmsyInd]], function(x) apply(x$FM,1,sum)[tenthYear]))
+        refB <- list(
+            "finalYear" = lapply(mse[[reffmsyInd]], function(x) x$TSBfinal[finalYear]),
+            "newYears" = lapply(mse[[reffmsyInd]], function(x) x$ESBfinal[newYears]),
+            "tenthYear" = lapply(mse[[reffmsyInd]], function(x) x$TSBfinal[tenthYear]))
 
     }
 
@@ -203,7 +211,7 @@ est.metrics <- function(mse, dat, set = NULL,
     }
     ##
     res2 <- vector("list", nhcr)
-    for(hcr in 1:nhcr){
+for(hcr in 1:nhcr){
         metsUsed <- NULL
         nrep <- length(mse[[hcr]])
         print(names(mse)[hcr])
@@ -221,10 +229,10 @@ est.metrics <- function(mse, dat, set = NULL,
                 ni <- length(tmp)
                 sei <- sqrt(vari/ni)
                 tmp2 <- try(wilcox.test(as.numeric(tmp),
-                                   alternative="two.sided",
-                                   correct=TRUE,
-                                   conf.int=TRUE,
-                                   conf.level=0.95), silent=TRUE)
+                                        alternative="two.sided",
+                                        correct=TRUE,
+                                        conf.int=TRUE,
+                                        conf.level=0.95), silent=TRUE)
                 if(hcrs[hcr] == "noF"){
                     res <- rbind(res, c(0,
                                         0,
@@ -342,10 +350,10 @@ est.metrics <- function(mse, dat, set = NULL,
                 ni <- length(tmp)
                 sei <- sqrt(vari/ni)
                 tmp2 <- try(wilcox.test(as.numeric(tmp),
-                                   alternative="two.sided",
-                                   correct=TRUE,
-                                   conf.int=TRUE,
-                                   conf.level=0.95), silent=TRUE)
+                                        alternative="two.sided",
+                                        correct=TRUE,
+                                        conf.int=TRUE,
+                                        conf.level=0.95), silent=TRUE)
                 if(hcrs[hcr] == "noF"){
                     res <- rbind(res, c(0,
                                         0,
@@ -413,10 +421,10 @@ est.metrics <- function(mse, dat, set = NULL,
                 ni <- length(tmp)
                 sei <- sqrt(vari/ni)
                 tmp2 <- try(wilcox.test(as.numeric(tmp),
-                                   alternative="two.sided",
-                                   correct=TRUE,
-                                   conf.int=TRUE,
-                                   conf.level=0.95), silent=TRUE)
+                                        alternative="two.sided",
+                                        correct=TRUE,
+                                        conf.int=TRUE,
+                                        conf.level=0.95), silent=TRUE)
                 if(hcrs[hcr] == "noF"){
                     res <- rbind(res, c(0,
                                         0,
@@ -487,22 +495,22 @@ est.metrics <- function(mse, dat, set = NULL,
                 sei <- sqrt(vari/ni)
                 erri <- 1.96 * (sqrt(vari)/sqrt(ni))
                 tmp2 <- try(wilcox.test(as.numeric(tmp),
-                                   alternative="two.sided",
-                                   correct=TRUE,
-                                   conf.int=TRUE,
-                                   conf.level=0.95), silent=TRUE)
+                                        alternative="two.sided",
+                                        correct=TRUE,
+                                        conf.int=TRUE,
+                                        conf.level=0.95), silent=TRUE)
                 if(hcrs[hcr] == "noF"){
                     res <- rbind(res, c(0,
                                         0,
                                         0,
                                         sei,
                                         ni))
-                ## }else if(hcrs[hcr] == "refFmsy"){
-                ##     res <- rbind(res, c(1,
-                ##                         1,
-                ##                         1,
-                ##                         sei,
-                ##                         ni))
+                    ## }else if(hcrs[hcr] == "refFmsy"){
+                    ##     res <- rbind(res, c(1,
+                    ##                         1,
+                    ##                         1,
+                    ##                         sei,
+                    ##                         ni))
                 }else{
                     res <- rbind(res, c(tmp2$conf.int[1],
                                         tmp2$estimate,
@@ -568,22 +576,22 @@ est.metrics <- function(mse, dat, set = NULL,
                 sei <- sqrt(vari/ni)
                 erri <- 1.96 * (sqrt(vari)/sqrt(ni))
                 tmp2 <- try(wilcox.test(as.numeric(tmp),
-                                   alternative="two.sided",
-                                   correct=TRUE,
-                                   conf.int=TRUE,
-                                   conf.level=0.95), silent=TRUE)
+                                        alternative="two.sided",
+                                        correct=TRUE,
+                                        conf.int=TRUE,
+                                        conf.level=0.95), silent=TRUE)
                 if(hcrs[hcr] == "noF"){
                     res <- rbind(res, c(0,
                                         0,
                                         0,
                                         sei,
                                         ni))
-                ## }else if(hcrs[hcr] == "refFmsy"){
-                ##     res <- rbind(res, c(1,
-                ##                         1,
-                ##                         1,
-                ##                         sei,
-                ##                         ni))
+                    ## }else if(hcrs[hcr] == "refFmsy"){
+                    ##     res <- rbind(res, c(1,
+                    ##                         1,
+                    ##                         1,
+                    ##                         sei,
+                    ##                         ni))
                 }else{
                     res <- rbind(res, c(tmp2$conf.int[1],
                                         tmp2$estimate,
@@ -626,10 +634,10 @@ est.metrics <- function(mse, dat, set = NULL,
                 ni <- length(tmp)
                 sei <- sqrt(vari/ni)
                 tmp2 <- try(wilcox.test(as.numeric(tmp),
-                                   alternative="two.sided",
-                                   correct=TRUE,
-                                   conf.int=TRUE,
-                                   conf.level=0.95), silent=TRUE)
+                                        alternative="two.sided",
+                                        correct=TRUE,
+                                        conf.int=TRUE,
+                                        conf.level=0.95), silent=TRUE)
                 if(hcrs[hcr] == "noF"){
                     res <- rbind(res, c(0,
                                         0,
@@ -662,10 +670,10 @@ est.metrics <- function(mse, dat, set = NULL,
                 ni <- length(tmp)
                 sei <- sqrt(vari/ni)
                 tmp2 <- try(wilcox.test(as.numeric(tmp),
-                                   alternative="two.sided",
-                                   correct=TRUE,
-                                   conf.int=TRUE,
-                                   conf.level=0.95), silent=TRUE)
+                                        alternative="two.sided",
+                                        correct=TRUE,
+                                        conf.int=TRUE,
+                                        conf.level=0.95), silent=TRUE)
                 if(hcrs[hcr] == "noF"){
                     res <- rbind(res, c(0,
                                         0,
@@ -699,10 +707,10 @@ est.metrics <- function(mse, dat, set = NULL,
                 ni <- length(tmp)
                 sei <- sqrt(vari/ni)
                 tmp2 <- try(wilcox.test(as.numeric(tmp),
-                                   alternative="two.sided",
-                                   correct=TRUE,
-                                   conf.int=TRUE,
-                                   conf.level=0.95), silent=TRUE)
+                                        alternative="two.sided",
+                                        correct=TRUE,
+                                        conf.int=TRUE,
+                                        conf.level=0.95), silent=TRUE)
                 if(hcrs[hcr] == "noF"){
                     res <- rbind(res, c(0,
                                         0,
@@ -947,7 +955,7 @@ est.metrics <- function(mse, dat, set = NULL,
         if(any(mets == "CMSYMaxAge")){
             metsUsed <- c(metsUsed, "CMSYMaxAge")
             tmp <- unlist(lapply(msei, function(x) median(apply(x$CW,1,sum)[min(simYears):(min(simYears)+dat$amax)] /
-                                                   refs$MSY)))
+                                                          refs$MSY)))
             res <- rbind(res, quantile(tmp, probs = c(0.025, 0.5, 0.975), na.rm=TRUE))
         }
         ## "PBBlimMaxAge"
@@ -1150,22 +1158,22 @@ est.metrics <- function(mse, dat, set = NULL,
                 sei <- sqrt(vari/ni)
                 erri <- 1.96 * (sqrt(vari)/sqrt(ni))
                 tmp2 <- try(wilcox.test(as.numeric(tmp),
-                                   alternative="two.sided",
-                                   correct=TRUE,
-                                   conf.int=TRUE,
-                                   conf.level=0.95), silent=TRUE)
+                                        alternative="two.sided",
+                                        correct=TRUE,
+                                        conf.int=TRUE,
+                                        conf.level=0.95), silent=TRUE)
                 if(hcrs[hcr] == "noF"){
                     res <- rbind(res, c(0,
                                         0,
                                         0,
                                         sei,
                                         ni))
-                ## }else if(hcrs[hcr] == "refFmsy"){
-                ##     res <- rbind(res, c(1,
-                ##                         1,
-                ##                         1,
-                ##                         sei,
-                ##                         ni))
+                    ## }else if(hcrs[hcr] == "refFmsy"){
+                    ##     res <- rbind(res, c(1,
+                    ##                         1,
+                    ##                         1,
+                    ##                         sei,
+                    ##                         ni))
                 }else{
                     res <- rbind(res, c(tmp2$conf.int[1],
                                         tmp2$estimate,
@@ -1330,22 +1338,22 @@ est.metrics <- function(mse, dat, set = NULL,
                 sei <- sqrt(vari/ni)
                 erri <- 1.96 * (sqrt(vari)/sqrt(ni))
                 tmp2 <- try(wilcox.test(as.numeric(tmp),
-                                   alternative="two.sided",
-                                   correct=TRUE,
-                                   conf.int=TRUE,
-                                   conf.level=0.95), silent=TRUE)
+                                        alternative="two.sided",
+                                        correct=TRUE,
+                                        conf.int=TRUE,
+                                        conf.level=0.95), silent=TRUE)
                 if(hcrs[hcr] == "noF"){
                     res <- rbind(res, c(0,
                                         0,
                                         0,
                                         sei,
                                         ni))
-                ## }else if(hcrs[hcr] == "refFmsy"){
-                ##     res <- rbind(res, c(1,
-                ##                         1,
-                ##                         1,
-                ##                         sei,
-                ##                         ni))
+                    ## }else if(hcrs[hcr] == "refFmsy"){
+                    ##     res <- rbind(res, c(1,
+                    ##                         1,
+                    ##                         1,
+                    ##                         sei,
+                    ##                         ni))
                 }else{
                     res <- rbind(res, c(tmp2$conf.int[1],
                                         tmp2$estimate,
@@ -1357,38 +1365,38 @@ est.metrics <- function(mse, dat, set = NULL,
         }
         if(any(mets == "Cnew_st")){
             metsUsed <- c(metsUsed, "Cnew_st")
-                indi <- as.numeric(names(msei))
-                tmp <- unlist(lapply(as.list(1:length(msei)), function(x)
-                    apply(msei[[x]]$CW,1,sum)[newYears_st]))
-                meani <- mean(tmp)
-                vari <- var(tmp)
-                ni <- length(tmp)
-                sei <- sqrt(vari/ni)
-                erri <- 1.96 * (sqrt(vari)/sqrt(ni))
-                tmp2 <- try(wilcox.test(as.numeric(tmp),
-                                   alternative="two.sided",
-                                   correct=TRUE,
-                                   conf.int=TRUE,
-                                   conf.level=0.95), silent=TRUE)
-                if(hcrs[hcr] == "noF"){
-                    res <- rbind(res, c(0,
-                                        0,
-                                        0,
-                                        sei,
-                                        ni))
+            indi <- as.numeric(names(msei))
+            tmp <- unlist(lapply(as.list(1:length(msei)), function(x)
+                apply(msei[[x]]$CW,1,sum)[newYears_st]))
+            meani <- mean(tmp)
+            vari <- var(tmp)
+            ni <- length(tmp)
+            sei <- sqrt(vari/ni)
+            erri <- 1.96 * (sqrt(vari)/sqrt(ni))
+            tmp2 <- try(wilcox.test(as.numeric(tmp),
+                                    alternative="two.sided",
+                                    correct=TRUE,
+                                    conf.int=TRUE,
+                                    conf.level=0.95), silent=TRUE)
+            if(hcrs[hcr] == "noF"){
+                res <- rbind(res, c(0,
+                                    0,
+                                    0,
+                                    sei,
+                                    ni))
                 ## }else if(hcrs[hcr] == "refFmsy"){
                 ##     res <- rbind(res, c(1,
                 ##                         1,
                 ##                         1,
                 ##                         sei,
                 ##                         ni))
-                }else{
-                    res <- rbind(res, c(tmp2$conf.int[1],
-                                        tmp2$estimate,
-                                        tmp2$conf.int[2],
-                                        sei,
-                                        ni))
-                }
+            }else{
+                res <- rbind(res, c(tmp2$conf.int[1],
+                                    tmp2$estimate,
+                                    tmp2$conf.int[2],
+                                    sei,
+                                    ni))
+            }
         }
         ## "PBBlimamax"
         if(any(mets == "PBBlimnew_st")){
@@ -1461,7 +1469,7 @@ est.metrics <- function(mse, dat, set = NULL,
                                     ni))
             }
         }
-if(any(mets == "AAVBnew_st")){
+        if(any(mets == "AAVBnew_st")){
             metsUsed <- c(metsUsed, "AAVBnew_st")
             ## tmp <- unlist(lapply(lapply(msei,
             ##                             function(x) (((apply(x$CW,1,sum)[simYears] -
@@ -1842,41 +1850,47 @@ if(any(mets == "AAVBnew_lt")){
         if(any(mets == "BBmsynew")){
             metsUsed <- c(metsUsed, "BBmsynew")
             tmp <- unlist(lapply(msei, function(x) median(x$TSBfinal[newYears2_mt] / refs$Bmsy[newYears2_mt])))
-            res <- rbind(res, quantile(tmp, probs = c(0.2, 0.5, 0.8), na.rm=TRUE))
+            res <- rbind(res,
+                         c(quantile(tmp, probs = kobe.probs, na.rm=TRUE), NA, NA))
         }
         ## "FFmsy"
         if(any(mets == "FFmsynew")){
             metsUsed <- c(metsUsed, "FFmsynew")
             tmp <- unlist(lapply(msei, function(x) median(apply(x$FM,1,sum)[newYears2_mt] / refs$Fmsy[newYears2_mt])))
-            res <- rbind(res, quantile(tmp, probs = c(0.2, 0.5, 0.8), na.rm=TRUE))
+            res <- rbind(res,
+                         c(quantile(tmp, probs = kobe.probs, na.rm=TRUE), NA, NA))
         }
 
         ## short-term
         ## "BBmsy"
         if(any(mets == "BBmsynew_st")){
             metsUsed <- c(metsUsed, "BBmsynew_st")
-            tmp <- unlist(lapply(msei, function(x) median(x$TSBfinal[newYears_st] / refs$Bmsy[newYears_st])))
-            res <- rbind(res, quantile(tmp, probs = c(0.2, 0.5, 0.8), na.rm=TRUE))
+            tmp <- unlist(lapply(msei, function(x) median(x$TSBfinal[newYears2_st] / refs$Bmsy[newYears2_st])))
+            res <- rbind(res,
+                         c(quantile(tmp, probs = kobe.probs, na.rm=TRUE), NA, NA))
         }
         ## "FFmsy"
         if(any(mets == "FFmsynew_st")){
             metsUsed <- c(metsUsed, "FFmsynew_st")
-            tmp <- unlist(lapply(msei, function(x) median(apply(x$FM,1,sum)[newYears_st] / refs$Fmsy[newYears_st])))
-            res <- rbind(res, quantile(tmp, probs = c(0.2, 0.5, 0.8), na.rm=TRUE))
+            tmp <- unlist(lapply(msei, function(x) median(apply(x$FM,1,sum)[newYears2_st] / refs$Fmsy[newYears2_st])))
+            res <- rbind(res,
+                         c(quantile(tmp, probs = kobe.probs, na.rm=TRUE), NA, NA))
         }
 
         ## long-term
         ## "BBmsy"
         if(any(mets == "BBmsynew_lt")){
             metsUsed <- c(metsUsed, "BBmsynew_lt")
-            tmp <- unlist(lapply(msei, function(x) median(x$TSBfinal[newYears_lt] / refs$Bmsy[newYears_lt])))
-            res <- rbind(res, quantile(tmp, probs = c(0.2, 0.5, 0.8), na.rm=TRUE))
+            tmp <- unlist(lapply(msei, function(x) median(x$TSBfinal[newYears2_lt] / refs$Bmsy[newYears2_lt])))
+            res <- rbind(res,
+                         c(quantile(tmp, probs = kobe.probs, na.rm=TRUE), NA, NA))
         }
         ## "FFmsy"
         if(any(mets == "FFmsynew_lt")){
             metsUsed <- c(metsUsed, "FFmsynew_lt")
-            tmp <- unlist(lapply(msei, function(x) median(apply(x$FM,1,sum)[newYears_lt] / refs$Fmsy[newYears_lt])))
-            res <- rbind(res, quantile(tmp, probs = c(0.2, 0.5, 0.8), na.rm=TRUE))
+            tmp <- unlist(lapply(msei, function(x) median(apply(x$FM,1,sum)[newYears2_lt] / refs$Fmsy[newYears2_lt])))
+            res <- rbind(res,
+                         c(quantile(tmp, probs = kobe.probs, na.rm=TRUE), NA, NA))
         }
 
         ## CMSYamax5
