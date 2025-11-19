@@ -118,6 +118,7 @@ gen.noise <- function(n, sd,
         ## multivariate noise
         stopifnot(!is.null(dat))
         if(by.length){
+            stopifnot(!is.null(dat$plba))
             amax <- dim(dat$plba)[2]
         }else{
             if(by.asmax){
@@ -321,7 +322,8 @@ get.errs <- function(dat, set, x, hist = NULL, rep = FALSE){
                            mv = TRUE, dat = dat,
                            by.asmax = FALSE,
                            hist = tail(hist.errs$eCmvA,1))
-    if(is.null(eCmvL) || all(is.na(eCmvL)))
+    if((is.null(eCmvL) || all(is.na(eCmvL))) &&
+       !is.null(dat$plba))
         eCmvL <- gen.noise(n, noise$CmvL[1], noise$CmvL[2],
                            bias.cor = noise$CmvL[3],
                            mv = TRUE, dat = dat,
@@ -337,7 +339,8 @@ get.errs <- function(dat, set, x, hist = NULL, rep = FALSE){
                                     hist = tail(hist.errs$eImvA[[i]],1))
         }
     }
-    if(is.null(eImvL) || all(is.na(eImvL))){
+    if(is.null(eImvL) || all(is.na(eImvL)) &&
+       !is.null(dat$plba)){
         eImvL <- list()
         for(i in 1:nsurv){
             eImvL[[i]] <- gen.noise(n, noise$ImvL[1], noise$ImvL[2],
@@ -440,8 +443,6 @@ est.depletion <- function(dat, set=NULL, fmin = 0.0001,
         }else stop("depl.quant not implemented. Please use Bmsy, Blim,SSBmsy or SSBlim. Or implement others.")
     }
 
-
-
     ## errors
     errs <- list()
     errs$time <- errs$rep <- vector("list", nrep)
@@ -452,7 +453,8 @@ est.depletion <- function(dat, set=NULL, fmin = 0.0001,
 
     frel <- dat$FM/max(dat$FM)
 
-    fn <- function(logfabs, frel, depl, depl.prob, nrep, dat, set, errs, outopt, optFn=1){
+    fn <- function(logfabs, frel, depl, depl.prob, nrep, dat,
+                   set, errs, outopt, optFn=1){
         datx <- dat
         setx <- set
         fpat <- frel * exp(logfabs) / dat$ns
@@ -474,12 +476,15 @@ est.depletion <- function(dat, set=NULL, fmin = 0.0001,
         if(optFn==3) return(dreal)
     }
 
+
     ## opt <- nlminb(log(5), fn, lower = log(fmin), upper = log(fmax), frel = frel, depl = depl,
     ##               depl.prob = depl.prob,
     ##               nrep = nrep, dat = dat, set=set, errs=errs, outopt = outopt, optFn = 1)
     if(do.opt){
-        opt <- optimize(fn, c(log(fmin),log(fmax)), frel = frel, depl = depl, depl.prob = depl.prob,
-                        nrep = nrep, dat = dat, set=set, errs=errs, outopt = outopt, optFn = 1, tol = tol)
+        opt <- optimize(fn, c(log(fmin),log(fmax)), frel = frel, depl = depl,
+                        depl.prob = depl.prob,
+                        nrep = nrep, dat = dat, set=set, errs=errs,
+                        outopt = outopt, optFn = 1, tol = tol)
         fabs <- exp(opt$minimum)
     }else{
         fabs <- max(apply(dat$FM,1,sum))
@@ -510,6 +515,7 @@ est.depletion <- function(dat, set=NULL, fmin = 0.0001,
 est.productivity <- function(dat, set= NULL,
                     ny = 100,
                     fmax = 10,
+                    nf = 1e3,
                     tsSplit = 8,
                     plot = TRUE){
 
@@ -517,127 +523,232 @@ est.productivity <- function(dat, set= NULL,
     ns <- dat$ns
     nt <- ny * ns
 
-    browser()
-
-    ## TODO: use get.errs here!
-
     ## noise
     if(is.null(set)) set <- check.set()
-    set$noiseF <- c(0,0,0)
-    set$noiseR <- c(0,0,0)
-    set$noiseR0 <- c(0,0,0)
-    set$noiseH <- c(0,0,0)
-    set$noiseM <- c(0,0,0)
-    set$noiseW <- c(0,0,0)
-    set$noiseMat <- c(0,0,0)
-    set$noiseSel <- c(0,0,0)
-    set$noiseImp <- c(0,0,0)
+    set$noise$time <- lapply(set$noise$time, function(x)
+        c(0,0,0))
+    set$noise$rep <- lapply(set$noise$rep, function(x)
+        c(0,0,0))
 
+    nyref <- set$refYears
+    nrep <- set$refN
+    nrep <- 1
+    nyrefmsy <- set$refYearsMSY
+
+    ## TODO: they are all 1!
+    ## errors (have to be re-used for estimation of Bmsy)
+    errs <- list()
+    errs$time <- errs$rep <- vector("list", nrep)
+    for(i in 1:nrep){
+        errs$time[[i]] <- get.errs(dat, set, 1:nyref)
+        errs$rep[[i]] <- get.errs(dat, set, 1, rep = TRUE)
+    }
+
+    datx <- dat
+
+    ## natural mortality
+    ms <- NULL
+    for(i in 1:ns){
+        tmp0 <- unique(dat$M[,i])
+        if(is.null(ms) || length(tmp0) == nrow(ms)){
+            ms <- cbind(ms,tmp0)
+        }else if(length(tmp0) == 1){
+            ms <- cbind(ms,rep(tmp0, length.out = ns))
+        }else stop("You are natural mortality (M) is time-variant but M does not vary consitently among seasons. Please review dat$M or contact the package maintainer.")
+    }
+    mtv <- nrow(ms)
+    mind <- match(dat$M[,1], ms[,1])
+    ## M selectivity
+    if(length(dat$Msel) > 1){
+        msels <- dat$Msel[!duplicated(dat$Msel)]
+        mseltv <- length(msel)
+    }else{
+        msels <- dat$Msel[1]
+        mseltv <- 1
+    }
+    if(mseltv > 1 && mseltv != mtv) stop("Both natural mortality over time (dat$M) and over age (dat$Msel) are time-variant, but do not have the same dimensions. This is not yet implemented, please let both vary equally or keep one of them constant.")
+    alltv <- max(c(mtv, mseltv))
+    ## selectivity
+    if(length(dat$sel) > 1){
+        sels <- dat$sel[!duplicated(dat$sel)]
+        seltv <- length(sel)
+    }else{
+        sels <- dat$sel[1]
+        seltv <- 1
+    }
+    if(seltv > 1 && alltv > 1 && seltv != alltv) stop("Both gear selectivity (dat$sel) and natural mortality (dat$M or dat$Msel) are time-variant, but do not have the same dimensions. This is not yet implemented, please let both vary equally or keep one of them constant.")
+        alltv <- max(c(alltv,seltv))
+
+        if(alltv > 1){
+            if(mtv == alltv){
+                mtv <- 1:mtv
+            }else mtv <- rep(mtv, length.out = alltv)
+            if(mseltv == alltv){
+                mseltv <- 1:mseltv
+            }else mseltv <- rep(mseltv, length.out = alltv)
+            if(seltv == alltv){
+                seltv <- 1:seltv
+            }else seltv <- rep(seltv, length.out = alltv)
+        }
 
     ##
-    len1 <- len3 <- floor(ny/tsSplit)
-    len2 <- ny - len1 - len3
+    blims <- rep(NA, alltv)
+    prods <- vector("list", alltv)
+    for(i in 1:alltv){
+        datx$M <- t(as.matrix(ms[mtv[i],]))
+        datx$Msel <- msels[mseltv[i]]
+        datx$sel <- sels[seltv[i]]
+        fms <- seq(0, fmax, length.out = nf)
+        tmp2 <- vector("list", nf)
+        for(fx in 1:nf){
+            tmp0 <- lapply(1, function(x){
+                setx <- set
+                setx$errs <- list(time = errs$time[[x]],
+                                  rep = errs$rep[[x]])
+                logfm <- log(max(fms[fx], 1e-30))
+                pop <- simpop(logfm, datx, setx, out=0)
+                tsb <- tail(pop$TSB,1)
+                esb <- tail(pop$ESB,1)
+                ssb <- tail(pop$SSB,1)
+                cw <- tail(pop$CW,1)
+                sp <- tail(pop$SP,1)
+                return(c(TSB = tsb, SSB = ssb, ESB = esb, CW = cw, SP = sp))
+            })
+            tmp1 <- do.call(rbind, tmp0)
+            tmp2[[fx]] <- cbind(f = fms[fx], tmp1)
+        }
 
-    ## increasing effort
-    dat$FM <- matrix(c(rep(0,len1),
-                   seq(0, fmax, length.out = len2),
-                rep(fmax,len3)) / ns, ncol=ns, nrow = ny)
-    ## CHECK: how to estimate productivity with time variant M?
-    dat$M <- matrix(dat$M[1,], ncol=ns, nrow=1)
-    dat <- check.dat(dat)
-    pop1 <- initpop(dat, set)
-    tsb1 <- pop1$TSBfinal
-    esb1 <- pop1$ESBfinal
-    cw1 <- apply(pop1$CW,1,sum)
-    prod1 <- rep(NA, ny)
-    if(set$spType == 0){
-        for(i in 2:ny){
-            prod1[i] <- tsb1[i] - tsb1[i-1] + cw1[i]
-        }
-    }else if(set$spType == 1){
-        for(i in 2:ny){
-            prod1[i] <- esb1[i] - esb1[i-1] + cw1[i]
-        }
-    }
+        bs <- do.call(rbind, lapply(tmp2, function(x) x[,2]))
+        sps <- do.call(rbind, lapply(tmp2, function(x) x[,6]))
 
-    ## est blim as fraction of B corresponding to 0.5 MSY (ICES WKBUT 2013, Cadrin 1999)
-    msy1 <- max(prod1, na.rm=TRUE)
-    Blim1 <- tsb1[which.min(abs(prod1 - msy1/2))]
-
-    ## decreasing effort
-    dat$FM <- matrix(c(rep(fmax, len1),
-                   seq(fmax, 0, length.out = len2),
-                rep(0, len3)) / ns, ncol=ns, nrow=ny)
-    dat$M <- matrix(dat$M[1,], ncol=ns, nrow=1)
-    dat <- check.dat(dat)
-    pop2 <- initpop(dat, set)
-    tsb2 <- pop2$TSBfinal
-    esb2 <- pop2$ESBfinal
-    cw2 <- apply(pop2$CW,1,sum)
-    prod2 <- rep(NA, ny)
-    if(set$spType == 0){
-        for(i in 2:ny){
-            prod2[i] <- tsb2[i] - tsb2[i-1] + cw2[i]
-        }
-    }else if(set$spType == 1){
-        for(i in 2:ny){
-            prod2[i] <- esb2[i] - esb2[i-1] + cw2[i]
-        }
+        msy <- max(sps[,1], na.rm=TRUE)
+        blims[i] <- bs[which.min(abs(sps[,1] - msy/2)),i]
+        prods[[i]] <- as.data.frame(do.call(rbind, tmp2))
     }
 
 
-    if(plot){
+    ## old
+    if (FALSE) {
+        ## increasing effort
+        ##
+        len1 <- len3 <- floor(ny/tsSplit)
+        len2 <- ny - len1 - len3
 
-        plot(tsb1, prod1, ty='n',
-             xlim = range(0,tsb1,tsb2),
-             ylim = range(0,prod1,prod2,na.rm=TRUE))
-        lines(tsb1, prod1, ty='b',
+        dat$FM <- matrix(c(rep(0,len1),
+                           seq(0, fmax, length.out = len2),
+                           rep(fmax,len3)) / ns, ncol=ns, nrow = ny)
+        ## CHECK: how to estimate productivity with time variant M?
+        datx$M <- matrix(datx$M[1,], ncol=ns, nrow=1)
+        datx <- check.datx(datx)
+        pop1 <- initpop(datx, set)
+        tsb1 <- pop1$TSBfinal
+        esb1 <- pop1$ESBfinal
+        cw1 <- apply(pop1$CW,1,sum)
+        prod1 <- rep(NA, ny)
+        if(set$spType == 0){
+            for(i in 2:ny){
+                prod1[i] <- tsb1[i] - tsb1[i-1] + cw1[i]
+            }
+        }else if(set$spType == 1){
+            for(i in 2:ny){
+                prod1[i] <- esb1[i] - esb1[i-1] + cw1[i]
+            }
+        }
+
+        ## est blim as fraction of B corresponding to 0.5 MSY (ICES WKBUT 2013, Cadrin 1999)
+        msy1 <- max(prod1, na.rm=TRUE)
+        Blim1 <- tsb1[which.min(abs(prod1 - msy1/2))]
+
+        ## decreasing effort
+        datx$FM <- matrix(c(rep(fmax, len1),
+                            seq(fmax, 0, length.out = len2),
+                            rep(0, len3)) / ns, ncol=ns, nrow=ny)
+        datx$M <- matrix(datx$M[1,], ncol=ns, nrow=1)
+        datx <- check.datx(datx)
+        pop2 <- initpop(datx, set)
+        tsb2 <- pop2$TSBfinal
+        esb2 <- pop2$ESBfinal
+        cw2 <- apply(pop2$CW,1,sum)
+        prod2 <- rep(NA, ny)
+        if(set$spType == 0){
+            for(i in 2:ny){
+                prod2[i] <- tsb2[i] - tsb2[i-1] + cw2[i]
+            }
+        }else if(set$spType == 1){
+            for(i in 2:ny){
+                prod2[i] <- esb2[i] - esb2[i-1] + cw2[i]
+            }
+        }
+
+
+        if(plot){
+
+            plot(tsb1, prod1, ty='n',
+                 xlim = range(0,tsb1,tsb2),
+                 ylim = range(0,prod1,prod2,na.rm=TRUE))
+            lines(tsb1, prod1, ty='b',
+                  col = "dodgerblue2")
+            lines(tsb2, prod2, ty='b',
+                  col = "darkgreen")
+            legend("topright",
+                   title = "Effort",
+                   legend = c("increasing","decreasing"),
+                   lty=1, col = c("dodgerblue2","darkgreen"))
+
+            if(FALSE){
+                plot(tsb1/refs$B0, prod1/refs$MSY, ty='n',
+                     xlim = c(0,1.05), ylim = c(0,1.5))
+                lines(tsb1/refs$B0, prod1/refs$MSY, ty='b',
+                      col = "dodgerblue2")
+                lines(tsb2/refs$B0, prod2/refs$MSY, ty='b',
+                      col = "darkgreen")
+                legend("topright",
+                       title = "Effort",
+                       legend = c("increasing","decreasing"),
+                       lty=1, col = c("dodgerblue2","darkgreen"))
+            }
+
+            ## abs plot
+            ## plot(tsb1/refs$B0, prod1, ty='n',
+            ##      xlim = c(0,1), ylim = range(prod1,prod2,na.rm=TRUE))
+            ## lines(tsb1/refs$B0, prod1, ty='b',
+            ##       col = "dodgerblue2")
+            ## lines(tsb2/refs$B0, prod2, ty='b',
+            ##       col = "darkgreen")
+        }
+
+        ## CHECK: different production curves as a results of different age/length composition of stock (not at equilibrium age composition at given F, because F changes to quickly. If F changes small -> two curves are the same!
+
+        res <- list(
+            Blim = Blim1,
+            incr = data.frame(tsb = tsb1,
+                              esb = esb1,
+                              cw = cw1,
+                              prod = prod1),
+            decr = data.frame(tsb = tsb2,
+                              esb = esb2,
+                              cw = cw2,
+                              prod = prod2)
+        )
+
+    }
+
+    if (plot) {
+
+        dati <- prods[[1]]
+        dati <- dati[dati$SP > 0, ]
+
+        plot(dati$TSB, dati$SP, ty='n',
+             ylab = "SP", xlab = "TSB")
+        abline(h = 0, col= "grey70")
+        lines(dati$TSB, dati$SP, ty='b',
               col = "dodgerblue2")
-        lines(tsb2, prod2, ty='b',
-              col = "darkgreen")
-        legend("topright",
-               title = "Effort",
-               legend = c("increasing","decreasing"),
-               lty=1, col = c("dodgerblue2","darkgreen"))
 
-        if(FALSE){
-        plot(tsb1/refs$B0, prod1/refs$MSY, ty='n',
-             xlim = c(0,1.05), ylim = c(0,1.5))
-        lines(tsb1/refs$B0, prod1/refs$MSY, ty='b',
-              col = "dodgerblue2")
-        lines(tsb2/refs$B0, prod2/refs$MSY, ty='b',
-              col = "darkgreen")
-        legend("topright",
-               title = "Effort",
-               legend = c("increasing","decreasing"),
-               lty=1, col = c("dodgerblue2","darkgreen"))
-        }
-
-        ## abs plot
-        ## plot(tsb1/refs$B0, prod1, ty='n',
-        ##      xlim = c(0,1), ylim = range(prod1,prod2,na.rm=TRUE))
-        ## lines(tsb1/refs$B0, prod1, ty='b',
-        ##       col = "dodgerblue2")
-        ## lines(tsb2/refs$B0, prod2, ty='b',
-        ##       col = "darkgreen")
     }
 
-    ## CHECK: different production curves as a results of different age/length composition of stock (not at equilibrium age composition at given F, because F changes to quickly. If F changes small -> two curves are the same!
-
-    res <- list(
-        Blim = Blim1,
-        incr = data.frame(tsb = tsb1,
-                          esb = esb1,
-                          cw = cw1,
-                          prod = prod1),
-        decr = data.frame(tsb = tsb2,
-                          esb = esb2,
-                          cw = cw2,
-                          prod = prod2)
-    )
-
+    res <- list(ests = prods,
+                blims = blims)
     return(res)
-
 }
 
 
@@ -1015,12 +1126,21 @@ getM <- function(Linf, K, mids, a = 0.55, b = 1.61, c = 1.44){
 #' @param scale logical; scale to have maximum 1 (default: true)
 #'
 getMsel <- function(Linf, K, mids, plba, a = 0.55, b = 1.61, c = 1.44,
-                    scale = TRUE){
+                    scale = TRUE, lunit = "cm", useBelow10 = FALSE){
+    if(lunit == "mm"){
+        mids <- mids / 10
+        Linf <- Linf / 10
+    }else if(lunit != "cm"){
+        stop("Can only work with lunit 'mm' or 'cm'!")
+    }
     n <- max(c(length(a),length(b),length(c)))
     sel <- vector("list", n)
     for(i in 1:n){
         selL <- exp(a[i] - b[i] * log(mids) + c[i] * log(Linf) + log(K))
-        selL[mids < 10] <- exp(a[i] - b[i] * log(10) + c[i] * log(Linf) + log(K))
+        if(!useBelow10) {
+            selL[mids < 10] <- exp(a[i] - b[i] * log(10) + c[i] * log(Linf) + log(K))
+        }
+
         ## dims <- dim(plba)
         ## selA <- matrix(NA, ncol = dims[3], nrow = dims[1])
         ## for(j in 1:dim(plba)[3]){
@@ -1032,7 +1152,7 @@ getMsel <- function(Linf, K, mids, plba, a = 0.55, b = 1.61, c = 1.44,
         }else{
             maxM <- 1
         }
-        sel[[i]] <- selA/maxM
+            sel[[i]] <- selA/maxM
     }
     return(sel)
 }

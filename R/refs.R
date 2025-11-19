@@ -120,6 +120,7 @@ est.ref.levels.stochastic <- function(dat, set=NULL, fmax = 10,
     nyrefmsy <- set$refYearsMSY
     tvflag <- FALSE
 
+
     ## Time-variant processes
     ## natural mortality
     mtv <- length(unique(as.numeric(dat$M)))  ## CHECK: if M is matrix

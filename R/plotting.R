@@ -70,9 +70,9 @@ plotiamse.cw <- function(dat, set, resMSE,
     }
     abline(v=dat$ny, col="grey60",lwd=2)
     abline(v=max(which(dat$FM==0)), col="grey60",lwd=2,lty=2)
-    if(plot.legend) legend("topright", legend=names(set$hcr),
-           col=cols, bty="n", lwd=2,lty=1)
-    title("Catch")
+    if(plot.legend) legend("topright", legend=set$hcr,
+                           col=cols, bty="n", lwd=2,lty=1)
+    ## title("Catch")
     box()
 }
 
@@ -148,9 +148,9 @@ plotiamse.b <- function(dat, set, resMSE,
     }
     abline(v=dat$ny, col="grey60",lwd=2)
     abline(v=max(which(dat$FM==0)), col="grey60",lwd=2,lty=2)
-    if(plot.legend) legend("topright", legend=names(set$hcr),
+    if(plot.legend) legend("topright", legend=set$hcr,
                            col=cols, bty="n", lwd=2,lty=1)
-    title("Biomass")
+    ## title("Biomass")
     box()
 }
 
@@ -226,9 +226,9 @@ plotiamse.f <- function(dat, set, resMSE,
     }
     abline(v=dat$ny, col="grey60",lwd=2)
     abline(v=max(which(dat$FM==0)), col="grey60",lwd=2,lty=2)
-    if(plot.legend) legend("topright", legend=names(set$hcr),
-           col=cols, bty="n", lwd=2,lty=1)
-    title("Fishing mortality")
+    if(plot.legend) legend("topright", legend=set$hcr,
+                           col=cols, bty="n", lwd=2,lty=1)
+    ## title("Fishing mortality")
     box()
 }
 

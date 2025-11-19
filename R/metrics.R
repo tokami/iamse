@@ -112,7 +112,6 @@ est.metrics <- function(mse, dat, set = NULL,
     }
     amaxYears5 <- 3:amax + ny
 
-
     hcrs <- names(mse)
     reffmsyInd <- which(hcrs == "refFmsy")
     if(length(reffmsyInd) > 0){
@@ -187,7 +186,10 @@ est.metrics <- function(mse, dat, set = NULL,
                  "timeBmsy",
                  "t2risk5",
                  "t2bmsy",
-                 "t2btrigger"
+                 "t2btrigger",
+                 "catch",
+                 "risk",
+                 "aavc"
                  )
     if(mets[1] == "all") mets <- metsAll
     if(any(which(!mets %in% metsAll))) writeLines(paste0("Metric ",
@@ -2101,6 +2103,84 @@ if(any(mets == "AAVBnew_lt")){
 
         }
 
+        if(any(mets == "catch")){
+            metsUsed <- c(metsUsed, "catch")
+            indi <- as.numeric(names(msei))
+            tmp <- unlist(lapply(as.list(1:length(msei)),
+                                 function(x)
+                                     apply(msei[[x]]$CW,1,sum)[newYears]))
+            meani <- mean(tmp)
+            vari <- var(tmp)
+            ni <- length(tmp)
+            sei <- sqrt(vari/ni)
+            if(hcrs[hcr] == "noF"){
+                res <- rbind(res, c(0,
+                                    0,
+                                    0,
+                                    sei,
+                                    ni))
+            }else{
+                erri <- 1.96 * (sqrt(vari)/sqrt(ni))
+                tmp2 <- try(wilcox.test(as.numeric(tmp),
+                                        alternative="two.sided",
+                                        correct=TRUE,
+                                        conf.int=TRUE,
+                                        conf.level=0.95), silent=TRUE)
+                res <- rbind(res, c(tmp2$conf.int[1],
+                                    tmp2$estimate,
+                                    tmp2$conf.int[2],
+                                    sei,
+                                    ni))
+            }
+        }
+
+        if(any(mets == "risk")){
+            if(is.null(refs$Blim)) stop("There is no Blim in dat$ref! Please add a Blim!")
+            metsUsed <- c(metsUsed, "risk")
+            ## Average risk over years per rep
+            tmp <- unlist(lapply(msei, function(x)
+                mean((x$TSBfinal[newYears] / refs$Blim[newYears]) < 1)))
+
+            ## Average risk over reps per year
+            ## tmp <- sapply(newYears, function(x) mean(sapply(msei, function(y) y$TSBfinal[x] / refs$Blim[x] < 1)))
+            vari <- var(tmp)
+            ni <- length(tmp)
+            sei <- sqrt(vari/ni)
+            tmp <- prop.test(sum(tmp), n = length(tmp), conf.level = 0.95,
+                             correct = FALSE)
+            res <- rbind(res, c(tmp$conf.int[1], tmp$estimate,
+                                tmp$conf.int[2], sei, ni))
+        }
+
+        if(any(mets == "aavc")){
+            metsUsed <- c(metsUsed, "aavc")
+            tmp <- sapply(msei, function(x) (sum(abs(apply(x$CW,1,sum)[newYears[-1]] -
+                                                     apply(x$CW,1,sum)[newYears[-length(newYears)]]),na.rm=TRUE)/
+                                             sum(apply(x$CW,1,sum)[newYears[-1]], na.rm=TRUE)))
+            vari <- var(tmp)
+            ni <- length(tmp)
+            sei <- sqrt(vari/ni)
+            tmp2 <- try(wilcox.test(as.numeric(tmp),
+                                    alternative="two.sided",
+                                    correct=TRUE,
+                                    conf.int=TRUE,
+                                    conf.level=0.95), silent=TRUE)
+            if(hcrs[hcr] == "noF"){
+                res <- rbind(res, c(0,
+                                    0,
+                                    0,
+                                    sei,
+                                    ni))
+            }else{
+                res <- rbind(res, c(tmp2$conf.int[1],
+                                    tmp2$estimate,
+                                    tmp2$conf.int[2],
+                                    sei,
+                                    ni))
+            }
+        }
+
+
         ## names
         rownames(res) <- metsUsed
         colnames(res) <- c("loCI","mu","upCI","se","n")
@@ -2109,8 +2189,8 @@ if(any(mets == "AAVBnew_lt")){
     names(res2) <- hcrs
 
 
-    class(res2) <- "met"
+class(res2) <- "met"
 
 
-    return(res2)
+return(res2)
 }

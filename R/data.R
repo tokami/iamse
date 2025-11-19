@@ -78,6 +78,8 @@ check.dat <- function(dat = NULL, verbose = TRUE){
         }else dat$binwidth <- 1
     }
     binwidth <- dat$binwidth
+
+    ## age-length key
     if(!is.null(LA)){
         mids <- seq((binwidth/2), dat$Linf * 1.2, by = binwidth)
         dat$mids <- mids
@@ -105,6 +107,31 @@ check.dat <- function(dat = NULL, verbose = TRUE){
     }else plba <- NULL
     dat$plba <- plba
 
+    ## length-age key
+    if(!is.null(LA)){
+        nA   <- nrow(plba)
+        nL   <- ncol(plba)
+
+        ## Prior on ages P(age = a); uniform as default
+        p_age <- rep(1 / nA, nA)
+
+        ## Multiply P(l|a) by prior P(a)
+        tmp <- plba * p_age  ## recycling over rows: tmp[a,l] = plba[a,l] * p_age[a]
+
+        ## Denominator: for each length bin l, sum over ages
+        den <- colSums(tmp)  ## length nL
+
+        ## Avoid division by zero
+        den[den == 0] <- 1
+
+        ## Now get P(age|length) for each length bin
+        pabl_AL <- sweep(tmp, 2, den, "/")  ## still age × length
+
+        ## Store as length × age (more natural for length–age key)
+        pabl <- t(pabl_AL)  ## dim: nL × nA
+
+    }else pabl <- NULL
+    dat$pabl <- pabl
 
     ## weight at age
     ##------------------

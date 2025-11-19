@@ -34,6 +34,7 @@ run.mse <- function(dat, set,
                     function(x)
                         unlist(strsplit(as.character(x), "-"))[1])
     nhcrs <- length(hcrs)
+    if(nhcrs == 0) stop("Please define at least one hcr in set$hcr!")
     nysim <- set$nysim
     nrep <- set$nrep
     ny <- dat$ny
@@ -276,10 +277,10 @@ run.mse <- function(dat, set,
         for(i in 1:nrep){
             tmp[[i]] <- res[[i]][[x]]
         }
-        names(tmp) <- 1:nrep
-        resList[[x]] <- tmp
-    })
-    names(res2) <- names(hcrs)
+           names(tmp) <- 1:nrep
+           resList[[x]] <- tmp
+       })
+       names(res2) <- hcrs
 
     class(res2) <- c(class(res2), "iamse")
 
