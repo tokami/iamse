@@ -907,7 +907,7 @@ est.productivity.stochastic <- function(dat, set= NULL,
                                         fmax = 10,
                                         nf = 1e3,
                                         prob = c(0.1,0.9),
-                                        ncores = parallel::detectCores()-1,
+                                        ncores = 1,
                                         plot = TRUE) {
 
     amax <- dat$amax + 1

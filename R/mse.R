@@ -19,7 +19,7 @@
 ##' @export
 run.mse <- function(dat, set,
                     fest = NULL,
-                    ncores = parallel::detectCores()-1,
+                    ncores = 1,
                     globals = NULL,
                     verbose = TRUE) {
 
