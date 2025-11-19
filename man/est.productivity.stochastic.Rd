@@ -2,7 +2,7 @@
 % Please edit documentation in R/utility.R
 \name{est.productivity.stochastic}
 \alias{est.productivity.stochastic}
-\title{est.productivity}
+\title{Estimate stochastic productivity relationship}
 \usage{
 est.productivity.stochastic(
   dat,
@@ -14,6 +14,29 @@ est.productivity.stochastic(
   plot = TRUE
 )
 }
+\arguments{
+\item{dat}{info}
+
+\item{set}{info}
+
+\item{fmax}{info}
+
+\item{nf}{info}
+
+\item{prob}{info}
+
+\item{ncores}{info}
+
+\item{plot}{info}
+}
+\value{
+An object (typically a list or data frame) containing stochastic
+  productivity summaries as a function of fishing mortality (and possibly
+  biomass or depletion) for each stock, including the quantiles specified
+  in \code{prob}. The exact structure depends on the internal implementation.
+  The object is usually returned invisibly if the function is called
+  primarily for its side effects (for example plotting).
+}
 \description{
-est.productivity
+Estimate stochastic productivity relationship
 }

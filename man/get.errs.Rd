@@ -6,6 +6,17 @@
 \usage{
 get.errs(dat, set, x, hist = NULL, rep = FALSE)
 }
+\arguments{
+\item{dat}{info}
+
+\item{set}{info}
+
+\item{x}{info}
+
+\item{hist}{info}
+
+\item{rep}{info}
+}
 \description{
 get.errs
 }

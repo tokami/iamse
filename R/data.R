@@ -1,8 +1,12 @@
 #' check.dat
+#'
 #' @description Checks data list and fills missing slots
-#' @param dat - data list with all parameters
-#' @param verbose - print informative messages
+#'
+#' @param dat data list with all parameters
+#' @param verbose print informative messages
+#'
 #' @return Updated data list
+#'
 #' @export
 check.dat <- function(dat = NULL, verbose = TRUE){
     if(is.null(dat)) dat <- list()
@@ -86,7 +90,7 @@ check.dat <- function(dat = NULL, verbose = TRUE){
         highs <- mids + binwidth/2
         lows <- mids - binwidth/2
         lbprobs <- function(mnl, sdl){
-            return(pnorm(highs, mnl, sdl) - pnorm(lows, mnl, sdl))
+            return(stats::pnorm(highs, mnl, sdl) - stats::pnorm(lows, mnl, sdl))
         }
         vlprobs <- Vectorize(lbprobs, vectorize.args=c("mnl","sdl"))
         if(!any(names(dat) == "CVlen")){
@@ -286,13 +290,13 @@ check.dat <- function(dat = NULL, verbose = TRUE){
     timeseries <- c(seq(1970,2015,5), 2019)
     eff <- c(0.1, 0.2, 0.35, 0.55, 0.7, 0.8, 0.9, 0.97, 1.0, 1.0, 0.9)
     effrel <- eff/max(eff)
-    mod <- smooth.spline(x=timeseries, y=effrel)
+    mod <- stats::smooth.spline(x=timeseries, y=effrel)
     if(!any(names(dat) == "FM")){
-        tmp <- predict(mod, x = seq(1970, 2019, length.out = ny))$y
+        tmp <- stats::predict(mod, x = seq(1970, 2019, length.out = ny))$y
         dat$FM <- matrix(rep(tmp / ns, each = ns), nrow = ny, ncol = ns, byrow = TRUE)
     }else if(any(dim(dat$FM) != c(ny,ns))){
         writeLines("dat$FM does not have the correct dimensions. dat$FM has to be a matrix with dimensions: number of years x the number of seasons (rows x columns). Overwriting FM with default values.")
-        tmp <- predict(mod, x = seq(1970, 2019, length.out = ny))$y
+        tmp <- stats::predict(mod, x = seq(1970, 2019, length.out = ny))$y
         dat$FM <- matrix(rep(tmp / ns, each = ns), nrow = ny, ncol = ns, byrow = TRUE)
     }
 

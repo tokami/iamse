@@ -6,6 +6,9 @@
 \usage{
 check.set(set = NULL)
 }
+\arguments{
+\item{set}{default NULL}
+}
 \description{
 check.set
 }

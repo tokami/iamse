@@ -7,9 +7,9 @@
 check.dat(dat = NULL, verbose = TRUE)
 }
 \arguments{
-\item{dat}{- data list with all parameters}
+\item{dat}{data list with all parameters}
 
-\item{verbose}{- print informative messages}
+\item{verbose}{print informative messages}
 }
 \value{
 Updated data list

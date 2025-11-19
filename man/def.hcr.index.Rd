@@ -2,7 +2,7 @@
 % Please edit documentation in R/hcrs.R
 \name{def.hcr.index}
 \alias{def.hcr.index}
-\title{Define harvest control rule}
+\title{Define an index-based harvest control rule}
 \usage{
 def.hcr.index(
   id = "r23",
@@ -23,21 +23,109 @@ def.hcr.index(
   env = globalenv()
 )
 }
+\arguments{
+\item{id}{Character vector giving the identifier(s) for the HCR(s)
+(e.g. `"r23"`). These names are used when referring to the HCR in the
+MSE setup and outputs.}
+
+\item{x}{Numeric scalar or vector used to parameterise the index-based
+rule. Together with `y`, it controls how changes in the biomass index
+translate into changes in TAC (e.g. slope, threshold, or tuning factor).}
+
+\item{y}{Numeric scalar or vector used alongside `x` to tune the response
+of the HCR to the biomass index. If `x` and `y` are vectors, they must
+have the same length.}
+
+\item{stab}{Logical; if `TRUE` (default), apply stabilisation bounds to
+limit year-to-year changes in the TAC or fishing mortality.}
+
+\item{lower}{Numeric value giving the lower stabilisation bound, typically
+interpreted as the minimum allowed ratio \eqn{\text{TAC}_{y+1} /
+\text{TAC}_y}. The default is `0.8` (maximum 20\% decrease).}
+
+\item{upper}{Numeric value giving the upper stabilisation bound, typically
+interpreted as the maximum allowed ratio \eqn{\text{TAC}_{y+1} /
+\text{TAC}_y}. The default is `1.2` (maximum 20\% increase).}
+
+\item{clType}{Character string specifying the type of control variable
+returned by the HCR. Common options include `"TAC"` for catch limits or
+`"F"` for fishing mortality targets. The default is `"TAC"`.}
+
+\item{clyears}{Integer specifying the number of recent years used to
+calculate the reference catch level when deriving TAC advice (e.g. mean
+catch over the last `clyears` years).}
+
+\item{red}{Optional numeric reduction factor applied to the catch when
+biomass is low (e.g. `0.8` for a 20\% reduction). If `NA` (default), no
+automatic biomass-based reduction is applied.}
+
+\item{redyears}{Integer giving the number of years over which the biomass
+condition for reduction is evaluated (e.g. how many years below a
+threshold before the reduction is triggered).}
+
+\item{redAlways}{Logical; if `TRUE`, the reduction rule is evaluated and
+applied whenever the criteria are met. If `FALSE`, the reduction may only
+be applied under more restrictive conditions, depending on the internal
+implementation.}
+
+\item{ffmsySD}{Non-negative numeric specifying the standard deviation of
+the (log) assessment error in \eqn{F/F_{MSY}} associated with this HCR,
+when simulating perceived stock status.}
+
+\item{bbtriggerSD}{Non-negative numeric specifying the standard deviation
+of the (log) assessment error in biomass-related indicators (e.g.
+\eqn{B/B_{trigger}}) associated with this HCR.}
+
+\item{rightRef}{Integer index specifying which set of reference points
+should be used when evaluating this HCR (e.g. an index into a reference
+table).}
+
+\item{assessmentInterval}{Positive integer giving the interval (in years)
+between full assessments and updates of the advice. The default `1`
+corresponds to annual updates.}
+
+\item{env}{Environment in which the generated HCR function(s) are created
+and stored. Defaults to [globalenv()].}
+}
+\value{
+A character vector with the name(s) of the HCR function(s) created.
+  The main purpose of the function is its side effect of defining these HCRs
+  in `env`.
+}
 \description{
-def.hcr.index
+`def.hcr.index()` defines one or more harvest control rules (HCRs) that use
+changes in a relative biomass index to set catch advice (TAC) or fishing
+mortality. The function constructs HCR functions and assigns them to the
+specified environment, typically the global environment, so they can be
+used within an MSE framework.
 }
 \details{
-This function allows to define harvest control rules (HCRs) which can be incorporated into a
-management strategy evaluation framework (DLMtool package). HCRs are saved with a
-generic name to the global environment and the names of the HCRs are returned if results of the
-function are assigned to an object. HCR runs a SPiCT assessment using catch and
-relative biomass index observations. Stock status estimates are used to set the TAC
-for the next year. TAC can be based on the distribution of predicted catches (percentileC)
-and/or the distribution of the Fmsy reference level (percentileFmsy).
-Additionally, a cap can be applied to account for low biomass levels (below Bmsy).
-Arguments of returned function are 'x' - the position in a data-limited mehods data object,
-'Data' - the data-limited methods data object (see DLMtool), and 'reps' - the number of
-stochastic samples of the TAC recommendation (not used for this HCR).
-One or several arguments of the function can be provided as vectors to generate several
-HCRs at once (several vectors have to have same length).
+The generated HCR functions usually take arguments of the form
+`function(x, Data, reps, ...)`, where `Data` contains the catch and index
+time series and `reps` is the number of stochastic TAC draws (if used).
+Internally, the rule uses recent values of a biomass index, applies
+stabilisation bounds on year-to-year changes, and can optionally reduce
+catch when biomass is low.
+
+Several arguments (e.g. `id`, `x`, `y`) can be provided as vectors of equal
+length, in which case multiple HCRs are created in a single call.
+}
+\examples{
+\dontrun{
+  ## Define a single index-based HCR with default tuning
+  hcr_names <- def.hcr.index(id = "index_HCR")
+  hcr_names
+
+  ## Define several index-based HCRs at once with different tuning
+  hcr_names2 <- def.hcr.index(
+    id = c("index_low", "index_high"),
+    x  = c(0.8, 1.0),
+    y  = c(1.2, 1.5)
+  )
+  hcr_names2
+
+  ## The created functions are available in the chosen environment
+  ls(pattern = "index_", envir = globalenv())
+}
+
 }

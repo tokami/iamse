@@ -6,6 +6,11 @@
 \usage{
 sdconv(mu, sd)
 }
+\arguments{
+\item{mu}{info}
+
+\item{sd}{info}
+}
 \description{
 sdconv
 }

@@ -1,17 +1,26 @@
-## input data:
-## Number of years (ny)
-## Maximum age of species (amax)
-## Natural mortality (M)
-## weight-at-age start (weightS)
-## weight-at-age mid (weightH)
-## maturity-at-age (mat)
-## proportion of Z before maturation (pzbm)
-
 #' initpop
+#'
+#' @param dat info
+#' @param set info
+#' @param out.opt info
+#' @param verbose info
+#' @param plot info
+#' @param dbg info
+#'
 #'
 #' @export
 initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE,
-                    plot = FALSE, dbg = 0){
+                    plot = FALSE, dbg = 0) {
+
+    ## input data:
+    ## Number of years (ny)
+    ## Maximum age of species (amax)
+    ## Natural mortality (M)
+    ## weight-at-age start (weightS)
+    ## weight-at-age mid (weightH)
+    ## maturity-at-age (mat)
+    ## proportion of Z before maturation (pzbm)
+
 
     if(is.null(set)) set <- check.set()
     ny <- dat$ny
@@ -602,10 +611,17 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE,
 
 
 
-## advancepopulation
 #' advancepop
+#'
+#' @param dat info
+#' @param hist info
+#' @param set info
+#' @param hcr info
+#' @param year info
+#' @param verbose info
+#'
 #' @export
-advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
+advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE) {
 
     ## indices
     ny <- nrow(hist$TSB)
@@ -618,6 +634,7 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
     nt <- ny * ns
     nyC <- dat$nyC
     nsC <- dat$catchSeasons
+    nyI <- dat$nyI
     nysim <- set$nysim
     assessYears <- seq(1, nysim, set$assessmentInterval)
     nyE <- dat$nyE
@@ -726,14 +743,14 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
     ntac <- ns
     TACprev <- hist$TACprev ## TAC for full interval
     if(is.null(TACprev)){
-        TACprev <- tail(as.numeric(t(hist$CW)),ntac)
+        TACprev <- utils::tail(as.numeric(t(hist$CW)),ntac)
     }
     ## Use only part before assessment from previous TAC in assessment year
     if(year %in% assessYears){ ## TODO: here also account for intY?
         TACreal <- rep(NA, ntac)
         if(min(set$assessmentTiming) > 1){
             ind <- 1:(min(set$assessmentTiming)-1)
-            TACreal[ind] <- tail(TACprev, length(ind))
+            TACreal[ind] <- utils::tail(TACprev, length(ind))
         }
     }else{
         ## Use full previous TAC if no assessment
@@ -793,7 +810,7 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
                             c(obs$obsI[[idxi[i]]], q[idxi[i]] * sum(ESBsurv^beta[idxi[i]]) * errs$time$eI[[idxi[i]]][y] * errs$rep$eI[[idxi[i]]])
                         if(is.null(obs$timeI[[idxi[i]]])){
                             timeIi <- ny-nyI[idxi[i]]+1
-                        }else timeIi <- floor(tail(obs$timeI[[idxi[i]]],1))
+                        }else timeIi <- floor(utils::tail(obs$timeI[[idxi[i]]],1))
                         obs$timeI[[idxi[i]]] <-
                             c(obs$timeI[[idxi[i]]], timeIi + 1 + dat$surveyTimes[idxi[i]])
                     }
@@ -813,18 +830,18 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
             ## Estimate TAC
             if(tacID2 %in% c("refFmsy","consF")){
                 ## Reference rule Fmsy
-                tacs <- gettacs(tacs = tacs, id = tacID,
-                                TAC=rep(NA, set$assessmentInterval))
+                tacs <- gettacs(tacs. = tacs, id. = tacID,
+                                TAC. = rep(NA, set$assessmentInterval))
             }else{
                 ## True stock status
                 TSBtmp <- sum(NAAS * weighty)
                 ESBtmp <- sum(NAAS * weighty * sely)
                 bbmsy <- TSBtmp / refs$Bmsy[y + s - 1]
                 FMtmp <- as.numeric(t(FM))
-                ffmsy <- sum(tail(FMtmp[1:((y*ns)-ns-(s-1))],ns)) / refs$Fmsy[y + s - 1]
+                ffmsy <- sum(utils::tail(FMtmp[1:((y*ns)-ns-(s-1))],ns)) / refs$Fmsy[y + s - 1]
                 ## TAC
                 tacs <- est.tac(obs. = obs,
-                                hcr. = get(hcr),
+                                hcr.fun = get(hcr),
                                 tacs. = tacs,
                                 pars. = list("ffmsy" = ffmsy,
                                              "bbmsy" = bbmsy,
@@ -991,7 +1008,7 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
                             c(obs$obsI[[idxi[i]]], q[idxi[i]] * sum(ESBsurv^beta[idxi[i]]) * errs$time$eI[[idxi[i]]][y] * errs$rep$eI[[idxi[i]]])
                         if(is.null(obs$timeI[[idxi[i]]])){
                             timeIi <- ny-nyI[idxi[i]]+1
-                        }else timeIi <- floor(tail(obs$timeI[[idxi[i]]],1))
+                        }else timeIi <- floor(utils::tail(obs$timeI[[idxi[i]]],1))
                         obs$timeI[[idxi[i]]] <-
                             c(obs$timeI[[idxi[i]]], timeIi + 1 + dat$surveyTimes[idxi[i]])
                         ## survey observation at age
@@ -1033,7 +1050,7 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
             obs$obsC <- c(obs$obsC, sum(CW[y,]) *
                                     errs$time$eC[y] * errs$rep$eC)
             if(!is.null(obs$timeC))
-                timeCi <- tail(obs$timeC,1) else timeCi <- ny-nyC+1
+                timeCi <- utils::tail(obs$timeC,1) else timeCi <- ny-nyC+1
             obs$timeC <- c(obs$timeC, timeCi + 1)
             ## catch observations at age (SAM, SMS)
             obs$obsCA <- rbind(obs$obsCA, as.numeric(by(apply(CAA, 1, sum), as2a, sum)) * errs$time$eCmvA[ysim,] * as.numeric(errs$rep$eCmvA))
@@ -1044,7 +1061,7 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
             obs$obsC <- c(obs$obsC, CW[y,] *
                                     errs$time$eC[y] * errs$rep$eC)
             if(!is.null(obs$timeC))
-                timeCi <- floor(tail(obs$timeC,1)) else timeCi <- ny-nyC+1
+                timeCi <- floor(utils::tail(obs$timeC,1)) else timeCi <- ny-nyC+1
             obs$timeC <- c(obs$timeC, timeCi + 1 + rep(seasonStart, ny))
             ## catch observations at age (SAM, SMS) ## TODO: seasonal CAA not yet implemented
             obs$obsCA <- rbind(obs$obsCA, as.numeric(by(apply(CAA, 1, sum), as2a, sum)) * errs$time$eCmvA[ysim,] * as.numeric(errs$rep$eCmvA))
@@ -1058,12 +1075,12 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
         if(is.numeric(nyE)){
             if(nsE == 1){
                 obs$obsE <- c(obs$obsE, sum(FM[y,]) * qE * errs$time$eE[y] * errs$rep$eE)
-                if(!is.null(obs$timeE)) timeEi <- tail(obs$timeE,1) else timeEi <- ny-nyE+1
+                if(!is.null(obs$timeE)) timeEi <- utils::tail(obs$timeE,1) else timeEi <- ny-nyE+1
                 obs$timeE <- c(obs$timeE, timeEi + 1)
             }else if(nsE == ns){
                 obs$obsE <- c(obs$obsE, FM[y,] * qE * errs$time$eE[y] * errs$rep$eE)
                 if(!is.null(obs$timeE))
-                    timeEi <- floor(tail(obs$timeE,1)) else timeEi <- ny-nyE+1
+                    timeEi <- floor(utils::tail(obs$timeE,1)) else timeEi <- ny-nyE+1
                 obs$timeE <- c(obs$timeE, timeEi + 1 + rep(seasonStart, ny))
             }else{
                 stop("Effort observation seasons and operating model seasons do not match. Not yet implemented!")
@@ -1075,7 +1092,7 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
         if(nsC > 1) writeLines("Set dat$ns to > 1 for seasonal catches. Generating annual catches!")
         obs$obsC <- c(obs$obsC, sum(CW[y,]) *
                                 errs$time$eC[y] * errs$rep$eC)
-        if(!is.null(obs$timeC)) timeCi <- tail(obs$timeC,1) else timeCi <- ny-nyC+1
+        if(!is.null(obs$timeC)) timeCi <- utils::tail(obs$timeC,1) else timeCi <- ny-nyC+1
         obs$timeC <- c(obs$timeC, timeCi + 1)
         ## catch observations at age (SAM, SMS)
         obs$obsCA <- rbind(obs$obsCA, as.numeric(by(CAA, as2a, sum)) * errs$time$eCmvA[ysim,] * as.numeric(errs$rep$eCmvA))
@@ -1086,7 +1103,7 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
         if(is.numeric(nyE)){
             if(nsE > 1) writeLines("Set dat$ns to > 1 for seasonal effort data. Generating annual effort observations!")
             obs$obsE <- c(obs$obsE, sum(FM[y,]) * qE * errs$time$eE[y] * errs$rep$eE)
-            if(!is.null(obs$timeE)) timeEi <- tail(obs$timeE,1) else timeEi <- ny-nyE+1
+            if(!is.null(obs$timeE)) timeEi <- utils::tail(obs$timeE,1) else timeEi <- ny-nyE+1
             obs$timeE <- c(obs$timeE, timeEi + 1)
         }
     }

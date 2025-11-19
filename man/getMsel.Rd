@@ -26,7 +26,17 @@ getMsel(
 
 \item{plba}{probability of being in mids given age}
 
+\item{a}{info}
+
+\item{b}{info}
+
+\item{c}{info}
+
 \item{scale}{logical; scale to have maximum 1 (default: true)}
+
+\item{lunit}{info}
+
+\item{useBelow10}{info}
 }
 \description{
 Function to estimate selectivity of natural mortality

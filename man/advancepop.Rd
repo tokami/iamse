@@ -6,6 +6,19 @@
 \usage{
 advancepop(dat, hist, set, hcr, year, verbose = TRUE)
 }
+\arguments{
+\item{dat}{info}
+
+\item{hist}{info}
+
+\item{set}{info}
+
+\item{hcr}{info}
+
+\item{year}{info}
+
+\item{verbose}{info}
+}
 \description{
 advancepop
 }

@@ -2,8 +2,15 @@
 
 #' genConvs
 #' @description Get converged simulates from a resMSE object
+#'
+#' @param mse info
+#' @param convyears info
+#' @param convhcrs info
+#' @param out info
+#' @param verbose info
+#'
 #' @export
-get.converged <- function(mse, convyears = "all", convhcrs = "all", out = 0, verbose = FALSE){
+get.converged <- function(mse, convyears = "all", convhcrs = "all", out = 0, verbose = FALSE) {
 
     nhcr <- length(mse)
     hcrs <- names(mse)
@@ -41,11 +48,11 @@ get.converged <- function(mse, convyears = "all", convhcrs = "all", out = 0, ver
         res <- vector("list",nhcr)
         for(hcr in 1:nhcr){
             if(hcrs[hcr] != "refFmsy"){
-            res[[hcr]] <- mse[[hcr]][inds]
-            names(res[[hcr]]) <- inds
+                res[[hcr]] <- mse[[hcr]][inds]
+                names(res[[hcr]]) <- inds
             }else{
                 res[[hcr]] <- mse[[hcr]]
-            names(res[[hcr]]) <- 1:nrep
+                names(res[[hcr]]) <- 1:nrep
             }
         }
     }else if(!is.na(convyears[1])){
@@ -94,25 +101,49 @@ get.converged <- function(mse, convyears = "all", convhcrs = "all", out = 0, ver
 
 
 #' sdconv
+#'
+#' @param mu info
+#' @param sd info
+#'
 #' @export
 sdconv <- function(mu, sd) (log(1 + ((sd^2)/(mu^2))))^0.5
 
 
 #' muconv
+#'
+#' @param mu info
+#' @param sd info
+#'
 #' @export
 muconv <- function(mu, sd) log(mu) - 0.5 * log(1 + ((sd^2)/(mu^2)))
 
 
 #' gen.noise
+#'
+#' @param n info
+#' @param sd info
+#' @param rho info
+#' @param bias.cor info
+#' @param mv info
+#' @param dat info
+#' @param by.asmax info
+#' @param by.length info
+#' @param hist info
+#'
+#' @importFrom MASS mvrnorm
+#' @importFrom stats rnorm rlnorm
+#' @importFrom utils tail
+#'
 #' @export
-gen.noise <- function(n, sd,
+gen.noise <- function(n,
+                      sd,
                       rho = 0,
                       bias.cor = 0,
                       mv = FALSE,
                       dat = NULL,
                       by.asmax = FALSE,
                       by.length = FALSE,
-                      hist = NULL){
+                      hist = NULL) {
 
     if(mv){
         ## multivariate noise
@@ -168,8 +199,18 @@ gen.noise <- function(n, sd,
 
 
 #' get.errs
+#'
+#' @param dat info
+#' @param set info
+#' @param x info
+#' @param hist info
+#' @param rep info
+#'
+#'
+#' @importFrom utils tail
+#'
 #' @export
-get.errs <- function(dat, set, x, hist = NULL, rep = FALSE){
+get.errs <- function(dat, set, x, hist = NULL, rep = FALSE) {
 
     n <- length(x)
     nsurv <- length(dat$surveyTimes)
@@ -273,41 +314,41 @@ get.errs <- function(dat, set, x, hist = NULL, rep = FALSE){
     eE <- errs.in$eE[x]
 
     if(is.null(eF) || all(is.na(eF))) eF <- gen.noise(n, noise$F[1], noise$F[2],
-                                    bias.cor = noise$F[3],
-                                    hist = tail(hist.errs$eF,1))
+                                                      bias.cor = noise$F[3],
+                                                      hist = tail(hist.errs$eF,1))
     if(is.null(eR) || all(is.na(eR))) eR <- gen.noise(n, noise$R[1], noise$R[2],
-                                    bias.cor = noise$R[3],
-                                    hist = tail(hist.errs$eR,1))
+                                                      bias.cor = noise$R[3],
+                                                      hist = tail(hist.errs$eR,1))
     if(is.null(eM) || all(is.na(eM))) eM <- gen.noise(n, noise$M[1], noise$M[2],
-                                    bias.cor = noise$M[3],
-                                    hist = tail(hist.errs$eM,1))
+                                                      bias.cor = noise$M[3],
+                                                      hist = tail(hist.errs$eM,1))
     if(is.null(eH) || all(is.na(eH))) eH <- gen.noise(n, noise$H[1], noise$H[2],
-                                    bias.cor = noise$H[3],
-                                    hist = tail(hist.errs$eH,1))
+                                                      bias.cor = noise$H[3],
+                                                      hist = tail(hist.errs$eH,1))
     if(is.null(eR0) || all(is.na(eR0))) eR0 <- gen.noise(n, noise$R0[1], noise$R0[2],
-                                      bias.cor = noise$R0[3],
-                                      hist = tail(hist.errs$eR0,1))
+                                                         bias.cor = noise$R0[3],
+                                                         hist = tail(hist.errs$eR0,1))
     if(is.null(eAlpha) || all(is.na(eAlpha))) eAlpha <- gen.noise(n, noise$Alpha[1], noise$Alpha[2],
-                                            bias.cor = noise$Alpha[3],
-                                            hist = tail(hist.errs$eAlpha,1))
+                                                                  bias.cor = noise$Alpha[3],
+                                                                  hist = tail(hist.errs$eAlpha,1))
     if(is.null(eBeta) || all(is.na(eBeta))) eBeta <- gen.noise(n, noise$Beta[1], noise$Beta[2],
-                                          bias.cor = noise$Beta[3],
-                                          hist = tail(hist.errs$eBeta,1))
+                                                               bias.cor = noise$Beta[3],
+                                                               hist = tail(hist.errs$eBeta,1))
     if(is.null(eMat) || all(is.na(eMat))) eMat <- gen.noise(n, noise$Mat[1], noise$Mat[2],
-                                        bias.cor = noise$Mat[3],
-                                        hist = tail(hist.errs$eMat,1))
+                                                            bias.cor = noise$Mat[3],
+                                                            hist = tail(hist.errs$eMat,1))
     if(is.null(eSel) || all(is.na(eSel))) eSel <- gen.noise(n, noise$Sel[1], noise$Sel[2],
-                                        bias.cor = noise$Sel[3],
-                                      , hist = tail(hist.errs$eSel,1))
+                                                            bias.cor = noise$Sel[3],
+                                                          , hist = tail(hist.errs$eSel,1))
     if(is.null(eW) || all(is.na(eW))) eW <- gen.noise(n, noise$W[1], noise$W[2],
-                                    bias.cor = noise$W[3],
-                                    hist = tail(hist.errs$eW,1))
+                                                      bias.cor = noise$W[3],
+                                                      hist = tail(hist.errs$eW,1))
     if(is.null(eImp) || all(is.na(eImp))) eImp <- gen.noise(n, noise$Imp[1], noise$Imp[2],
-                                        bias.cor = noise$Imp[3],
-                                        hist = tail(hist.errs$eImp,1))
+                                                            bias.cor = noise$Imp[3],
+                                                            hist = tail(hist.errs$eImp,1))
     if(is.null(eC) || all(is.na(eC))) eC <- gen.noise(n, noise$C[1], noise$C[2],
-                                    bias.cor = noise$C[3],
-                                    hist = tail(hist.errs$eC,1))
+                                                      bias.cor = noise$C[3],
+                                                      hist = tail(hist.errs$eC,1))
     if(is.null(eI) || length(eI) == 0 || all(is.na(eI))){
         eI <- list()
         for(i in 1:nsurv){
@@ -351,8 +392,8 @@ get.errs <- function(dat, set, x, hist = NULL, rep = FALSE){
         }
     }
     if(is.null(eE) || all(is.na(eE))) eE <- gen.noise(n, noise$E[1], noise$E[2],
-                                    bias.cor = noise$E[3],
-                                    hist = tail(hist.errs$eE,1))
+                                                      bias.cor = noise$E[3],
+                                                      hist = tail(hist.errs$eE,1))
 
 
     if(!is.null(hist) && "errs" %in% names(hist) && !rep){
@@ -409,12 +450,60 @@ get.errs <- function(dat, set, x, hist = NULL, rep = FALSE){
 
 
 
-#' est.depletion
+#' Estimate depletion under alternative fishing mortalities
+#'
+#' `est.depletion()` evaluates the depletion level (typically biomass relative
+#' to unfished biomass, \eqn{B/B_0}, or a related quantity) for a range of
+#' fishing mortalities. The function simulates the IAMSE operating model over
+#' a grid of fishing mortality values between `fmin` and `fmax`, using
+#' `nrep` stochastic replicates, and summarises the resulting depletion
+#' distribution according to the chosen `method`.
+#'
+#' Optionally, an optimisation step can be performed to identify the fishing
+#' mortality that leads to a target depletion level, controlled by the
+#' convergence tolerance `tol` and the flag `do.opt`.
+#'
+#' @param dat Data object as returned by [check.dat()], containing life-history
+#'   and stock information for the operating model.
+#' @param set Optional settings list as returned by [check.set()]. If `NULL`
+#'   (default), internal defaults are used where possible. When supplied,
+#'   `set` controls aspects such as the number of years, projection horizon,
+#'   and noise structure.
+#' @param fmin Numeric value giving the minimum fishing mortality (or
+#'   F-multiplier) considered in the depletion calculation. Default is `0.0001`.
+#' @param fmax Numeric value giving the maximum fishing mortality considered in
+#'   the depletion calculation. Default is `10`.
+#' @param nrep Integer specifying the number of stochastic replicates used for
+#'   each fishing mortality level. Larger values give more stable depletion
+#'   estimates at the cost of increased computation time. Default is `100`.
+#' @param verbose Logical; if `TRUE`, print progress messages and basic
+#'   diagnostics during the calculation. Default is `TRUE`.
+#' @param method Character string indicating how the depletion distribution is
+#'   summarised across replicates. The default `"percentile"` typically uses
+#'   quantiles of the simulated depletion distribution. Other methods may be
+#'   available depending on the internal implementation.
+#' @param B0K Logical; if `TRUE`, treat the carrying capacity \eqn{K} as
+#'   equivalent to unfished biomass \eqn{B_0} when computing depletion. If
+#'   `FALSE` (default), \eqn{B_0} is used explicitly if available.
+#' @param tol Numeric tolerance used in any optimisation or root-finding
+#'   procedures (e.g. when solving for the fishing mortality associated with a
+#'   target depletion level). Default is `0.0001`.
+#' @param do.opt Logical; if `TRUE` (default), perform optimisation to identify
+#'   fishing mortality values corresponding to target depletion levels. If
+#'   `FALSE`, the function only evaluates depletion over the grid defined by
+#'   `fmin` and `fmax` without attempting to optimise.
+#'
+#' @return An object (typically a list or data frame) summarising depletion
+#'   as a function of fishing mortality, including summary statistics across
+#'   replicates. The exact structure depends on the internal implementation.
+#'   The object is returned invisibly if the function is mainly used for its
+#'   side effects (e.g. storing results in `dat`).
+#'
 #' @export
 est.depletion <- function(dat, set=NULL, fmin = 0.0001,
                           fmax = 10, nrep = 100, verbose = TRUE,
                           method = "percentile", B0K = FALSE,
-                          tol = 0.0001, do.opt = TRUE){
+                          tol = 0.0001, do.opt = TRUE) {
 
     if(!any(names(dat) == "ref")) stop("Reference points are missing in dat. Use est.ref.levels.stochastic to estimate reference points.")
 
@@ -467,9 +556,9 @@ est.depletion <- function(dat, set=NULL, fmin = 0.0001,
         if(method == "mean"){
             drealQ <- mean(dreal)
         }else if(method == "median"){
-            drealQ <- quantile(dreal, probs = 0.5)
+            drealQ <- stats::quantile(dreal, probs = 0.5)
         }else if(method == "percentile"){
-            drealQ <- quantile(dreal, probs = depl.prob)
+            drealQ <- stats::quantile(dreal, probs = depl.prob)
         }
         if(optFn==1) return((drealQ - depl)^2)
         if(optFn==2) return(drealQ)
@@ -481,10 +570,10 @@ est.depletion <- function(dat, set=NULL, fmin = 0.0001,
     ##               depl.prob = depl.prob,
     ##               nrep = nrep, dat = dat, set=set, errs=errs, outopt = outopt, optFn = 1)
     if(do.opt){
-        opt <- optimize(fn, c(log(fmin),log(fmax)), frel = frel, depl = depl,
-                        depl.prob = depl.prob,
-                        nrep = nrep, dat = dat, set=set, errs=errs,
-                        outopt = outopt, optFn = 1, tol = tol)
+        opt <- stats::optimize(fn, c(log(fmin),log(fmax)), frel = frel, depl = depl,
+                               depl.prob = depl.prob,
+                               nrep = nrep, dat = dat, set=set, errs=errs,
+                               outopt = outopt, optFn = 1, tol = tol)
         fabs <- exp(opt$minimum)
     }else{
         fabs <- max(apply(dat$FM,1,sum))
@@ -510,14 +599,56 @@ est.depletion <- function(dat, set=NULL, fmin = 0.0001,
 
 
 
-#' est.productivity
+#' Estimate productivity curve
+#'
+#' `est.productivity()` estimates a productivity relationship for the IAMSE
+#' operating model, typically linking biomass (or depletion) to surplus
+#' production or long-term yield. The operating model is simulated over a
+#' range of fishing mortalities up to `fmax` for `ny` years, and summary
+#' quantities are extracted to characterise the stock's productivity.
+#'
+#' The function can be used to construct productivity curves or clouds that
+#' relate state variables (e.g. biomass, depletion) to production, which can
+#' then be analysed or plotted for diagnostics and comparison across stocks.
+#'
+#' @param dat Data object as returned by [check.dat()], containing life-history
+#'   and stock information for one or more stocks.
+#' @param set Optional settings list as returned by [check.set()]. If `NULL`
+#'   (default), internal defaults are used where possible. When supplied, `set`
+#'   controls aspects such as the number of replicates, noise structure, and
+#'   other operating-model options.
+#' @param ny Integer giving the number of years to simulate when estimating the
+#'   productivity relationship. Larger values allow the system to approach
+#'   equilibrium or typical dynamic behaviour under each fishing level.
+#'   Default is `100`.
+#' @param fmax Numeric value giving the maximum fishing mortality (or
+#'   F-multiplier) considered when constructing the productivity curve.
+#'   Default is `10`.
+#' @param nf Integer giving the number of fishing-mortality levels (or points
+#'   along the F gradient) to consider between 0 and `fmax`. Default is
+#'   `1e3` (1000 points), providing a relatively fine grid.
+#' @param tsSplit Integer controlling how the simulated time series are split
+#'   into segments when summarising productivity (for example, discarding
+#'   an initial burn-in and using the remaining periods for analysis). The
+#'   precise interpretation depends on the internal implementation. Default is
+#'   `8`.
+#' @param plot Logical; if `TRUE` (default), produce diagnostic plots of the
+#'   productivity relationship (e.g. yield or surplus production vs. biomass
+#'   or F). If `FALSE`, no plots are produced.
+#'
+#' @return An object (typically a list or data frame) containing productivity
+#'   summaries as a function of fishing mortality and/or biomass for each
+#'   stock. The exact structure depends on the internal implementation. The
+#'   object is usually returned invisibly if the function is called primarily
+#'   for its side effects (e.g. plotting).
+#'
 #' @export
 est.productivity <- function(dat, set= NULL,
-                    ny = 100,
-                    fmax = 10,
-                    nf = 1e3,
-                    tsSplit = 8,
-                    plot = TRUE){
+                             ny = 100,
+                             fmax = 10,
+                             nf = 1e3,
+                             tsSplit = 8,
+                             plot = TRUE) {
 
     dat$ny <- ny
     ns <- dat$ns
@@ -577,19 +708,19 @@ est.productivity <- function(dat, set= NULL,
         seltv <- 1
     }
     if(seltv > 1 && alltv > 1 && seltv != alltv) stop("Both gear selectivity (dat$sel) and natural mortality (dat$M or dat$Msel) are time-variant, but do not have the same dimensions. This is not yet implemented, please let both vary equally or keep one of them constant.")
-        alltv <- max(c(alltv,seltv))
+    alltv <- max(c(alltv,seltv))
 
-        if(alltv > 1){
-            if(mtv == alltv){
-                mtv <- 1:mtv
-            }else mtv <- rep(mtv, length.out = alltv)
-            if(mseltv == alltv){
-                mseltv <- 1:mseltv
-            }else mseltv <- rep(mseltv, length.out = alltv)
-            if(seltv == alltv){
-                seltv <- 1:seltv
-            }else seltv <- rep(seltv, length.out = alltv)
-        }
+    if(alltv > 1){
+        if(mtv == alltv){
+            mtv <- 1:mtv
+        }else mtv <- rep(mtv, length.out = alltv)
+        if(mseltv == alltv){
+            mseltv <- 1:mseltv
+        }else mseltv <- rep(mseltv, length.out = alltv)
+        if(seltv == alltv){
+            seltv <- 1:seltv
+        }else seltv <- rep(seltv, length.out = alltv)
+    }
 
     ##
     blims <- rep(NA, alltv)
@@ -753,14 +884,31 @@ est.productivity <- function(dat, set= NULL,
 
 
 
-#' est.productivity
+#' Estimate stochastic productivity relationship
+#'
+#' @param dat info
+#' @param set info
+#' @param fmax info
+#' @param nf info
+#' @param prob info
+#' @param ncores info
+#' @param plot info
+#'
+#' @return An object (typically a list or data frame) containing stochastic
+#'   productivity summaries as a function of fishing mortality (and possibly
+#'   biomass or depletion) for each stock, including the quantiles specified
+#'   in \code{prob}. The exact structure depends on the internal implementation.
+#'   The object is usually returned invisibly if the function is called
+#'   primarily for its side effects (for example plotting).
+#'
+#' @importFrom parallel detectCores
 #' @export
 est.productivity.stochastic <- function(dat, set= NULL,
-                         fmax = 10,
-                         nf = 1e3,
-                         prob = c(0.1,0.9),
-                         ncores = parallel::detectCores()-1,
-                         plot = TRUE){
+                                        fmax = 10,
+                                        nf = 1e3,
+                                        prob = c(0.1,0.9),
+                                        ncores = parallel::detectCores()-1,
+                                        plot = TRUE) {
 
     amax <- dat$amax + 1
     ny <- dat$ny
@@ -881,15 +1029,15 @@ est.productivity.stochastic <- function(dat, set= NULL,
         }
 
         means[[i]] <- as.data.frame(do.call(rbind,lapply(tmp2,
-                                                    function(x) apply(x,2, mean, na.rm=TRUE))))
+                                                         function(x) apply(x,2, mean, na.rm=TRUE))))
         meds[[i]] <- as.data.frame(do.call(rbind,lapply(tmp2,
-                                                   function(x) apply(x,2, median, na.rm=TRUE))))
+                                                        function(x) apply(x,2, stats::median, na.rm=TRUE))))
         lo[[i]] <- as.data.frame(do.call(rbind,lapply(tmp2,
-                                                 function(x) apply(x,2, quantile, prob=min(prob),
-                                                                   na.rm=TRUE))))
+                                                      function(x) apply(x,2, stats::quantile, prob=min(prob),
+                                                                        na.rm=TRUE))))
         up[[i]] <- as.data.frame(do.call(rbind,lapply(tmp2,
-                                                 function(x) apply(x,2, quantile, prob=max(prob),
-                                                                   na.rm=TRUE))))
+                                                      function(x) apply(x,2, stats::quantile, prob=max(prob),
+                                                                        na.rm=TRUE))))
     }
 
 
@@ -927,8 +1075,12 @@ est.productivity.stochastic <- function(dat, set= NULL,
 
 
 #' fpat
+#'
+#' @param fmax info
+#' @param fscen info
+#'
 #' @export
-fpat <- function(fmax, fscen = 1){
+fpat <- function(fmax, fscen = 1) {
     fscen <- as.character(fscen)
     switch(fscen,
            "1" = {  ## flat
@@ -954,6 +1106,11 @@ fpat <- function(fmax, fscen = 1){
 
 
 #' baranov
+#'
+#' @param F info
+#' @param M info
+#' @param N info
+#'
 #' @export
 baranov <- function(F, M, N){
     Z <- F + M
@@ -961,14 +1118,75 @@ baranov <- function(F, M, N){
 }
 
 
-#' predCatch
+#' Predict catch over a TAC period
 #'
-#' @param seasons vector with season indices
-#' @param ns number of seasons
-#' @param h steepness
+#' `predCatch()` computes the predicted catch over a TAC period, given fishing
+#' mortality, numbers at age, natural mortality, selectivity, and other
+#' biological and stock–recruitment parameters. If a target TAC is supplied,
+#' the function can also return the difference between the predicted catch and
+#' the specified TAC.
 #'
-#' @details get predicted catch for TAC period or difference between provided
-#'     and predicted catch
+#' This is an internal helper used by higher-level IAMSE functions when
+#' searching for fishing mortality levels that match a given TAC or when
+#' projecting catches under a given management rule.
+#'
+#' @param logFM Array, matrix, or vector of log fishing mortality values
+#'   (e.g. by age and season) for the TAC period.
+#' @param NAA Numbers-at-age at the start of the TAC period (typically a
+#'   vector or matrix indexed by age and possibly season).
+#' @param MAA Natural mortality-at-age (and, if applicable, season) used in
+#'   the projection.
+#' @param sel Selectivity-at-age (and possibly season) applied to fishing
+#'   mortality when computing catch.
+#' @param weight Mean weight-at-age (and possibly season) used to convert
+#'   numbers caught into catch biomass.
+#' @param seasons Integer vector with the season indices included in the TAC
+#'   period (e.g. quarters or months within a year).
+#' @param ns Integer giving the total number of seasons per year.
+#' @param y Integer index of the current year in the projection.
+#' @param h2 Steepness (or related transformed parameter) of the
+#'   stock–recruitment relationship, used when updating recruitment.
+#' @param asmax Integer giving the maximum spawning age (or related age limit)
+#'   used when computing spawning biomass and recruitment.
+#' @param mat Maturity-at-age (and possibly season), used to calculate
+#'   spawning biomass.
+#' @param pzbm Additional parameter controlling the timing or proportion of
+#'   biomass contributing to spawning (exact role depends on the internal
+#'   implementation).
+#' @param spawning Indicator (e.g. logical or integer vector) identifying the
+#'   spawning season(s) within the year.
+#' @param R0 Unfished recruitment level used in the stock–recruitment
+#'   relationship.
+#' @param SR Character string or code specifying the type of
+#'   stock–recruitment function (e.g. Beverton–Holt, Ricker), as used in the
+#'   operating model.
+#' @param bp Additional parameter (or vector of parameters) for the
+#'   stock–recruitment relationship (e.g. breakpoints or shape parameters).
+#' @param recBeta Parameter (or vector) controlling the slope or shape of the
+#'   recruitment function.
+#' @param recGamma Parameter (or vector) controlling the curvature or shape of
+#'   the recruitment function.
+#' @param eR Stochastic recruitment deviation(s) applied to the expected
+#'   recruitment (e.g. lognormal errors).
+#' @param indage0 Integer index specifying the recruitment age (age at which
+#'   new recruits enter the age structure).
+#' @param TAC Optional numeric value giving the target total allowable catch
+#'   for the TAC period. If `NULL` (default), only the predicted catch is
+#'   returned. If non-`NULL`, the function can return the difference between
+#'   predicted catch and `TAC`, depending on `out`.
+#' @param out Integer flag controlling the type of output returned. The
+#'   precise meaning depends on the internal implementation but typically
+#'   distinguishes between returning the predicted catch, the difference
+#'   between catch and `TAC`, or possibly additional diagnostics.
+#'
+#' @return A numeric value or vector containing the predicted catch over the
+#'   TAC period, or the difference between predicted and target catch if
+#'   `TAC` is supplied and `out` is set accordingly. The exact structure of
+#'   the return value depends on the internal implementation. This function is
+#'   intended for internal use within IAMSE.
+#'
+#' @keywords internal
+#'
 predCatch <- function(logFM,
                       NAA, MAA,
                       sel, weight,
@@ -976,7 +1194,7 @@ predCatch <- function(logFM,
                       R0, SR, bp, recBeta, recGamma, eR,
                       indage0,
                       TAC = NULL,
-                      out = 0){
+                      out = 0) {
     Ctmp <- 0
     NAAtmp <- NAA
 
@@ -987,12 +1205,12 @@ predCatch <- function(logFM,
         if(spawning[s] > 0 && s > 1){
             ## Survivors from previous season/year
             SSB0 <- get.ssb0(MAA, mat, weight,
-                               fecun=1, asmax, ns, spawning,
-                               R0, indage0, s)
+                             fecun=1, asmax, ns, spawning,
+                             R0, indage0, s)
             SSBtmp <- sum(NAA * weight  * mat  * exp(-pzbm * Ztmp))
             rec <- recfunc(h = h2, SSBPR0 = SSB0/R0, SSB = SSBtmp,
-                             R0 = R0, method = SR, bp = bp,
-                             beta = recBeta, gamma = recGamma)
+                           R0 = R0, method = SR, bp = bp,
+                           beta = recBeta, gamma = recGamma)
             rec[rec<0] <- 1e-10
             NAAtmp[indage0] <- rec * spawning[s] * eR
         }
@@ -1011,15 +1229,92 @@ predCatch <- function(logFM,
     }
 }
 
-#' get.f
-#' @details get FM accounting for seasons
+
+
+#' Solve for fishing mortality corresponding to a target TAC
+#'
+#' `get.f()` finds the fishing mortality (FM) that produces a given total
+#' allowable catch (TAC) over a TAC period, accounting for seasonal structure,
+#' natural mortality, selectivity, and recruitment. Internally, it repeatedly
+#' calls the catch-prediction logic (e.g. [predCatch()]) and uses a numerical
+#' root-finding or optimisation routine to match predicted catch to the target
+#' `TAC`.
+#'
+#' This function is typically called internally by higher-level IAMSE functions
+#' when implementing HCRs that are specified in terms of TAC (rather than
+#' directly in terms of fishing mortality).
+#'
+#' @param TAC Numeric value giving the target total allowable catch for the TAC
+#'   period (e.g. over the seasons specified in `seasons`).
+#' @param NAA Numbers-at-age at the start of the TAC period (typically a vector
+#'   or matrix indexed by age and possibly season).
+#' @param MAA Natural mortality-at-age (and, if applicable, season) used in the
+#'   projection.
+#' @param sel Selectivity-at-age (and possibly season) applied to fishing
+#'   mortality when computing catch.
+#' @param weight Mean weight-at-age (and possibly season) used to convert
+#'   numbers caught into catch biomass.
+#' @param seasons Integer vector with the season indices included in the TAC
+#'   period (e.g. quarters or months within a year).
+#' @param ns Integer giving the total number of seasons per year.
+#' @param y Integer index of the current year in the projection.
+#' @param h Steepness (or related parameter) of the stock–recruitment
+#'   relationship, used when updating recruitment along the projection.
+#' @param asmax Integer giving the maximum spawning age (or related age limit)
+#'   used when computing spawning biomass and recruitment.
+#' @param mat Maturity-at-age (and possibly season), used to calculate
+#'   spawning biomass.
+#' @param pzbm Additional parameter controlling the timing or proportion of
+#'   biomass contributing to spawning (exact role depends on the internal
+#'   implementation).
+#' @param spawning Indicator (e.g. logical or integer vector) identifying the
+#'   spawning season(s) within the year.
+#' @param R0 Unfished recruitment level used in the stock–recruitment
+#'   relationship.
+#' @param SR Character string or code specifying the type of
+#'   stock–recruitment function (e.g. Beverton–Holt, Ricker), as used in the
+#'   operating model.
+#' @param bp Additional parameter (or vector of parameters) for the
+#'   stock–recruitment relationship (e.g. breakpoints or shape parameters).
+#' @param recBeta Parameter (or vector) controlling the slope or shape of the
+#'   recruitment function.
+#' @param recGamma Parameter (or vector) controlling the curvature or shape of
+#'   the recruitment function.
+#' @param eR Stochastic recruitment deviation(s) applied to the expected
+#'   recruitment (e.g. lognormal errors).
+#' @param indage0 Integer index specifying the recruitment age (age at which
+#'   new recruits enter the age structure).
+#' @param lastFM Numeric value giving the starting (or typical) fishing
+#'   mortality used as an initial guess in the numerical search. Default is
+#'   `0.01`.
+#' @param upper Numeric value giving the upper bound (on the log scale) for
+#'   the search over fishing mortality. Default is `log(100)`, corresponding
+#'   to a relatively high maximum F.
+#'
+#' @details
+#' The function typically:
+#' \enumerate{
+#'   \item Defines an objective function measuring the difference between the
+#'         predicted catch (for a given FM) and the target `TAC`.
+#'   \item Searches over FM (on a log scale) between a lower bound and
+#'         `upper`, using `lastFM` as an initial value.
+#'   \item Returns the FM that minimises this difference (or sets the root to
+#'         zero), within numerical tolerance.
+#' }
+#' The exact optimisation method depends on the internal implementation (e.g.
+#' use of [stats::optimize()] or [stats::uniroot()]).
+#'
+#' @return A numeric value giving the fishing mortality (or F-multiplier) that
+#'   produces a predicted catch matching `TAC` as closely as possible under
+#'   the given biological and seasonal assumptions.
+#'
 #' @export
 get.f <- function(TAC,
-                   NAA, MAA,
-                   sel, weight,
-                   seasons, ns, y, h, asmax, mat,
-                   pzbm, spawning,
-                   R0, SR, bp, recBeta,
+                  NAA, MAA,
+                  sel, weight,
+                  seasons, ns, y, h, asmax, mat,
+                  pzbm, spawning,
+                  R0, SR, bp, recBeta,
                   recGamma, eR,
                   indage0,
                   lastFM = 0.01, upper = log(100)){
@@ -1038,7 +1333,7 @@ get.f <- function(TAC,
                   lower = -10, upper = upper,
                   control = list(rel.tol = 1e-3))
 
-##    print(paste0("obj: ",round(opt$objective,2), "- fm: ",round(exp(opt$par),3)))
+    ##    print(paste0("obj: ",round(opt$objective,2), "- fm: ",round(exp(opt$par),3)))
     return(exp(opt$par))
 }
 
@@ -1052,7 +1347,7 @@ get.f <- function(TAC,
 #' @param mids midlengths
 #' @param plba probability of being in mids given age
 #'
-getSel <- function(L50, L95, mids, plba){
+getSel <- function(L50, L95, mids, plba) {
     n <- max(c(length(L50),length(L95)))
     sel <- vector("list", n)
     for(i in 1:n){
@@ -1063,7 +1358,7 @@ getSel <- function(L50, L95, mids, plba){
         ##     selA[,j] <- apply(t(plba[,,j]) * selL, 2, sum)
         ## }
         selA <- apply(t(plba) * selL, 2, sum)
-##        selA[1] <- 1e-9 # it should be zero for age 0
+        ##        selA[1] <- 1e-9 # it should be zero for age 0
         sel[[i]] <- selA
     }
     return(sel)
@@ -1079,7 +1374,7 @@ getSel <- function(L50, L95, mids, plba){
 #' @param mids midlengths
 #' @param plba probability of being in mids given age
 #'
-getMat <- function(Lm50, Lm95, mids, plba){
+getMat <- function(Lm50, Lm95, mids, plba) {
     ## maturity at length
     matL <- (1 /(1 + exp(-log(19)*(mids - Lm50)/(Lm95 - Lm50))))
     ## maturity at age
@@ -1088,8 +1383,8 @@ getMat <- function(Lm50, Lm95, mids, plba){
     ## for(i in 1:dim(plba)[3]){
     ##     matA[,i] <- apply(t(plba[,,i]) * matL, 2, sum)
     ## }
-   matA <- apply(t(plba) * matL, 2, sum)
-##   matA <- c(1e-9,matA[-1])
+    matA <- apply(t(plba) * matL, 2, sum)
+    ##   matA <- c(1e-9,matA[-1])
     return(matA)
 }
 
@@ -1101,8 +1396,11 @@ getMat <- function(Lm50, Lm95, mids, plba){
 #' @param Linf Linf of vBGF
 #' @param K K of vBGF
 #' @param mids midlengths
+#' @param a info
+#' @param b info
+#' @param c info
 #'
-getM <- function(Linf, K, mids, a = 0.55, b = 1.61, c = 1.44){
+getM <- function(Linf, K, mids, a = 0.55, b = 1.61, c = 1.44) {
     n <- max(c(length(a),length(b),length(c)))
     maxM <- rep(NA, n)
     for(i in 1:n){
@@ -1123,10 +1421,15 @@ getM <- function(Linf, K, mids, a = 0.55, b = 1.61, c = 1.44){
 #' @param K K of vBGF
 #' @param mids midlengths
 #' @param plba probability of being in mids given age
+#' @param a info
+#' @param b info
+#' @param c info
 #' @param scale logical; scale to have maximum 1 (default: true)
+#' @param lunit info
+#' @param useBelow10 info
 #'
 getMsel <- function(Linf, K, mids, plba, a = 0.55, b = 1.61, c = 1.44,
-                    scale = TRUE, lunit = "cm", useBelow10 = FALSE){
+                    scale = TRUE, lunit = "cm", useBelow10 = FALSE) {
     if(lunit == "mm"){
         mids <- mids / 10
         Linf <- Linf / 10
@@ -1152,7 +1455,7 @@ getMsel <- function(Linf, K, mids, plba, a = 0.55, b = 1.61, c = 1.44,
         }else{
             maxM <- 1
         }
-            sel[[i]] <- selA/maxM
+        sel[[i]] <- selA/maxM
     }
     return(sel)
 }
@@ -1160,21 +1463,48 @@ getMsel <- function(Linf, K, mids, plba, a = 0.55, b = 1.61, c = 1.44,
 
 
 
-#' get.ssb0
+#' Calculate spawning stock biomass at F = 0 (SSB0)
 #'
-#' @description Function to calculate SSB (F=0)
+#' `get.ssb0()` computes spawning stock biomass under zero fishing mortality
+#' (often referred to as SSB0), based on natural mortality, maturity, weight,
+#' and fecundity-at-age, accounting for seasonal structure and the timing of
+#' spawning. Optionally, a non-zero fishing mortality (`FM`) can be supplied to
+#' obtain spawning biomass under that F instead.
 #'
-#' @param Z total mortality
-#' @param mat maturity ogive
-#' @param fecun fecundity matrix
-#' @param amax number of age classes
+#' @param M Natural mortality-at-age (and, if applicable, season), typically
+#'   given as a vector or matrix of instantaneous natural mortality rates.
+#' @param mat Maturity ogive, giving the proportion mature at each age (and
+#'   season, if relevant).
+#' @param weight Mean weight-at-age (and possibly season), used to convert
+#'   numbers of mature fish into spawning biomass.
+#' @param fecun Fecundity-at-age (and possibly season). Defaults to `1`, in
+#'   which case fecundity is assumed to be proportional to weight and maturity
+#'   only.
+#' @param asmax Integer giving the maximum age class (or the number of age
+#'   classes) used in the calculation.
+#' @param ns Integer giving the number of seasons per year.
+#' @param spawning Indicator (e.g. logical or integer vector of length `ns`)
+#'   identifying the spawning season(s) within the year.
+#' @param R0 Unfished recruitment level used to scale the numbers-at-age under
+#'   F = 0. Depending on the implementation, this may be used to convert
+#'   per-recruit quantities into absolute biomass.
+#' @param indage0 Integer index specifying the recruitment age (age at which
+#'   new recruits enter the age structure).
+#' @param season Integer or vector specifying the season(s) for which SSB is
+#'   evaluated; typically aligned with `spawning` and the seasonal structure.
+#' @param FM Optional fishing mortality-at-age (and season). If `NULL`
+#'   (default), fishing mortality is set to zero and SSB0 is computed. If
+#'   non-`NULL`, the function returns spawning biomass under the combined
+#'   mortality `M + FM`.
 #'
-#' @return spawning biomass per recruit
+#' @return A numeric value giving spawning stock biomass under F = 0 (SSB0),
+#'   or under the supplied `FM` if not `NULL`. The exact scaling (per recruit
+#'   vs. absolute biomass) depends on how `R0` is used internally.
 #'
 #' @export
 get.ssb0 <- function (M, mat, weight, fecun = 1,
                       asmax, ns, spawning,
-                      R0, indage0, season, FM=NULL){
+                      R0, indage0, season, FM=NULL) {
 
     if(is.null(FM)){
         FM <- 0
@@ -1182,7 +1512,7 @@ get.ssb0 <- function (M, mat, weight, fecun = 1,
     ZAA <-  M + FM
 
     NAAS <- initdistR(M, FM=FM, ns, asmax, indage0, spawning, R0)
-##    print(NAAS)
+    ##    print(NAAS)
 
     ## SSB0 season dependent
     while(season > 1){
@@ -1205,15 +1535,18 @@ get.ssb0 <- function (M, mat, weight, fecun = 1,
 #' @description Function to calculate recruitment (Beverton - Holt)
 #'
 #' @param h steepness
-#' @param R0 recruitment in unfished population
 #' @param SSBPR0 spawning biomass produced by one recrut in its lifetime
 #' @param SSB spawning biomass
-#' @param bp breakpoint for hockey-stick SR
+#' @param R0 recruitment in unfished population
 #' @param method SR type
+#' @param bp breakpoint for hockey-stick SR
+#' @param beta info
+#' @param gamma info
+#' @param alpha info
 #'
 #' @export
 recfunc <- function(h, SSBPR0, SSB,  R0 = 1e6, method = "bevholt", bp = 0,
-                    beta = 0, gamma = 0, alpha = 0){
+                    beta = 0, gamma = 0, alpha = 0) {
 
     if(method == "bevholt"){
         alpha <- SSBPR0 * (1-h)/(4*h)
@@ -1240,6 +1573,15 @@ recfunc <- function(h, SSBPR0, SSB,  R0 = 1e6, method = "bevholt", bp = 0,
 
 
 #' initdistR
+#'
+#' @param M info
+#' @param FM info
+#' @param ns info
+#' @param asmax info
+#' @param indage0 info
+#' @param spawning info
+#' @param R0 info
+#'
 #' @export
 initdistR <- function(M, FM=NULL, ns, asmax, indage0, spawning, R0=1){
 

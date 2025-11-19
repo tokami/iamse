@@ -34,58 +34,6 @@ def.hcr.pseudo(
 \item{upper}{Upper bound of uncertainty cap. Default: 1.2.}
 
 \item{env}{Environment. Default: globalenv()}
-
-\item{safeguard}{safeguard. List}
-
-\item{dteuler}{Time step of Forward Euler scheme.}
-
-\item{reportmode}{Reportmode}
-
-\item{stabilise}{stabilise option of spict. Default: FALSE.}
-
-\item{priorlogn}{prior}
-
-\item{priorlogalpha}{prior}
-
-\item{priorlogbeta}{prior}
-
-\item{priorlogbkfrac}{prior}
-
-\item{priorlogr}{prior}
-
-\item{fixn}{fixn}
-
-\item{bfac}{bfac}
-
-\item{bref}{bref}
-
-\item{brefType}{brefType}
-
-\item{nyBref}{nyBref}
-
-\item{btar}{btar}
-
-\item{probtar}{probtar}
-
-\item{brule}{Brule}
-
-\item{red}{Reduction}
-
-\item{redyears}{Reduction years}
-
-\item{redAlways}{Reduction always? Default: FALSE.}
-
-\item{rai}{Raising factor. Default: 0.2.}
-
-\item{manstartdY}{Management start year. Default: 0.}
-
-\item{assessmentInterval}{Assessment interval. Default: 1.}
-
-\item{intC}{Interval C. Default: NA.}
-
-\item{nonconvHCR}{HCR if SPiCT does not converge. Default: "conscat" (constant catch).}
-
-\item{bm}{Benchmark. Default: FALSE,  ## e.g. 5 => re-defining Bref at every benchmark}
 }
 \description{
 def.hcr.pseudo

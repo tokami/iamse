@@ -1,8 +1,8 @@
 ---
-title: "Getting started with iamse"
+title: "MSE with iamse"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Getting started with iamse}
+  %\VignetteIndexEntry{MSE with iamse}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -128,7 +128,6 @@ We now define a few simple HCRs:
 
 - `"noF"`: no fishing
 - `"refFmsy"`: fishing at the true \(F_\text{MSY}\)
-- `"conscat"`: constant catch if the assessment model does not converge
 
 ```{r}
 ## Baseline HCRs
@@ -139,14 +138,10 @@ iamse::def.hcr.ref(set. = set)
 ## Fishing at true Fmsy ("refFmsy")
 iamse::def.hcr.ref(consF = "fmsy", set. = set)
 
-## Constant catch if the assessment (e.g. spict) does not converge
-iamse::def.hcr.conscat(set. = set)
-
 ## Select HCRs to evaluate
 set$hcr <- c(
   "noF",
-  "refFmsy",
-  "conscat"
+  "refFmsy"
 )
 
 set$hcr

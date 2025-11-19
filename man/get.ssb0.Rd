@@ -2,7 +2,7 @@
 % Please edit documentation in R/utility.R
 \name{get.ssb0}
 \alias{get.ssb0}
-\title{get.ssb0}
+\title{Calculate spawning stock biomass at F = 0 (SSB0)}
 \usage{
 get.ssb0(
   M,
@@ -19,17 +19,51 @@ get.ssb0(
 )
 }
 \arguments{
-\item{mat}{maturity ogive}
+\item{M}{Natural mortality-at-age (and, if applicable, season), typically
+given as a vector or matrix of instantaneous natural mortality rates.}
 
-\item{fecun}{fecundity matrix}
+\item{mat}{Maturity ogive, giving the proportion mature at each age (and
+season, if relevant).}
 
-\item{Z}{total mortality}
+\item{weight}{Mean weight-at-age (and possibly season), used to convert
+numbers of mature fish into spawning biomass.}
 
-\item{amax}{number of age classes}
+\item{fecun}{Fecundity-at-age (and possibly season). Defaults to `1`, in
+which case fecundity is assumed to be proportional to weight and maturity
+only.}
+
+\item{asmax}{Integer giving the maximum age class (or the number of age
+classes) used in the calculation.}
+
+\item{ns}{Integer giving the number of seasons per year.}
+
+\item{spawning}{Indicator (e.g. logical or integer vector of length `ns`)
+identifying the spawning season(s) within the year.}
+
+\item{R0}{Unfished recruitment level used to scale the numbers-at-age under
+F = 0. Depending on the implementation, this may be used to convert
+per-recruit quantities into absolute biomass.}
+
+\item{indage0}{Integer index specifying the recruitment age (age at which
+new recruits enter the age structure).}
+
+\item{season}{Integer or vector specifying the season(s) for which SSB is
+evaluated; typically aligned with `spawning` and the seasonal structure.}
+
+\item{FM}{Optional fishing mortality-at-age (and season). If `NULL`
+(default), fishing mortality is set to zero and SSB0 is computed. If
+non-`NULL`, the function returns spawning biomass under the combined
+mortality `M + FM`.}
 }
 \value{
-spawning biomass per recruit
+A numeric value giving spawning stock biomass under F = 0 (SSB0),
+  or under the supplied `FM` if not `NULL`. The exact scaling (per recruit
+  vs. absolute biomass) depends on how `R0` is used internally.
 }
 \description{
-Function to calculate SSB (F=0)
+`get.ssb0()` computes spawning stock biomass under zero fishing mortality
+(often referred to as SSB0), based on natural mortality, maturity, weight,
+and fecundity-at-age, accounting for seasonal structure and the timing of
+spawning. Optionally, a non-zero fishing mortality (`FM`) can be supplied to
+obtain spawning biomass under that F instead.
 }

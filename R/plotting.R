@@ -1,11 +1,52 @@
-
-
-#' plotiamse.cw
+#' Plot catch time series from an IAMSE MSE
+#'
+#' `plotiamse.cw()` produces time-series plots of catch (typically catch in
+#' weight) for each harvest control rule (HCR) evaluated in an IAMSE
+#' management strategy evaluation. The function aggregates results across
+#' replicates and can display median trajectories, uncertainty envelopes, and
+#' optional smoothed trend lines.
+#'
+#' By default, one line per HCR is drawn, and uncertainty across stochastic
+#' replicates is indicated (for example, by plotting quantile bands; the exact
+#' representation depends on the internal implementation). The function uses
+#' base R graphics.
+#'
+#' @param dat Data object as returned by [check.dat()], containing life-history
+#'   and reference-point information used in the MSE.
+#' @param set Settings list as returned by [check.set()] and modified for the
+#'   MSE run (e.g. containing `nysim`, `nrep`, and `hcr`).
+#' @param resMSE Result object returned by [run.mse()], containing simulated
+#'   time series for each HCR and replicate.
+#' @param trendline Logical; if `TRUE`, draw a smoothed trend or additional
+#'   line highlighting the general trajectory of catch over time (e.g. using
+#'   a smoother or running mean). Default is `TRUE`.
+#' @param uncert Logical; if `TRUE`, display uncertainty across replicates,
+#'   typically in the form of quantile bands or envelopes around the median.
+#'   Default is `TRUE`.
+#' @param med Logical; if `TRUE`, draw the median catch trajectory across
+#'   replicates for each HCR. If `FALSE`, only uncertainty or other summaries
+#'   are shown, depending on the internal implementation. Default is `TRUE`.
+#' @param hcrs Optional character vector or indices specifying which HCRs to
+#'   plot. If `NA` (default), all HCRs present in `set$hcr` (and `resMSE`) are
+#'   plotted.
+#' @param ylim Optional numeric vector of length two giving the y-axis limits.
+#'   If `NULL` (default), limits are chosen automatically to encompass the
+#'   plotted catch values.
+#' @param plot.legend Logical; if `TRUE` (default), add a legend identifying
+#'   the plotted HCRs.
+#' @param ylab Character string specifying the y-axis label. Default is
+#'   `"Catch"`.
+#' @param xlab Character string specifying the x-axis label. Default is an
+#'   empty string `""`. Often set to `"Year"` or similar by the user.
+#'
+#' @return This function is called for its side effect of producing a plot.
+#'   Invisibly returns `NULL`.
+#'
 #' @export
 plotiamse.cw <- function(dat, set, resMSE,
-                       trendline=TRUE, uncert = TRUE, med = TRUE,
-                       hcrs=NA, ylim = NULL, plot.legend = TRUE,
-                       ylab="Catch", xlab = ""){
+                         trendline=TRUE, uncert = TRUE, med = TRUE,
+                         hcrs=NA, ylim = NULL, plot.legend = TRUE,
+                         ylab="Catch", xlab = "") {
     if(any(!is.na(hcrs))){
         resMSEnew <- vector("list",length(hcrs))
         for(i in 1:length(hcrs)){
@@ -16,7 +57,7 @@ plotiamse.cw <- function(dat, set, resMSE,
         set$hcr <- hcrs
     }
     ## summary (median, 95% CIs)
-    res <- summary.mse(resMSE)
+    res <- summary(resMSE)
     ## vars
     nms <- length(resMSE)
     xhist <- seq(1,dat$ny,1)
@@ -77,12 +118,55 @@ plotiamse.cw <- function(dat, set, resMSE,
 }
 
 
-#' plotiamse.b
+#' Plot biomass time series from an IAMSE MSE
+#'
+#' `plotiamse.b()` produces time-series plots of total biomass for each
+#' harvest control rule (HCR) evaluated in an IAMSE management strategy
+#' evaluation. The function aggregates results across replicates and can
+#' display median trajectories, uncertainty envelopes, and optional smoothed
+#' trend lines.
+#'
+#' By default, one line per HCR is drawn, and uncertainty across stochastic
+#' replicates is indicated (for example, by plotting quantile bands; the exact
+#' representation depends on the internal implementation). The function uses
+#' base R graphics.
+#'
+#' @param dat Data object as returned by [check.dat()], containing life-history
+#'   and reference-point information used in the MSE.
+#' @param set Settings list as returned by [check.set()] and modified for the
+#'   MSE run (e.g. containing `nysim`, `nrep`, and `hcr`).
+#' @param resMSE Result object returned by [run.mse()], containing simulated
+#'   time series for each HCR and replicate.
+#' @param trendline Logical; if `TRUE`, draw a smoothed trend or additional
+#'   line highlighting the general trajectory of biomass over time (e.g. using
+#'   a smoother or running mean). Default is `TRUE`.
+#' @param uncert Logical; if `TRUE`, display uncertainty across replicates,
+#'   typically in the form of quantile bands or envelopes around the median.
+#'   Default is `TRUE`.
+#' @param med Logical; if `TRUE`, draw the median biomass trajectory across
+#'   replicates for each HCR. If `FALSE`, only uncertainty or other summaries
+#'   are shown, depending on the internal implementation. Default is `TRUE`.
+#' @param hcrs Optional character vector or indices specifying which HCRs to
+#'   plot. If `NA` (default), all HCRs present in `set$hcr` (and `resMSE`) are
+#'   plotted.
+#' @param ylim Optional numeric vector of length two giving the y-axis limits.
+#'   If `NULL` (default), limits are chosen automatically to encompass the
+#'   plotted biomass values.
+#' @param plot.legend Logical; if `TRUE` (default), add a legend identifying
+#'   the plotted HCRs.
+#' @param ylab Character string specifying the y-axis label. Default is
+#'   `"Total biomass"`.
+#' @param xlab Character string specifying the x-axis label. Default is an
+#'   empty string `""`. Often set to `"Year"` or similar by the user.
+#'
+#' @return This function is called for its side effect of producing a plot.
+#'   Invisibly returns `NULL`.
+#'
 #' @export
 plotiamse.b <- function(dat, set, resMSE,
-                      trendline=TRUE, uncert = TRUE, med = TRUE,
+                        trendline=TRUE, uncert = TRUE, med = TRUE,
                       hcrs=NA, ylim = NULL, plot.legend = TRUE,
-                      ylab="Total biomass", xlab = ""){
+                      ylab="Total biomass", xlab = "") {
     if(any(!is.na(hcrs))){
         resMSEnew <- vector("list",length(hcrs))
         for(i in 1:length(hcrs)){
@@ -93,7 +177,7 @@ plotiamse.b <- function(dat, set, resMSE,
         set$hcr <- hcrs
     }
     ## summary (median, 95% CIs)
-    res <- summary.mse(resMSE)
+    res <- summary(resMSE)
     ## vars
     nms <- length(resMSE)
     xhist <- seq(1,dat$ny,1)
@@ -155,12 +239,56 @@ plotiamse.b <- function(dat, set, resMSE,
 }
 
 
-#' plotiamse.f
+#' Plot fishing mortality time series from an IAMSE MSE
+#'
+#' `plotiamse.f()` produces time-series plots of fishing mortality for each
+#' harvest control rule (HCR) evaluated in an IAMSE management strategy
+#' evaluation. The function aggregates results across replicates and can
+#' display median trajectories, uncertainty envelopes, and optional smoothed
+#' trend lines.
+#'
+#' By default, one line per HCR is drawn, and uncertainty across stochastic
+#' replicates is indicated (for example, by plotting quantile bands; the exact
+#' representation depends on the internal implementation). The function uses
+#' base R graphics.
+#'
+#' @param dat Data object as returned by [check.dat()], containing life-history
+#'   and reference-point information used in the MSE.
+#' @param set Settings list as returned by [check.set()] and modified for the
+#'   MSE run (e.g. containing `nysim`, `nrep`, and `hcr`).
+#' @param resMSE Result object returned by [run.mse()], containing simulated
+#'   time series for each HCR and replicate.
+#' @param trendline Logical; if `TRUE`, draw a smoothed trend or additional
+#'   line highlighting the general trajectory of fishing mortality over time
+#'   (e.g. using a smoother or running mean). Default is `TRUE`.
+#' @param uncert Logical; if `TRUE`, display uncertainty across replicates,
+#'   typically in the form of quantile bands or envelopes around the median.
+#'   Default is `TRUE`.
+#' @param med Logical; if `TRUE`, draw the median fishing mortality trajectory
+#'   across replicates for each HCR. If `FALSE`, only uncertainty or other
+#'   summaries are shown, depending on the internal implementation. Default is
+#'   `TRUE`.
+#' @param hcrs Optional character vector or indices specifying which HCRs to
+#'   plot. If `NA` (default), all HCRs present in `set$hcr` (and `resMSE`) are
+#'   plotted.
+#' @param ylim Optional numeric vector of length two giving the y-axis limits.
+#'   If `NULL` (default), limits are chosen automatically to encompass the
+#'   plotted fishing mortality values.
+#' @param plot.legend Logical; if `TRUE` (default), add a legend identifying
+#'   the plotted HCRs.
+#' @param ylab Character string specifying the y-axis label. Default is
+#'   `"Fishing mortality"`.
+#' @param xlab Character string specifying the x-axis label. Default is an
+#'   empty string `""`. Often set to `"Year"` or similar by the user.
+#'
+#' @return This function is called for its side effect of producing a plot.
+#'   Invisibly returns `NULL`.
+#'
 #' @export
 plotiamse.f <- function(dat, set, resMSE,
-                      trendline=TRUE, uncert = TRUE, med = TRUE,
+                        trendline=TRUE, uncert = TRUE, med = TRUE,
                       hcrs=NA, ylim=NULL, plot.legend = TRUE,
-                      ylab="Fishing mortality", xlab = ""){
+                      ylab="Fishing mortality", xlab = "") {
     if(any(!is.na(hcrs))){
         resMSEnew <- vector("list",length(hcrs))
         for(i in 1:length(hcrs)){
@@ -171,7 +299,7 @@ plotiamse.f <- function(dat, set, resMSE,
         set$hcr <- hcrs
     }
     ## summary (median, 95% CIs)
-    res <- summary.mse(resMSE)
+    res <- summary(resMSE)
 
     ## vars
     nms <- length(resMSE)
@@ -234,7 +362,40 @@ plotiamse.f <- function(dat, set, resMSE,
 
 
 
-#' plotiamse.tradeoff
+#' Plot trade-offs between IAMSE performance metrics
+#'
+#' `plotiamse.tradeoff()` produces a two-dimensional trade-off plot for
+#' performance metrics summarising IAMSE management strategy evaluation
+#' (MSE) results. Each point usually represents a harvest control rule (HCR),
+#' positioned according to two selected metrics (e.g. average catch vs. risk
+#' of falling below a biomass limit).
+#'
+#' The function takes the output from [est.metrics()] and plots one metric on
+#' the x-axis and another on the y-axis, optionally with a legend identifying
+#' the different HCRs.
+#'
+#' @param mets Data frame or list returned by [est.metrics()], containing
+#'   performance metrics for each HCR (and possibly for each stock or scenario).
+#'   The object must include columns with the names specified in `metrics`.
+#' @param metrics Character vector of length two specifying the names of the
+#'   metrics to plot on the x- and y-axes, respectively. Default is
+#'   `c("avRelCatch", "PBBlim")`. See [est.metrics()] for available metric
+#'   names.
+#' @param hcrs Optional character vector or numeric indices specifying which
+#'   HCRs to include in the trade-off plot. If `NA` (default), all HCRs in
+#'   `mets` are plotted.
+#' @param plot.legend Logical; if `TRUE` (default), draw a legend identifying
+#'   the plotted HCRs.
+#' @param xlim Optional numeric vector of length two giving the x-axis limits.
+#'   If `NULL` (default), limits are chosen automatically based on the selected
+#'   metric.
+#' @param ylim Optional numeric vector of length two giving the y-axis limits.
+#'   If `NULL` (default), limits are chosen automatically based on the selected
+#'   metric.
+#'
+#' @return This function is called for its side effect of producing a plot.
+#'   Invisibly returns `NULL`.
+#'
 #' @export
 plotiamse.tradeoff <- function(mets, metrics = c("avRelCatch","PBBlim"),
                                hcrs=NA, plot.legend = TRUE,
@@ -293,11 +454,46 @@ plotiamse.tradeoff <- function(mets, metrics = c("avRelCatch","PBBlim"),
 }
 
 
-#' plotiamse.quant
+#' Plot IAMSE diagnostic / uncertainty quantities
+#'
+#' `plotiamse.quant()` visualises selected diagnostic or uncertainty-related
+#' quantities computed from an IAMSE management strategy evaluation. Typical
+#' examples include the variability of biomass and fishing mortality relative
+#' to reference points, or the variability of catch over time.
+#'
+#' The function extracts the specified quantities for each harvest control
+#' rule (HCR) and produces a comparative plot (e.g. one panel per quantity or
+#' grouped bars by HCR, depending on the internal implementation). Optional
+#' horizontal reference lines can be added to facilitate interpretation.
+#'
+#' @param dat Data object as returned by [check.dat()], containing life-history
+#'   and reference-point information used in the MSE.
+#' @param set Settings list as returned by [check.set()] and modified for the
+#'   MSE run (e.g. containing `nysim`, `nrep`, and `hcr`).
+#' @param resMSE Result object returned by [run.mse()], containing simulated
+#'   time series for each HCR and replicate.
+#' @param hcrs Optional character vector or numeric indices specifying which
+#'   HCRs to include in the plot. If `NULL` (default), all HCRs present in
+#'   `set$hcr` (and `resMSE`) are used.
+#' @param quants Character vector specifying the names of the quantities to
+#'   plot. Defaults to `c("bpbmsy.sd", "fmfmsy.sd", "cp.sd")`, which typically
+#'   correspond to the standard deviation of biomass relative to B\eqn{_{MSY}},
+#'   fishing mortality relative to F\eqn{_{MSY}}, and catch performance (or a
+#'   related quantity). The available names depend on how summary statistics
+#'   were computed upstream.
+#' @param hline Optional numeric value or vector giving horizontal reference
+#'   line(s) to be added to the plot (e.g. a threshold or target level). If
+#'   `NULL` (default), no reference lines are drawn.
+#' @param plot.legend Logical; if `TRUE` (default), add a legend identifying
+#'   the plotted HCRs.
+#'
+#' @return This function is called for its side effect of producing a plot.
+#'   Invisibly returns `NULL`.
+#'
 #' @export
 plotiamse.quant <- function(dat, set, resMSE, hcrs=NULL,
-                          quants = c("bpbmsy.sd","fmfmsy.sd","cp.sd"),
-                          hline=NULL, plot.legend = TRUE){
+                            quants = c("bpbmsy.sd","fmfmsy.sd","cp.sd"),
+                          hline=NULL, plot.legend = TRUE) {
 
     if(is.null(hcrs)){
         hcr <- set$hcr
@@ -367,8 +563,12 @@ plotiamse.quant <- function(dat, set, resMSE, hcrs=NULL,
 
 
 #' plotiamse.prod
+#'
+#' @param prod info
+#' @param cols info
+#'
 #' @export
-plotiamse.prod <- function(prod, cols = NULL){
+plotiamse.prod <- function(prod, cols = NULL) {
     meds <- prod$meds
     means <- prod$means
     lo <- prod$lo

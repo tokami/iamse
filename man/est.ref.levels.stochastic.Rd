@@ -2,7 +2,7 @@
 % Please edit documentation in R/refs.R
 \name{est.ref.levels.stochastic}
 \alias{est.ref.levels.stochastic}
-\title{est.ref.levels.stochastic}
+\title{Estimate stochastic reference points}
 \usage{
 est.ref.levels.stochastic(
   dat,
@@ -14,6 +14,85 @@ est.ref.levels.stochastic(
   get.final = FALSE
 )
 }
+\arguments{
+\item{dat}{Data object as returned by [check.dat()], containing life-history
+and stock information for one or more stocks. The list element `dat$ref`
+is created or updated with the estimated stochastic reference levels.}
+
+\item{set}{Settings list as returned by [check.set()]. This should define
+the number of stochastic replicates used for the reference-point
+calculation (e.g. `set$refN`) and the noise structure (e.g. `set$noise`).
+If `NULL` (default), internal defaults are used where possible.}
+
+\item{fmax}{Numeric value giving the maximum fishing mortality (or
+F-multiplier) considered when searching for MSY-based reference points.
+The internal grid of F values typically runs from 0 to `fmax`. Default is
+`10`.}
+
+\item{ncores}{Integer giving the number of CPU cores to use for parallel
+computation. Default is `parallel::detectCores() - 1`. On non-Unix
+systems (e.g. Windows), `mclapply()` falls back to serial execution
+regardless of `ncores`.}
+
+\item{ref}{Character vector specifying which reference points to estimate.
+Typical entries include:
+\itemize{
+  \item `"Fmsy"`: Fishing mortality at MSY.
+  \item `"Bmsy"`: Biomass at MSY.
+  \item `"MSY"`: Maximum sustainable yield.
+  \item `"B0"`: Unfished (virgin) biomass.
+  \item `"ESBmsy"`: Equilibrium spawning biomass at F\eqn{_{MSY}}.
+  \item `"SSBmsy"`: Spawning stock biomass at F\eqn{_{MSY}}.
+  \item `"ESB0"`: Equilibrium spawning biomass at F = 0.
+}
+The default is `c("Fmsy", "Bmsy", "MSY", "B0", "ESBmsy", "SSBmsy", "ESB0")`.}
+
+\item{plot}{Logical; if `TRUE`, produce diagnostic plots showing, for
+example, simulated yield and biomass as a function of fishing mortality
+and the resulting distribution of reference-point estimates. Default is
+`FALSE`.}
+
+\item{get.final}{Logical; if `TRUE`, return additional information on the
+final simulation results used to derive the reference points (e.g.
+replicate-level outcomes at the estimated \eqn{F_{MSY}}). If `FALSE`
+(default), only summary reference levels are stored in `dat$ref` and
+returned.}
+}
+\value{
+The updated `dat` object, with `dat$ref` containing stochastic
+  reference levels for each stock. If `get.final = TRUE`, the return value
+  may include additional elements with the underlying simulation results
+  used to construct the reference points. The object is also returned
+  invisibly.
+}
 \description{
-est.ref.levels.stochastic
+`est.ref.levels.stochastic()` estimates reference points such as
+\eqn{F_{MSY}}, \eqn{B_{MSY}}, MSY, and unfished biomass \eqn{B_0} using
+stochastic simulations. For each candidate fishing mortality level (up to
+`fmax`), the operating model is simulated over many replicates, taking into
+account process, observation, and parameter uncertainty as specified in
+`set`. Reference points are then derived from the distribution of simulated
+long-term outcomes.
+}
+\details{
+Compared to [est.ref.levels()], which is deterministic, this function
+provides stochastic, simulation-based estimates that are more consistent
+with the full uncertainty structure used in IAMSE MSE runs. Parallel
+computation across stocks or fishing mortality levels is supported via
+[parallel::mclapply()] on Unix-like systems.
+
+
+The function typically:
+\enumerate{
+  \item For each stock, simulates the operating model over a range of F
+        values from 0 to `fmax`, using the uncertainty specification in
+        `set`.
+  \item Aggregates long-term outcomes across replicates for each F.
+  \item Identifies the F that maximises yield (and associated biomass
+        levels) in a stochastic sense (e.g. using medians across replicates).
+  \item Stores the requested stochastic reference points in `dat$ref`.
+}
+Parallelisation is implemented via [parallel::mclapply()], which uses
+forking on Unix-like systems. On Windows, the computation is executed in
+serial even if `ncores > 1`.
 }

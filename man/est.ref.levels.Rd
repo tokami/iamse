@@ -2,7 +2,7 @@
 % Please edit documentation in R/refs.R
 \name{est.ref.levels}
 \alias{est.ref.levels}
-\title{est.ref.levels}
+\title{Estimate deterministic reference points}
 \usage{
 est.ref.levels(
   dat,
@@ -13,6 +13,68 @@ est.ref.levels(
   plot = FALSE
 )
 }
+\arguments{
+\item{dat}{Data object as returned by [check.dat()], containing life-history
+and stock information for one or more stocks. The list element
+`dat$ref` is created or updated with the estimated reference levels.}
+
+\item{set}{Optional settings list as returned by [check.set()]. If `NULL`
+(default), internal defaults are used where needed. When provided, `set`
+can control aspects of the operating model and reference-point
+calculation.}
+
+\item{fvec}{Numeric vector giving the grid of fishing mortality values
+(e.g. \eqn{F} or \eqn{F/F_{MSY}}) over which yield and biomass are
+evaluated. Default is `seq(0, 5, 0.1)`.}
+
+\item{ncores}{Integer giving the number of CPU cores to use for parallel
+computation across stocks. Default is `parallel::detectCores() - 1`. On
+non-Unix systems (e.g. Windows), `mclapply()` falls back to serial
+execution regardless of `ncores`.}
+
+\item{ref}{Character vector specifying which reference points to estimate.
+Typical entries include:
+\itemize{
+  \item `"Fmsy"`: Fishing mortality at MSY.
+  \item `"Bmsy"`: Biomass at MSY.
+  \item `"MSY"`: Maximum sustainable yield.
+  \item `"ESBmsy"`: Equilibrium spawning biomass at F\eqn{_{MSY}}.
+  \item `"SSBmsy"`: Spawning stock biomass at F\eqn{_{MSY}}.
+  \item `"B0"`: Unfished (virgin) biomass.
+}
+The default is `c("Fmsy", "Bmsy", "MSY", "ESBmsy", "SSBmsy", "B0")`.}
+
+\item{plot}{Logical; if `TRUE`, produce diagnostic plots of the relationship
+between fishing mortality and yield/biomass (e.g. equilibrium yield
+curves, biomass vs. F). Default is `FALSE`.}
+}
+\value{
+The updated `dat` object, with the component `dat$ref` containing a
+  table or list of estimated reference levels for each stock. The object is
+  also returned invisibly.
+}
 \description{
-est.ref.levels
+`est.ref.levels()` estimates deterministic reference points for each stock
+in an IAMSE data object over a grid of fishing mortality values. Typical
+reference points include \eqn{F_{MSY}}, \eqn{B_{MSY}}, MSY, and unfished
+biomass \eqn{B_0}. The function evaluates the operating model at a range of
+fishing mortalities (`fvec`), identifies the values that maximise long-term
+yield, and stores the resulting reference levels in `dat$ref`.
+}
+\details{
+This function provides a fast, deterministic alternative to
+[est.ref.levels.stochastic()], which uses stochastic simulations. It can
+use multiple cores via `parallel::mclapply()` on Unix-like systems.
+
+
+The function typically:
+\enumerate{
+  \item Loops over stocks defined in `dat`.
+  \item For each stock, evaluates equilibrium quantities over `fvec`.
+  \item Identifies \eqn{F_{MSY}} and associated biomass and yield metrics.
+  \item Stores the requested reference points in `dat$ref`.
+}
+Parallelisation is implemented via [parallel::mclapply()], which uses
+forking on Unix-like systems. On Windows, the computation is executed in
+serial even if `ncores > 1`.
 }

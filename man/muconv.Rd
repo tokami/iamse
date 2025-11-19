@@ -6,6 +6,11 @@
 \usage{
 muconv(mu, sd)
 }
+\arguments{
+\item{mu}{info}
+
+\item{sd}{info}
+}
 \description{
 muconv
 }

@@ -1,14 +1,67 @@
-#' est.ref.levels
+#' Estimate deterministic reference points
 #'
-#' @importFrom parallel detectCores
-#' @importFrom parallel mclapply
+#' `est.ref.levels()` estimates deterministic reference points for each stock
+#' in an IAMSE data object over a grid of fishing mortality values. Typical
+#' reference points include \eqn{F_{MSY}}, \eqn{B_{MSY}}, MSY, and unfished
+#' biomass \eqn{B_0}. The function evaluates the operating model at a range of
+#' fishing mortalities (`fvec`), identifies the values that maximise long-term
+#' yield, and stores the resulting reference levels in `dat$ref`.
 #'
+#' This function provides a fast, deterministic alternative to
+#' [est.ref.levels.stochastic()], which uses stochastic simulations. It can
+#' use multiple cores via `parallel::mclapply()` on Unix-like systems.
+#'
+#' @param dat Data object as returned by [check.dat()], containing life-history
+#'   and stock information for one or more stocks. The list element
+#'   `dat$ref` is created or updated with the estimated reference levels.
+#' @param set Optional settings list as returned by [check.set()]. If `NULL`
+#'   (default), internal defaults are used where needed. When provided, `set`
+#'   can control aspects of the operating model and reference-point
+#'   calculation.
+#' @param fvec Numeric vector giving the grid of fishing mortality values
+#'   (e.g. \eqn{F} or \eqn{F/F_{MSY}}) over which yield and biomass are
+#'   evaluated. Default is `seq(0, 5, 0.1)`.
+#' @param ncores Integer giving the number of CPU cores to use for parallel
+#'   computation across stocks. Default is `parallel::detectCores() - 1`. On
+#'   non-Unix systems (e.g. Windows), `mclapply()` falls back to serial
+#'   execution regardless of `ncores`.
+#' @param ref Character vector specifying which reference points to estimate.
+#'   Typical entries include:
+#'   \itemize{
+#'     \item `"Fmsy"`: Fishing mortality at MSY.
+#'     \item `"Bmsy"`: Biomass at MSY.
+#'     \item `"MSY"`: Maximum sustainable yield.
+#'     \item `"ESBmsy"`: Equilibrium spawning biomass at F\eqn{_{MSY}}.
+#'     \item `"SSBmsy"`: Spawning stock biomass at F\eqn{_{MSY}}.
+#'     \item `"B0"`: Unfished (virgin) biomass.
+#'   }
+#'   The default is `c("Fmsy", "Bmsy", "MSY", "ESBmsy", "SSBmsy", "B0")`.
+#' @param plot Logical; if `TRUE`, produce diagnostic plots of the relationship
+#'   between fishing mortality and yield/biomass (e.g. equilibrium yield
+#'   curves, biomass vs. F). Default is `FALSE`.
+#'
+#' @return The updated `dat` object, with the component `dat$ref` containing a
+#'   table or list of estimated reference levels for each stock. The object is
+#'   also returned invisibly.
+#'
+#' @details
+#' The function typically:
+#' \enumerate{
+#'   \item Loops over stocks defined in `dat`.
+#'   \item For each stock, evaluates equilibrium quantities over `fvec`.
+#'   \item Identifies \eqn{F_{MSY}} and associated biomass and yield metrics.
+#'   \item Stores the requested reference points in `dat$ref`.
+#' }
+#' Parallelisation is implemented via [parallel::mclapply()], which uses
+#' forking on Unix-like systems. On Windows, the computation is executed in
+#' serial even if `ncores > 1`.
+#'
+#' @importFrom parallel detectCores mclapply
 #' @export
-#'
 est.ref.levels <- function(dat, set=NULL, fvec = seq(0,5,0.1),
-                   ncores=parallel::detectCores()-1,
-                   ref = c("Fmsy","Bmsy","MSY","ESBmsy","SSBmsy","B0"),
-                   plot = FALSE){
+                           ncores = parallel::detectCores()-1,
+                           ref = c("Fmsy","Bmsy","MSY","ESBmsy","SSBmsy","B0"),
+                           plot = FALSE) {
 
     ny <- dat$ny
     ns <- dat$ns
@@ -91,17 +144,86 @@ est.ref.levels <- function(dat, set=NULL, fvec = seq(0,5,0.1),
 }
 
 
-#' est.ref.levels.stochastic
+#' Estimate stochastic reference points
 #'
-#' @importFrom parallel detectCores
-#' @importFrom parallel mclapply
+#' `est.ref.levels.stochastic()` estimates reference points such as
+#' \eqn{F_{MSY}}, \eqn{B_{MSY}}, MSY, and unfished biomass \eqn{B_0} using
+#' stochastic simulations. For each candidate fishing mortality level (up to
+#' `fmax`), the operating model is simulated over many replicates, taking into
+#' account process, observation, and parameter uncertainty as specified in
+#' `set`. Reference points are then derived from the distribution of simulated
+#' long-term outcomes.
 #'
+#' Compared to [est.ref.levels()], which is deterministic, this function
+#' provides stochastic, simulation-based estimates that are more consistent
+#' with the full uncertainty structure used in IAMSE MSE runs. Parallel
+#' computation across stocks or fishing mortality levels is supported via
+#' [parallel::mclapply()] on Unix-like systems.
+#'
+#' @param dat Data object as returned by [check.dat()], containing life-history
+#'   and stock information for one or more stocks. The list element `dat$ref`
+#'   is created or updated with the estimated stochastic reference levels.
+#' @param set Settings list as returned by [check.set()]. This should define
+#'   the number of stochastic replicates used for the reference-point
+#'   calculation (e.g. `set$refN`) and the noise structure (e.g. `set$noise`).
+#'   If `NULL` (default), internal defaults are used where possible.
+#' @param fmax Numeric value giving the maximum fishing mortality (or
+#'   F-multiplier) considered when searching for MSY-based reference points.
+#'   The internal grid of F values typically runs from 0 to `fmax`. Default is
+#'   `10`.
+#' @param ncores Integer giving the number of CPU cores to use for parallel
+#'   computation. Default is `parallel::detectCores() - 1`. On non-Unix
+#'   systems (e.g. Windows), `mclapply()` falls back to serial execution
+#'   regardless of `ncores`.
+#' @param ref Character vector specifying which reference points to estimate.
+#'   Typical entries include:
+#'   \itemize{
+#'     \item `"Fmsy"`: Fishing mortality at MSY.
+#'     \item `"Bmsy"`: Biomass at MSY.
+#'     \item `"MSY"`: Maximum sustainable yield.
+#'     \item `"B0"`: Unfished (virgin) biomass.
+#'     \item `"ESBmsy"`: Equilibrium spawning biomass at F\eqn{_{MSY}}.
+#'     \item `"SSBmsy"`: Spawning stock biomass at F\eqn{_{MSY}}.
+#'     \item `"ESB0"`: Equilibrium spawning biomass at F = 0.
+#'   }
+#'   The default is `c("Fmsy", "Bmsy", "MSY", "B0", "ESBmsy", "SSBmsy", "ESB0")`.
+#' @param plot Logical; if `TRUE`, produce diagnostic plots showing, for
+#'   example, simulated yield and biomass as a function of fishing mortality
+#'   and the resulting distribution of reference-point estimates. Default is
+#'   `FALSE`.
+#' @param get.final Logical; if `TRUE`, return additional information on the
+#'   final simulation results used to derive the reference points (e.g.
+#'   replicate-level outcomes at the estimated \eqn{F_{MSY}}). If `FALSE`
+#'   (default), only summary reference levels are stored in `dat$ref` and
+#'   returned.
+#'
+#' @return The updated `dat` object, with `dat$ref` containing stochastic
+#'   reference levels for each stock. If `get.final = TRUE`, the return value
+#'   may include additional elements with the underlying simulation results
+#'   used to construct the reference points. The object is also returned
+#'   invisibly.
+#'
+#' @details
+#' The function typically:
+#' \enumerate{
+#'   \item For each stock, simulates the operating model over a range of F
+#'         values from 0 to `fmax`, using the uncertainty specification in
+#'         `set`.
+#'   \item Aggregates long-term outcomes across replicates for each F.
+#'   \item Identifies the F that maximises yield (and associated biomass
+#'         levels) in a stochastic sense (e.g. using medians across replicates).
+#'   \item Stores the requested stochastic reference points in `dat$ref`.
+#' }
+#' Parallelisation is implemented via [parallel::mclapply()], which uses
+#' forking on Unix-like systems. On Windows, the computation is executed in
+#' serial even if `ncores > 1`.
+#'
+#' @importFrom parallel detectCores mclapply
 #' @export
-#'
 est.ref.levels.stochastic <- function(dat, set=NULL, fmax = 10,
-                        ncores = parallel::detectCores()-1,
+                                      ncores = parallel::detectCores()-1,
                         ref = c("Fmsy","Bmsy","MSY","B0","ESBmsy","SSBmsy","ESB0"),
-                        plot = FALSE, get.final = FALSE){
+                        plot = FALSE, get.final = FALSE) {
 
     ## Checks
     if(is.null(set)) set <- check.set()
@@ -439,8 +561,13 @@ est.ref.levels.stochastic <- function(dat, set=NULL, fmax = 10,
 
 
 #' sbr
+#'
+#' @param FM info
+#' @param dat info
+#' @param out info
+#'
 #' @export
-sbr <- function(FM, dat, out=0){
+sbr <- function(FM, dat, out=0) {
     ## some variables
     amax <- dat$amax + 1
     ## initialize starting values

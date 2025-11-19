@@ -6,6 +6,15 @@
 \usage{
 est.tac(obs., hcr.fun, tacs. = NULL, pars. = NULL)
 }
+\arguments{
+\item{obs.}{observation}
+
+\item{hcr.fun}{HCR function}
+
+\item{tacs.}{tac daa frame}
+
+\item{pars.}{parameters}
+}
 \description{
 est.tac
 }

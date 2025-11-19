@@ -1,0 +1,44 @@
+meta  <- utils::packageDescription("iamse")
+year  <- sub("-.*", "", meta$Date)
+note  <- sprintf("R package version %s", meta$Version)
+
+citHeader("To cite the iamse R package in publications, please use:")
+
+## Package citation
+bibentry(
+    bibtype = "Manual",
+    title   = "iamse: Intra-Annual Management Strategy Evaluation",
+    author  = person("Tobias K.", "Mildenberger"),
+    year    = year,
+    note    = note,
+    url     = "https://github.com/tokami/iamse",
+    textVersion = sprintf(
+        "Mildenberger, T.K. (%s). iamse: Intra-Annual Management Strategy Evaluation. R package version %s. https://github.com/tokami/iamse",
+        year, meta$Version
+    )
+)
+
+## Methodological paper
+bibentry(
+    bibtype = "Article",
+    header  = "If you use the methods implemented in iamse, please also cite:",
+    title   = "Implementing the precautionary approach into fisheries management: Biomass reference points and uncertainty buffers",
+    author  = c(
+        person("Tobias K.",  "Mildenberger"),
+        person("Casper W.",  "Berg"),
+        person("Alexandros", "Kokkalis"),
+        person("Adrian R.",  "Hordyk"),
+        person("Chantel",    "Wetzel"),
+        person("Nis S.",     "Jacobsen"),
+        person("André E.",   "Punt"),
+        person("J. Rasmus",  "Nielsen")
+    ),
+    journal = "Fish and Fisheries",
+    year    = "2022",
+    volume  = "23",
+    number  = "1",
+    pages   = "73--92",
+    doi     = "10.1111/faf.12599"
+)
+
+citFooter("As iamse is continually evolving, you may want to view the development version at https://github.com/tokami/iamse")

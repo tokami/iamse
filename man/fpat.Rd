@@ -6,6 +6,11 @@
 \usage{
 fpat(fmax, fscen = 1)
 }
+\arguments{
+\item{fmax}{info}
+
+\item{fscen}{info}
+}
 \description{
 fpat
 }

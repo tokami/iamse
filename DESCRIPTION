@@ -14,12 +14,20 @@ Encoding: UTF-8
 Depends:
     R (>= 3.0)
 Imports:
-    Rcpp (>= 1.0.3)
+    Rcpp (>= 1.0.3),
+    doBy,
+    future,
+    future.apply,
+    parallel,
+    MASS
 LinkingTo:
     Rcpp
 Suggests:
     knitr,
-    rmarkdown
+    rmarkdown,
+    spict
+Remotes:
+    DTUAqua/spict/spict
 LazyData: true
 VignetteBuilder: knitr
 RoxygenNote: 7.3.2

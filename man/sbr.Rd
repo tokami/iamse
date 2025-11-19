@@ -6,6 +6,13 @@
 \usage{
 sbr(FM, dat, out = 0)
 }
+\arguments{
+\item{FM}{info}
+
+\item{dat}{info}
+
+\item{out}{info}
+}
 \description{
 sbr
 }

@@ -12,6 +12,17 @@ get.converged(
   verbose = FALSE
 )
 }
+\arguments{
+\item{mse}{info}
+
+\item{convyears}{info}
+
+\item{convhcrs}{info}
+
+\item{out}{info}
+
+\item{verbose}{info}
+}
 \description{
 Get converged simulates from a resMSE object
 }

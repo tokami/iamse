@@ -1,10 +1,15 @@
-## observation model
-
-
-## make observations with given CV for catch and index (only one index time series so far)
 #' obsmod
+#'
+#' @param dat info
+#' @param hist info
+#' @param set info
+#' @param years info
+#'
 #' @export
 obsmod <- function(dat, hist, set, years = NULL){
+
+    ## make observations with given CV for catch and index (only one index time series so far)
+
     ## parameters
     CW <- hist$CW
     q <- dat$q

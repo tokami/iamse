@@ -16,6 +16,25 @@ gen.noise(
   hist = NULL
 )
 }
+\arguments{
+\item{n}{info}
+
+\item{sd}{info}
+
+\item{rho}{info}
+
+\item{bias.cor}{info}
+
+\item{mv}{info}
+
+\item{dat}{info}
+
+\item{by.asmax}{info}
+
+\item{by.length}{info}
+
+\item{hist}{info}
+}
 \description{
 gen.noise
 }

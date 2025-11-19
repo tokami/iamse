@@ -12,6 +12,12 @@ getM(Linf, K, mids, a = 0.55, b = 1.61, c = 1.44)
 \item{K}{K of vBGF}
 
 \item{mids}{midlengths}
+
+\item{a}{info}
+
+\item{b}{info}
+
+\item{c}{info}
 }
 \description{
 Function to estimate selectivity of natural mortality

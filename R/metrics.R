@@ -1,9 +1,11 @@
-
-
-
 #' est.cons.mets
 #'
 #' @description Estimate consistency of metrics across different sample sizes
+#'
+#' @param mse info
+#' @param dat info
+#' @param mets info
+#' @param sampleSizes info
 #'
 #' @export
 est.cons.mets <- function(mse, dat, mets = "all",
@@ -35,12 +37,24 @@ est.cons.mets <- function(mse, dat, mets = "all",
 
 
 #' est.metrics
+#'
+#' @param mse info
+#' @param dat info
+#' @param set info
+#' @param mets info
+#' @param gen.time info
+#' @param nysim info
+#' @param kobe.probs info
+#'
+#' @importFrom stats wilcox.test median var prop.test quantile qnorm qt sd
+#' @importFrom utils tail
+#'
 #' @export
 est.metrics <- function(mse, dat, set = NULL,
                         mets = "all",
                         gen.time = NULL,
                         nysim = NULL,
-                        kobe.probs = c(0.25, 0.5, 0.75)){
+                        kobe.probs = c(0.25, 0.5, 0.75)) {
 
     nysim0 <- nysim
 
@@ -226,8 +240,8 @@ for(hcr in 1:nhcr){
             if(length(reffmsyInd) > 0){
                 indi <- as.numeric(names(msei))
                 tmp <- sapply(1:length(msei), function(x)
-                    median(apply(msei[[x]]$CW,1,sum)[simYears] / refyield[["simYears"]][[indi[x]]]))
-                vari <- var(tmp)
+                    stats::median(apply(msei[[x]]$CW,1,sum)[simYears] / refyield[["simYears"]][[indi[x]]]))
+                vari <- stats::var(tmp)
                 ni <- length(tmp)
                 sei <- sqrt(vari/ni)
                 tmp2 <- try(wilcox.test(as.numeric(tmp),
@@ -261,7 +275,7 @@ for(hcr in 1:nhcr){
             if(is.null(refs$Blim)) stop("There is no Blim in dat$ref! Please add a Blim!")
             metsUsed <- c(metsUsed, "PBBlim")
             tmp <- unlist(lapply(msei, function(x) mean(x$TSBfinal[simYears] / refs$Blim < 1)))
-            vari <- var(tmp)
+            vari <- stats::var(tmp)
             ni <- length(tmp)
             sei <- sqrt(vari/ni)
             tmp <- prop.test(sum(tmp),
@@ -274,7 +288,7 @@ for(hcr in 1:nhcr){
             if(is.null(refs$SSBlim)) stop("There is no Blim in dat$ref! Please add a SSBlim!")
             metsUsed <- c(metsUsed, "PBBlimSSB")
             tmp <- unlist(lapply(msei, function(x) mean(x$SSBfinal[simYears] / refs$SSBlim < 1)))
-            vari <- var(tmp)
+            vari <- stats::var(tmp)
             ni <- length(tmp)
             sei <- sqrt(vari/ni)
             tmp <- prop.test(sum(tmp), n = length(tmp), conf.level = 0.95, correct = FALSE)
@@ -287,11 +301,11 @@ for(hcr in 1:nhcr){
             ##                             function(x) (((apply(x$CW,1,sum)[simYears] -
             ##                                            apply(x$CW,1,sum)[simYears+1])/
             ##                                           apply(x$CW,1,sum)[simYears+1])^2)^0.5),
-            ##                      median ,na.rm=TRUE))
+            ##                      stats::median ,na.rm=TRUE))
             tmp <- sapply(msei, function(x) (sum(abs(apply(x$CW,1,sum)[simYears[-1]] -
                                                      apply(x$CW,1,sum)[simYears[-length(simYears)]]),na.rm=TRUE)/
                                              sum(apply(x$CW,1,sum)[simYears[-1]], na.rm=TRUE)))
-            vari <- var(tmp)
+            vari <- stats::var(tmp)
             ni <- length(tmp)
             sei <- sqrt(vari/ni)
             tmp2 <- try(wilcox.test(as.numeric(tmp),
@@ -347,8 +361,8 @@ for(hcr in 1:nhcr){
             if(length(reffmsyInd) > 0){
                 indi <- as.numeric(names(msei))
                 tmp <- sapply(1:length(msei), function(x)
-                    median(apply(msei[[x]]$CW,1,sum)[first5Years] / refyield[["first5Years"]][[indi[x]]]))
-                vari <- var(tmp)
+                    stats::median(apply(msei[[x]]$CW,1,sum)[first5Years] / refyield[["first5Years"]][[indi[x]]]))
+                vari <- stats::var(tmp)
                 ni <- length(tmp)
                 sei <- sqrt(vari/ni)
                 tmp2 <- try(wilcox.test(as.numeric(tmp),
@@ -382,7 +396,7 @@ for(hcr in 1:nhcr){
             if(is.null(refs$Blim)) stop("There is no Blim in dat$ref! Please add a Blim!")
             metsUsed <- c(metsUsed, "PBBlimST")
             tmp <- unlist(lapply(msei, function(x) mean(x$TSBfinal[first5Years] / refs$Blim[first5Years] < 1)))
-            vari <- var(tmp)
+            vari <- stats::var(tmp)
             ni <- length(tmp)
             sei <- sqrt(vari/ni)
             tmp <- prop.test(sum(tmp), n = length(tmp), conf.level = 0.95, correct = FALSE)
@@ -418,8 +432,8 @@ for(hcr in 1:nhcr){
             if(length(reffmsyInd) > 0){
                 indi <- as.numeric(names(msei))
                 tmp <- sapply(1:length(msei), function(x)
-                    median(apply(msei[[x]]$CW,1,sum)[last15Years] / refyield[["last15Years"]][[indi[x]]]))
-                vari <- var(tmp)
+                    stats::median(apply(msei[[x]]$CW,1,sum)[last15Years] / refyield[["last15Years"]][[indi[x]]]))
+                vari <- stats::var(tmp)
                 ni <- length(tmp)
                 sei <- sqrt(vari/ni)
                 tmp2 <- try(wilcox.test(as.numeric(tmp),
@@ -453,7 +467,7 @@ for(hcr in 1:nhcr){
             if(is.null(refs$Blim)) stop("There is no Blim in dat$ref! Please add a Blim!")
             metsUsed <- c(metsUsed, "PBBlimLT")
             tmp <- unlist(lapply(msei, function(x) mean(x$TSBfinal[last15Years] / refs$Blim[last15Years] < 1)))
-            vari <- var(tmp)
+            vari <- stats::var(tmp)
             ni <- length(tmp)
             sei <- sqrt(vari/ni)
             tmp <- prop.test(sum(tmp), n = length(tmp), conf.level = 0.95, correct = FALSE)
@@ -492,7 +506,7 @@ for(hcr in 1:nhcr){
                 tmp <- unlist(lapply(as.list(1:length(msei)), function(x)
                     apply(msei[[x]]$CW,1,sum)[amaxYears] / refyield[["amaxYears"]][[indi[x]]]))
                 meani <- mean(tmp)
-                vari <- var(tmp)
+                vari <- stats::var(tmp)
                 ni <- length(tmp)
                 sei <- sqrt(vari/ni)
                 erri <- 1.96 * (sqrt(vari)/sqrt(ni))
@@ -527,7 +541,7 @@ for(hcr in 1:nhcr){
             if(is.null(refs$Blim)) stop("There is no Blim in dat$ref! Please add a Blim!")
             metsUsed <- c(metsUsed, "PBBlimamax")
             tmp <- unlist(lapply(msei, function(x) mean(x$TSBfinal[amaxYears] / refs$Blim[amaxYears] < 1)))
-            vari <- var(tmp)
+            vari <- stats::var(tmp)
             ni <- length(tmp)
             sei <- sqrt(vari/ni)
             tmp <- prop.test(sum(tmp), n = length(tmp), conf.level = 0.95, correct = FALSE)
@@ -540,11 +554,11 @@ for(hcr in 1:nhcr){
             ##                             function(x) (((apply(x$CW,1,sum)[simYears] -
             ##                                            apply(x$CW,1,sum)[simYears+1])/
             ##                                           apply(x$CW,1,sum)[simYears+1])^2)^0.5),
-            ##                      median ,na.rm=TRUE))
+            ##                      stats::median ,na.rm=TRUE))
             tmp <- sapply(msei, function(x) (sum(abs(apply(x$CW,1,sum)[amaxYears[-1]] -
                                                      apply(x$CW,1,sum)[amaxYears[-length(amaxYears)]]),na.rm=TRUE)/
                                              sum(apply(x$CW,1,sum)[amaxYears[-1]], na.rm=TRUE)))
-            vari <- var(tmp)
+            vari <- stats::var(tmp)
             ni <- length(tmp)
             sei <- sqrt(vari/ni)
             tmp2 <- try(wilcox.test(as.numeric(tmp),
@@ -573,7 +587,7 @@ for(hcr in 1:nhcr){
                 tmp <- unlist(lapply(as.list(1:length(msei)), function(x)
                     apply(msei[[x]]$CW,1,sum)[amaxYears3] / refyield[["amaxYears"]][[indi[x]]]))
                 meani <- mean(tmp)
-                vari <- var(tmp)
+                vari <- stats::var(tmp)
                 ni <- length(tmp)
                 sei <- sqrt(vari/ni)
                 erri <- 1.96 * (sqrt(vari)/sqrt(ni))
@@ -607,7 +621,7 @@ for(hcr in 1:nhcr){
         if(any(mets == "PBBlimamax2")){
             metsUsed <- c(metsUsed, "PBBlimamax2")
             tmp <- unlist(lapply(msei, function(x) mean(x$TSBfinal[amaxYears4] / refs$Blim[amaxYears4] < 1)))
-            vari <- var(tmp)
+            vari <- stats::var(tmp)
             ni <- length(tmp)
             sei <- sqrt(vari/ni)
             tmp <- prop.test(sum(tmp), n = length(tmp), conf.level = 0.95, correct = FALSE)
@@ -616,13 +630,13 @@ for(hcr in 1:nhcr){
         ## "BBmsy"
         if(any(mets == "BBmsyamax")){
             metsUsed <- c(metsUsed, "BBmsyamax")
-            tmp <- unlist(lapply(msei, function(x) median(x$TSBfinal[amaxYears2] / refs$Bmsy[amaxYears2])))
+            tmp <- unlist(lapply(msei, function(x) stats::median(x$TSBfinal[amaxYears2] / refs$Bmsy[amaxYears2])))
             res <- rbind(res, quantile(tmp, probs = c(0.2, 0.5, 0.8), na.rm=TRUE))
         }
         ## "FFmsy"
         if(any(mets == "FFmsyamax")){
             metsUsed <- c(metsUsed, "FFmsyamax")
-            tmp <- unlist(lapply(msei, function(x) median(apply(x$FM,1,sum)[amaxYears2] / refs$Fmsy[amaxYears2])))
+            tmp <- unlist(lapply(msei, function(x) stats::median(apply(x$FM,1,sum)[amaxYears2] / refs$Fmsy[amaxYears2])))
             res <- rbind(res, quantile(tmp, probs = c(0.2, 0.5, 0.8), na.rm=TRUE))
         }
         ## CMSYlast5
@@ -631,8 +645,8 @@ for(hcr in 1:nhcr){
             if(length(reffmsyInd) > 0){
                 indi <- as.numeric(names(msei))
                 tmp <- sapply(1:length(msei), function(x)
-                    median(apply(msei[[x]]$CW,1,sum)[last5Years] / refyield[["last5Years"]][[indi[x]]]))
-                vari <- var(tmp)
+                    stats::median(apply(msei[[x]]$CW,1,sum)[last5Years] / refyield[["last5Years"]][[indi[x]]]))
+                vari <- stats::var(tmp)
                 ni <- length(tmp)
                 sei <- sqrt(vari/ni)
                 tmp2 <- try(wilcox.test(as.numeric(tmp),
@@ -667,8 +681,8 @@ for(hcr in 1:nhcr){
             if(length(reffmsyInd) > 0){
                 indi <- as.numeric(names(msei))
                 tmp <- sapply(1:length(msei), function(x)
-                    median(apply(msei[[x]]$CW,1,sum)[last10Years] / refyield[["last10Years"]][[indi[x]]]))
-                vari <- var(tmp)
+                    stats::median(apply(msei[[x]]$CW,1,sum)[last10Years] / refyield[["last10Years"]][[indi[x]]]))
+                vari <- stats::var(tmp)
                 ni <- length(tmp)
                 sei <- sqrt(vari/ni)
                 tmp2 <- try(wilcox.test(as.numeric(tmp),
@@ -703,9 +717,9 @@ for(hcr in 1:nhcr){
             if(length(reffmsyInd) > 0){
                 indi <- as.numeric(names(msei))
                 tmp <- sapply(1:length(msei), function(x)
-                    median(apply(msei[[x]]$CW,1,sum)[first10Years] /
+                    stats::median(apply(msei[[x]]$CW,1,sum)[first10Years] /
                            refyield[["first10Years"]][[indi[x]]]))
-                vari <- var(tmp)
+                vari <- stats::var(tmp)
                 ni <- length(tmp)
                 sei <- sqrt(vari/ni)
                 tmp2 <- try(wilcox.test(as.numeric(tmp),
@@ -739,7 +753,7 @@ for(hcr in 1:nhcr){
             if(is.null(refs$Blim)) stop("There is no Blim in dat$ref! Please add a Blim!")
             metsUsed <- c(metsUsed, "PBBlimlast5")
             tmp <- unlist(lapply(msei, function(x) mean(x$TSBfinal[last5Years] / refs$Blim[last5Years] < 1)))
-            vari <- var(tmp)
+            vari <- stats::var(tmp)
             ni <- length(tmp)
             sei <- sqrt(vari/ni)
             tmp <- prop.test(sum(tmp), n = length(tmp), conf.level = 0.95, correct = FALSE)
@@ -750,7 +764,7 @@ for(hcr in 1:nhcr){
             if(is.null(refs$Blim)) stop("There is no Blim in dat$ref! Please add a Blim!")
             metsUsed <- c(metsUsed, "PBBlimlast10")
             tmp <- unlist(lapply(msei, function(x) mean(x$TSBfinal[last10Years] / refs$Blim[last10Years] < 1)))
-            vari <- var(tmp)
+            vari <- stats::var(tmp)
             ni <- length(tmp)
             sei <- sqrt(vari/ni)
             tmp <- prop.test(sum(tmp), n = length(tmp), conf.level = 0.95, correct = FALSE)
@@ -761,7 +775,7 @@ for(hcr in 1:nhcr){
             if(is.null(refs$Blim)) stop("There is no Blim in dat$ref! Please add a Blim!")
             metsUsed <- c(metsUsed, "PBBlimlast10SSB")
             tmp <- unlist(lapply(msei, function(x) mean(x$SSBfinal[last10Years] / refs$SSBlim[last10Years] < 1)))
-            vari <- var(tmp)
+            vari <- stats::var(tmp)
             ni <- length(tmp)
             sei <- sqrt(vari/ni)
             tmp <- prop.test(sum(tmp), n = length(tmp), conf.level = 0.95, correct = FALSE)
@@ -772,7 +786,7 @@ for(hcr in 1:nhcr){
             if(is.null(refs$Blim)) stop("There is no Blim in dat$ref! Please add a Blim!")
             metsUsed <- c(metsUsed, "PBBlimfirst10")
             tmp <- unlist(lapply(msei, function(x) mean(x$TSBfinal[first10Years] / refs$Blim[first10Years] < 1)))
-            vari <- var(tmp)
+            vari <- stats::var(tmp)
             ni <- length(tmp)
             sei <- sqrt(vari/ni)
             tmp <- prop.test(sum(tmp), n = length(tmp), conf.level = 0.95, correct = FALSE)
@@ -783,7 +797,7 @@ for(hcr in 1:nhcr){
             if(is.null(refs$Blim)) stop("There is no Blim in dat$ref! Please add a Blim!")
             metsUsed <- c(metsUsed, "PBBlimfirst10SSB")
             tmp <- unlist(lapply(msei, function(x) mean(x$SSBfinal[first10Years] / refs$SSBlim[first10Years] < 1)))
-            vari <- var(tmp)
+            vari <- stats::var(tmp)
             ni <- length(tmp)
             sei <- sqrt(vari/ni)
             tmp <- prop.test(sum(tmp), n = length(tmp), conf.level = 0.95, correct = FALSE)
@@ -796,12 +810,12 @@ for(hcr in 1:nhcr){
             ##                             function(x) (((apply(x$CW,1,sum)[simYears] -
             ##                                            apply(x$CW,1,sum)[simYears+1])/
             ##                                           apply(x$CW,1,sum)[simYears+1])^2)^0.5),
-            ##                      median ,na.rm=TRUE))
+            ##                      stats::median ,na.rm=TRUE))
             tmp <- sapply(msei, function(x) (sum(abs(apply(x$CW,1,sum)[simYears] -
                                                      apply(x$CW,1,sum)[simYears-1]),na.rm=TRUE)/
                                              sum(apply(x$CW,1,sum)[simYears], na.rm=TRUE)))
             mu <- mean(tmp)
-            vari <- var(tmp)
+            vari <- stats::var(tmp)
             ni <- length(tmp)
             sei <- sqrt(vari/ni)
             if(hcrs[hcr] == "noF"){
@@ -874,7 +888,7 @@ for(hcr in 1:nhcr){
             tmp <- sapply(msei, function(x) (sum(abs(apply(x$CW,1,sum)[first10Years[-1]] -
                                                      apply(x$CW,1,sum)[first10Years[-length(first10Years)]]),na.rm=TRUE)/
                                              sum(apply(x$CW,1,sum)[first10Years[-1]], na.rm=TRUE)))
-            vari <- var(tmp)
+            vari <- stats::var(tmp)
             ni <- length(tmp)
             sei <- sqrt(vari/ni)
             tmp2 <- try(wilcox.test(as.numeric(tmp),
@@ -902,7 +916,7 @@ for(hcr in 1:nhcr){
             tmp <- sapply(msei, function(x) (sum(abs(x$TSBfinal[first10Years[-1]] -
                                                      x$TSBfinal[first10Years[-length(first10Years)]]),na.rm=TRUE)/
                                              sum(x$TSBfinal[first10Years[-1]], na.rm=TRUE)))
-            vari <- var(tmp)
+            vari <- stats::var(tmp)
             ni <- length(tmp)
             sei <- sqrt(vari/ni)
             tmp2 <- try(wilcox.test(as.numeric(tmp),
@@ -930,7 +944,7 @@ for(hcr in 1:nhcr){
             tmp <- sapply(msei, function(x) (sum(abs(x$TSBfinal[simYears[-1]] -
                                                      x$TSBfinal[simYears[-length(simYears)]]),na.rm=TRUE)/
                                              sum(x$TSBfinal[simYears[-1]], na.rm=TRUE)))
-            vari <- var(tmp)
+            vari <- stats::var(tmp)
             ni <- length(tmp)
             sei <- sqrt(vari/ni)
             tmp2 <- try(wilcox.test(as.numeric(tmp),
@@ -956,7 +970,7 @@ for(hcr in 1:nhcr){
         ## CMSYMaxAge
         if(any(mets == "CMSYMaxAge")){
             metsUsed <- c(metsUsed, "CMSYMaxAge")
-            tmp <- unlist(lapply(msei, function(x) median(apply(x$CW,1,sum)[min(simYears):(min(simYears)+dat$amax)] /
+            tmp <- unlist(lapply(msei, function(x) stats::median(apply(x$CW,1,sum)[min(simYears):(min(simYears)+dat$amax)] /
                                                           refs$MSY)))
             res <- rbind(res, quantile(tmp, probs = c(0.025, 0.5, 0.975), na.rm=TRUE))
         }
@@ -972,20 +986,20 @@ for(hcr in 1:nhcr){
         ## "BBmsy"
         if(any(mets == "BBmsy")){
             metsUsed <- c(metsUsed, "BBmsy")
-            tmp <- unlist(lapply(msei, function(x) median(x$TSBfinal[simYears] / refs$Bmsy)))
+            tmp <- unlist(lapply(msei, function(x) stats::median(x$TSBfinal[simYears] / refs$Bmsy)))
             res <- rbind(res, quantile(tmp, probs = c(0.025, 0.5, 0.975), na.rm=TRUE))
         }
         ## "BBmsyLT"
         if(any(mets == "BBmsyLT")){
             metsUsed <- c(metsUsed, "BBmsyLT")
-            tmp <- unlist(lapply(msei, function(x) median(x$TSBfinal[last5Years] / refs$Bmsy)))
+            tmp <- unlist(lapply(msei, function(x) stats::median(x$TSBfinal[last5Years] / refs$Bmsy)))
             res <- rbind(res, quantile(tmp, probs = c(0.025, 0.5, 0.975), na.rm=TRUE))
         }
         if(any(mets == "CMSYold")){
             metsUsed <- c(metsUsed, "CMSYold")
             ## tmp <- unlist(lapply(msei, function(x) mean(apply(x$CW,1,sum)[last5Years] / refs$MSY)))## HERE:
             ## res <- rbind(res, quantile(tmp, probs = c(0.025, 0.5, 0.975), na.rm=TRUE))
-            tmp <- unlist(lapply(msei, function(x) median(apply(x$CW,1,sum)[simYears] / refs$MSY)))
+            tmp <- unlist(lapply(msei, function(x) stats::median(apply(x$CW,1,sum)[simYears] / refs$MSY)))
             res <- rbind(res, quantile(tmp, probs = c(0.025, 0.5, 0.975), na.rm=TRUE))
         }
         ## OLDER:
@@ -1044,7 +1058,7 @@ for(hcr in 1:nhcr){
             if(is.null(refs$Blim)) stop("There is no Blim in dat$ref! Please add a Blim!")
             metsUsed <- c(metsUsed, "PBBlimFirst5y")
             tmp <- unlist(lapply(msei, function(x) mean(x$TSBfinal[first5Years]/refs$Blim < 1)))
-            vari <- var(tmp)
+            vari <- stats::var(tmp)
             ni <- length(tmp)
             sei <- sqrt(vari/ni)
             tmp <- prop.test(sum(tmp), n = length(tmp), conf.level = 0.95,
@@ -1056,7 +1070,7 @@ for(hcr in 1:nhcr){
             if(is.null(refs$Blim)) stop("There is no Blim in dat$ref! Please add a Blim!")
             metsUsed <- c(metsUsed, "PBBlimFirst10y")
             tmp <- unlist(lapply(msei, function(x) mean(x$TSBfinal[first10Years]/refs$Blim < 1)))
-            vari <- var(tmp)
+            vari <- stats::var(tmp)
             ni <- length(tmp)
             sei <- sqrt(vari/ni)
             tmp <- prop.test(sum(tmp), n = length(tmp), conf.level = 0.95,
@@ -1082,7 +1096,7 @@ for(hcr in 1:nhcr){
         if(any(mets == "avRelCatch")){
             metsUsed <- c(metsUsed, "avRelCatch")
             if("refFmsy" %in% hcrs){
-                tmpRef <- lapply(resMSE[[which(hcrs == "refFmsy")]], function(x) apply(x$CW,1,mean)[simYears])
+                tmpRef <- lapply(mse[[which(hcrs == "refFmsy")]], function(x) apply(x$CW,1,mean)[simYears])
                 tmp0 <- lapply(msei, function(x) apply(x$CW,1,sum)[simYears])
                 tmp <- unlist(lapply(1:nrep, function(x) tmp0[[x]] / tmpRef[[x]]))
                 mu <- mean(tmp,na.rm=TRUE)
@@ -1099,7 +1113,7 @@ for(hcr in 1:nhcr){
         ## "avCRelatchLast5y"
         if(any(mets == "avCRelatchLast5y")){
             if("refFmsy" %in% hcrs){
-                tmpRef <- lapply(resMSE[[which(hcrs == "refFmsy")]], function(x) apply(x$CW,1,mean)[last5Years])
+                tmpRef <- lapply(mse[[which(hcrs == "refFmsy")]], function(x) apply(x$CW,1,mean)[last5Years])
                 tmp0 <- lapply(msei, function(x) apply(x$CW,1,sum)[last5Years])
                 tmp <- unlist(lapply(1:nrep, function(x) tmp0[[x]] / tmpRef[[x]]))
                 res <- rbind(res, quantile(tmp, probs = c(0.025, 0.5, 0.975), na.rm=TRUE))
@@ -1117,7 +1131,7 @@ for(hcr in 1:nhcr){
         ## "avRelCatchFirst5y"
         if(any(mets == "avRelCatchFirst5y")){
             if("refFmsy" %in% hcrs){
-                tmpRef <- lapply(resMSE[[which(hcrs == "refFmsy")]], function(x) apply(x$CW,1,sum)[first5Years])
+                tmpRef <- lapply(mse[[which(hcrs == "refFmsy")]], function(x) apply(x$CW,1,sum)[first5Years])
                 tmp0 <- lapply(msei, function(x) apply(x$CW,1,mean)[first5Years])
                 tmp <- unlist(lapply(1:nrep, function(x) tmp0[[x]] / tmpRef[[x]]))
                 res <- rbind(res, quantile(tmp, probs = c(0.025, 0.5, 0.975), na.rm=TRUE))
@@ -1155,7 +1169,7 @@ for(hcr in 1:nhcr){
                 tmp <- unlist(lapply(as.list(1:length(msei)), function(x)
                     apply(msei[[x]]$CW,1,sum)[newYears] / refyield[["newYears"]][[indi[x]]]))
                 meani <- mean(tmp)
-                vari <- var(tmp)
+                vari <- stats::var(tmp)
                 ni <- length(tmp)
                 sei <- sqrt(vari/ni)
                 erri <- 1.96 * (sqrt(vari)/sqrt(ni))
@@ -1191,7 +1205,7 @@ for(hcr in 1:nhcr){
             tmp <- unlist(lapply(as.list(1:length(msei)), function(x)
                 apply(msei[[x]]$CW,1,sum)[newYears]))
             meani <- mean(tmp)
-            vari <- var(tmp)
+            vari <- stats::var(tmp)
             ni <- length(tmp)
             sei <- sqrt(vari/ni)
             erri <- 1.96 * (sqrt(vari)/sqrt(ni))
@@ -1230,7 +1244,7 @@ for(hcr in 1:nhcr){
 
             ## Average risk over reps per year
             ## tmp <- sapply(newYears, function(x) mean(sapply(msei, function(y) y$TSBfinal[x] / refs$Blim[x] < 1)))
-            vari <- var(tmp)
+            vari <- stats::var(tmp)
             ni <- length(tmp)
             sei <- sqrt(vari/ni)
             tmp <- prop.test(sum(tmp), n = length(tmp), conf.level = 0.95,
@@ -1243,7 +1257,7 @@ for(hcr in 1:nhcr){
             ##     tmp <- unlist(lapply(as.list(1:length(msei)), function(x)
             ##         msei[[x]]$ESBfinal[newYears] / refB[["newYears"]][[indi[x]]]))
             ##     meani <- mean(tmp)
-            ##     vari <- var(tmp)
+            ##     vari <- stats::var(tmp)
             ##     ni <- length(tmp)
             ##     sei <- sqrt(vari/ni)
             ##     erri <- 1.96 * (sqrt(vari)/sqrt(ni))
@@ -1265,11 +1279,11 @@ for(hcr in 1:nhcr){
             ##                             function(x) (((apply(x$CW,1,sum)[simYears] -
             ##                                            apply(x$CW,1,sum)[simYears+1])/
             ##                                           apply(x$CW,1,sum)[simYears+1])^2)^0.5),
-            ##                      median ,na.rm=TRUE))
+            ##                      stats::median ,na.rm=TRUE))
             tmp <- sapply(msei, function(x) (sum(abs(apply(x$CW,1,sum)[newYears[-1]] -
                                                      apply(x$CW,1,sum)[newYears[-length(newYears)]]),na.rm=TRUE)/
                                              sum(apply(x$CW,1,sum)[newYears[-1]], na.rm=TRUE)))
-            vari <- var(tmp)
+            vari <- stats::var(tmp)
             ni <- length(tmp)
             sei <- sqrt(vari/ni)
             tmp2 <- try(wilcox.test(as.numeric(tmp),
@@ -1298,11 +1312,11 @@ for(hcr in 1:nhcr){
             ##                             function(x) (((apply(x$CW,1,sum)[simYears] -
             ##                                            apply(x$CW,1,sum)[simYears+1])/
             ##                                           apply(x$CW,1,sum)[simYears+1])^2)^0.5),
-            ##                      median ,na.rm=TRUE))
+            ##                      stats::median ,na.rm=TRUE))
             tmp <- sapply(msei, function(x) (sum(abs(x$TSBfinal[newYears[-1]] -
                                                      x$TSBfinal[newYears[-length(newYears)]]),na.rm=TRUE)/
                                              sum(x$TSBfinal[newYears[-1]], na.rm=TRUE)))
-            vari <- var(tmp)
+            vari <- stats::var(tmp)
             ni <- length(tmp)
             sei <- sqrt(vari/ni)
             tmp2 <- try(wilcox.test(as.numeric(tmp),
@@ -1335,7 +1349,7 @@ for(hcr in 1:nhcr){
                 tmp <- unlist(lapply(as.list(1:length(msei)), function(x)
                     apply(msei[[x]]$CW,1,sum)[newYears_st] / refyield[["newYears_st"]][[indi[x]]]))
                 meani <- mean(tmp)
-                vari <- var(tmp)
+                vari <- stats::var(tmp)
                 ni <- length(tmp)
                 sei <- sqrt(vari/ni)
                 erri <- 1.96 * (sqrt(vari)/sqrt(ni))
@@ -1371,7 +1385,7 @@ for(hcr in 1:nhcr){
             tmp <- unlist(lapply(as.list(1:length(msei)), function(x)
                 apply(msei[[x]]$CW,1,sum)[newYears_st]))
             meani <- mean(tmp)
-            vari <- var(tmp)
+            vari <- stats::var(tmp)
             ni <- length(tmp)
             sei <- sqrt(vari/ni)
             erri <- 1.96 * (sqrt(vari)/sqrt(ni))
@@ -1410,7 +1424,7 @@ for(hcr in 1:nhcr){
 
             ## Average risk over reps per year
             ## tmp <- sapply(newYears, function(x) mean(sapply(msei, function(y) y$TSBfinal[x] / refs$Blim[x] < 1)))
-            vari <- var(tmp)
+            vari <- stats::var(tmp)
             ni <- length(tmp)
             sei <- sqrt(vari/ni)
             tmp <- prop.test(sum(tmp), n = length(tmp), conf.level = 0.95,
@@ -1423,7 +1437,7 @@ for(hcr in 1:nhcr){
             ##     tmp <- unlist(lapply(as.list(1:length(msei)), function(x)
             ##         msei[[x]]$ESBfinal[newYears] / refB[["newYears"]][[indi[x]]]))
             ##     meani <- mean(tmp)
-            ##     vari <- var(tmp)
+            ##     vari <- stats::var(tmp)
             ##     ni <- length(tmp)
             ##     sei <- sqrt(vari/ni)
             ##     erri <- 1.96 * (sqrt(vari)/sqrt(ni))
@@ -1445,11 +1459,11 @@ for(hcr in 1:nhcr){
             ##                             function(x) (((apply(x$CW,1,sum)[simYears] -
             ##                                            apply(x$CW,1,sum)[simYears+1])/
             ##                                           apply(x$CW,1,sum)[simYears+1])^2)^0.5),
-            ##                      median ,na.rm=TRUE))
+            ##                      stats::median ,na.rm=TRUE))
             tmp <- sapply(msei, function(x) (sum(abs(apply(x$CW,1,sum)[newYears_st[-1]] -
                                                      apply(x$CW,1,sum)[newYears_st[-length(newYears_st)]]),na.rm=TRUE)/
                                              sum(apply(x$CW,1,sum)[newYears_st[-1]], na.rm=TRUE)))
-            vari <- var(tmp)
+            vari <- stats::var(tmp)
             ni <- length(tmp)
             sei <- sqrt(vari/ni)
             tmp2 <- try(wilcox.test(as.numeric(tmp),
@@ -1477,11 +1491,11 @@ for(hcr in 1:nhcr){
             ##                             function(x) (((apply(x$CW,1,sum)[simYears] -
             ##                                            apply(x$CW,1,sum)[simYears+1])/
             ##                                           apply(x$CW,1,sum)[simYears+1])^2)^0.5),
-            ##                      median ,na.rm=TRUE))
+            ##                      stats::median ,na.rm=TRUE))
             tmp <- sapply(msei, function(x) (sum(abs(x$TSBfinal[newYears_st[-1]] -
                                                      x$TSBfinal[newYears_st[-length(newYears_st)]]),na.rm=TRUE)/
                                              sum(x$TSBfinal[newYears_st[-1]], na.rm=TRUE)))
-            vari <- var(tmp)
+            vari <- stats::var(tmp)
             ni <- length(tmp)
             sei <- sqrt(vari/ni)
             tmp2 <- try(wilcox.test(as.numeric(tmp),
@@ -1514,7 +1528,7 @@ for(hcr in 1:nhcr){
                 tmp <- unlist(lapply(as.list(1:length(msei)), function(x)
                     apply(msei[[x]]$CW,1,sum)[newYears_lt] / refyield[["newYears_lt"]][[indi[x]]]))
                 meani <- mean(tmp)
-                vari <- var(tmp)
+                vari <- stats::var(tmp)
                 ni <- length(tmp)
                 sei <- sqrt(vari/ni)
                 erri <- 1.96 * (sqrt(vari)/sqrt(ni))
@@ -1550,7 +1564,7 @@ for(hcr in 1:nhcr){
             tmp <- unlist(lapply(as.list(1:length(msei)), function(x)
                 apply(msei[[x]]$CW,1,sum)[newYears_lt]))
             meani <- mean(tmp)
-            vari <- var(tmp)
+            vari <- stats::var(tmp)
             ni <- length(tmp)
             sei <- sqrt(vari/ni)
             erri <- 1.96 * (sqrt(vari)/sqrt(ni))
@@ -1589,7 +1603,7 @@ for(hcr in 1:nhcr){
 
             ## Average risk over reps per year
             ## tmp <- sapply(newYears, function(x) mean(sapply(msei, function(y) y$TSBfinal[x] / refs$Blim[x] < 1)))
-            vari <- var(tmp)
+            vari <- stats::var(tmp)
             ni <- length(tmp)
             sei <- sqrt(vari/ni)
             tmp <- prop.test(sum(tmp), n = length(tmp), conf.level = 0.95,
@@ -1602,7 +1616,7 @@ for(hcr in 1:nhcr){
             ##     tmp <- unlist(lapply(as.list(1:length(msei)), function(x)
             ##         msei[[x]]$ESBfinal[newYears] / refB[["newYears"]][[indi[x]]]))
             ##     meani <- mean(tmp)
-            ##     vari <- var(tmp)
+            ##     vari <- stats::var(tmp)
             ##     ni <- length(tmp)
             ##     sei <- sqrt(vari/ni)
             ##     erri <- 1.96 * (sqrt(vari)/sqrt(ni))
@@ -1624,11 +1638,11 @@ for(hcr in 1:nhcr){
             ##                             function(x) (((apply(x$CW,1,sum)[simYears] -
             ##                                            apply(x$CW,1,sum)[simYears+1])/
             ##                                           apply(x$CW,1,sum)[simYears+1])^2)^0.5),
-            ##                      median ,na.rm=TRUE))
+            ##                      stats::median ,na.rm=TRUE))
             tmp <- sapply(msei, function(x) (sum(abs(apply(x$CW,1,sum)[newYears_lt[-1]] -
                                                      apply(x$CW,1,sum)[newYears_lt[-length(newYears_lt)]]),na.rm=TRUE)/
                                              sum(apply(x$CW,1,sum)[newYears_lt[-1]], na.rm=TRUE)))
-            vari <- var(tmp)
+            vari <- stats::var(tmp)
             ni <- length(tmp)
             sei <- sqrt(vari/ni)
             tmp2 <- try(wilcox.test(as.numeric(tmp),
@@ -1657,11 +1671,11 @@ if(any(mets == "AAVBnew_lt")){
             ##                             function(x) (((apply(x$CW,1,sum)[simYears] -
             ##                                            apply(x$CW,1,sum)[simYears+1])/
             ##                                           apply(x$CW,1,sum)[simYears+1])^2)^0.5),
-            ##                      median ,na.rm=TRUE))
+            ##                      stats::median ,na.rm=TRUE))
             tmp <- sapply(msei, function(x) (sum(abs(x$TSBfinal[newYears_lt[-1]] -
                                                      x$TSBfinal[newYears_lt[-length(newYears_lt)]]),na.rm=TRUE)/
                                              sum(x$TSBfinal[newYears_lt[-1]], na.rm=TRUE)))
-            vari <- var(tmp)
+            vari <- stats::var(tmp)
             ni <- length(tmp)
             sei <- sqrt(vari/ni)
             tmp2 <- try(wilcox.test(as.numeric(tmp),
@@ -1695,7 +1709,7 @@ if(any(mets == "AAVBnew_lt")){
                 tmp <- unlist(lapply(as.list(1:length(msei)), function(x)
                     apply(msei[[x]]$CW,1,sum)[newYears_y1]))
                 meani <- mean(tmp)
-                vari <- var(tmp)
+                vari <- stats::var(tmp)
                 ni <- length(tmp)
                 sei <- sqrt(vari/ni)
                 erri <- 1.96 * (sqrt(vari)/sqrt(ni))
@@ -1736,7 +1750,7 @@ if(any(mets == "AAVBnew_lt")){
 
             ## Average risk over reps per year
             tmp <- sapply(newYears_y1, function(x) mean(sapply(msei, function(y) y$TSBfinal[x] / refs$Blim[x] < 1)))
-            ## vari <- var(tmp)
+            ## vari <- stats::var(tmp)
             ## ni <- length(tmp)
             ## sei <- sqrt(vari/ni)
             ## tmp <- prop.test(sum(tmp), n = length(tmp), conf.level = 0.95,
@@ -1752,7 +1766,7 @@ if(any(mets == "AAVBnew_lt")){
             ##     tmp <- unlist(lapply(as.list(1:length(msei)), function(x)
             ##         msei[[x]]$ESBfinal[newYears] / refB[["newYears"]][[indi[x]]]))
             ##     meani <- mean(tmp)
-            ##     vari <- var(tmp)
+            ##     vari <- stats::var(tmp)
             ##     ni <- length(tmp)
             ##     sei <- sqrt(vari/ni)
             ##     erri <- 1.96 * (sqrt(vari)/sqrt(ni))
@@ -1776,7 +1790,7 @@ if(any(mets == "AAVBnew_lt")){
                 tmp <- unlist(lapply(as.list(1:length(msei)), function(x)
                     apply(msei[[x]]$CW,1,sum)[newYears_y2] / refyield[["newYears_y2"]][[indi[x]]]))
                 meani <- mean(tmp)
-                vari <- var(tmp)
+                vari <- stats::var(tmp)
                 ni <- length(tmp)
                 sei <- sqrt(vari/ni)
                 erri <- 1.96 * (sqrt(vari)/sqrt(ni))
@@ -1816,7 +1830,7 @@ if(any(mets == "AAVBnew_lt")){
 
             ## Average risk over reps per year
             ## tmp <- sapply(newYears, function(x) mean(sapply(msei, function(y) y$TSBfinal[x] / refs$Blim[x] < 1)))
-            vari <- var(tmp)
+            vari <- stats::var(tmp)
             ni <- length(tmp)
             sei <- sqrt(vari/ni)
             tmp <- prop.test(sum(tmp), n = length(tmp), conf.level = 0.95,
@@ -1829,7 +1843,7 @@ if(any(mets == "AAVBnew_lt")){
             ##     tmp <- unlist(lapply(as.list(1:length(msei)), function(x)
             ##         msei[[x]]$ESBfinal[newYears] / refB[["newYears"]][[indi[x]]]))
             ##     meani <- mean(tmp)
-            ##     vari <- var(tmp)
+            ##     vari <- stats::var(tmp)
             ##     ni <- length(tmp)
             ##     sei <- sqrt(vari/ni)
             ##     erri <- 1.96 * (sqrt(vari)/sqrt(ni))
@@ -1851,14 +1865,14 @@ if(any(mets == "AAVBnew_lt")){
         ## "BBmsy"
         if(any(mets == "BBmsynew")){
             metsUsed <- c(metsUsed, "BBmsynew")
-            tmp <- unlist(lapply(msei, function(x) median(x$TSBfinal[newYears2_mt] / refs$Bmsy[newYears2_mt])))
+            tmp <- unlist(lapply(msei, function(x) stats::median(x$TSBfinal[newYears2_mt] / refs$Bmsy[newYears2_mt])))
             res <- rbind(res,
                          c(quantile(tmp, probs = kobe.probs, na.rm=TRUE), NA, NA))
         }
         ## "FFmsy"
         if(any(mets == "FFmsynew")){
             metsUsed <- c(metsUsed, "FFmsynew")
-            tmp <- unlist(lapply(msei, function(x) median(apply(x$FM,1,sum)[newYears2_mt] / refs$Fmsy[newYears2_mt])))
+            tmp <- unlist(lapply(msei, function(x) stats::median(apply(x$FM,1,sum)[newYears2_mt] / refs$Fmsy[newYears2_mt])))
             res <- rbind(res,
                          c(quantile(tmp, probs = kobe.probs, na.rm=TRUE), NA, NA))
         }
@@ -1867,14 +1881,14 @@ if(any(mets == "AAVBnew_lt")){
         ## "BBmsy"
         if(any(mets == "BBmsynew_st")){
             metsUsed <- c(metsUsed, "BBmsynew_st")
-            tmp <- unlist(lapply(msei, function(x) median(x$TSBfinal[newYears2_st] / refs$Bmsy[newYears2_st])))
+            tmp <- unlist(lapply(msei, function(x) stats::median(x$TSBfinal[newYears2_st] / refs$Bmsy[newYears2_st])))
             res <- rbind(res,
                          c(quantile(tmp, probs = kobe.probs, na.rm=TRUE), NA, NA))
         }
         ## "FFmsy"
         if(any(mets == "FFmsynew_st")){
             metsUsed <- c(metsUsed, "FFmsynew_st")
-            tmp <- unlist(lapply(msei, function(x) median(apply(x$FM,1,sum)[newYears2_st] / refs$Fmsy[newYears2_st])))
+            tmp <- unlist(lapply(msei, function(x) stats::median(apply(x$FM,1,sum)[newYears2_st] / refs$Fmsy[newYears2_st])))
             res <- rbind(res,
                          c(quantile(tmp, probs = kobe.probs, na.rm=TRUE), NA, NA))
         }
@@ -1883,14 +1897,14 @@ if(any(mets == "AAVBnew_lt")){
         ## "BBmsy"
         if(any(mets == "BBmsynew_lt")){
             metsUsed <- c(metsUsed, "BBmsynew_lt")
-            tmp <- unlist(lapply(msei, function(x) median(x$TSBfinal[newYears2_lt] / refs$Bmsy[newYears2_lt])))
+            tmp <- unlist(lapply(msei, function(x) stats::median(x$TSBfinal[newYears2_lt] / refs$Bmsy[newYears2_lt])))
             res <- rbind(res,
                          c(quantile(tmp, probs = kobe.probs, na.rm=TRUE), NA, NA))
         }
         ## "FFmsy"
         if(any(mets == "FFmsynew_lt")){
             metsUsed <- c(metsUsed, "FFmsynew_lt")
-            tmp <- unlist(lapply(msei, function(x) median(apply(x$FM,1,sum)[newYears2_lt] / refs$Fmsy[newYears2_lt])))
+            tmp <- unlist(lapply(msei, function(x) stats::median(apply(x$FM,1,sum)[newYears2_lt] / refs$Fmsy[newYears2_lt])))
             res <- rbind(res,
                          c(quantile(tmp, probs = kobe.probs, na.rm=TRUE), NA, NA))
         }
@@ -1903,7 +1917,7 @@ if(any(mets == "AAVBnew_lt")){
                 tmp <- unlist(lapply(as.list(1:length(msei)), function(x)
                     apply(msei[[x]]$CW,1,sum)[amaxYears5] / refyield[["amaxYears5"]][[indi[x]]]))
                 meani <- mean(tmp)
-                vari <- var(tmp)
+                vari <- stats::var(tmp)
                 ni <- length(tmp)
                 sei <- sqrt(vari/ni)
                 erri <- 1.96 * (sqrt(vari)/sqrt(ni))
@@ -1938,7 +1952,7 @@ if(any(mets == "AAVBnew_lt")){
             if(is.null(refs$Blim)) stop("There is no Blim in dat$ref! Please add a Blim!")
             metsUsed <- c(metsUsed, "PBBlimamax5")
             tmp <- unlist(lapply(msei, function(x) mean(x$TSBfinal[amaxYears5] / refs$Blim[amaxYears5] < 1)))
-            vari <- var(tmp)
+            vari <- stats::var(tmp)
             ni <- length(tmp)
             sei <- sqrt(vari/ni)
             tmp <- prop.test(sum(tmp), n = length(tmp), conf.level = 0.95, correct = FALSE)
@@ -1951,11 +1965,11 @@ if(any(mets == "AAVBnew_lt")){
             ##                             function(x) (((apply(x$CW,1,sum)[simYears] -
             ##                                            apply(x$CW,1,sum)[simYears+1])/
             ##                                           apply(x$CW,1,sum)[simYears+1])^2)^0.5),
-            ##                      median ,na.rm=TRUE))
+            ##                      stats::median ,na.rm=TRUE))
             tmp <- sapply(msei, function(x) (sum(abs(apply(x$CW,1,sum)[amaxYears5[-1]] -
                                                      apply(x$CW,1,sum)[amaxYears5[-length(amaxYears5)]]),na.rm=TRUE)/
                                              sum(apply(x$CW,1,sum)[amaxYears5[-1]], na.rm=TRUE)))
-            vari <- var(tmp)
+            vari <- stats::var(tmp)
             ni <- length(tmp)
             sei <- sqrt(vari/ni)
             tmp2 <- try(wilcox.test(as.numeric(tmp),
@@ -1983,9 +1997,9 @@ if(any(mets == "AAVBnew_lt")){
             metsUsed <- c(metsUsed, "timeBmsy")
             tmp <- unlist(lapply(msei, function(x){
                 indi <- which(x$TSBfinal[simYears] > refs$Bmsy[1])
-                if(length(indi) > 0) min(indi) else tail(nysim,1)
+                if(length(indi) > 0) min(indi) else utils::tail(nysim,1)
             }))
-            vari <- var(tmp)
+            vari <- stats::var(tmp)
             ni <- length(tmp)
             sei <- sqrt(vari/ni)
             tmp2 <- try(wilcox.test(as.numeric(tmp),
@@ -2110,7 +2124,7 @@ if(any(mets == "AAVBnew_lt")){
                                  function(x)
                                      apply(msei[[x]]$CW,1,sum)[newYears]))
             meani <- mean(tmp)
-            vari <- var(tmp)
+            vari <- stats::var(tmp)
             ni <- length(tmp)
             sei <- sqrt(vari/ni)
             if(hcrs[hcr] == "noF"){
@@ -2143,7 +2157,7 @@ if(any(mets == "AAVBnew_lt")){
 
             ## Average risk over reps per year
             ## tmp <- sapply(newYears, function(x) mean(sapply(msei, function(y) y$TSBfinal[x] / refs$Blim[x] < 1)))
-            vari <- var(tmp)
+            vari <- stats::var(tmp)
             ni <- length(tmp)
             sei <- sqrt(vari/ni)
             tmp <- prop.test(sum(tmp), n = length(tmp), conf.level = 0.95,
@@ -2157,7 +2171,7 @@ if(any(mets == "AAVBnew_lt")){
             tmp <- sapply(msei, function(x) (sum(abs(apply(x$CW,1,sum)[newYears[-1]] -
                                                      apply(x$CW,1,sum)[newYears[-length(newYears)]]),na.rm=TRUE)/
                                              sum(apply(x$CW,1,sum)[newYears[-1]], na.rm=TRUE)))
-            vari <- var(tmp)
+            vari <- stats::var(tmp)
             ni <- length(tmp)
             sei <- sqrt(vari/ni)
             tmp2 <- try(wilcox.test(as.numeric(tmp),

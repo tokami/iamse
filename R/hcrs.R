@@ -1,18 +1,32 @@
-## Harvest control rules (HCRs)
-##-----------------------------
 
 #' est.tac
+#'
+#' @param obs. observation
+#' @param hcr.fun HCR function
+#' @param tacs. tac daa frame
+#' @param pars. parameters
+#'
 #' @export
-est.tac <- function(obs., hcr.fun, tacs.=NULL, pars.=NULL){
+est.tac <- function(obs., hcr.fun, tacs.=NULL, pars.=NULL) {
+
     ## func <- get(hcr.)
     ## res <- func(obs., tacs., pars.)
     ## return(res)
     hcr.fun(obs., tacs., pars.)
+
 }
 
 
+
 #' gettacs
-gettacs <- function(tacs.=NULL, id.="", TAC.=NA, obs.=NULL){
+#'
+#' @param tacs. info
+#' @param id. info
+#' @param TAC. info
+#' @param obs. info
+#'
+gettacs <- function(tacs.=NULL, id.="", TAC.=NA, obs.=NULL) {
+
     if(!is.null(obs.) && is.list(obs.$obsI) && length(obs.$obsI) != 0)
         nis <- length(obs.$obsI) else nis <- 1
     names(TAC.) <- paste0("TAC", seq_len(length(TAC.)))
@@ -56,12 +70,15 @@ gettacs <- function(tacs.=NULL, id.="", TAC.=NA, obs.=NULL){
 #' def.hcr.ref
 #'
 #' @param consF either numeric indicating constant F level or "fmsy" for fishing at fmsy
+#' @param fracFmsy fraction of fmsy
+#' @param set. settings
+#' @param env environment
 #'
 #' @export
 #'
 def.hcr.ref <- function(consF = 0,
                         fracFmsy = NULL,
-                        set. = set,
+                        set. = check.set(),
                         env = globalenv()
                         ){
 
@@ -78,7 +95,7 @@ def.hcr.ref <- function(consF = 0,
         }else{
              inp <- obs[c("obsC","timeC","obsI","timeI","obsE","timeE")]
         }
-        inp <- spict::check.inp(inp, verbose = FALSE)
+        ## inp <- spict::check.inp(inp, verbose = FALSE)
         tacs <- iamse:::gettacs(tacs.=tacs, id.="',id,'",
                         TAC.=rep(0, ',set.$assessmentInterval,'), obs.=inp)
         return(tacs)
@@ -99,7 +116,7 @@ def.hcr.ref <- function(consF = 0,
         }else{
              inp <- obs[c("obsC","timeC","obsI","timeI","obsE","timeE")]
         }
-        inp <- spict::check.inp(inp, verbose = FALSE)
+        ## inp <- spict::check.inp(inp, verbose = FALSE)
         tacs <- iamse:::gettacs(tacs.=tacs, id.="',id,'",
                         TAC.=rep(0, ',set.$assessmentInterval,'), obs.=inp)
         return(tacs)
@@ -117,7 +134,7 @@ def.hcr.ref <- function(consF = 0,
         }else{
              inp <- obs[c("obsC","timeC","obsI","timeI","obsE","timeE")]
         }
-        inp <- spict::check.inp(inp, verbose = FALSE)
+        ## inp <- spict::check.inp(inp, verbose = FALSE)
         tacs <- iamse:::gettacs(tacs.=tacs, id.="',id,'",
                         TAC.=rep(NA, ',set.$assessmentInterval,'), obs.=inp)
         return(tacs)
@@ -135,7 +152,7 @@ def.hcr.ref <- function(consF = 0,
         }else{
              inp <- obs[c("obsC","timeC","obsI","timeI","obsE","timeE")]
         }
-        inp <- spict::check.inp(inp, verbose = FALSE)
+        ## inp <- spict::check.inp(inp, verbose = FALSE)
         tacs <- iamse:::gettacs(tacs.=tacs, id.="',id,'",
                         TAC.=rep(0, ',set.$assessmentInterval,'), obs.=inp)
         return(tacs)
@@ -159,11 +176,58 @@ def.hcr.ref <- function(consF = 0,
 
 
 
-#' def.hcr.conscat
-#' @title Define harvest control rule
+#' Define a constant-catch harvest control rule
+#'
+#' `def.hcr.conscat()` defines a simple harvest control rule (HCR) that
+#' recommends a constant catch (TAC) over time. The baseline TAC can be
+#' supplied directly via `constantC` or estimated from recent catches, and
+#' optional reduction rules can be used to step down the TAC when performance
+#' is poor (e.g. low biomass or repeated assessment failure).
+#'
+#' The function is usually called for its side effects: it registers a new HCR
+#' with identifier `id` in the `iamse` settings object `set.` and, by default,
+#' also in the supplied environment `env`. The HCR can then be included in
+#' `set$hcr` and evaluated with [run.mse()].
+#'
+#' @param id Character string giving the identifier for this HCR (for example
+#'   `"conscat"`). This label is used when selecting HCRs in `set$hcr` and in
+#'   summaries and plots.
+#' @param constantC Optional numeric giving the constant catch level (e.g. in
+#'   tonnes). If `NULL` (default), the constant catch is derived internally
+#'   from recent catches, typically using the last `clyears` years.
+#' @param clyears Integer specifying the number of historical years used to
+#'   calculate the baseline catch level when `constantC` is `NULL`.
+#' @param red Optional numeric reduction factor applied to the constant catch
+#'   (e.g. `0.8` corresponds to a 20% reduction). If `NA` (default), no
+#'   automatic reduction is applied and the TAC remains constant.
+#' @param redyears Integer giving the number of years over which the reduction
+#'   criteria are evaluated. The exact interpretation depends on the internal
+#'   implementation (e.g. how many years of poor performance trigger a
+#'   reduction).
+#' @param redAlways Logical; if `TRUE`, the reduction rule is evaluated in all
+#'   years where the criteria are met. If `FALSE`, the reduction may be applied
+#'   only once or under more restrictive conditions, depending on the internal
+#'   implementation.
+#' @param assessmentInterval Positive integer giving the interval (in years)
+#'   between assessments and TAC updates. The default `1` corresponds to an
+#'   annual advice cycle.
+#' @param ffmsySD Non-negative numeric giving the standard deviation of the
+#'   (log) assessment error in \eqn{F/F_{MSY}} used when simulating the assessed
+#'   status for this HCR.
+#' @param bbtriggerSD Non-negative numeric giving the standard deviation of the
+#'   (log) assessment error in biomass-related indicators (e.g. \eqn{B/B_{trigger}})
+#'   used for this HCR.
+#' @param rightRef Integer index specifying which reference-point set should be
+#'   used when evaluating this HCR (e.g. an index into `dat$ref`).
+#' @param set. An `iamse` settings list as returned by [check.set()]. This
+#'   object is updated to include the newly defined HCR.
+#' @param env Environment in which the HCR function is created and stored.
+#'   Defaults to [globalenv()]. In most cases the default should be used.
+#'
+#' @return Invisibly returns the updated `set.` object. The function is called
+#'   for its side effects (defining and registering the HCR).
 #'
 #' @export
-#'
 def.hcr.conscat <- function(id = "conscat",
                             constantC = NULL,
                             clyears = 1,
@@ -174,9 +238,14 @@ def.hcr.conscat <- function(id = "conscat",
                             ffmsySD = 0,
                             bbtriggerSD = 0,
                             rightRef = 1,
-                            set. = set,
+                            set. = check.set(),
                             env = globalenv()
                             ){
+
+    if (!requireNamespace("spict", quietly = TRUE)) {
+        stop("The 'spict' package is required for this function. ",
+             "Please install it from GitHub: DTUAqua/spict/spict.", call. = FALSE)
+    }
 
     if(is.null(constantC)) constantC = NA
 
@@ -267,24 +336,95 @@ def.hcr.conscat <- function(id = "conscat",
 
 
 
-#' def.hcr.index
-#' @title Define harvest control rule
-#' @details This function allows to define harvest control rules (HCRs) which can be incorporated into a
-#' management strategy evaluation framework (DLMtool package). HCRs are saved with a
-#' generic name to the global environment and the names of the HCRs are returned if results of the
-#' function are assigned to an object. HCR runs a SPiCT assessment using catch and
-#' relative biomass index observations. Stock status estimates are used to set the TAC
-#' for the next year. TAC can be based on the distribution of predicted catches (percentileC)
-#' and/or the distribution of the Fmsy reference level (percentileFmsy).
-#' Additionally, a cap can be applied to account for low biomass levels (below Bmsy).
-#' Arguments of returned function are 'x' - the position in a data-limited mehods data object,
-#' 'Data' - the data-limited methods data object (see DLMtool), and 'reps' - the number of
-#' stochastic samples of the TAC recommendation (not used for this HCR).
-#' One or several arguments of the function can be provided as vectors to generate several
-#' HCRs at once (several vectors have to have same length).
+#' Define an index-based harvest control rule
+#'
+#' `def.hcr.index()` defines one or more harvest control rules (HCRs) that use
+#' changes in a relative biomass index to set catch advice (TAC) or fishing
+#' mortality. The function constructs HCR functions and assigns them to the
+#' specified environment, typically the global environment, so they can be
+#' used within an MSE framework.
+#'
+#' The generated HCR functions usually take arguments of the form
+#' `function(x, Data, reps, ...)`, where `Data` contains the catch and index
+#' time series and `reps` is the number of stochastic TAC draws (if used).
+#' Internally, the rule uses recent values of a biomass index, applies
+#' stabilisation bounds on year-to-year changes, and can optionally reduce
+#' catch when biomass is low.
+#'
+#' Several arguments (e.g. `id`, `x`, `y`) can be provided as vectors of equal
+#' length, in which case multiple HCRs are created in a single call.
+#'
+#' @param id Character vector giving the identifier(s) for the HCR(s)
+#'   (e.g. `"r23"`). These names are used when referring to the HCR in the
+#'   MSE setup and outputs.
+#' @param x Numeric scalar or vector used to parameterise the index-based
+#'   rule. Together with `y`, it controls how changes in the biomass index
+#'   translate into changes in TAC (e.g. slope, threshold, or tuning factor).
+#' @param y Numeric scalar or vector used alongside `x` to tune the response
+#'   of the HCR to the biomass index. If `x` and `y` are vectors, they must
+#'   have the same length.
+#' @param stab Logical; if `TRUE` (default), apply stabilisation bounds to
+#'   limit year-to-year changes in the TAC or fishing mortality.
+#' @param lower Numeric value giving the lower stabilisation bound, typically
+#'   interpreted as the minimum allowed ratio \eqn{\text{TAC}_{y+1} /
+#'   \text{TAC}_y}. The default is `0.8` (maximum 20\% decrease).
+#' @param upper Numeric value giving the upper stabilisation bound, typically
+#'   interpreted as the maximum allowed ratio \eqn{\text{TAC}_{y+1} /
+#'   \text{TAC}_y}. The default is `1.2` (maximum 20\% increase).
+#' @param clType Character string specifying the type of control variable
+#'   returned by the HCR. Common options include `"TAC"` for catch limits or
+#'   `"F"` for fishing mortality targets. The default is `"TAC"`.
+#' @param clyears Integer specifying the number of recent years used to
+#'   calculate the reference catch level when deriving TAC advice (e.g. mean
+#'   catch over the last `clyears` years).
+#' @param red Optional numeric reduction factor applied to the catch when
+#'   biomass is low (e.g. `0.8` for a 20\% reduction). If `NA` (default), no
+#'   automatic biomass-based reduction is applied.
+#' @param redyears Integer giving the number of years over which the biomass
+#'   condition for reduction is evaluated (e.g. how many years below a
+#'   threshold before the reduction is triggered).
+#' @param redAlways Logical; if `TRUE`, the reduction rule is evaluated and
+#'   applied whenever the criteria are met. If `FALSE`, the reduction may only
+#'   be applied under more restrictive conditions, depending on the internal
+#'   implementation.
+#' @param ffmsySD Non-negative numeric specifying the standard deviation of
+#'   the (log) assessment error in \eqn{F/F_{MSY}} associated with this HCR,
+#'   when simulating perceived stock status.
+#' @param bbtriggerSD Non-negative numeric specifying the standard deviation
+#'   of the (log) assessment error in biomass-related indicators (e.g.
+#'   \eqn{B/B_{trigger}}) associated with this HCR.
+#' @param rightRef Integer index specifying which set of reference points
+#'   should be used when evaluating this HCR (e.g. an index into a reference
+#'   table).
+#' @param assessmentInterval Positive integer giving the interval (in years)
+#'   between full assessments and updates of the advice. The default `1`
+#'   corresponds to annual updates.
+#' @param env Environment in which the generated HCR function(s) are created
+#'   and stored. Defaults to [globalenv()].
+#'
+#' @return A character vector with the name(s) of the HCR function(s) created.
+#'   The main purpose of the function is its side effect of defining these HCRs
+#'   in `env`.
+#'
+#' @examples
+#' \dontrun{
+#'   ## Define a single index-based HCR with default tuning
+#'   hcr_names <- def.hcr.index(id = "index_HCR")
+#'   hcr_names
+#'
+#'   ## Define several index-based HCRs at once with different tuning
+#'   hcr_names2 <- def.hcr.index(
+#'     id = c("index_low", "index_high"),
+#'     x  = c(0.8, 1.0),
+#'     y  = c(1.2, 1.5)
+#'   )
+#'   hcr_names2
+#'
+#'   ## The created functions are available in the chosen environment
+#'   ls(pattern = "index_", envir = globalenv())
+#' }
 #'
 #' @export
-#'
 def.hcr.index <- function(id = "r23",
                           x = 2,
                           y = 3,
@@ -302,6 +442,11 @@ def.hcr.index <- function(id = "r23",
                           assessmentInterval = 1,
                           env = globalenv()
                           ){
+
+    if (!requireNamespace("spict", quietly = TRUE)) {
+        stop("The 'spict' package is required for this function. ",
+             "Please install it from GitHub: DTUAqua/spict/spict.", call. = FALSE)
+    }
 
     template  <- expression(paste0(
         'function(obs, tacs = NULL, pars = NULL){
@@ -430,49 +575,158 @@ def.hcr.index <- function(id = "r23",
 
 
 
-#' def.hcr.spict
-#' @title Define harvest control rule
+#' Define a SPiCT-based harvest control rule
 #'
-#' @param id Name/ID of HCR. Default: "spict-msy"
-#' @param fractiles Fractiles. List
-#' @param breakpointB breakpointb
-#' @param safeguard safeguard. List
-#' @param dteuler Time step of Forward Euler scheme.
-#' @param reportmode Reportmode
-#' @param stabilise stabilise option of spict. Default: FALSE.
-#' @param priorlogn prior
-#' @param priorlogalpha prior
-#' @param priorlogbeta prior
-#' @param priorlogbkfrac prior
-#' @param fixn fixn
-#' @param bfac bfac
-#' @param bref bref
-#' @param brefType brefType
-#' @param nyBref nyBref
-#' @param btar btar
-#' @param probtar probtar
-#' @param brule Brule
-#' @param red Reduction
-#' @param redyears Reduction years
-#' @param redAlways Reduction always? Default: FALSE.
-#' @param rai Raising factor. Default: 0.2.
-#' @param manstartdY Management start year. Default: 0.
-#' @param assessmentInterval Assessment interval. Default: 1.
-#' @param intC Interval C. Default: NA.
-#' @param nonconvHCR HCR if SPiCT does not converge. Default: "conscat" (constant catch).
-#' @param clType Catch type for uncertainty cap. Default: "TAC".
-#' @param clyears Number of years for uncertainty cap. Default: 1.
-#' @param stab Uncertainty cap. Default: FALSE.
-#' @param lower Upper bound of uncertainty cap. Default: 0.8.
-#' @param upper Upper bound of uncertainty cap. Default: 1.2.
-#' @param bm Benchmark. Default: FALSE,  ## e.g. 5 => re-defining Bref at every benchmark
-#' @param env Environment. Default: globalenv()
+#' `def.hcr.spict()` defines one or more harvest control rules (HCRs) that use
+#' the SPiCT model (stochastic surplus production model in continuous time)
+#' to generate catch advice. For each call, a function is created that:
 #'
+#' 1. Fits or updates a SPiCT assessment using catch and index data,
+#' 2. Extracts stock status and predicted catch distributions, and
+#' 3. Translates these into TAC recommendations according to specified
+#'    fractiles, biomass breakpoints, safeguards, and stabilisation rules.
+#'
+#' The generated HCR function(s) are assigned to the environment `env`
+#' (typically the global environment) and can then be used within a management
+#' strategy evaluation (MSE) framework.
+#'
+#' @param id Character string giving the name/ID of the HCR. Default is
+#'   `"spict-msy"`. If vectors are supplied for some arguments, multiple HCRs
+#'   can be created in one call, each with its own `id`.
+#' @param fractiles List of fractiles used to derive advice from SPiCT output.
+#'   Typical elements include quantiles for predicted catch and reference
+#'   points, e.g. `list(catch = 0.5, ffmsy = 0.5, bbmsy = 0.5, bmsy = 0.5,
+#'   fmsy = 0.5)`. Values are probabilities in \[0, 1].
+#' @param breakpointB Numeric biomass breakpoint (on the scale of
+#'   \eqn{B/B_{MSY}} or related indicator) that can modify the rule below a
+#'   given biomass level (e.g. more conservative advice when biomass is low).
+#' @param evalBreakpointB Numeric or integer specifying how the breakpoint
+#'   should be evaluated (e.g. over which period or using which biomass
+#'   indicator). The exact interpretation depends on the internal
+#'   implementation.
+#' @param safeguard List describing an additional biomass safeguard, typically
+#'   of the form `list(limitB = <threshold>, prob = <probability>)`. For
+#'   example, the rule may reduce or cap TAC if the probability that biomass is
+#'   below `limitB` exceeds `1 - prob`.
+#' @param dteuler Time step of the forward Euler scheme used by SPiCT to solve
+#'   the underlying continuous-time model. Default is `1/4` (quarterly).
+#' @param reportmode Integer flag passed to SPiCT controlling the level of
+#'   detail in reporting and output.
+#' @param stabilise Numeric or logical argument passed to SPiCT's `stabilise`
+#'   option, controlling how strongly the SPiCT fit is stabilised (e.g. in the
+#'   presence of limited data). Default is `0` (no additional stabilisation).
+#'
+#' @param priorlogn Numeric vector giving the prior for the initial depletion
+#'   (log scale), typically of the form `c(mean, sd, p)` where `p` is an
+#'   indicator controlling whether the prior is active.
+#' @param priorlogsdf Numeric vector giving the prior for the process-noise
+#'   standard deviation on fishing mortality (log scale).
+#' @param priorlogsdc Numeric vector giving the prior for the process-noise
+#'   standard deviation on catches (log scale).
+#' @param priorlogalpha Numeric vector giving the prior for the production
+#'   function exponent \eqn{\alpha} (log scale).
+#' @param priorlogbeta Numeric vector giving the prior for the production
+#'   function exponent \eqn{\beta} (log scale).
+#' @param priorlogbkfrac Numeric vector giving the prior for the fraction of
+#'   carrying capacity at which biomass starts (log scale).
+#' @param priorlogr Numeric vector giving the prior for the intrinsic growth
+#'   rate \eqn{r} (log scale).
+#'
+#' @param fixn Optional value indicating whether the depletion parameter
+#'   (`n`) should be fixed in the SPiCT fit. Default `NA` means it is
+#'   estimated.
+#' @param bfac Optional numeric factor used to scale biomass-based reference
+#'   points when computing advice. Default `NA` means no additional scaling.
+#' @param bref Character string specifying how the biomass reference level is
+#'   defined, e.g. `"current"`, `"lowest"`, `"highest"`, `"average"` or
+#'   `"last"`. This reference is used together with `brefType`, `nyBref`,
+#'   and `btar` to construct biomass-based triggers.
+#' @param brefType Character string specifying the type of biomass reference,
+#'   typically `"target"` or `"limit"`. This affects how conservative the rule
+#'   becomes when biomass is near or below the reference.
+#' @param nyBref Integer giving the number of years used to define the biomass
+#'   reference (e.g. average biomass over the last `nyBref` years).
+#' @param btar Character string specifying the target biomass level used in
+#'   the rule, e.g. `"bmsy"` for biomass at MSY.
+#' @param probtar Numeric probability (in \[0, 1]) indicating how conservative
+#'   the target rule should be (e.g. requiring that the probability of being
+#'   above `btar` exceeds `probtar`).
+#' @param brule Numeric code or scaling factor controlling how the biomass
+#'   rule is applied below the target (e.g. linear reduction, more aggressive
+#'   reductions, or no reduction).
+#'
+#' @param red Optional numeric reduction factor applied to the advised catch
+#'   when additional criteria are met (e.g. low biomass, repeated assessment
+#'   failure). For example, `0.8` corresponds to a 20\% reduction. If `NA`,
+#'   no such reduction is applied.
+#' @param redyears Integer indicating over how many years the reduction
+#'   criteria are evaluated (e.g. number of years below a threshold before the
+#'   reduction is triggered).
+#' @param redAlways Logical; if `TRUE`, the reduction rule is evaluated and
+#'   applied every time the criteria are met. If `FALSE`, the reduction may be
+#'   applied more sparingly, depending on the internal implementation.
+#' @param rai Numeric "raising factor" that controls how quickly the rule
+#'   responds when moving back towards higher catches (e.g. after a reduction).
+#'   Default is `0.2`.
+#'
+#' @param manstartdY Numeric management start year offset relative to the
+#'   assessment time series (e.g. `0` for the last year, negative values for
+#'   earlier years). Default is `0`.
+#' @param assessmentInterval Positive integer giving the interval (in years)
+#'   between full SPiCT assessments and advice updates. Default is `1`, i.e.
+#'   annual assessments.
+#' @param cpvec Logical; if `TRUE`, use a vector of catch profiles or control
+#'   points when computing advice. Default is `FALSE`.
+#' @param halfAssessInt Logical; if `TRUE`, the assessment is effectively
+#'   shifted by half an assessment interval (e.g. mid-year updates). Default
+#'   is `FALSE`.
+#' @param intC Numeric or `NA`. If non-`NA`, this can be used to specify a
+#'   predefined catch level in an initial period or over an interval. Default
+#'   is `NA`.
+#'
+#' @param nonconvHCR Character string giving the name of an alternative HCR to
+#'   be used if the SPiCT assessment does not converge. Default is `"conscat"`,
+#'   which typically corresponds to a constant-catch rule defined by
+#'   [def.hcr.conscat()].
+#'
+#' @param clType Character string specifying the type of control variable
+#'   returned by the HCR, e.g. `"TAC"` for catch advice. Used in combination
+#'   with the stabilisation cap.
+#' @param clyears Integer giving the number of years used to compute the
+#'   reference level for the stabilisation cap (e.g. mean catch over the last
+#'   `clyears` years). Default is `1`.
+#' @param stab Logical; if `TRUE`, apply an uncertainty or stabilisation cap
+#'   that limits year-to-year changes in the advice (e.g. TAC). Default is
+#'   `FALSE`.
+#' @param lower Numeric lower bound for the stabilisation cap, typically
+#'   interpreted as the minimum allowed ratio \eqn{\text{Advice}_{y+1} /
+#'   \text{Advice}_y}. Default is `0.8` (maximum 20\% decrease).
+#' @param upper Numeric upper bound for the stabilisation cap, typically
+#'   interpreted as the maximum allowed ratio \eqn{\text{Advice}_{y+1} /
+#'   \text{Advice}_y}. Default is `1.2` (maximum 20\% increase).
+#'
+#' @param bm Logical or numeric. If `FALSE` (default), no explicit benchmarks
+#'   are applied. If a positive integer is supplied (e.g. `5`), the biomass
+#'   reference `Bref` may be redefined every `bm` years (benchmarking).
+#' @param env Environment in which the generated HCR function(s) are created
+#'   and stored. Defaults to [globalenv()].
+#' @param scenario Optional label (character or `NA`) used to identify the
+#'   scenario associated with this HCR in subsequent summaries and plots.
+#'
+#' @return A character vector containing the name(s) of the HCR function(s)
+#'   created. The main purpose of the function is its side effect of defining
+#'   SPiCT-based HCRs in `env`.
+#'
+#' @details
+#' This function assumes that the **spict** package is available and that the
+#' underlying catch and index data can be passed to SPiCT in the expected
+#' format. Many arguments (e.g. priors and Euler time step) are passed directly
+#' to SPiCT's input list and control how the assessment behaves. For details on
+#' SPiCT itself, see the **spict** documentation.
 #'
 #' @importFrom doBy which.minn
 #'
 #' @export
-#'
 def.hcr.spict <- function(id = "spict-msy",
                           fractiles = list(catch=0.5,
                                            ffmsy=0.5,
@@ -518,7 +772,12 @@ def.hcr.spict <- function(id = "spict-msy",
                           bm = FALSE,  ## e.g. 5 => re-defining Bref at every benchmark
                           env = globalenv(),
                           scenario = NA
-                          ){
+                          ) {
+
+    if (!requireNamespace("spict", quietly = TRUE)) {
+        stop("The 'spict' package is required for this function. ",
+             "Please install it from GitHub: DTUAqua/spict/spict.", call. = FALSE)
+    }
 
     if(is.null(scenario)) stop("Set scenario to NA!")
 
@@ -1127,46 +1386,18 @@ def.hcr.sam <- function(id = "sam",
 
 
 #' def.hcr.pseudo
+#'
 #' @title Define harvest control rule with pseudo assessment
 #'
 #' @param id Name/ID of HCR. Default: "pseudo-msy"
 #' @param fractiles Fractiles. List
 #' @param breakpointB breakpointb
-#' @param safeguard safeguard. List
-#' @param dteuler Time step of Forward Euler scheme.
-#' @param reportmode Reportmode
-#' @param stabilise stabilise option of spict. Default: FALSE.
-#' @param priorlogn prior
-#' @param priorlogalpha prior
-#' @param priorlogbeta prior
-#' @param priorlogbkfrac prior
-#' @param priorlogr prior
-#' @param fixn fixn
-#' @param bfac bfac
-#' @param bref bref
-#' @param brefType brefType
-#' @param nyBref nyBref
-#' @param btar btar
-#' @param probtar probtar
-#' @param brule Brule
-#' @param red Reduction
-#' @param redyears Reduction years
-#' @param redAlways Reduction always? Default: FALSE.
-#' @param rai Raising factor. Default: 0.2.
-#' @param manstartdY Management start year. Default: 0.
-#' @param assessmentInterval Assessment interval. Default: 1.
-#' @param intC Interval C. Default: NA.
-#' @param nonconvHCR HCR if SPiCT does not converge. Default: "conscat" (constant catch).
 #' @param clType Catch type for uncertainty cap. Default: "TAC".
 #' @param clyears Number of years for uncertainty cap. Default: 1.
 #' @param stab Uncertainty cap. Default: FALSE.
 #' @param lower Upper bound of uncertainty cap. Default: 0.8.
 #' @param upper Upper bound of uncertainty cap. Default: 1.2.
-#' @param bm Benchmark. Default: FALSE,  ## e.g. 5 => re-defining Bref at every benchmark
 #' @param env Environment. Default: globalenv()
-#'
-#'
-#' @importFrom doBy which.minn
 #'
 #' @export
 #'

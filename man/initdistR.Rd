@@ -6,6 +6,21 @@
 \usage{
 initdistR(M, FM = NULL, ns, asmax, indage0, spawning, R0 = 1)
 }
+\arguments{
+\item{M}{info}
+
+\item{FM}{info}
+
+\item{ns}{info}
+
+\item{asmax}{info}
+
+\item{indage0}{info}
+
+\item{spawning}{info}
+
+\item{R0}{info}
+}
 \description{
 initdistR
 }

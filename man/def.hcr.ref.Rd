@@ -4,10 +4,16 @@
 \alias{def.hcr.ref}
 \title{def.hcr.ref}
 \usage{
-def.hcr.ref(consF = 0, fracFmsy = NULL, set. = set, env = globalenv())
+def.hcr.ref(consF = 0, fracFmsy = NULL, set. = check.set(), env = globalenv())
 }
 \arguments{
 \item{consF}{either numeric indicating constant F level or "fmsy" for fishing at fmsy}
+
+\item{fracFmsy}{fraction of fmsy}
+
+\item{set.}{settings}
+
+\item{env}{environment}
 }
 \description{
 def.hcr.ref

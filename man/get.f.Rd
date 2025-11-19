@@ -2,7 +2,7 @@
 % Please edit documentation in R/utility.R
 \name{get.f}
 \alias{get.f}
-\title{get.f}
+\title{Solve for fishing mortality corresponding to a target TAC}
 \usage{
 get.f(
   TAC,
@@ -29,9 +29,103 @@ get.f(
   upper = log(100)
 )
 }
+\arguments{
+\item{TAC}{Numeric value giving the target total allowable catch for the TAC
+period (e.g. over the seasons specified in `seasons`).}
+
+\item{NAA}{Numbers-at-age at the start of the TAC period (typically a vector
+or matrix indexed by age and possibly season).}
+
+\item{MAA}{Natural mortality-at-age (and, if applicable, season) used in the
+projection.}
+
+\item{sel}{Selectivity-at-age (and possibly season) applied to fishing
+mortality when computing catch.}
+
+\item{weight}{Mean weight-at-age (and possibly season) used to convert
+numbers caught into catch biomass.}
+
+\item{seasons}{Integer vector with the season indices included in the TAC
+period (e.g. quarters or months within a year).}
+
+\item{ns}{Integer giving the total number of seasons per year.}
+
+\item{y}{Integer index of the current year in the projection.}
+
+\item{h}{Steepness (or related parameter) of the stock–recruitment
+relationship, used when updating recruitment along the projection.}
+
+\item{asmax}{Integer giving the maximum spawning age (or related age limit)
+used when computing spawning biomass and recruitment.}
+
+\item{mat}{Maturity-at-age (and possibly season), used to calculate
+spawning biomass.}
+
+\item{pzbm}{Additional parameter controlling the timing or proportion of
+biomass contributing to spawning (exact role depends on the internal
+implementation).}
+
+\item{spawning}{Indicator (e.g. logical or integer vector) identifying the
+spawning season(s) within the year.}
+
+\item{R0}{Unfished recruitment level used in the stock–recruitment
+relationship.}
+
+\item{SR}{Character string or code specifying the type of
+stock–recruitment function (e.g. Beverton–Holt, Ricker), as used in the
+operating model.}
+
+\item{bp}{Additional parameter (or vector of parameters) for the
+stock–recruitment relationship (e.g. breakpoints or shape parameters).}
+
+\item{recBeta}{Parameter (or vector) controlling the slope or shape of the
+recruitment function.}
+
+\item{recGamma}{Parameter (or vector) controlling the curvature or shape of
+the recruitment function.}
+
+\item{eR}{Stochastic recruitment deviation(s) applied to the expected
+recruitment (e.g. lognormal errors).}
+
+\item{indage0}{Integer index specifying the recruitment age (age at which
+new recruits enter the age structure).}
+
+\item{lastFM}{Numeric value giving the starting (or typical) fishing
+mortality used as an initial guess in the numerical search. Default is
+`0.01`.}
+
+\item{upper}{Numeric value giving the upper bound (on the log scale) for
+the search over fishing mortality. Default is `log(100)`, corresponding
+to a relatively high maximum F.}
+}
+\value{
+A numeric value giving the fishing mortality (or F-multiplier) that
+  produces a predicted catch matching `TAC` as closely as possible under
+  the given biological and seasonal assumptions.
+}
 \description{
-get.f
+`get.f()` finds the fishing mortality (FM) that produces a given total
+allowable catch (TAC) over a TAC period, accounting for seasonal structure,
+natural mortality, selectivity, and recruitment. Internally, it repeatedly
+calls the catch-prediction logic (e.g. [predCatch()]) and uses a numerical
+root-finding or optimisation routine to match predicted catch to the target
+`TAC`.
 }
 \details{
-get FM accounting for seasons
+This function is typically called internally by higher-level IAMSE functions
+when implementing HCRs that are specified in terms of TAC (rather than
+directly in terms of fishing mortality).
+
+
+The function typically:
+\enumerate{
+  \item Defines an objective function measuring the difference between the
+        predicted catch (for a given FM) and the target `TAC`.
+  \item Searches over FM (on a log scale) between a lower bound and
+        `upper`, using `lastFM` as an initial value.
+  \item Returns the FM that minimises this difference (or sets the root to
+        zero), within numerical tolerance.
+}
+The exact optimisation method depends on the internal implementation (e.g.
+use of [stats::optimize()] or [stats::uniroot()]).
 }

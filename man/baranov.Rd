@@ -6,6 +6,13 @@
 \usage{
 baranov(F, M, N)
 }
+\arguments{
+\item{F}{info}
+
+\item{M}{info}
+
+\item{N}{info}
+}
 \description{
 baranov
 }

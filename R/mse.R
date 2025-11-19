@@ -21,12 +21,12 @@ run.mse <- function(dat, set,
                     fest = NULL,
                     ncores = parallel::detectCores()-1,
                     globals = NULL,
-                    verbose = TRUE){
+                    verbose = TRUE) {
 
     if(ncores > 1) verbose <- FALSE
 
     ## define constant catch (resort HCR if something not converging)
-    def.hcr.conscat(set = set)
+    def.hcr.conscat(set. = set)
 
     ## Variables
     hcrs <- set$hcr

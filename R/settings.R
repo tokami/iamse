@@ -1,6 +1,9 @@
 #' check.set
+#'
+#' @param set default NULL
+#'
 #' @export
-check.set <- function(set = NULL){
+check.set <- function(set = NULL) {
 
     ## empty list
     if(is.null(set)) set <- list()

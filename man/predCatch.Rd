@@ -2,7 +2,7 @@
 % Please edit documentation in R/utility.R
 \name{predCatch}
 \alias{predCatch}
-\title{predCatch}
+\title{Predict catch over a TAC period}
 \usage{
 predCatch(
   logFM,
@@ -30,16 +30,93 @@ predCatch(
 )
 }
 \arguments{
-\item{seasons}{vector with season indices}
+\item{logFM}{Array, matrix, or vector of log fishing mortality values
+(e.g. by age and season) for the TAC period.}
 
-\item{ns}{number of seasons}
+\item{NAA}{Numbers-at-age at the start of the TAC period (typically a
+vector or matrix indexed by age and possibly season).}
 
-\item{h}{steepness}
+\item{MAA}{Natural mortality-at-age (and, if applicable, season) used in
+the projection.}
+
+\item{sel}{Selectivity-at-age (and possibly season) applied to fishing
+mortality when computing catch.}
+
+\item{weight}{Mean weight-at-age (and possibly season) used to convert
+numbers caught into catch biomass.}
+
+\item{seasons}{Integer vector with the season indices included in the TAC
+period (e.g. quarters or months within a year).}
+
+\item{ns}{Integer giving the total number of seasons per year.}
+
+\item{y}{Integer index of the current year in the projection.}
+
+\item{h2}{Steepness (or related transformed parameter) of the
+stock–recruitment relationship, used when updating recruitment.}
+
+\item{asmax}{Integer giving the maximum spawning age (or related age limit)
+used when computing spawning biomass and recruitment.}
+
+\item{mat}{Maturity-at-age (and possibly season), used to calculate
+spawning biomass.}
+
+\item{pzbm}{Additional parameter controlling the timing or proportion of
+biomass contributing to spawning (exact role depends on the internal
+implementation).}
+
+\item{spawning}{Indicator (e.g. logical or integer vector) identifying the
+spawning season(s) within the year.}
+
+\item{R0}{Unfished recruitment level used in the stock–recruitment
+relationship.}
+
+\item{SR}{Character string or code specifying the type of
+stock–recruitment function (e.g. Beverton–Holt, Ricker), as used in the
+operating model.}
+
+\item{bp}{Additional parameter (or vector of parameters) for the
+stock–recruitment relationship (e.g. breakpoints or shape parameters).}
+
+\item{recBeta}{Parameter (or vector) controlling the slope or shape of the
+recruitment function.}
+
+\item{recGamma}{Parameter (or vector) controlling the curvature or shape of
+the recruitment function.}
+
+\item{eR}{Stochastic recruitment deviation(s) applied to the expected
+recruitment (e.g. lognormal errors).}
+
+\item{indage0}{Integer index specifying the recruitment age (age at which
+new recruits enter the age structure).}
+
+\item{TAC}{Optional numeric value giving the target total allowable catch
+for the TAC period. If `NULL` (default), only the predicted catch is
+returned. If non-`NULL`, the function can return the difference between
+predicted catch and `TAC`, depending on `out`.}
+
+\item{out}{Integer flag controlling the type of output returned. The
+precise meaning depends on the internal implementation but typically
+distinguishes between returning the predicted catch, the difference
+between catch and `TAC`, or possibly additional diagnostics.}
+}
+\value{
+A numeric value or vector containing the predicted catch over the
+  TAC period, or the difference between predicted and target catch if
+  `TAC` is supplied and `out` is set accordingly. The exact structure of
+  the return value depends on the internal implementation. This function is
+  intended for internal use within IAMSE.
 }
 \description{
-predCatch
+`predCatch()` computes the predicted catch over a TAC period, given fishing
+mortality, numbers at age, natural mortality, selectivity, and other
+biological and stock–recruitment parameters. If a target TAC is supplied,
+the function can also return the difference between the predicted catch and
+the specified TAC.
 }
 \details{
-get predicted catch for TAC period or difference between provided
-    and predicted catch
+This is an internal helper used by higher-level IAMSE functions when
+searching for fishing mortality levels that match a given TAC or when
+projecting catches under a given management rule.
 }
+\keyword{internal}

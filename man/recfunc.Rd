@@ -28,6 +28,12 @@ recfunc(
 \item{method}{SR type}
 
 \item{bp}{breakpoint for hockey-stick SR}
+
+\item{beta}{info}
+
+\item{gamma}{info}
+
+\item{alpha}{info}
 }
 \description{
 Function to calculate recruitment (Beverton - Holt)

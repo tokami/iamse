@@ -6,6 +6,19 @@
 \usage{
 initpop(dat, set = NULL, out.opt = 1, verbose = TRUE, plot = FALSE, dbg = 0)
 }
+\arguments{
+\item{dat}{info}
+
+\item{set}{info}
+
+\item{out.opt}{info}
+
+\item{verbose}{info}
+
+\item{plot}{info}
+
+\item{dbg}{info}
+}
 \description{
 initpop
 }

@@ -6,6 +6,15 @@
 \usage{
 gettacs(tacs. = NULL, id. = "", TAC. = NA, obs. = NULL)
 }
+\arguments{
+\item{tacs.}{info}
+
+\item{id.}{info}
+
+\item{TAC.}{info}
+
+\item{obs.}{info}
+}
 \description{
 gettacs
 }

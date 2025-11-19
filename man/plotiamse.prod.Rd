@@ -6,6 +6,11 @@
 \usage{
 plotiamse.prod(prod, cols = NULL)
 }
+\arguments{
+\item{prod}{info}
+
+\item{cols}{info}
+}
 \description{
 plotiamse.prod
 }

@@ -14,6 +14,21 @@ est.metrics(
   kobe.probs = c(0.25, 0.5, 0.75)
 )
 }
+\arguments{
+\item{mse}{info}
+
+\item{dat}{info}
+
+\item{set}{info}
+
+\item{mets}{info}
+
+\item{gen.time}{info}
+
+\item{nysim}{info}
+
+\item{kobe.probs}{info}
+}
 \description{
 est.metrics
 }

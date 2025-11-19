@@ -2,7 +2,7 @@
 % Please edit documentation in R/plotting.R
 \name{plotiamse.b}
 \alias{plotiamse.b}
-\title{plotiamse.b}
+\title{Plot biomass time series from an IAMSE MSE}
 \usage{
 plotiamse.b(
   dat,
@@ -18,6 +18,59 @@ plotiamse.b(
   xlab = ""
 )
 }
+\arguments{
+\item{dat}{Data object as returned by [check.dat()], containing life-history
+and reference-point information used in the MSE.}
+
+\item{set}{Settings list as returned by [check.set()] and modified for the
+MSE run (e.g. containing `nysim`, `nrep`, and `hcr`).}
+
+\item{resMSE}{Result object returned by [run.mse()], containing simulated
+time series for each HCR and replicate.}
+
+\item{trendline}{Logical; if `TRUE`, draw a smoothed trend or additional
+line highlighting the general trajectory of biomass over time (e.g. using
+a smoother or running mean). Default is `TRUE`.}
+
+\item{uncert}{Logical; if `TRUE`, display uncertainty across replicates,
+typically in the form of quantile bands or envelopes around the median.
+Default is `TRUE`.}
+
+\item{med}{Logical; if `TRUE`, draw the median biomass trajectory across
+replicates for each HCR. If `FALSE`, only uncertainty or other summaries
+are shown, depending on the internal implementation. Default is `TRUE`.}
+
+\item{hcrs}{Optional character vector or indices specifying which HCRs to
+plot. If `NA` (default), all HCRs present in `set$hcr` (and `resMSE`) are
+plotted.}
+
+\item{ylim}{Optional numeric vector of length two giving the y-axis limits.
+If `NULL` (default), limits are chosen automatically to encompass the
+plotted biomass values.}
+
+\item{plot.legend}{Logical; if `TRUE` (default), add a legend identifying
+the plotted HCRs.}
+
+\item{ylab}{Character string specifying the y-axis label. Default is
+`"Total biomass"`.}
+
+\item{xlab}{Character string specifying the x-axis label. Default is an
+empty string `""`. Often set to `"Year"` or similar by the user.}
+}
+\value{
+This function is called for its side effect of producing a plot.
+  Invisibly returns `NULL`.
+}
 \description{
-plotiamse.b
+`plotiamse.b()` produces time-series plots of total biomass for each
+harvest control rule (HCR) evaluated in an IAMSE management strategy
+evaluation. The function aggregates results across replicates and can
+display median trajectories, uncertainty envelopes, and optional smoothed
+trend lines.
+}
+\details{
+By default, one line per HCR is drawn, and uncertainty across stochastic
+replicates is indicated (for example, by plotting quantile bands; the exact
+representation depends on the internal implementation). The function uses
+base R graphics.
 }

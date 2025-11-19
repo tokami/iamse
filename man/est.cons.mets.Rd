@@ -6,6 +6,15 @@
 \usage{
 est.cons.mets(mse, dat, mets = "all", sampleSizes = c(0.1, 0.25, 0.5, 0.75, 1))
 }
+\arguments{
+\item{mse}{info}
+
+\item{dat}{info}
+
+\item{mets}{info}
+
+\item{sampleSizes}{info}
+}
 \description{
 Estimate consistency of metrics across different sample sizes
 }

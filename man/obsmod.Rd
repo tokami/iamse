@@ -6,6 +6,15 @@
 \usage{
 obsmod(dat, hist, set, years = NULL)
 }
+\arguments{
+\item{dat}{info}
+
+\item{hist}{info}
+
+\item{set}{info}
+
+\item{years}{info}
+}
 \description{
 obsmod
 }
