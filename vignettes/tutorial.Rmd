@@ -1,0 +1,256 @@
+---
+title: "Getting started with iamse"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Getting started with iamse}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "##",
+  fig.width = 7,
+  fig.height = 5
+)
+set.seed(123)
+```
+
+# Introduction
+
+The **iamse** package provides a framework for intra-annual, age-based
+operating models for management strategy evaluation (MSE). This vignette
+walks through a simple demo:
+
+1. Load example life history information
+2. Define simulation and noise settings
+3. Estimate stochastic reference points
+4. Define and run harvest control rules (HCRs)
+5. Inspect results and basic trade-offs
+
+The example uses small settings (few years and replicates) to keep runtime
+reasonable.
+
+# Loading the package and example data
+
+```{r}
+library(iamse)
+
+## Load example life history information
+data("stocklist")
+
+## Check the main life history table
+head(stocklist$mlh)
+```
+
+We start from the built-in multi-species life-history table `stocklist$mlh`.
+For this demo, we add a simple assumption about length variation and then
+prepare the data with `check.dat()`.
+
+```{r}
+dat0 <- stocklist$mlh
+
+## Assume a coefficient of variation in length
+dat0$CVlen <- 0.1
+
+## Check and prepare data for iamse
+dat <- check.dat(dat0)
+str(dat, 1)
+```
+
+# Simulation settings
+
+Next we define the simulation settings with `check.set()`. For the vignette
+we use a small number of projection years and replicates.
+
+```{r}
+set <- check.set()
+
+## Number of projection years
+set$nysim <- 20
+
+## Number of stochastic replicates (kept small for demonstration)
+set$nrep <- 10
+
+## Use the median across replicates as reference method
+set$refMethod <- "median"
+```
+
+## Noise structure
+
+We now specify variation in life history, process, and observation
+components. Each entry is given as a three-element vector and interpreted
+inside **iamse**.
+
+```{r}
+## Between-replicate variation (life-history parameters)
+set$noise$rep$H  <- c(0.1, 0, 1)
+set$noise$rep$M  <- c(0.1, 0, 1)
+set$noise$rep$R0 <- c(0.1, 0, 1)
+
+## Process noise (recruitment and fishing mortality)
+set$noise$time$R <- c(0.7, 0.4, 1)   ## species-specific recruitment variability
+set$noise$rep$F  <- c(0.15, 0, 1)
+
+## Observation noise (indices and catches)
+set$noise$time$I <- c(0.3, 0, 1)
+set$noise$time$C <- c(0.1, 0, 1)
+```
+
+# Stochastic reference points
+
+Before running the MSE, we estimate stochastic reference points for each
+stock. To keep computation time down, we reduce the number of replicates
+used for the reference calculation.
+
+```{r}
+## Lower number of replicates to speed up reference-point estimation
+set$refN <- 100
+
+## Estimate stochastic reference levels
+dat <- est.ref.levels.stochastic(
+  dat, set,
+  fmax = 5,
+  ncores = 2,
+  plot = TRUE
+)
+
+## Add Blim as a fraction of pristine biomass
+dat$ref$Blim <- 0.2 * dat$ref$B0
+
+str(dat$ref, 1)
+```
+
+# Defining harvest control rules
+
+We now define a few simple HCRs:
+
+- `"noF"`: no fishing
+- `"refFmsy"`: fishing at the true \(F_\text{MSY}\)
+- `"conscat"`: constant catch if the assessment model does not converge
+
+```{r}
+## Baseline HCRs
+
+## No fishing ("noF")
+iamse::def.hcr.ref(set. = set)
+
+## Fishing at true Fmsy ("refFmsy")
+iamse::def.hcr.ref(consF = "fmsy", set. = set)
+
+## Constant catch if the assessment (e.g. spict) does not converge
+iamse::def.hcr.conscat(set. = set)
+
+## Select HCRs to evaluate
+set$hcr <- c(
+  "noF",
+  "refFmsy",
+  "conscat"
+)
+
+set$hcr
+```
+
+# Running the MSE
+
+With data, settings, reference points, and HCRs defined, we can run the
+MSE. For the vignette we keep `ncores = 1` to avoid parallelization issues
+on some systems.
+
+```{r}
+resMSE <- run.mse(
+  dat, set,
+  ncores  = 1,
+  verbose = TRUE
+)
+
+## Structure of results: first by HCR, then by replicate
+names(resMSE)
+names(resMSE[[1]])
+```
+
+Each element of `resMSE[[hcr]][[rep]]` contains the full output of the
+operating model for that HCR and replicate.
+
+```{r}
+## Inspect the structure for the first HCR and first replicate
+str(resMSE[[1]][[1]], 1)
+
+## For example, TAC time series for a given HCR and replicate
+resMSE[[2]][[4]]$tacs$TAC
+```
+
+# Time series plots
+
+The package provides helper plotting functions to visualize the evolution
+of fishing mortality, catch, and biomass over time for the different HCRs.
+
+```{r}
+par(mfrow = c(3, 1), mar = c(4, 4, 1, 1), oma = c(1, 1, 1, 1))
+
+plotiamse.f(dat, set, resMSE)
+plotiamse.cw(dat, set, resMSE)
+plotiamse.b(dat, set, resMSE)
+```
+
+These plots show how the different management strategies affect the
+trajectory of the stock and fishery.
+
+# Trade-offs between performance metrics
+
+Finally, we can summarize MSE results using standard performance metrics
+such as:
+
+- Long-term catch
+- Risk (e.g. probability of dropping below a biomass limit)
+- Interannual catch variability (AAV of catch)
+
+```{r}
+mets <- est.metrics(
+  resMSE, dat, set,
+  mets = c("catch", "risk", "aavc")
+)
+
+head(mets)
+```
+
+We can then visualize trade-offs between pairs of metrics using
+`plotiamse.tradeoff()`.
+
+```{r}
+par(mfrow = c(1, 2))
+
+## Catch vs risk
+plotiamse.tradeoff(
+    mets, c("catch", "risk"),
+    plot.legend = FALSE
+)
+
+## Catch vs interannual variability (AAVC)
+plotiamse.tradeoff(
+    mets, c("catch", "aavc")
+)
+```
+
+These trade-off plots provide a compact way to compare HCRs in terms of
+yield, conservation risk, and stability — one of the key strengths of
+management strategy evaluation.
+
+# Summary
+
+This vignette showed a minimal workflow with **iamse**:
+
+1. Prepare life-history data and simulation settings
+2. Specify noise and estimate stochastic reference points
+3. Define and select harvest control rules
+4. Run the MSE and inspect outputs
+5. Summarize and visualize performance trade-offs
+
+You can build on this template by:
+
+- Changing life-history parameters
+- Adding more complex noise structures
+- Defining additional HCRs
+- Increasing the number of years and replicates for more realistic
+  applications.

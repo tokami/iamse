@@ -101,7 +101,7 @@ check.dat <- function(dat = NULL, verbose = TRUE){
         ## }
         tmp <- rowSums(plba)
         plba <- plba / tmp
-##            plba[tmp == 0] <- 0
+        ##            plba[tmp == 0] <- 0
         ## plba <- t(vlprobs(LA, LA * dat$CVlen))
         ## plba <- plba / rowSums(plba)
     }else plba <- NULL

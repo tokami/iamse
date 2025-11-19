@@ -1080,7 +1080,7 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE){
         ## catch observations at age (SAM, SMS)
         obs$obsCA <- rbind(obs$obsCA, as.numeric(by(CAA, as2a, sum)) * errs$time$eCmvA[ysim,] * as.numeric(errs$rep$eCmvA))
         if(!is.null(dat$plba)){
-            obs$obsCL <- rbind(obs$obsCL, as.numeric(CAA %*% dat$plba) * errs$time$eCmvL[ysim,] * as.numeric(errs$rep$eCmvL))
+            obs$obsCL <- rbind(obs$obsCL, as.numeric(as.vector(CAA) %*% dat$plba) * errs$time$eCmvL[ysim,] * as.numeric(errs$rep$eCmvL))
         }
         ## Effort
         if(is.numeric(nyE)){

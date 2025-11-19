@@ -9,7 +9,17 @@ Contains framework for intra-annual age-based operating model for MSE.
 
 Description of your package
 }
+\seealso{
+Useful links:
+\itemize{
+  \item \url{https://tokami.github.io/iamse/}
+}
+
+}
 \author{
+\strong{Maintainer}: Tobias Mildenberger \email{t.k.mildenberger@gmail.com} [copyright holder]
+
+
 T.K. Mildenberger
 }
 \keyword{internal}
