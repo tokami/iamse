@@ -1,0 +1,32 @@
+# Introduction to iamse
+
+The goal of iamse package is to offer a flexible framework for
+management strategy evaluation. To get started, make sure to install the
+most recent package version from GitHub.
+
+## Installation
+
+The current version of *iamse* (v0.0.9) requires R $> = 4.0.0$ and can
+be downloaded from github as follows.
+
+``` r
+# install.packages("remotes")
+remotes::install_github("tokami/iamse")
+```
+
+The development version can be installed with:
+
+``` r
+remotes::install_github("tokami/iamse", ref = "dev")
+```
+
+## Basic usage
+
+After successful installation, the package can be loaded into the R
+environment.
+
+## More information
+
+The [tutorial
+vignette](https://tokami.github.io/iamse/articles/tutorial.md) provides
+a step-by-step guide to using *iamse* for example data.
