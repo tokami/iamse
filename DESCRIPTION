@@ -19,13 +19,13 @@ Imports:
     future,
     future.apply,
     parallel,
-    MASS
+    MASS,
+    spict
 LinkingTo:
     Rcpp
 Suggests:
     knitr,
-    rmarkdown,
-    spict
+    rmarkdown
 Remotes:
     DTUAqua/spict/spict
 LazyData: true
