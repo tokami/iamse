@@ -9,6 +9,7 @@ est.productivity(
   set = NULL,
   ny = 100,
   fmax = 10,
+  nf = 1000,
   tsSplit = 8,
   plot = TRUE
 )

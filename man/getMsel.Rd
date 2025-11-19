@@ -4,7 +4,18 @@
 \alias{getMsel}
 \title{getMsel}
 \usage{
-getMsel(Linf, K, mids, plba, a = 0.55, b = 1.61, c = 1.44, scale = TRUE)
+getMsel(
+  Linf,
+  K,
+  mids,
+  plba,
+  a = 0.55,
+  b = 1.61,
+  c = 1.44,
+  scale = TRUE,
+  lunit = "cm",
+  useBelow10 = FALSE
+)
 }
 \arguments{
 \item{Linf}{Linf of vBGF}

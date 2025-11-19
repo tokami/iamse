@@ -1,27 +1,25 @@
 Package: iamse
 Type: Package
-Title: Intra-annual management strategy evaluation (IAMSE)
-Version: 0.0.3
-Date: 2021-02-20
-Author: T.K. Mildenberger
-Maintainer: T.K. Mildenberger <t.k.mildenberger@gmail.com>
-Description: Contains framework for intra-annual age-based operating model for MSE.
-License: GPL (>=3)
+Title: Intra-Annual Management Strategy Evaluation (IAMSE)
+Version: 0.0.9
+Date: 2025-11-19
+Authors@R:
+    c(person("Tobias", "Mildenberger",
+           email = "t.k.mildenberger@gmail.com",
+           role = c("aut", "cre", "cph")))
+Description: Provides a framework for intra-annual age-based operating models
+    used in management strategy evaluation (MSE) of exploited fish stocks.
+License: GPL (>= 3)
 Encoding: UTF-8
-Copyright: Tobias K. Mildenberger <t.k.mildenberger@gmail.com>
 Depends:
-    R (>= 3.0),
-    TMB,
-    spict,
-    stockassessment
-Imports: Rcpp (>= 1.0.3)
-LinkingTo: Rcpp
+    R (>= 3.0)
+Imports:
+    Rcpp (>= 1.0.3)
+LinkingTo:
+    Rcpp
 Suggests:
-    parallel,
-    mgcv,
     knitr,
-    rmarkdown,
-    DLMtool
+    rmarkdown
 LazyData: true
 VignetteBuilder: knitr
 RoxygenNote: 7.3.2
