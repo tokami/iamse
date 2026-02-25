@@ -161,7 +161,9 @@ gen.noise <- function(n,
         Sigma <- matrix(NA, amax, amax)
         for(i in 1:amax) for(j in 1:amax) Sigma[i,j] = rho^abs(i - j) * sd^2
         res <- MASS::mvrnorm(n, rep(0,ncol(Sigma)), Sigma)
-        if(bias.cor == 1){
+      if(bias.cor == 1){
+        ## TODO: res is not a matrix!
+        ## browser()
             for(i in 1:amax) res[,i] <- res[,i] - Sigma[i,i] / 2
         }else if(bias.cor != 0) stop("bias.cor has to be 0 or 1 for multivariate noise. Please check set$noiseCmult and set$noiseImult.")
         res <- exp(res)
@@ -213,7 +215,7 @@ gen.noise <- function(n,
 get.errs <- function(dat, set, x, hist = NULL, rep = FALSE) {
 
     n <- length(x)
-    nsurv <- length(dat$surveyTimes)
+  nsurv <- length(dat$surveyTimes)
 
     if(!is.null(hist) && "errs" %in% names(hist)){
         if(rep){
@@ -234,11 +236,11 @@ get.errs <- function(dat, set, x, hist = NULL, rep = FALSE) {
                           eW = NULL,
                           eImp = NULL,
                           eC = NULL)
-        hist.errs$eI <- as.list(rep(NULL, nsurv))
+        hist.errs$eI <- vector("list", nsurv)
         hist.errs$eCmvA <- NULL
         hist.errs$eCmvL <- NULL
-        hist.errs$eImvA <- as.list(rep(NULL, nsurv))
-        hist.errs$eImvL <- as.list(rep(NULL, nsurv))
+        hist.errs$eImvA <- vector("list", nsurv)
+        hist.errs$eImvL <- vector("list", nsurv)
         hist.errs$eE <- NULL
     }
 
@@ -380,6 +382,7 @@ get.errs <- function(dat, set, x, hist = NULL, rep = FALSE) {
                                     hist = tail(hist.errs$eImvA[[i]],1))
         }
     }
+
     if(is.null(eImvL) || all(is.na(eImvL)) &&
        !is.null(dat$plba)){
         eImvL <- list()
