@@ -158,15 +158,27 @@ gen.noise <- function(n,
                 amax <- dat$amax + 1
             }
         }
-        Sigma <- matrix(NA, amax, amax)
-        for(i in 1:amax) for(j in 1:amax) Sigma[i,j] = rho^abs(i - j) * sd^2
-        res <- MASS::mvrnorm(n, rep(0,ncol(Sigma)), Sigma)
-      if(bias.cor == 1){
-        ## TODO: res is not a matrix!
-        ## browser()
-            for(i in 1:amax) res[,i] <- res[,i] - Sigma[i,i] / 2
-        }else if(bias.cor != 0) stop("bias.cor has to be 0 or 1 for multivariate noise. Please check set$noiseCmult and set$noiseImult.")
-        res <- exp(res)
+      ## covariance matrix
+      Sigma <- matrix(NA_real_, amax, amax)
+      for (i in 1:amax) for (j in 1:amax) Sigma[i, j] <- rho^abs(i - j) * sd^2
+
+      ## mean vector for lognormal bias correction
+      mu <- rep(0, amax)
+      if (bias.cor == 1) {
+        mu <- -0.5 * diag(Sigma)
+      } else if (bias.cor != 0) {
+        stop("bias.cor has to be 0 or 1 for multivariate noise. Please check set$noiseCmult and set$noiseImult.")
+      }
+
+      ## draw MVN
+      res <- MASS::mvrnorm(n = n, mu = mu, Sigma = Sigma)
+
+      ## mvrnorm returns a vector when n = 1 -> coerce to 1 x amax matrix
+      if (n == 1L) res <- matrix(res, nrow = 1L)
+
+      ## exponentiate to get multivariate lognormal noise
+      res <- exp(res)
+
     }else{
         if(bias.cor == 0){
             rnoise <- rnorm(n, 0, sd)
