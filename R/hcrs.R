@@ -1535,3 +1535,108 @@ def.hcr.pseudo <- function(id = "pseudo-msy",
     ## allow for assigning names
     invisible(id)
 }
+
+
+#' def.hcr.ss3
+#' @title Define harvest control rule for SS3
+#'
+#' @param id Name/ID of HCR. Default: "ss3"
+#' @param nonconvHCR HCR if SAM does not converge. Default: "conscat" (constant catch).
+#' @param silent silent
+#' @param verbose verbose
+#' @param env Environment. Default: globalenv()
+#'
+#'
+#' @export
+#'
+def.hcr.ss3 <- function(id = "ss3",
+                        nonconvHCR = "conscat",
+                        silent = TRUE,
+                        verbose = FALSE,
+                        env = globalenv()
+){
+  
+  template  <- expression(paste0('function(obs, tacs = NULL, pars=NULL){
+    silent <- ',silent,'
+    verbose <- ',verbose,'
+    func <- get("',nonconvHCR,'")
+    
+    browser()
+
+    ## setup SAM data
+    dat <- stockassessment::setup.sam.data(surveys = obs$obsIA,
+                                           residual.fleet = obs$obsCA,
+                                           prop.mature = obs$propMature,
+                                           stock.mean.weight = obs$WAAs,
+                                           catch.mean.weight = obs$WAAc,
+                                           dis.mean.weight = obs$WAAc,
+                                           land.mean.weight = obs$WAAc,
+                                           prop.f = obs$propFemale,
+                                           prop.m = obs$propFemale,
+                                           natural.mortality = obs$obsMAA,
+                                           land.frac = obs$landFrac)
+
+    ## configurations
+    conf <- stockassessment::defcon(dat)
+
+    ## starting values
+    par <- stockassessment::defpar(dat, conf)
+
+    ## fit SAM (to make faster re-code sam.fit)
+    fit <- try(stockassessment::sam.fit(dat, conf, par, ignore.parm.uncertainty = TRUE,
+                                        rel.tol = 1e-6,
+                                        silent=silent),
+               silent=TRUE)
+
+    if(class(fit) == "try-error"){
+        if(verbose) cat("Error in model fitting.\n")
+        tacs <- func(obs, tacs=tacs, pars=pars)
+        tacs$conv[nrow(tacs)] <- FALSE
+        return(tacs)
+    }else{
+        ## reference levels (using simEQ)
+        ## estimating fval
+        ## fval = Fmsy based on simEQ
+
+        ## sam forecast given Fval
+        ## fore = forecast(fit, nextssb = c(NA,ssbref), fval = c(1,NA))  ## doesnt work
+        fore <- try(stockassessment::forecast(fit, fval = c(1,1)), silent = TRUE)
+
+        if(class(fore) == "try-error"){
+            if(verbose) cat("Error in model fitting.\n")
+            tacs <- func(obs, tacs=tacs, pars=pars)
+            tacs$conv[nrow(tacs)] <- FALSE
+            return(tacs)
+
+        }else{
+
+            ## predicted catches
+            shorttab <- attr(fore,"shorttab")
+            tac <- shorttab[4,2]
+
+            ## plots
+            ## ssbplot(fit)
+            ## catchplot(fit)
+            ## dataplot(fit)
+            ## fitplot(fit)
+
+            ## write output object
+            tacs <- iamse:::gettacs(tacs.=tacs, id.="',id,'", TAC.=tac, obs.=obs)
+            tacs$conv[nrow(tacs)] <- TRUE
+            return(tacs)
+        }
+    }
+}'))
+  
+  ## create HCR as functions
+  ## templati <- eval(parse(text=paste(parse(text = eval(template)),collapse=" ")))
+  ## assign(value=templati, x=id, envir=env)
+  
+  templati <- eval(parse(text = eval(template)))
+  class(templati) <- c(class(templati), "hcr")
+  attributes(templati)$id <- id
+  assign(value=templati, x=id, envir=env)
+  
+  ## allow for assigning names
+  invisible(id)
+}
