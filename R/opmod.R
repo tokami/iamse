@@ -710,6 +710,8 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE) {
     mselFlag <- inherits(Msel, "list") && length(Msel) > 1
     selFlag <- inherits(sel, "list") && length(sel) > 1
 
+
+
     ## Containers
     tmp <- matrix(0, 1, ns)
     TSB <- rbind(hist$TSB,tmp)
