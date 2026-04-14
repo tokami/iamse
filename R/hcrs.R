@@ -798,7 +798,21 @@ def.hcr.spict <- function(id = "spict-msy",
     breakpointB1 <- breakpointB[1]
     breakpointB2 <- breakpointB[2]
 
-    template  <- expression(paste0('function(obs, tacs = NULL, pars=NULL){if(is.null(obs$timeE)){inp <- obs[c("obsC","timeC","obsI","timeI")]}else if(is.null(obs$timeI)){inp <- obs[c("obsC","timeC","obsE","timeE")]}else{inp <- obs[c("obsC","timeC","obsI","timeI","obsE","timeE")]}
+  template  <- expression(paste0('function(obs, tacs = NULL, pars=NULL){
+
+if(is.null(obs$timeE)){
+
+inp <- obs[c("obsC","timeC","obsI","timeI")]
+
+}else if(is.null(obs$timeI)){
+
+inp <- obs[c("obsC","timeC","obsE","timeE")]
+
+}else{
+
+inp <- obs[c("obsC","timeC","obsI","timeI","obsE","timeE")]
+}
+
         func2 <- get("',nonconvHCR,'")
         inp$reportmode <- ',reportmode,'
         inp$dteuler <- ',dteuler,'

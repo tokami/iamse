@@ -524,7 +524,7 @@ est.ref.levels.stochastic <- function(dat, set=NULL, fmax = 10,
         refmed[,i] <- meds[[ind[[i]]]][mind]
     }
     colnames(refmed) <- refall[ind]
-    dat$ref <- as.data.frame(refmed)
+  dat$ref <- as.data.frame(refmed)
 
     if(plot){
         if(alltv < 4){
@@ -532,6 +532,7 @@ est.ref.levels.stochastic <- function(dat, set=NULL, fmax = 10,
             nr <- ceiling(length(refdist)/3)
             par(mfrow=c(nr,3))
             for(i in 1:length(refdist)){
+              if(all(is.na(refdist[[i]][,1]))) next()
                 hist(refdist[[i]][,1], main = names(refdist)[i],
                      breaks=20, freq = TRUE, xlim = range(refdist[[i]],na.rm=TRUE),
                      xlab = "", col = rgb(t(col2rgb(cols[1]))/255,alpha=0.4))
