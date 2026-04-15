@@ -1556,6 +1556,7 @@ def.hcr.ss3 <- function(id = "ss3",
                         env = globalenv()
 ){
   
+  
   template  <- expression(paste0('function(obs, tacs = NULL, pars=NULL){
     silent <- ',silent,'
     verbose <- ',verbose,'
