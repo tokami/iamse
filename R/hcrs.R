@@ -1551,92 +1551,373 @@ def.hcr.pseudo <- function(id = "pseudo-msy",
 #'
 def.hcr.ss3 <- function(id = "ss3",
                         nonconvHCR = "conscat",
+                        ss3_base_dir,
+                        ss3_exe,
+                        catch_se = 0.05,
+                        cpue_se = 0.20,
+                        index_month = 1,
+                        catch_fleet = 1,
+                        index_fleet = 1,
                         silent = TRUE,
-                        verbose = FALSE,
-                        env = globalenv()
-){
+                        verbose = TRUE,
+                        env = globalenv()) {
   
-  template  <- expression(paste0('function(obs, tacs = NULL, pars=NULL){
-    silent <- ',silent,'
-    verbose <- ',verbose,'
-    func <- get("',nonconvHCR,'")
+  template <- substitute(
     
-    browser()
-
-    ## setup SAM data
-    dat <- stockassessment::setup.sam.data(surveys = obs$obsIA,
-                                           residual.fleet = obs$obsCA,
-                                           prop.mature = obs$propMature,
-                                           stock.mean.weight = obs$WAAs,
-                                           catch.mean.weight = obs$WAAc,
-                                           dis.mean.weight = obs$WAAc,
-                                           land.mean.weight = obs$WAAc,
-                                           prop.f = obs$propFemale,
-                                           prop.m = obs$propFemale,
-                                           natural.mortality = obs$obsMAA,
-                                           land.frac = obs$landFrac)
-
-    ## configurations
-    conf <- stockassessment::defcon(dat)
-
-    ## starting values
-    par <- stockassessment::defpar(dat, conf)
-
-    ## fit SAM (to make faster re-code sam.fit)
-    fit <- try(stockassessment::sam.fit(dat, conf, par, ignore.parm.uncertainty = TRUE,
-                                        rel.tol = 1e-6,
-                                        silent=silent),
-               silent=TRUE)
-
-    if(class(fit) == "try-error"){
-        if(verbose) cat("Error in model fitting.\n")
-        tacs <- func(obs, tacs=tacs, pars=pars)
+    function(obs, tacs = NULL, pars = NULL) {
+      
+      # ==========================================================
+      # DEBUG: inspect obs received by the HCR from the MSE
+      # ==========================================================
+      if (VERBOSE) {
+        cat("\n=============================\n")
+        cat("DEBUG - HCR ss3 received obs\n")
+        cat("=============================\n")
+        
+        cat("Names of obs:\n")
+        print(names(obs))
+        
+        if (!is.null(obs$years)) {
+          cat("min year:", min(obs$years), "\n")
+          cat("max year:", max(obs$years), "\n")
+          cat("n years:", length(obs$years), "\n")
+        }
+        
+        if (!is.null(obs$obsCA)) {
+          cat("length obsCA:", length(obs$obsCA), "\n")
+        }
+        
+        if (!is.null(obs$obsIA)) {
+          cat("length obsIA:", length(obs$obsIA), "\n")
+        }
+        
+        cat("Structure of obs:\n")
+        str(obs)
+        
+        cat("=============================\n\n")
+      }
+      
+      # ==========================================================
+      # 1. Fallback HCR if SS3 fails
+      # ==========================================================
+      fallback_fun <- get(NONCONV)
+      
+      # ==========================================================
+      # 2. Create a temporary run directory
+      # ==========================================================
+      run_dir <- tempfile(pattern = "ss3_run_")
+      dir.create(run_dir, recursive = TRUE, showWarnings = FALSE)
+      
+      # Copy the complete base SS3 model into the temporary folder
+      file.copy(
+        from = list.files(BASE_DIR, full.names = TRUE, all.files = TRUE, no.. = TRUE),
+        to = run_dir,
+        recursive = TRUE,
+        overwrite = TRUE
+      )
+      
+      if (VERBOSE) {
+        cat("Rodando SS3 em:", run_dir, "\n")
+      }
+      
+      # ==========================================================
+      # 3. Read the SS3 base model
+      # ==========================================================
+      inputs <- try(
+        r4ss::SS_read(dir = run_dir, verbose = FALSE),
+        silent = TRUE
+      )
+      
+      if (inherits(inputs, "try-error")) {
+        if (VERBOSE) cat("Erro ao ler o modelo base do SS3.\n")
+        tacs <- fallback_fun(obs, tacs = tacs, pars = pars)
         tacs$conv[nrow(tacs)] <- FALSE
         return(tacs)
-    }else{
-        ## reference levels (using simEQ)
-        ## estimating fval
-        ## fval = Fmsy based on simEQ
-
-        ## sam forecast given Fval
-        ## fore = forecast(fit, nextssb = c(NA,ssbref), fval = c(1,NA))  ## doesnt work
-        fore <- try(stockassessment::forecast(fit, fval = c(1,1)), silent = TRUE)
-
-        if(class(fore) == "try-error"){
-            if(verbose) cat("Error in model fitting.\n")
-            tacs <- func(obs, tacs=tacs, pars=pars)
-            tacs$conv[nrow(tacs)] <- FALSE
-            return(tacs)
-
-        }else{
-
-            ## predicted catches
-            shorttab <- attr(fore,"shorttab")
-            tac <- shorttab[4,2]
-
-            ## plots
-            ## ssbplot(fit)
-            ## catchplot(fit)
-            ## dataplot(fit)
-            ## fitplot(fit)
-
-            ## write output object
-            tacs <- iamse:::gettacs(tacs.=tacs, id.="',id,'", TAC.=tac, obs.=obs)
-            tacs$conv[nrow(tacs)] <- TRUE
-            return(tacs)
-        }
-    }
-}'))
+      }
+      
+      # ==========================================================
+      # 4. Extract years from obs
+      # ==========================================================
+      if (!is.null(obs$years)) {
+        years <- as.integer(obs$years)
+      } else if (!is.null(names(obs$obsCA))) {
+        years <- as.integer(names(obs$obsCA))
+      } else {
+        years <- seq_along(obs$obsCA)
+      }
+      
+      if (length(years) != length(obs$obsCA)) {
+        stop("Comprimento de 'years' e 'obs$obsCA' não coincide.")
+      }
+      
+      if (length(obs$obsIA) != length(years)) {
+        stop("Comprimento de 'obs$obsIA' e 'years' não coincide.")
+      }
+      
+      # ==========================================================
+      # 5. Update the SS3 data object
+      # ==========================================================
+      dat <- inputs$dat
+      dat$styr <- min(years)
+      dat$endyr <- max(years)
+      
+      # Preserve the special -999 catch row expected by SS3
+      catch_header <- data.frame(
+        year = -999,
+        seas = 1,
+        fleet = 1,
+        catch = 1e-20,
+        catch_se = CATCH_SE
+      )
+      
+      # Update annual catches
+      new_catch <- data.frame(
+        year = years,
+        seas = 1,
+        fleet = CATCH_FLEET,
+        catch = as.numeric(obs$obsCA),
+        catch_se = CATCH_SE
+      )
+      
+      dat$catch <- rbind(catch_header, new_catch)
+      
+      # Update annual abundance index
+      new_cpue <- data.frame(
+        year = years,
+        month = INDEX_MONTH,
+        index = INDEX_FLEET,
+        obs = as.numeric(obs$obsIA),
+        se_log = CPUE_SE
+      )
+      
+      dat$CPUE <- new_cpue
+      
+      # ==========================================================
+      # 6. Update forecast settings to compute Fmsy and forecast 1 year
+      # ==========================================================
+      fore <- inputs$fore
+      fore$benchmarks <- 1
+      fore$MSY <- 2
+      fore$Forecast <- 2
+      fore$Nforecastyrs <- 1
+      
+      inputs$dat <- dat
+      inputs$fore <- fore
+      
+      # ==========================================================
+      # 7. Write updated SS3 files
+      # ==========================================================
+      write_ok <- try(
+        r4ss::SS_write(inputs, dir = run_dir, overwrite = TRUE),
+        silent = TRUE
+      )
+      
+      if (inherits(write_ok, "try-error")) {
+        if (VERBOSE) cat("Erro ao escrever os arquivos atualizados do SS3.\n")
+        tacs <- fallback_fun(obs, tacs = tacs, pars = pars)
+        tacs$conv[nrow(tacs)] <- FALSE
+        return(tacs)
+      }
+      
+      # ==========================================================
+      # 8. Run SS3
+      # ==========================================================
+      run_ok <- try(
+        r4ss::run(
+          dir = run_dir,
+          exe = SS3_EXE,
+          extras = "-nohess",
+          skipfinished = FALSE,
+          verbose = !SILENT
+        ),
+        silent = TRUE
+      )
+      
+      if (inherits(run_ok, "try-error")) {
+        if (VERBOSE) cat("Erro ao rodar o executável do SS3.\n")
+        tacs <- fallback_fun(obs, tacs = tacs, pars = pars)
+        tacs$conv[nrow(tacs)] <- FALSE
+        return(tacs)
+      }
+      
+      # ==========================================================
+      # 9. Read SS3 output
+      # ==========================================================
+      replist <- try(
+        r4ss::SS_output(
+          dir = run_dir,
+          forecast = TRUE,
+          verbose = FALSE,
+          printstats = FALSE
+        ),
+        silent = TRUE
+      )
+      
+      if (inherits(replist, "try-error")) {
+        if (VERBOSE) cat("Erro ao ler o output do SS3.\n")
+        tacs <- fallback_fun(obs, tacs = tacs, pars = pars)
+        tacs$conv[nrow(tacs)] <- FALSE
+        return(tacs)
+      }
+      
+      # ==========================================================
+      # 10. Extract TAC from the first forecast year
+      # ==========================================================
+      forecast_ts <- subset(replist$timeseries, Yr > replist$endyr)
+      
+      if (!"dead(B):_1" %in% names(forecast_ts)) {
+        if (VERBOSE) cat("A coluna 'dead(B):_1' não foi encontrada no forecast.\n")
+        tacs <- fallback_fun(obs, tacs = tacs, pars = pars)
+        tacs$conv[nrow(tacs)] <- FALSE
+        return(tacs)
+      }
+      
+      tac <- as.numeric(forecast_ts[1, "dead(B):_1"])
+      
+      if (!is.finite(tac) || is.na(tac)) {
+        if (VERBOSE) cat("TAC inválido extraído do output do SS3.\n")
+        tacs <- fallback_fun(obs, tacs = tacs, pars = pars)
+        tacs$conv[nrow(tacs)] <- FALSE
+        return(tacs)
+      }
+      
+      if (VERBOSE) {
+        cat("TAC extraído do SS3:", tac, "\n")
+      }
+      
+      # ==========================================================
+      # 11. Return TAC to the MSE
+      # ==========================================================
+      tacs <- iamse:::gettacs(tacs.=tacs, id.=ID, TAC.=tac, obs.=obs)
+      tacs$conv[nrow(tacs)] <- TRUE
+      
+      return(tacs)
+    },
+    
+    list(
+      NONCONV = nonconvHCR,
+      BASE_DIR = ss3_base_dir,
+      SS3_EXE = ss3_exe,
+      CATCH_SE = catch_se,
+      CPUE_SE = cpue_se,
+      INDEX_MONTH = index_month,
+      CATCH_FLEET = catch_fleet,
+      INDEX_FLEET = index_fleet,
+      SILENT = silent,
+      VERBOSE = verbose,
+      ID = id
+    )
+  )
   
-  ## create HCR as functions
-  ## templati <- eval(parse(text=paste(parse(text = eval(template)),collapse=" ")))
-  ## assign(value=templati, x=id, envir=env)
+  class(template) <- c(class(template), "hcr")
+  attributes(template)$id <- id
+  assign(x = id, value = template, envir = env)
   
-  templati <- eval(parse(text = eval(template)))
-  class(templati) <- c(class(templati), "hcr")
-  attributes(templati)$id <- id
-  assign(value=templati, x=id, envir=env)
-  
-  ## allow for assigning names
   invisible(id)
 }
+
+# Paths
+ss3_base_dir <- "C:/Doutorado, Avaliação de estoque/SS-DL-tool-master/Scenarios/Finalbase_vermelha_cauda34.6_esp73.1_exp80_GM9_t1_L2_lwr2_F4"
+ss3_exe <- "C:/Doutorado, Avaliação de estoque/SS-DL-tool-master/ss3_win.exe"
+
+# Create the HCR called ss3
+def.hcr.ss3(
+  id = "ss3",
+  nonconvHCR = "conscat",
+  ss3_base_dir = ss3_base_dir,
+  ss3_exe = ss3_exe,
+  verbose = TRUE
+)
+
+# Confirm that the function was created
+exists("ss3")
+
+# ==========================================================
+# Manual test of the SS3 workflow outside the HCR
+# ==========================================================
+
+obs <- list(
+  years = 1955:2024,
+  obsCA = rep(100, 70),
+  obsIA = rep(0.5, 70)
+)
+
+run_dir <- tempfile("ss3_test_")
+dir.create(run_dir)
+
+file.copy(
+  from = list.files(ss3_base_dir, full.names = TRUE, all.files = TRUE, no.. = TRUE),
+  to = run_dir,
+  recursive = TRUE,
+  overwrite = TRUE
+)
+
+inputs <- r4ss::SS_read(dir = run_dir, verbose = FALSE)
+
+years <- obs$years
+
+dat <- inputs$dat
+dat$styr <- min(years)
+dat$endyr <- max(years)
+
+catch_header <- data.frame(
+  year = -999,
+  seas = 1,
+  fleet = 1,
+  catch = 1e-20,
+  catch_se = 0.05
+)
+
+new_catch <- data.frame(
+  year = years,
+  seas = 1,
+  fleet = 1,
+  catch = as.numeric(obs$obsCA),
+  catch_se = 0.05
+)
+
+dat$catch <- rbind(catch_header, new_catch)
+
+new_cpue <- data.frame(
+  year = years,
+  month = 1,
+  index = 1,
+  obs = as.numeric(obs$obsIA),
+  se_log = 0.2
+)
+
+dat$CPUE <- new_cpue
+
+fore <- inputs$fore
+fore$benchmarks <- 1
+fore$MSY <- 2
+fore$Forecast <- 2
+fore$Nforecastyrs <- 1
+
+inputs$dat <- dat
+inputs$fore <- fore
+
+r4ss::SS_write(inputs, dir = run_dir, overwrite = TRUE)
+
+r4ss::run(
+  dir = run_dir,
+  exe = ss3_exe,
+  extras = "-nohess",
+  skipfinished = FALSE,
+  verbose = TRUE
+)
+
+replist <- r4ss::SS_output(
+  dir = run_dir,
+  forecast = TRUE,
+  verbose = TRUE,
+  printstats = FALSE
+)
+
+forecast_ts <- subset(replist$timeseries, Yr > replist$endyr)
+
+names(forecast_ts)
+forecast_ts
+
+tac <- as.numeric(forecast_ts[1, "dead(B):_1"])
+tac
