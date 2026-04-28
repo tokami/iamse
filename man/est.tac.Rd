@@ -4,7 +4,7 @@
 \alias{est.tac}
 \title{est.tac}
 \usage{
-est.tac(obs., hcr.fun, tacs. = NULL, pars. = NULL)
+est.tac(obs., hcr.fun, tacs. = NULL, pars. = NULL, dat. = NULL)
 }
 \arguments{
 \item{obs.}{observation}

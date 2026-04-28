@@ -841,7 +841,7 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE) {
                 bbmsy <- TSBtmp / refs$Bmsy[y + s - 1]
                 FMtmp <- as.numeric(t(FM))
                 ffmsy <- sum(utils::tail(FMtmp[1:((y*ns)-ns-(s-1))],ns)) / refs$Fmsy[y + s - 1]
-                ## TAC
+              ## TAC
                 tacs <- est.tac(obs. = obs,
                                 hcr.fun = get(hcr),
                                 tacs. = tacs,
@@ -862,7 +862,8 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE) {
                                              "fmsyBias" = fmsyBias,
                                              "tacSD" = tacSD,
                                              "ns" = ns
-                                             ))
+                                             ),
+                                dat. = dat)
 
                 ## if(set$assessmentIntYear > 0){
                 ##     if(year > set$assessmentIntYear){

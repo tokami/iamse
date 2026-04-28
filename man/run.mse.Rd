@@ -4,14 +4,7 @@
 \alias{run.mse}
 \title{run.mse}
 \usage{
-run.mse(
-  dat,
-  set,
-  fest = NULL,
-  ncores = parallel::detectCores() - 1,
-  globals = NULL,
-  verbose = TRUE
-)
+run.mse(dat, set, fest = NULL, ncores = 1, globals = NULL, verbose = TRUE)
 }
 \arguments{
 \item{dat}{data}
