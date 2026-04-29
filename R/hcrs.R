@@ -1552,11 +1552,14 @@ def.hcr.pseudo <- function(id = "pseudo-msy",
 def.hcr.ss3 <- function(id = "ss3",
                         exe_dir,
                         nonconvHCR = "conscat",
-                        catch_se = 0.05,
-                        cpue_se = 0.20,
-                        index_month = 1,
-                        catch_fleet = 1,
-                        index_fleet = 1,
+                        catch_se = 0.01,
+                        cpue_se_log = 0.2,
+                        cpue_month = 6,
+                        fix_biology = TRUE,
+                        fix_selectivity = TRUE,
+                        fix_q = TRUE,
+                        use_lencomp = TRUE,
+                        ny_lencomp = 5,
                         silent = TRUE,
                         debugging_mode = FALSE,
                         verbose = TRUE,
@@ -1569,26 +1572,46 @@ def.hcr.ss3 <- function(id = "ss3",
   verbose <- ',verbose,'
   func <- get("',nonconvHCR,'")
   dbg <- ',debugging_mode,'
+  catch_se <- ',catch_se,'
+  cpue_se_log <- ',cpue_se_log,'
+  cpue_month <- ',cpue_month,'
+  fix_biology <- ',fix_biology,'
+  fix_selectivity <- ',fix_selectivity,'
+  fix_q <- ',fix_q,'
+  use_lencomp <- ',use_lencomp,'
+  ny_lencomp <- ',ny_lencomp,'
 
+  if (dbg > 0) {
+    browser()
+    ## check for "## run this in debugging"
+  }
+
+  ## run this in debugging
   run_dir <- tempfile(pattern = "ss3_run_")
   dir.create(run_dir, recursive = TRUE, showWarnings = FALSE)
 
+  ## run this in debugging
   ## prepare data
   tmp <- try(prepare_ss3_run(
     path = run_dir,
     obs = obs,
-    dat = dat
+    dat = dat,
+    catch_se = catch_se,
+    cpue_se_log = cpue_se_log,
+    cpue_month = cpue_month,
+    fix_biology = fix_biology,
+    fix_selectivity = fix_selectivity,
+    fix_q = fix_q,
+    use_lencomp = use_lencomp,
+    ny_lencomp = ny_lencomp
   ), silent = TRUE)
 
   if (dbg > 0) {
 
-    browser()
-
     ## readLines(file.path(run_dir, "data.ss"))
     ## readLines(file.path(run_dir, "control.ss"))
 
-    ## get_ss3_lencomp_columns()
-
+    ## run this in debugging
     r4ss::run(
       dir = run_dir,
       exe = exe_path,
@@ -1625,7 +1648,7 @@ def.hcr.ss3 <- function(id = "ss3",
 
     }else{
 
-
+      ## run this in debugging
       ## get results
       replist <- try(
         r4ss::SS_output(
@@ -1641,10 +1664,9 @@ def.hcr.ss3 <- function(id = "ss3",
       if (dbg > 0) {
         ## Investigate ss3 fit
 
-        browser()
-
         check_ss3_fit(replist)
 
+        ## run this in debugging
         ## Diagnostics
         r4ss::SS_plots(
           replist = replist,

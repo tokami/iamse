@@ -25,24 +25,29 @@ years <- 1:30
 
 
 
+
+
 ## ---------------- data ----------------
 dat <- inputs$dat
+
 dat$styr <- min(years)
 dat$endyr <- max(years)
-dat$Nfleets <- 2
+dat$Nfleets <- 1
+
+dat$Nages <- 32
 
 dat$fleetinfo <- data.frame(
-  type = c(1, 3),
-  surveytiming = c(-1, 1),
-  area = c(1, 1),
-  units = c(1, 2),
-  need_catch_mult = c(0, 0),
-  fleetname = c("FISHERY", "SURVEY1")
+  type = 1,
+  surveytiming = -1,
+  area = 1,
+  units = 1,
+  need_catch_mult = 0,
+  fleetname = c("Fishery")
 )
-dat$fleetnames <- c("FISHERY", "SURVEY1")
-dat$surveytiming <- c(-1, 1)
-dat$units_of_catch <- c(1, 2)
-dat$areas <- c(1, 1)
+dat$fleetnames <- c("Fishery")
+dat$surveytiming <- -1
+dat$units_of_catch <- 1
+dat$areas <- 1
 
 dat$catch <- rbind(
   data.frame(year = -999, seas = 1, fleet = 1, catch = 1e-20, catch_se = 0.05),
@@ -50,18 +55,18 @@ dat$catch <- rbind(
 )
 
 dat$CPUEinfo <- data.frame(
-  fleet = 2,
+  fleet = 1,
   units = 1,
   errtype = 0,
-  SD_report = 1,
+  SD_report = 0,
   stringsAsFactors = FALSE
 )
-rownames(dat$CPUEinfo) <- "SURVEY1"
+rownames(dat$CPUEinfo) <- "Fishery"
 
 dat$CPUE <- data.frame(
   year = years,
   month = 6,
-  index = 2,
+  index = 1,
   obs = rep(50, length(years)),
   se_log = 0.3
 )
@@ -69,28 +74,93 @@ dat$CPUE <- data.frame(
 
 ## keep length comps on, but keep structure from example
 dat$use_lencomp <- 1
-dat$len_info <- dat$len_info[1:2, , drop = FALSE]
-dat$lencomp <- dat$lencomp[1, , drop = FALSE]
-dat$lencomp$year <- min(years)
-dat$lencomp$fleet <- 1
-dat$lencomp$month <- 7
-dat$lencomp$Nsamp <- 50
+dat$len_info <- dat$len_info[1, , drop = FALSE]
+rownames(dat$len_info) <- "Fishery"
+dat$len_info$addtocomp <- 0.001
+dat$len_info$minsamplesize <- 0.001
+dat$N_lbins <- 21
+dat$lbin_vector <- 12:32
+p <- rep(0, dat$N_lbins)
+p[10] <- 1
+
+lencomp <- data.frame(
+  year = min(years),
+  month = 1,
+  fleet = 1,
+  sex = 1,
+  part = 0,
+  Nsamp = 10
+)
+
+lencomp <- cbind(
+  lencomp,
+  as.data.frame(t(c(p, rep(0, dat$N_lbins))))
+)
+
+colnames(lencomp) <- c(
+  "year", "month", "fleet", "sex", "part", "Nsamp",
+  paste0("f", dat$lbin_vector),
+  paste0("m", dat$lbin_vector)
+)
+
+dat$lencomp <- lencomp
 
 ## ## alternative:
-dat$use_lencomp <- 0
-dat$len_info <- NULL
-dat$lencomp <- NULL
+## dat$use_lencomp <- 0
+## dat$len_info <- NULL
+## dat$lencomp <- NULL
 
 
 ## turn off age-related data
-dat$N_agebins <- 0
-dat$agebin_vector <- NULL
-dat$N_ageerror_definitions <- 0
-dat$ageerror <- NULL
-dat$age_info <- NULL
+dat$N_agebins <- 32
+dat$agebin_vector <- 0:(dat$N_agebins-1)
+dat$N_ageerror_definitions <- 1
+dat$ageerror <- rbind(
+  rep(-1, dat$N_agebins + 1),
+  rep(0.001, dat$N_agebins + 1)
+)
+colnames(dat$ageerror) <- paste0("age", 0:dat$N_agebins)
+dat$age_info <- dat$age_info[1, , drop = FALSE]
+rownames(dat$age_info) <- "Fishery"
+dat$age_info$addtocomp <- 0.001
+dat$age_info$minsamplesize <- 0.001
+
+dat$ageerror <- rbind(
+  -1,
+  rep(0.001, dat$N_agebins + 1)
+)
+colnames(dat$ageerror) <- paste0("age", 0:dat$N_agebins)
+
+dat$age_info <- data.frame(
+  mintailcomp = -1,
+  addtocomp = 0.001,
+  combine_M_F = 0,
+  CompressBins = 0,
+  CompError = 0,
+  ParmSelect = 0,
+  minsamplesize = 0.001
+)
+rownames(dat$age_info) <- "Fishery"
+
+dat$lbin_method <- 3
+
+lmax_pop <- ceiling(30 * 1.4)
+dat$binwidth <- 1
+dat$lbin_vector_pop <- seq(
+  from = 0,
+  to = lmax_pop,
+  by = 1
+)
+dat$N_lbinspop <- length(dat$lbin_vector_pop)
+dat$minimum_size <- 0
+dat$maximum_size <- lmax_pop
+
+## no age composition observations
 dat$agecomp <- NULL
 dat$use_MeanSize_at_Age_obs <- 0
 dat$MeanSize_at_Age_obs <- NULL
+
+
 
 ## turn off tagging completely
 dat$do_tags <- 0
@@ -112,12 +182,14 @@ inputs$dat <- dat
 
 
 
+
+
 ## ---------------- control ----------------
 ctl <- inputs$ctl
 
 
-ctl$Nfleets <- 2
-ctl$fleetnames <- c("FISHERY", "SURVEY1")
+ctl$Nfleets <- 1
+ctl$fleetnames <- "Fishery"
 ctl$MainRdevYrFirst <- min(years)
 ctl$MainRdevYrLast <- max(years)
 ctl$F_ballpark_year <- min(years)
@@ -138,43 +210,88 @@ for (nm in c("TG_parms", "TG_loss_init", "TG_loss_chronic",
 ## keep only first survey Q setup if needed
 if (!is.null(ctl$Q_options) && nrow(ctl$Q_options) >= 1) {
   ctl$Q_options <- ctl$Q_options[1, , drop = FALSE]
-  ctl$Q_options$fleet <- 2
+  ctl$Q_options$fleet <- 1
+  ctl$Q_options$extra_se <- 0
+  ctl$Q_options$float <- 1
+  rownames(ctl$Q_options) <- ""
 }
 
 if (!is.null(ctl$Q_parms) && nrow(ctl$Q_parms) >= 2) {
-  ctl$Q_parms <- ctl$Q_parms[1:2, , drop = FALSE]
+  ctl$Q_parms <- ctl$Q_parms[1, , drop = FALSE]
+  ctl$Q_parms[1] <- -15
+  ctl$Q_parms[2] <- 15
+  ctl$Q_parms[3] <- 1
+  ctl$Q_parms$PHASE <- -1
+  rownames(ctl$Q_parms) <- "LnQ_base_1(1)"
 }
 
 ## keep original selex blocks as much as possible, just trim to two fleets
 if (!is.null(ctl$size_selex_types) && nrow(ctl$size_selex_types) >= 2) {
-  ctl$size_selex_types <- ctl$size_selex_types[1:2, , drop = FALSE]
+  ctl$size_selex_types <- ctl$size_selex_types[1, , drop = FALSE]
+  ctl$size_selex_types[1] <- 24
+  rownames(ctl$size_selex_types) <- "Fishery"
 }
 if (!is.null(ctl$age_selex_types) && nrow(ctl$age_selex_types) >= 2) {
-  ctl$age_selex_types <- ctl$age_selex_types[1:2, , drop = FALSE]
+  ctl$age_selex_types <- ctl$age_selex_types[1, , drop = FALSE]
+  rownames(ctl$age_selex_types) <- "Fishery"
 }
 if (!is.null(ctl$size_selex_parms) && nrow(ctl$size_selex_parms) >= 4) {
-  ctl$size_selex_parms <- ctl$size_selex_parms[1:4, , drop = FALSE]
+  tmp <- ctl$size_selex_parms[1, , drop = FALSE]
+  tmp2 <- rbind(tmp, tmp, tmp, tmp, tmp, tmp)
+  rownames(tmp2) <- paste0("SizeSel_P_",1:6,"_Fishery(1)")
+  tmp2$LO <- c(12,-15,-4,-15,-999,-15)
+  tmp2$HI <- c(32,15,12,6,15,20)
+  tmp2$INIT <- c(28,15,3.1391,-15,-15,15)
+  tmp2$PRIOR <- c(28,15,3.1391,-15,-10,15)
+  tmp2$PR_SD <- rep(99, 6)
+  tmp2$PR_type <- rep(0, 6)
+  tmp2$PHASE <- c(3,-1,3,-1,-2,-1)
+  ctl$size_selex_parms <- tmp2
 }
-
-grep("age", names(ctl), value = TRUE)
 
 ## no age selectivity for either fleet
 ctl$age_selex_types <- data.frame(
-  Pattern = c(0, 0),
-  Discard = c(0, 0),
-  Male = c(0, 0),
-  Special = c(0, 0)
+  Pattern = 0,
+  Discard = 0,
+  Male = 0,
+  Special = 0
 )
-rownames(ctl$age_selex_types) <- c("FISHERY", "SURVEY1")
+rownames(ctl$age_selex_types) <- "Fishery"
 
 ## remove leftover age selex parameters if present
 if ("age_selex_parms" %in% names(ctl)) ctl$age_selex_parms <- NULL
 if ("age_selex_parms_reindexed" %in% names(ctl)) ctl$age_selex_parms_reindexed <- NULL
 
 
-
 ## do not touch lambdas for now
+
+ctl$maxlambdaphase <- 15
+ctl$sd_offset <- 1
+ctl$N_lambdas <- 2
+
+tmp <- ctl$lambdas[1,,drop = FALSE]
+tmp2 <- rbind(tmp, tmp)
+rownames(tmp2) <- c("catch_Fishery1_Phz1",
+                    "init_equ_catch_Fishery_Phz1")
+
+tmp2[,1] <- c(8,9)
+tmp2[,2] <- c(1,1)
+tmp2[,3] <- c(1,1)
+tmp2[,4] <- c(1,0)
+tmp2[,5] <- c(1,1)
+
+ctl$lambdas <- tmp2
+
+ctl$more_stddev_reporting <- 0
+ctl$stddev_reporting_specs <- NULL
+ctl$stddev_reporting_specs <- NULL
+ctl$stddev_reporting_selex <- NULL
+ctl$stddev_reporting_growth <- NULL
+ctl$stddev_reporting_N_at_A <- NULL
+
 inputs$ctl <- ctl
+
+
 
 
 
@@ -194,66 +311,14 @@ if ("Yinit" %in% names(fore)) fore$Yinit <- max(years) + 1
 inputs$fore <- fore
 
 
+
+
+
 ## ---------------- write + verify ----------------
 r4ss::SS_write(inputs, dir = template_dir, overwrite = TRUE)
 
-
-## fix issue manually in data
-
-datfile <- file.path(template_dir, "data.ss")
-x <- readLines(datfile)
-
-## find CPUE fleet setup header
-ind <- grep("^#_fleet[[:space:]]+units[[:space:]]+errtype[[:space:]]+SD_report", x)
-
-stopifnot(length(ind) == 1)
-
-## find the CPUEinfo data row after that header
-row_ind <- ind + 1
-while (row_ind <= length(x) && grepl("^\\s*#", x[row_ind])) row_ind <- row_ind + 1
-
-## insert terminator right after the CPUEinfo row if missing
-next_ind <- row_ind + 1
-while (next_ind <= length(x) && trimws(x[next_ind]) == "") next_ind <- next_ind + 1
-
-if (!grepl("^-9999", trimws(x[next_ind]))) {
-  x <- append(x, values = "-9999 0 0 0 # terminator", after = row_ind)
-}
-
-writeLines(x, datfile)
-
-
-ctlfile <- file.path(template_dir, "control.ss")
-x <- readLines(ctlfile)
-
-ind <- grep("TG_custom", x, fixed = TRUE)
-stopifnot(length(ind) == 1)
-
-## keep TG_custom line
-## remove any numeric placeholder lines immediately after it
-keep <- rep(TRUE, length(x))
-
-for (j in seq(ind + 1, min(length(x), ind + 5))) {
-  if (grepl("^-6\\s+6\\s+1\\s+1\\s+2\\s+0\\.01\\s+-4", trimws(x[j]))) {
-    keep[j] <- FALSE
-  }
-}
-
-x <- x[keep]
-
-## ensure the commented conditional placeholder is present right after TG_custom
-j <- ind + 1
-if (!grepl("^#_Cond\\s+-6\\s+6\\s+1\\s+1\\s+2\\s+0\\.01\\s+-4", trimws(x[j]))) {
-  x <- append(
-    x,
-    values = "#_Cond -6 6 1 1 2 0.01 -4 0 0 0 0 0 0 0  #_placeholder if no parameters",
-    after = ind
-  )
-}
-
-writeLines(x, ctlfile)
-
-
+## readLines(file.path(template_dir, "data.ss"))
+## readLines(file.path(template_dir, "control.ss"))
 
 ## verify the template is readable
 check_inputs <- r4ss::SS_read(dir = template_dir, verbose = FALSE)
@@ -261,6 +326,7 @@ rm(check_inputs)
 
 ## verify the template can be fitted
 if ( FALSE ) {
+
   r4ss::run(
     dir = template_dir,
     exe = "~/ss3/bin/ss3",
@@ -291,12 +357,8 @@ if ( FALSE ) {
 
   dir(template_dir)
   unlink(list.files(template_dir, full.names = TRUE), recursive = TRUE)
+
 }
 
-## ## save the template inputs object as RDS
-## saveRDS(
-##   inputs,
-##   file = file.path(template_dir, "simple_small_inputs.rds")
-## )
 
 message("SS3 template written to: ", template_dir)

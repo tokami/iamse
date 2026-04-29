@@ -95,7 +95,8 @@ update_ss3_from_obs <- function(inputs,
                                 fix_biology = TRUE,
                                 fix_selectivity = TRUE,
                                 fix_q = TRUE,
-                                use_lencomp = FALSE) {
+                                use_lencomp = FALSE,
+                                ny_lencomp = 5) {
 
   ## TODO: 60 years of catch
   ## TODO: 10 years of index
@@ -132,7 +133,8 @@ update_ss3_from_obs <- function(inputs,
 ## [153] " 1977\t1\t1\t1\t0\t54.989817\t 0\t  8\t 18\t 81\t 202\t 687\t2148\t3040\t2974\t2334\t1841\t1293\t1132\t 733\t 551\t497\t228\t122\t 41\t18\t 7\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t#_4         "
 ## [154] " 1980\t1\t1\t1\t0\t22.495138\t 3\t  3\t 13\t 76\t 248\t 629\t 810\t 901\t 869\t 755\t 777\t 677\t 520\t 403\t 273\t169\t104\t 59\t 38\t 7\t11\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t#_5         "
 ## [155] " 1981\t1\t1\t1\t0\t35.012174\t 0\t  5\t 35\t157\t 466\t 924\t1144\t1286\t1511\t1299\t1152\t 886\t 686\t 618\t 466\t335\t207\t121\t 76\t42\t16\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t#_6         "
-## [156] "-9999\t0\t0\t0\t0\t        0\t 0\t  0\t  0\t  0\t   0\t   0\t   0\t   0\t   0\t   0\t   0\t   0\t   0\t   0\t   0\t  0\t  0\t  0\t  0\t 0\t 0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t#_terminator"
+  ## [156] "-9999\t0\t0\t0\t0\t        0\t 0\t  0\t  0\t  0\t   0\t   0\t   0\t   0\t   0\t   0\t   0\t   0\t   0\t   0\t   0\t  0\t  0\t  0\t  0\t 0\t 0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t#_terminator"
+
 ## [157] "32 #_N_agebins"
 ## [158] "#"
 ## [159] "#_agebin_vector"
@@ -223,7 +225,7 @@ update_ss3_from_obs <- function(inputs,
     ind_year >= ss_dat$styr & ind_year <= ss_dat$endyr
 
   if (is.null(cpue_se_log)) {
-    cpue_se_log <- if (!is.null(sim_dat$sd_i)) sim_dat$sd_i else 0.30
+    cpue_se_log <- if (!is.null(sim_dat$sd_i)) sim_dat$sd_i else 0.2
   }
 
   ## gives error if specified here
@@ -250,6 +252,54 @@ update_ss3_from_obs <- function(inputs,
     ss_dat$use_lencomp <- 0
     ss_dat$len_info <- NULL
     ss_dat$lencomp <- NULL
+  } else {
+
+    ss_dat$use_lencomp <- 1
+
+    # observed length comp matrix
+    obsL <- obs$obsCL
+
+    # convert column names like "01", "02", ... to numeric
+    obs_bins <- as.numeric(colnames(obsL))
+
+    ## number of years specified
+    row_ind <- sort(sample(1:nrow(obsL), ny_lencomp))
+
+    obsL_prop <- obsL[row_ind,] / rowSums(obsL[row_ind,])
+
+    # keep only bins used in SS3
+    keep <- obs_bins %in% ss_dat$lbin_vector
+    obsL_keep <- obsL_prop[, keep, drop = FALSE]
+
+    # rename columns to SS3 format
+    colnames(obsL_keep) <- paste0("f", obs_bins[keep])
+
+    years_L <- as.numeric(rownames(obsL_keep))
+
+    ## formula used by Lucas
+    Nsamp <- rowSums(obsL[row_ind,]) / sum(obsL[row_ind,]) * 200
+
+    lencomp_new <- data.frame(
+      year  = years_L,
+      month = 1,
+      fleet = 1,
+      sex   = 1,
+      part  = 0,
+      Nsamp = Nsamp,
+      obsL_keep,
+      check.names = FALSE
+    )
+
+    ## zeros for males
+    male_cols <- paste0("m", ss_dat$lbin_vector)
+
+    for (col in male_cols) {
+      lencomp_new[[col]] <- 0
+    }
+
+    lencomp_new <- lencomp_new[, names(ss_dat$lencomp)]
+    ss_dat$lencomp <- lencomp_new
+
   }
 
   ## ---------------- no age data / no tags ----------------
@@ -609,7 +659,15 @@ get_ss3_lencomp_columns <- function(template = "simple_small") {
 prepare_ss3_run <- function(path,
                             obs,
                             dat,
-                            template = "simple_small") {
+                            template = "simple_small",
+                            catch_se = 0.01,
+                            cpue_se_log = NULL,
+                            cpue_month = 6,
+                            fix_biology = TRUE,
+                            fix_selectivity = TRUE,
+                            fix_q = TRUE,
+                            use_lencomp = FALSE,
+                            ny_lencomp = 5) {
 
   copy_ss3_template(path = path, template = template)
 
@@ -617,7 +675,16 @@ prepare_ss3_run <- function(path,
   inputs <- load_ss3_template_inputs(path = path)
 
   ## Modify files
-  inputs <- update_ss3_from_obs(inputs, obs, dat)
+  inputs <- update_ss3_from_obs(inputs, obs, dat,
+                                catch_se = catch_se,
+                                cpue_se_log = cpue_se_log,
+                                cpue_month = cpue_month,
+                                fix_biology = fix_biology,
+                                fix_selectivity = fix_selectivity,
+                                fix_q = fix_q,
+                                use_lencomp = use_lencomp,
+                                ny_lencomp = ny_lencomp
+                                )
 
   ## Keep these explicit after modification too
   if (is.null(inputs$dat$do_tags) || length(inputs$dat$do_tags) == 0) {
