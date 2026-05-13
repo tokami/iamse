@@ -541,7 +541,10 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE,
                 WAAs = WAAs,
                 WAAc = WAAc,
                 propFemale = propFemale,
-                landFrac = landFrac)
+                landFrac = landFrac,
+                true = list(TSBfinal = TSBfinal,
+                            SSBfinal = SSBfinal,
+                            ESBfinal = ESBfinal))
 
     atti <- attributes(obs$obsCA)
     for(j in 1:length(atti$dimnames)){

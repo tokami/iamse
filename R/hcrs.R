@@ -1542,6 +1542,11 @@ def.hcr.pseudo <- function(id = "pseudo-msy",
 #'
 #' @param id Name/ID of HCR. Default: "ss3"
 #' @param nonconvHCR HCR if SAM does not converge. Default: "conscat" (constant catch).
+#' @param hockey Logical; if TRUE, apply a hockey-stick target on F/Fmsy based on terminal B/Bmsy.
+#' @param hockey_bmsy_mult Numeric multiplier for the hockey threshold relative to Bmsy.
+#'   Default 0.5 means full Fmsy at B >= 0.5*Bmsy and linear reduction to zero below.
+#' @param use_blim Logical; if TRUE, force TAC = 0 when terminal B/Bmsy is below blim_mult.
+#' @param blim_mult Numeric multiplier defining Blim relative to Bmsy when use_blim = TRUE.
 #' @param silent silent
 #' @param verbose verbose
 #' @param env Environment. Default: globalenv()
@@ -1552,7 +1557,7 @@ def.hcr.pseudo <- function(id = "pseudo-msy",
 def.hcr.ss3 <- function(id = "ss3",
                         exe_dir,
                         nonconvHCR = "conscat",
-                        catch_se = 0.01,
+                        catch_se = 0.1,
                         cpue_se_log = 0.2,
                         cpue_month = 6,
                         fix_biology = TRUE,
@@ -1560,6 +1565,10 @@ def.hcr.ss3 <- function(id = "ss3",
                         fix_q = TRUE,
                         use_lencomp = TRUE,
                         ny_lencomp = 5,
+                        hockey = FALSE,
+                        hockey_bmsy_mult = 0.5,
+                        use_blim = FALSE,
+                        blim_mult = 0.2,
                         silent = TRUE,
                         debugging_mode = FALSE,
                         verbose = TRUE,
@@ -1579,7 +1588,11 @@ def.hcr.ss3 <- function(id = "ss3",
   fix_selectivity <- ',fix_selectivity,'
   fix_q <- ',fix_q,'
   use_lencomp <- ',use_lencomp,'
-  ny_lencomp <- ',ny_lencomp,'
+  ny_lencomp <- "',ny_lencomp,'"
+  hockey <- ',hockey,'
+  hockey_bmsy_mult <- ',hockey_bmsy_mult,'
+  use_blim <- ',use_blim,'
+  blim_mult <- ',blim_mult,'
 
   if (dbg > 0) {
     browser()
@@ -1603,7 +1616,7 @@ def.hcr.ss3 <- function(id = "ss3",
     fix_selectivity = fix_selectivity,
     fix_q = fix_q,
     use_lencomp = use_lencomp,
-    ny_lencomp = ny_lencomp
+    ny_lencomp = as.character(ny_lencomp)
   ), silent = TRUE)
 
   if (dbg > 0) {
@@ -1692,6 +1705,12 @@ def.hcr.ss3 <- function(id = "ss3",
         ts <- replist$timeseries
 
         plot(ts$Yr, ts$Bio_all, type = "l", xlab = "Year", ylab = "Total biomass")
+
+points(obs$true$TSBfinal)
+
+obs$obsI
+obs$
+
         plot(ts$Yr, ts$SpawnBio, type = "l", xlab = "Year", ylab = "Spawning biomass")
         plot(ts$Yr, ts$Recruit_0, type = "l", xlab = "Year", ylab = "Recruitment")
 
@@ -1705,12 +1724,75 @@ def.hcr.ss3 <- function(id = "ss3",
         ## likelihoods used
         replist$likelihoods_used
 
+replist$derived_quants
+
       }
 
+## str(dat$ref,1)
+
+## replist$timeseries
+
+## browser()
+
       forecast_ts <- subset(replist$timeseries, Yr > replist$endyr)
-      tac <- as.numeric(forecast_ts[1, "dead(B):_1"])
+      tac_fmsy <- as.numeric(forecast_ts[1, "dead(B):_1"])
+      tac <- tac_fmsy
+
+      ts_term <- subset(replist$timeseries, Yr <= replist$endyr)
+      bpbmsy <- NA_real_
+
+      if ("Bratio" %in% names(ts_term)) {
+        bpbmsy <- as.numeric(utils::tail(ts_term$Bratio, 1))
+      }
+
+      if (!is.finite(bpbmsy) &&
+          "SpawnBio" %in% names(ts_term) &&
+          !is.null(replist$derived_quants) &&
+          "SSB_MSY" %in% replist$derived_quants$Label) {
+        ind <- which(replist$derived_quants$Label == "SSB_MSY")
+        ssb_msy <- as.numeric(replist$derived_quants$Value[ind])
+        ssb_term <- as.numeric(utils::tail(ts_term$SpawnBio, 1))
+        if (is.finite(ssb_msy) && ssb_msy > 0 && is.finite(ssb_term)) {
+          bpbmsy <- ssb_term / ssb_msy
+        }
+      }
+
+      if (!is.finite(bpbmsy) &&
+          "Bio_all" %in% names(ts_term) &&
+          !is.null(replist$derived_quants) &&
+          "VBIO_MSY" %in% replist$derived_quants$Label) {
+        bio_msy <- as.numeric(replist$derived_quants$VBIO_MSY[1])
+        bio_term <- as.numeric(utils::tail(ts_term$Bio_all, 1))
+        if (is.finite(bio_msy) && bio_msy > 0 && is.finite(bio_term)) {
+          bpbmsy <- bio_term / bio_msy
+        }
+      }
+      ffmsy_target <- 1
+
+      if (isTRUE(hockey)) {
+        if (!is.finite(hockey_bmsy_mult) || hockey_bmsy_mult <= 0) {
+          stop("hockey_bmsy_mult must be a positive numeric value.")
+        }
+
+        if (!is.finite(bpbmsy)) {
+          if (isTRUE(verbose)) {
+            cat("Could not derive B/Bmsy from SS3 output; using F/Fmsy = 1.\n")
+          }
+          ffmsy_target <- 1
+        } else {
+          ffmsy_target <- min(max(bpbmsy / hockey_bmsy_mult, 0), 1)
+          if (isTRUE(use_blim) && is.finite(blim_mult) && bpbmsy < blim_mult) {
+            ffmsy_target <- 0
+          }
+        }
+
+        tac <- tac_fmsy * ffmsy_target
+      }
 
       tacs <- iamse:::gettacs(tacs.=tacs, id.="',id,'", TAC.=tac, obs.=obs)
+      tacs$fmfmsy.est[nrow(tacs)] <- ffmsy_target
+      tacs$bpbmsy.est[nrow(tacs)] <- bpbmsy
+      tacs$bmbmsy.est[nrow(tacs)] <- ifelse(isTRUE(use_blim), blim_mult, NA)
       tacs$conv[nrow(tacs)] <- TRUE
       return(tacs)
     }

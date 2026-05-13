@@ -8,7 +8,7 @@ def.hcr.ss3(
   id = "ss3",
   exe_dir,
   nonconvHCR = "conscat",
-  catch_se = 0.01,
+  catch_se = 0.1,
   cpue_se_log = 0.2,
   cpue_month = 6,
   fix_biology = TRUE,
@@ -16,6 +16,10 @@ def.hcr.ss3(
   fix_q = TRUE,
   use_lencomp = TRUE,
   ny_lencomp = 5,
+  hockey = FALSE,
+  hockey_bmsy_mult = 0.5,
+  use_blim = FALSE,
+  blim_mult = 0.2,
   silent = TRUE,
   debugging_mode = FALSE,
   verbose = TRUE,
@@ -26,6 +30,15 @@ def.hcr.ss3(
 \item{id}{Name/ID of HCR. Default: "ss3"}
 
 \item{nonconvHCR}{HCR if SAM does not converge. Default: "conscat" (constant catch).}
+
+\item{hockey}{Logical; if TRUE, apply a hockey-stick target on F/Fmsy based on terminal B/Bmsy.}
+
+\item{hockey_bmsy_mult}{Numeric multiplier for the hockey threshold relative to Bmsy.
+Default 0.5 means full Fmsy at B >= 0.5*Bmsy and linear reduction to zero below.}
+
+\item{use_blim}{Logical; if TRUE, force TAC = 0 when terminal B/Bmsy is below blim_mult.}
+
+\item{blim_mult}{Numeric multiplier defining Blim relative to Bmsy when use_blim = TRUE.}
 
 \item{silent}{silent}
 

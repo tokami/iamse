@@ -127,7 +127,7 @@ run.mse <- function(dat, set,
                                     envir = environment())
 
             seeds <- lapply(1:nrep, function(i) {
-                set.seed(set$seed + i)
+                set.seed(as.integer(set$seed + i))
                 .Random.seed
             })
 
@@ -201,7 +201,7 @@ run.mse <- function(dat, set,
             if(verbose) writeLines(paste0("Running replicate: ", x))
 
             ## set seed
-            if(is.numeric(set$seed)) set.seed(set$seed + x)
+            if(is.numeric(set$seed)) set.seed(as.integer(set$seed + x))
 
             setx <- set
             datx <- dat

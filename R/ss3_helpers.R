@@ -98,62 +98,6 @@ update_ss3_from_obs <- function(inputs,
                                 use_lencomp = FALSE,
                                 ny_lencomp = 5) {
 
-  ## TODO: 60 years of catch
-  ## TODO: 10 years of index
-  ## TODO: fixed uncertainty in ss3 for parameters
-  ## TODO: catch starts at 0
-
-  ## TODO: differences (dat)
-  ## #_Nfleets 1
-
-  ## #_fleetinfo
- ## [16] "#_type\tsurveytiming\tarea\tunits\tneed_catch_mult\tfleetname"
-  ## [17] "1\t-1\t1\t1\t0\tFishery\t#_1"
-
-  ## #_CPUE and surveyabundance_observations
- ##   [96] "#_fleet\tunits\terrtype\tSD_report"
-  ## [97] "1\t1\t0\t0\t#_Fishery"
-
-  ## lengthbin 4-38
-
-
-## [140] "1 #_use_lencomp"
-## [141] "#"
-## [142] "#_len_info"
-## [143] "#_mintailcomp\taddtocomp\tcombine_M_F\tCompressBins\tCompError\tParmSelect\tminsamplesize"
-## [144] "-1\t0.001\t0\t0\t0\t0\t0.001\t#_Fishery"
-## [145] "21 #_N_lbins"
-## [146] "#_lbin_vector"
-## [147] "12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 #_lbin_vector"
-## [148] "#"
-## [149] "#_lencomp"
-## [150] "#_year\tmonth\tfleet\tsex\tpart\tNsamp\tf12\tf13\tf14\tf15\tf16\tf17\tf18\tf19\tf20\tf21\tf22\tf23\tf24\tf25\tf26\tf27\tf28\tf29\tf30\tf31\tf32\tm12\tm13\tm14\tm15\tm16\tm17\tm18\tm19\tm20\tm21\tm22\tm23\tm24\tm25\tm26\tm27\tm28\tm29\tm30\tm31\tm32"
-## [151] " 1974\t1\t1\t1\t0\t64.232884\t 9\t100\t264\t690\t1297\t1752\t2439\t2585\t2113\t1759\t1441\t1122\t1174\t1282\t1016\t809\t514\t339\t167\t54\t47\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t#_2         "
-## [152] " 1976\t1\t1\t1\t0\t23.269988\t39\t 44\t 35\t 56\t 194\t 443\t 943\t1013\t1068\t 959\t 761\t 560\t 494\t 365\t 272\t174\t 91\t 41\t 27\t14\t 5\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t#_3         "
-## [153] " 1977\t1\t1\t1\t0\t54.989817\t 0\t  8\t 18\t 81\t 202\t 687\t2148\t3040\t2974\t2334\t1841\t1293\t1132\t 733\t 551\t497\t228\t122\t 41\t18\t 7\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t#_4         "
-## [154] " 1980\t1\t1\t1\t0\t22.495138\t 3\t  3\t 13\t 76\t 248\t 629\t 810\t 901\t 869\t 755\t 777\t 677\t 520\t 403\t 273\t169\t104\t 59\t 38\t 7\t11\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t#_5         "
-## [155] " 1981\t1\t1\t1\t0\t35.012174\t 0\t  5\t 35\t157\t 466\t 924\t1144\t1286\t1511\t1299\t1152\t 886\t 686\t 618\t 466\t335\t207\t121\t 76\t42\t16\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t#_6         "
-  ## [156] "-9999\t0\t0\t0\t0\t        0\t 0\t  0\t  0\t  0\t   0\t   0\t   0\t   0\t   0\t   0\t   0\t   0\t   0\t   0\t   0\t  0\t  0\t  0\t  0\t 0\t 0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t#_terminator"
-
-## [157] "32 #_N_agebins"
-## [158] "#"
-## [159] "#_agebin_vector"
-## [160] "0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 #_agebin_vector"
-## [161] "#"
-## [162] "#_ageing_error"
-## [163] "1 #_N_ageerror_definitions"
-## [164] "#_age0\tage1\tage2\tage3\tage4\tage5\tage6\tage7\tage8\tage9\tage10\tage11\tage12\tage13\tage14\tage15\tage16\tage17\tage18\tage19\tage20\tage21\tage22\tage23\tage24\tage25\tage26\tage27\tage28\tage29\tage30\tage31\tage32"
-## [165] "   -1\t   -1\t   -1\t   -1\t   -1\t   -1\t   -1\t   -1\t   -1\t   -1\t   -1\t   -1\t   -1\t   -1\t   -1\t   -1\t   -1\t   -1\t   -1\t   -1\t   -1\t   -1\t   -1\t   -1\t   -1\t   -1\t   -1\t   -1\t   -1\t   -1\t   -1\t   -1\t   -1\t#_1"
-## [166] "0.001\t0.001\t0.001\t0.001\t0.001\t0.001\t0.001\t0.001\t0.001\t0.001\t0.001\t0.001\t0.001\t0.001\t0.001\t0.001\t0.001\t0.001\t0.001\t0.001\t0.001\t0.001\t0.001\t0.001\t0.001\t0.001\t0.001\t0.001\t0.001\t0.001\t0.001\t0.001\t0.001\t#_2"
-## [167] "#"
-## [168] "#_age_info"
-## [169] "#_mintailcomp\taddtocomp\tcombine_M_F\tCompressBins\tCompError\tParmSelect\tminsamplesize"
-## [170] "-1\t0.001\t0\t0\t0\t0\t0.001\t#_Fishery"
-## [171] "3 #_Lbin_method: 1=poplenbins; 2=datalenbins; 3=lengths"
-## [172] " #_combine males into females at or below this bin number"
-## [173] "#_X.9999\tX0\tX0.1\tX0.2\tX0.3\tX0.4\tX0.5\tX0.6\tX0.7\tX0.8\tX0.9\tX0.10\tX0.11\tX0.12\tX0.13\tX0.14\tX0.15\tX0.16\tX0.17\tX0.18\tX0.19\tX0.20\tX0.21\tX0.22\tX0.23\tX0.24\tX0.25\tX0.26\tX0.27\tX0.28\tX0.29\tX0.30\tX0.31\tX0.32\tX0.33\tX0.34\tX0.35\tX0.36\tX0.37\tX0.38\tX0.39\tX0.40\tX0.41\tX0.42\tX0.43\tX0.44\tX0.45\tX0.46\tX0.47\tX0.48\tX0.49\tX0.50\tX0.51\tX0.52\tX0.53\tX0.54\tX0.55\tX0.56\tX0.57\tX0.58\tX0.59\tX0.60\tX0.61\tX0.62\tX0.63\tX0.64\tX0.65\tX0.66\tX0.67\tX0.68\tX0.69\tX0.70\tX0.71"
-## [174]
-
   ss_dat <- inputs$dat
   ctl <- inputs$ctl
   fore <- inputs$fore
@@ -161,7 +105,8 @@ update_ss3_from_obs <- function(inputs,
 
   ## ---------------- helper ----------------
   set_par <- function(tab, pattern, init, lo = NULL, hi = NULL,
-                      prior = init, phase = -99) {
+                      prior = init, phase = -99,
+                      pr_sd = 99, pr_type = 0) {
     ii <- grep(pattern, rownames(tab))
     if (length(ii) == 0 || !is.finite(init)) return(tab)
 
@@ -170,6 +115,8 @@ update_ss3_from_obs <- function(inputs,
 
     tab[ii, "INIT"] <- init
     tab[ii, "PRIOR"] <- prior
+    tab[ii, "PR_SD"] <- pr_sd
+    tab[ii, "PR_type"] <- pr_type
     tab[ii, "PHASE"] <- phase
 
     tab
@@ -263,7 +210,12 @@ update_ss3_from_obs <- function(inputs,
     obs_bins <- as.numeric(colnames(obsL))
 
     ## number of years specified
-    row_ind <- sort(sample(1:nrow(obsL), ny_lencomp))
+    if (ny_lencomp == "all") {
+      row_ind <- 1:nrow(obsL)
+    } else {
+      row_ind <- sort(sample(1:nrow(obsL),
+                             as.integer(ny_lencomp)))  ## TODO: not ideal if they are X different every run
+    }
 
     obsL_prop <- obsL[row_ind,] / rowSums(obsL[row_ind,])
 
@@ -304,15 +256,39 @@ update_ss3_from_obs <- function(inputs,
 
   ## ---------------- no age data / no tags ----------------
 
-  ss_dat$N_agebins <- 0
-  ss_dat$agebin_vector <- NULL
-  ss_dat$N_ageerror_definitions <- 0
-  ss_dat$ageerror <- NULL
-  ss_dat$age_info <- NULL
+  ## Works:
+  ## ss_dat$N_agebins <- 0
+  ## ss_dat$agebin_vector <- NULL
+  ## ss_dat$N_ageerror_definitions <- 0
+  ## ss_dat$ageerror <- NULL
+  ## ss_dat$age_info <- NULL
+  ## ss_dat$agecomp <- NULL
+  ## ss_dat$use_MeanSize_at_Age_obs <- 0
+  ## ss_dat$MeanSize_at_Age_obs <- NULL
+
+
+  ## trying:
+  ss_dat$N_agebins <- 32 ## TODO make sim_dat dependent
+  ss_dat$agebin_vector <- 0:31
+  ss_dat$N_ageerror_definitions <- 1
+  tmp <- as.data.frame(rbind(rep(-1, ss_dat$N_agebins + 1),
+                                         rep(0.001, ss_dat$N_agebins + 1)))
+  colnames(tmp) <- paste0("age",c(ss_dat$agebin_vector, max(ss_dat$agebin_vector) + 1))
+  ss_dat$ageerror <- tmp
+  tmp <- as.data.frame(rbind(c(-1,0.001,0,0,0,0,0.001)))
+  colnames(tmp) <- c("mintailcomp","addtocomp",
+                     "combine_M_F","CompressBins",
+                     "CompError","ParmSelect","minsamplesize")
+  rownames(tmp) <- "Fishery"
+  ss_dat$age_info <- tmp
   ss_dat$agecomp <- NULL
   ss_dat$use_MeanSize_at_Age_obs <- 0
   ss_dat$MeanSize_at_Age_obs <- NULL
 
+  ss_dat$Lbin_method <- 3
+
+
+  ## tags
   ss_dat$do_tags <- 0
   ss_dat$N_tag_groups <- 0
   ss_dat$N_recap_events <- 0
@@ -362,9 +338,9 @@ update_ss3_from_obs <- function(inputs,
     mat_slope <- -log(19) / (sim_dat$Lm95 - sim_dat$Lm50)
 
     ctl$MG_parms <- set_par(
-      ctl$MG_parms, "NatM_uniform_Fem", M_value,
-      lo = 0.001, hi = max(1, M_value * 3),
-      phase = -99
+      ctl$MG_parms, "NatM_p_1_Fem", M_value,
+      lo = 0.001, hi = max(2, M_value * 3),
+      phase = -1, pr_type = 3, pr_sd = 10
     )
 
     min_pop_len <- min(ss_dat$lbin_vector_pop)
@@ -372,10 +348,10 @@ update_ss3_from_obs <- function(inputs,
 
     ctl$MG_parms <- set_par(
       ctl$MG_parms, "L_at_Amin_Fem",
-      L_at_Amin,
+      0, ## L_at_Amin,
       lo = min_pop_len,
       hi = max_pop_len,
-      phase = -99
+      phase = -3, pr_sd = 10
     )
 
     ctl$MG_parms <- set_par(
@@ -383,95 +359,127 @@ update_ss3_from_obs <- function(inputs,
       sim_dat$Linf,
       lo = min_pop_len,
       hi = max_pop_len,
-      phase = -99
+      phase = -2, pr_sd = 10
     )
 
     ctl$MG_parms <- set_par(
       ctl$MG_parms, "VonBert_K_Fem", sim_dat$K,
-      lo = 0.001, hi = max(1, sim_dat$K * 5),
-      phase = -99
+      lo = 0.001, hi = max(2, sim_dat$K * 5),
+      phase = -3, pr_sd = 0.05
+    )
+
+    ctl$MG_parms <- set_par(
+      ctl$MG_parms, "CV_young_Fem", 0.1,
+      lo = 0.001, hi = 5,
+      phase = -4, pr_sd = 0.5
+    )
+
+    ctl$MG_parms <- set_par(
+      ctl$MG_parms, "CV_old_Fem", 0.1,
+      lo = 0.001, hi = 5,
+      phase = -4, pr_sd = 0.5
     )
 
     ctl$MG_parms <- set_par(
       ctl$MG_parms, "Wtlen_1_Fem", sim_dat$lwa,
-      lo = sim_dat$lwa / 100,
-      hi = sim_dat$lwa * 100,
+      lo = 0,
+      hi = 3,
       phase = -99
     )
 
     ctl$MG_parms <- set_par(
       ctl$MG_parms, "Wtlen_2_Fem", sim_dat$lwb,
-      lo = 1,
-      hi = 5,
-      phase = -99
-    )
-
-    ctl$MG_parms <- set_par(
-      ctl$MG_parms, "Wtlen_1_Mal", sim_dat$lwa,
-      lo = sim_dat$lwa / 100,
-      hi = sim_dat$lwa * 100,
-      phase = -99
-    )
-
-    ctl$MG_parms <- set_par(
-      ctl$MG_parms, "Wtlen_2_Mal", sim_dat$lwb,
-      lo = 1,
-      hi = 5,
+      lo = 2,
+      hi = 4,
       phase = -99
     )
 
     ctl$MG_parms <- set_par(
       ctl$MG_parms, "Mat50", sim_dat$Lm50,
-      lo = 0.001,
-      hi = max(100, sim_dat$Lm50 * 3),
+      lo = 0.0001,
+      hi = 1000,
       phase = -99
     )
 
     ctl$MG_parms <- set_par(
       ctl$MG_parms, "Mat_slope", mat_slope,
-      lo = -10,
-      hi = -0.001,
+      lo = -2,
+      hi = 4,
       phase = -99
     )
-  }
 
+    ctl$MG_parms <- set_par(
+      ctl$MG_parms, "Eggs_alpha", sim_dat$lwa,
+      lo = 0,
+      hi = 3,
+      phase = -3, pr_sd = 0.8
+    )
+
+    ctl$MG_parms <- set_par(
+      ctl$MG_parms, "Eggs_beta", sim_dat$lwb,
+      lo = 0,
+      hi = 10,
+      phase = -3, pr_sd = 0.8
+    )
+
+    ctl$MG_parms <- set_par(
+      ctl$MG_parms, "NatM_p_1_Mal", M_value,
+      lo = 0.001, hi = max(2, M_value * 3),
+      phase = -1, pr_type = 3, pr_sd = 10
+    )
+
+    ctl$MG_parms <- set_par(
+      ctl$MG_parms, "L_at_Amin_Mal",
+      0, ## L_at_Amin,
+      lo = min_pop_len,
+      hi = max_pop_len,
+      phase = -1, pr_sd = 10
+    )
+
+    ctl$MG_parms <- set_par(
+      ctl$MG_parms, "L_at_Amax_Mal",
+      sim_dat$Linf,
+      lo = min_pop_len,
+      hi = max_pop_len,
+      phase = -1, pr_sd = 10
+    )
+
+    ctl$MG_parms <- set_par(
+      ctl$MG_parms, "VonBert_K_Mal", sim_dat$K,
+      lo = 0.001, hi = max(2, sim_dat$K * 5),
+      phase = -3, pr_sd = 0.05
+    )
+
+    ctl$MG_parms <- set_par(
+      ctl$MG_parms, "CV_young_Mal", 0.1,
+      lo = 0.001, hi = 5,
+      phase = -4, pr_sd = 0.5
+    )
+
+    ctl$MG_parms <- set_par(
+      ctl$MG_parms, "CV_old_Mal", 0.1,
+      lo = 0.001, hi = 5,
+      phase = -4, pr_sd = 0.5
+    )
+
+    ctl$MG_parms <- set_par(
+      ctl$MG_parms, "Wtlen_1_Mal", sim_dat$lwa,
+      lo = 0,
+      hi = 3,
+      phase = -99
+    )
+
+    ctl$MG_parms <- set_par(
+      ctl$MG_parms, "Wtlen_2_Mal", sim_dat$lwb,
+      lo = 2,
+      hi = 4,
+      phase = -99
+    )
+
+  }
 
   ctl$First_Mature_Age <- 0
   ctl$fecundity_option <- 2
-
- ## [48] "#_growth_parms"
- ## [49] "#_LO\tHI\tINIT\tPRIOR\tPR_SD\tPR_type\tPHASE\tenv_var&link\tdev_link\tdev_minyr\tdev_maxyr\tdev_PH\tBlock\tBlock_Fxn"
- ## [50] "0.001\t   2\t     0.17\t    -2.92\t0.22\t3\t -1\t0\t0\t0\t0\t0\t0\t0\t#_NatM_p_1_Fem_GP_1  "
- ## [51] "  -50\t 100\t        0\t        0\t  10\t0\t -3\t0\t0\t0\t0\t0\t0\t0\t#_L_at_Amin_Fem_GP_1 "
- ## [52] "    1\t 500\t    28.97\t    28.97\t  10\t0\t -2\t0\t0\t0\t0\t0\t0\t0\t#_L_at_Amax_Fem_GP_1 "
- ## [53] "0.001\t   2\t     0.11\t     0.11\t0.05\t0\t -3\t0\t0\t0\t0\t0\t0\t0\t#_VonBert_K_Fem_GP_1 "
- ## [54] "0.001\t   5\t      0.1\t      0.1\t 0.5\t0\t -4\t0\t0\t0\t0\t0\t0\t0\t#_CV_young_Fem_GP_1  "
- ## [55] "0.001\t   5\t      0.1\t      0.1\t 0.5\t0\t -4\t0\t0\t0\t0\t0\t0\t0\t#_CV_old_Fem_GP_1    "
- ## [56] "    0\t   3\t  4.6e-05\t  4.6e-05\t  99\t0\t-99\t0\t0\t0\t0\t0\t0\t0\t#_Wtlen_1_Fem_GP_1   "
- ## [57] "    2\t   4\t  2.94493\t  2.94493\t  99\t0\t-99\t0\t0\t0\t0\t0\t0\t0\t#_Wtlen_2_Fem_GP_1   "
- ## [58] "1e-04\t1000\t     22.1\t     22.1\t  99\t0\t-99\t0\t0\t0\t0\t0\t0\t0\t#_Mat50%_Fem_GP_1    "
- ## [59] "   -2\t   4\t-0.640095\t-0.640095\t  99\t0\t-99\t0\t0\t0\t0\t0\t0\t0\t#_Mat_slope_Fem_GP_1 "
- ## [60] "    0\t   3\t  4.6e-05\t  4.6e-05\t 0.8\t0\t -3\t0\t0\t0\t0\t0\t0\t0\t#_Eggs_alpha_Fem_GP_1"
- ## [61] "    0\t  10\t  2.94493\t  2.94493\t 0.8\t0\t -3\t0\t0\t0\t0\t0\t0\t0\t#_Eggs_beta_Fem_GP_1 "
- ## [62] "0.001\t   2\t     0.17\t    -2.92\t0.22\t3\t -1\t0\t0\t0\t0\t0\t0\t0\t#_NatM_p_1_Mal_GP_1  "
- ## [63] "  -50\t 100\t        0\t        0\t  10\t0\t -3\t0\t0\t0\t0\t0\t0\t0\t#_L_at_Amin_Mal_GP_1 "
- ## [64] "    1\t 500\t    28.97\t    28.97\t  10\t0\t -2\t0\t0\t0\t0\t0\t0\t0\t#_L_at_Amax_Mal_GP_1 "
- ## [65] "0.001\t   2\t     0.11\t     0.11\t0.05\t0\t -3\t0\t0\t0\t0\t0\t0\t0\t#_VonBert_K_Mal_GP_1 "
- ## [66] "0.001\t   5\t      0.1\t      0.1\t 0.5\t0\t -4\t0\t0\t0\t0\t0\t0\t0\t#_CV_young_Mal_GP_1  "
- ## [67] "0.001\t   5\t      0.1\t      0.1\t 0.5\t0\t -4\t0\t0\t0\t0\t0\t0\t0\t#_CV_old_Mal_GP_1    "
- ## [68] "    0\t   3\t  4.6e-05\t  4.6e-05\t  99\t0\t-99\t0\t0\t0\t0\t0\t0\t0\t#_Wtlen_1_Mal_GP_1   "
- ## [69] "    2\t   4\t  2.94493\t  2.94493\t  99\t0\t-99\t0\t0\t0\t0\t0\t0\t0\t#_Wtlen_2_Mal_GP_1   "
- ## [70] "  0.1\t  10\t        1\t        1\t   1\t0\t -1\t0\t0\t0\t0\t0\t0\t0\t#_CohortGrowDev      "
- ##  [71] " 0.01\t0.99\t      0.5\t      0.5\t 0.5\t0\t-99\t0\t0\t0\t0\t0\t0\t0\t#_FracFemale_GP_1    "
-
-
- ## [82] "#_LO\tHI\tINIT\tPRIOR\tPR_SD\tPR_type\tPHASE\tenv-var\tuse_dev\tdev_mnyr\tdev_mxyr\tdev_PH\tBlock\tBlk_Fxn # parm_name"
- ## [83] "1e-04\t20\t  7\t  7\t  99\t0\t  1\t0\t0\t0\t0\t0\t0\t0\t#_SR_LN(R0)  "
- ## [84] "  0.2\t 1\t0.7\t0.7\t0.24\t3\t -1\t0\t0\t0\t0\t0\t0\t0\t#_SR_BH_steep"
- ## [85] "    0\t 2\t0.6\t0.6\t  99\t0\t -6\t0\t0\t0\t0\t0\t0\t0\t#_SR_sigmaR  "
- ## [86] "   -5\t 5\t  0\t  0\t  99\t0\t-99\t0\t0\t0\t0\t0\t0\t0\t#_SR_regime  "
- ## [87] "    0\t 2\t  0\t  1\t  99\t0\t-99\t0\t0\t0\t0\t0\t0\t0\t#_SR_autocorr"
-
 
   ## ---------------- stock-recruitment ----------------
 
@@ -486,12 +494,52 @@ update_ss3_from_obs <- function(inputs,
 
     ii <- grep("R0|LnR0|log_R0|SR_LN\\(R0\\)", rn)
     if (length(ii) > 0 && !is.null(sim_dat$R0)) {
+      ctl$SR_parms[ii[1], "LO"] <- 0.0001
+      ctl$SR_parms[ii[1], "HI"] <- 20
       ctl$SR_parms[ii[1], "INIT"] <- log(sim_dat$R0)
+      ctl$SR_parms[ii[1], "PRIOR"] <- log(sim_dat$R0)
+      ctl$SR_parms[ii[1], "PR_SD"] <- 99
+      ctl$SR_parms[ii[1], "PR_type"] <- 0
+      ctl$SR_parms[ii[1], "PHASE"] <- 1
     }
 
     ii <- grep("steep|Steep", rn)
     if (length(ii) > 0 && !is.null(sim_dat$h)) {
       ctl$SR_parms[ii[1], "INIT"] <- sim_dat$h
+      ctl$SR_parms[ii[1], "PRIOR"] <- sim_dat$h
+      ctl$SR_parms[ii[1], "PR_SD"] <- 0.24
+      ctl$SR_parms[ii[1], "PR_type"] <- 3
+      ctl$SR_parms[ii[1], "PHASE"] <- -1
+    }
+
+    ii <- grep("sigmaR", rn)
+    if (length(ii) > 0 && !is.null(sim_dat$sd_r)) {
+      ctl$SR_parms[ii[1], "INIT"] <- sim_dat$sd_r
+      ctl$SR_parms[ii[1], "PRIOR"] <- sim_dat$sd_r
+      ctl$SR_parms[ii[1], "PR_SD"] <- 99
+      ctl$SR_parms[ii[1], "PR_type"] <- 0
+      ctl$SR_parms[ii[1], "PHASE"] <- -6
+    }
+
+    ii <- grep("regime", rn)
+    if (length(ii) > 0) {
+      ctl$SR_parms[ii[1], "LO"] <- -5
+      ctl$SR_parms[ii[1], "HI"] <- 5
+      ctl$SR_parms[ii[1], "INIT"] <- 0
+      ctl$SR_parms[ii[1], "PRIOR"] <- 0
+      ctl$SR_parms[ii[1], "PR_SD"] <- 99
+      ctl$SR_parms[ii[1], "PR_type"] <- 0
+      ctl$SR_parms[ii[1], "PHASE"] <- -99
+    }
+
+    ii <- grep("autocorr", rn)
+    if (length(ii) > 0) {
+      ctl$SR_parms[ii[1], "LO"] <- 0
+      ctl$SR_parms[ii[1], "HI"] <- 2
+      ctl$SR_parms[ii[1], "INIT"] <- 0
+      ctl$SR_parms[ii[1], "PRIOR"] <- 1
+      ctl$SR_parms[ii[1], "PR_SD"] <- 99
+      ctl$SR_parms[ii[1], "PR_type"] <- 0
       ctl$SR_parms[ii[1], "PHASE"] <- -99
     }
   }
@@ -520,41 +568,9 @@ update_ss3_from_obs <- function(inputs,
     PHASE = -1
   )
 
-## [124] "#_Q_setup for fleets with cpue or survey data"
-## [125] "#_fleet\tlink\tlink_info\textra_se\tbiasadj\tfloat  #  fleetname"
-## [126] "    1\t1\t0\t0\t0\t1\t#_1         "
-## [127] "-9999\t0\t0\t0\t0\t0\t#_terminator"
-## [128] "#_Q_parms(if_any);Qunits_are_ln(q)"
-## [129] "#_LO\tHI\tINIT\tPRIOR\tPR_SD\tPR_type\tPHASE\tenv-var\tuse_dev\tdev_mnyr\tdev_mxyr\tdev_PH\tBlock\tBlk_Fxn  #  parm_name"
-## [130] "-15\t15\t1\t0\t1\t0\t-1\t0\t0\t0\t0\t0\t0\t0\t#_LnQ_base_1(1)"
-## [131] "#_no timevary Q parameters"
-
-
-## [133] "#_size_selex_patterns"
-## [134] "#_Pattern\tDiscard\tMale\tSpecial"
-## [135] "24\t0\t0\t0\t#_1 Fishery"
-## [136] "#"
-## [137] "#_age_selex_patterns"
-## [138] "#_Pattern\tDiscard\tMale\tSpecial"
-## [139] "0\t0\t0\t0\t#_1 Fishery"
-## [140] "#"
-## [141] "#_SizeSelex"
-## [142] "#_LO\tHI\tINIT\tPRIOR\tPR_SD\tPR_type\tPHASE\tenv-var\tuse_dev\tdev_mnyr\tdev_mxyr\tdev_PH\tBlock\tBlk_Fxn  #  parm_name"
-## [143] "  12\t32\t    28\t    28\t99\t0\t 3\t0\t0\t0\t0\t0\t0\t0\t#_SizeSel_P_1_Fishery(1)"
-## [144] " -15\t15\t    15\t    15\t99\t0\t-1\t0\t0\t0\t0\t0\t0\t0\t#_SizeSel_P_2_Fishery(1)"
-## [145] "  -4\t12\t3.1391\t3.1391\t99\t0\t 3\t0\t0\t0\t0\t0\t0\t0\t#_SizeSel_P_3_Fishery(1)"
-## [146] " -15\t 6\t   -15\t   -15\t99\t0\t-1\t0\t0\t0\t0\t0\t0\t0\t#_SizeSel_P_4_Fishery(1)"
-## [147] "-999\t15\t   -15\t   -10\t99\t0\t-2\t0\t0\t0\t0\t0\t0\t0\t#_SizeSel_P_5_Fishery(1)"
-## [148] " -15\t20\t    15\t    15\t99\t0\t-1\t0\t0\t0\t0\t0\t0\t0\t#_SizeSel_P_6_Fishery(1)"
-
   ctl$maxlambdaphase <- 15
 
-## [165] "# read 2 changes to default Lambdas (default value is 1.0)"
-## [166] "#_like_comp\tfleet\tphase\tvalue\tsizefreq_method"
-## [167] "    8\t1\t1\t1\t1\t#_catch_Fishery1_Phz1        "
-## [168] "    9\t1\t1\t0\t1\t#_init_equ_catch_Fishery_Phz1"
-## [169] "-9999\t0\t0\t0\t0\t#_terminator                 "
-
+  ## ctl$lambdas ## okay
 
   ctl$more_stddev_reporting <- 0
 
@@ -562,44 +578,40 @@ update_ss3_from_obs <- function(inputs,
 
   ## ---------------- selectivity ----------------
 
-  ## TODO
-  ## if (isTRUE(fix_selectivity) && !is.null(ctl$size_selex_parms)) {
+  if (isTRUE(fix_selectivity) && !is.null(ctl$size_selex_parms)) {
 
-  ##   sel_width <- sim_dat$Ls95 - sim_dat$Ls50
+    ## logistic pattern
+    ctl$size_selex_types[1] <- 1
 
-  ##   ctl$size_selex_parms <- set_par(
-  ##     ctl$size_selex_parms, "SizeSel_P_1_FISHERY",
-  ##     sim_dat$Ls50,
-  ##     lo = 0.001,
-  ##     hi = max(100, sim_dat$Ls50 * 3),
-  ##     phase = -99
-  ##   )
+    L50 <- sim_dat$Ls50
+    L95 <- sim_dat$Ls95
 
-  ##   ctl$size_selex_parms <- set_par(
-  ##     ctl$size_selex_parms, "SizeSel_P_2_FISHERY",
-  ##     sel_width,
-  ##     lo = 0.001,
-  ##     hi = max(100, sel_width * 5),
-  ##     phase = -99
-  ##   )
+    sel_width <- log(19) / (L95 - L50)
+    ## sel_width <- (L95 - L50)
 
-  ##   ctl$size_selex_parms <- set_par(
-  ##     ctl$size_selex_parms, "SizeSel_P_1_SURVEY1",
-  ##     sim_dat$Ls50,
-  ##     lo = 0.001,
-  ##     hi = max(100, sim_dat$Ls50 * 3),
-  ##     phase = -99
-  ##   )
+    extra <- grep("^SizeSel_P_[3-6]_Fishery\\(1\\)$", rownames(ctl$size_selex_parms))
+    if (length(extra) > 0) {
+      ctl$size_selex_parms <- ctl$size_selex_parms[-extra,]
+    }
 
-  ##   ctl$size_selex_parms <- set_par(
-  ##     ctl$size_selex_parms, "SizeSel_P_2_SURVEY1",
-  ##     sel_width,
-  ##     lo = 0.001,
-  ##     hi = max(100, sel_width * 5),
-  ##     phase = -99
-  ##   )
+    ctl$size_selex_parms <- set_par(
+      ctl$size_selex_parms, "SizeSel_P_1_Fishery\\(1\\)",
+      sim_dat$Ls50,
+      lo = 0.001,
+      hi = max(100, sim_dat$Ls50 * 3),
+      phase = -99
+    )
 
-  ## }
+    ctl$size_selex_parms <- set_par(
+      ctl$size_selex_parms, "SizeSel_P_2_Fishery\\(1\\)",
+      sel_width,
+      lo = 0,
+      hi = 100,
+      phase = -99
+    )
+
+  }
+
 
   ## Remove stale age selectivity parameters, if present
   if (!is.null(ctl$age_selex_parms)) {
@@ -608,16 +620,22 @@ update_ss3_from_obs <- function(inputs,
 
   ## ---------------- survey Q ----------------
 
+  ## ctl$Q_options ## okay
+
   if (!is.null(ctl$Q_parms)) {
 
     iq <- grep("LnQ", rownames(ctl$Q_parms))
 
+    ctl$Q_parms[iq, "LO"] <- -15
+    ctl$Q_parms[iq, "HI"] <- 15
     ctl$Q_parms[iq, "INIT"] <- log(sim_dat$q)
-    ctl$Q_parms[iq, "LO"] <- log(sim_dat$q / 100)
-    ctl$Q_parms[iq, "HI"] <- log(sim_dat$q * 100)
-    ctl$Q_parms[iq, "PHASE"] <- 1
+    ctl$Q_parms[iq, "PRIOR"] <- log(sim_dat$q)
+    ctl$Q_parms[iq, "PR_SD"] <- 1
+    ctl$Q_parms[iq, "PR_type"] <- 0
+    ctl$Q_parms[iq, "PHASE"] <- -1
 
   }
+
 
   ## ---------------- forecast ----------------
 
@@ -630,6 +648,8 @@ update_ss3_from_obs <- function(inputs,
 
   ## TODO causes error in fitting (maybe fix later)
   ## ss_dat$Nsexes <- 1
+
+  ## lengthbin 4-38
 
   inputs$dat <- ss_dat
   inputs$ctl <- ctl
