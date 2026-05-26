@@ -84,7 +84,7 @@ check.dat <- function(dat = NULL, verbose = TRUE){
     binwidth <- dat$binwidth
 
     ## age-length key
-    if(!is.null(LA)){
+    if (!is.null(LA)) {
         mids <- seq((binwidth/2), dat$Linf * 1.2, by = binwidth)
         dat$mids <- mids
         highs <- mids + binwidth/2

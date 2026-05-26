@@ -109,21 +109,36 @@ run.mse <- function(dat, set,
     dat$svec <- rep(1:ns, each = nyall)
     dat$s1vec <- seq(1, ntall, ns)
 
+  if (is.na(set$seed)) set$seed <- floor(runif(1, 0, 300))
 
     ## parallel loop
-    if(ncores > 1){
+  if (ncores > 1) {
 
-        cl <- parallel::makeCluster(ncores)
+    ## Resolve HCR names to function objects for workers (hcrs stays as
+    ## the character vector so shared post-processing code can use it as names).
+    ## HCR bodies for ss3/spict/sam call get("conscat") as a non-convergence
+    ## fallback. Inject conscat directly into each function's closure so it
+    ## travels with the serialized function to every worker, regardless of how
+    ## future sets up the worker evaluation environment.
+    conscat_fun <- get("conscat", envir = .GlobalEnv)
+    hcr_funs <- lapply(hcrs, function(h) {
+        f <- if (is.function(h)) h else get(h, envir = .GlobalEnv, inherits = FALSE)
+        e <- new.env(parent = environment(f))
+        e$conscat <- conscat_fun
+        environment(f) <- e
+        f
+    })
+    names(hcr_funs) <- hcrs
+
+    cl <- parallel::makeCluster(ncores)
 
         tryCatch({
             future::plan(cluster, workers = cl)
-            parallel::clusterExport(cl, varlist = c(globals,
-                                                    names(set$hcr)),
-                                    envir = .GlobalEnv)
-            parallel::clusterExport(cl, varlist = c("dat", "set",
-                                                    "refs", "hcrs", "nhcrs",
-                                                    "nysim", "nrep", "ny",
-                                                    "ns", "nt", "nyall","ntall"),
+            parallel::clusterExport(cl,
+                                    varlist = c("dat", "set", "hcr_funs",
+                                                "refs", "nhcrs",
+                                                "nysim", "nrep", "ny",
+                                                "ns", "nt", "nyall","ntall"),
                                     envir = environment())
 
             seeds <- lapply(1:nrep, function(i) {
@@ -168,7 +183,7 @@ run.mse <- function(dat, set,
 
                 ## loop
                 for(i in 1:nhcrs){
-                    hcri <- hcrs[[i]]
+                    hcri <- hcr_funs[[i]]
                     poptmp <- popListx[[i]]
                     poptmp$tacs <- NULL
                     for(y in 1:nysim){
@@ -184,7 +199,8 @@ run.mse <- function(dat, set,
                 }
                 ## repList[[x]] <- popListx
                 return(popListx)
-            }, future.seed = seeds)
+            }, future.seed = seeds,
+            future.globals = TRUE)
             ## }, mc.cores = ncores) ## for mclapply
 
         }, error = function(e) {
@@ -193,7 +209,7 @@ run.mse <- function(dat, set,
             parallel::stopCluster(cl)
         })
 
-    }else{
+    } else {
 
         res <- vector("list", nrep)
         for(x in 1:nrep){

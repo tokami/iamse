@@ -255,7 +255,10 @@ check.set <- function(set = NULL) {
     ## Record states at end of year or beginning?
     if(is.null(set$recordLast)) set$recordLast <- 0
 
-    if(is.null(set$surveyBeforeRec)) set$surveyBeforeRec <- FALSE
+  if(is.null(set$surveyBeforeRec)) set$surveyBeforeRec <- FALSE
+
+  if(is.null(set$catch_eq)) set$catch_eq  <- "baranov"
+
 
 
     ## return

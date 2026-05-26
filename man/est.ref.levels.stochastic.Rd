@@ -9,7 +9,7 @@ est.ref.levels.stochastic(
   set = NULL,
   fmax = 10,
   ncores = parallel::detectCores() - 1,
-  ref = c("Fmsy", "Bmsy", "MSY", "B0", "ESBmsy", "SSBmsy", "ESB0"),
+  ref = c("Fmsy", "Bmsy", "MSY", "B0", "ESBmsy", "SSBmsy", "ESB0", "SSB0"),
   plot = FALSE,
   get.final = FALSE
 )
@@ -41,11 +41,12 @@ Typical entries include:
   \item `"Bmsy"`: Biomass at MSY.
   \item `"MSY"`: Maximum sustainable yield.
   \item `"B0"`: Unfished (virgin) biomass.
-  \item `"ESBmsy"`: Equilibrium spawning biomass at F\eqn{_{MSY}}.
+  \item `"ESBmsy"`: Exploitable biomass at F\eqn{_{MSY}}.
   \item `"SSBmsy"`: Spawning stock biomass at F\eqn{_{MSY}}.
-  \item `"ESB0"`: Equilibrium spawning biomass at F = 0.
+  \item `"ESB0"`: Exploitable biomass at F = 0.
+  \item `"SSB0"`: Spawning biomass at F = 0.
 }
-The default is `c("Fmsy", "Bmsy", "MSY", "B0", "ESBmsy", "SSBmsy", "ESB0")`.}
+The default is `c("Fmsy", "Bmsy", "MSY", "B0", "ESBmsy", "SSBmsy", "ESB0","SSB0")`.}
 
 \item{plot}{Logical; if `TRUE`, produce diagnostic plots showing, for
 example, simulated yield and biomass as a function of fishing mortality

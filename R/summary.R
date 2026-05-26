@@ -26,7 +26,7 @@
 #' @method summary iamse
 summary.iamse <- function(object, ...){
     ##
-    quants <- c("TSB","SSB","ESB","CW","TSBfinal","TACs","FM")
+    quants <- c("TSB","SSB","ESB","CW","TSBfinal","SSBfinal","TACs","FM")
     nquants <- length(quants)
     nmse <- length(object)
     resList <- vector("list",nmse)
@@ -45,7 +45,7 @@ summary.iamse <- function(object, ...){
                 }else if(quant %in% c("CW","FM")){
                     tmp <- do.call(rbind,lapply(msei,
                                                 function(x) apply(x[[quant]],1,sum)))
-                }else if(quant %in% c("TSBfinal","TACs")){
+                }else if(quant %in% c("TSBfinal","SSBfinal","TACs")){
                     tmp <- do.call(rbind,lapply(msei, function(x) x[[quant]]))
                 }
                 res[[j]] <- apply(tmp, 2, quantile, probs=c(0.025,0.5,0.975), na.rm=TRUE)

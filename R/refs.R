@@ -182,11 +182,12 @@ est.ref.levels <- function(dat, set=NULL, fvec = seq(0,5,0.1),
 #'     \item `"Bmsy"`: Biomass at MSY.
 #'     \item `"MSY"`: Maximum sustainable yield.
 #'     \item `"B0"`: Unfished (virgin) biomass.
-#'     \item `"ESBmsy"`: Equilibrium spawning biomass at F\eqn{_{MSY}}.
+#'     \item `"ESBmsy"`: Exploitable biomass at F\eqn{_{MSY}}.
 #'     \item `"SSBmsy"`: Spawning stock biomass at F\eqn{_{MSY}}.
-#'     \item `"ESB0"`: Equilibrium spawning biomass at F = 0.
+#'     \item `"ESB0"`: Exploitable biomass at F = 0.
+#'     \item `"SSB0"`: Spawning biomass at F = 0.
 #'   }
-#'   The default is `c("Fmsy", "Bmsy", "MSY", "B0", "ESBmsy", "SSBmsy", "ESB0")`.
+#'   The default is `c("Fmsy", "Bmsy", "MSY", "B0", "ESBmsy", "SSBmsy", "ESB0","SSB0")`.
 #' @param plot Logical; if `TRUE`, produce diagnostic plots showing, for
 #'   example, simulated yield and biomass as a function of fishing mortality
 #'   and the resulting distribution of reference-point estimates. Default is
@@ -222,7 +223,8 @@ est.ref.levels <- function(dat, set=NULL, fvec = seq(0,5,0.1),
 #' @export
 est.ref.levels.stochastic <- function(dat, set=NULL, fmax = 10,
                                       ncores = parallel::detectCores()-1,
-                        ref = c("Fmsy","Bmsy","MSY","B0","ESBmsy","SSBmsy","ESB0"),
+                                      ref = c("Fmsy","Bmsy","MSY","B0","ESBmsy",
+                                              "SSBmsy","ESB0","SSB0"),
                         plot = FALSE, get.final = FALSE) {
 
     ## Checks
@@ -241,7 +243,6 @@ est.ref.levels.stochastic <- function(dat, set=NULL, fmax = 10,
     nrep <- set$refN
     nyrefmsy <- set$refYearsMSY
     tvflag <- FALSE
-
 
     ## Time-variant processes
     ## natural mortality
@@ -269,7 +270,7 @@ est.ref.levels.stochastic <- function(dat, set=NULL, fmax = 10,
     alltv <- max(c(alltv,seltv))
 
     ##
-    refall <- c("Fmsy","MSY","Bmsy","ESBmsy","SSBmsy","B0","ESB0")
+    refall <- c("Fmsy","MSY","Bmsy","ESBmsy","SSBmsy","B0","ESB0","SSB0")
     ##
 
     ## errors (have to be re-used for estimation of Bmsy)
@@ -432,7 +433,7 @@ est.ref.levels.stochastic <- function(dat, set=NULL, fmax = 10,
     }
 
     ## B0
-    if(any(ref %in% c("B0","ESB0"))){
+    if(any(ref %in% c("B0","ESB0","SSB0"))){
 
         res <- parallel::mclapply(as.list(1:nrep), function(x){
             setx <- set
@@ -466,10 +467,12 @@ est.ref.levels.stochastic <- function(dat, set=NULL, fmax = 10,
                 tmp0 <- simpop(log(1e-20), datx, setx, out=0)
                 if(set$refMethod == "mean"){
                     tmp[[i]] <- c(mean(tail(tmp0$TSB,nyrefmsy)),
-                                mean(tail(tmp0$ESB,nyrefmsy)))
+                                  mean(tail(tmp0$ESB,nyrefmsy)),
+                                  mean(tail(tmp0$SSB,nyrefmsy)))
                 }else if(set$refMethod == "median"){
                     tmp[[i]] <- c(median(tail(tmp0$TSB,nyrefmsy)),
-                                median(tail(tmp0$ESB,nyrefmsy)))
+                                  median(tail(tmp0$ESB,nyrefmsy)),
+                                  median(tail(tmp0$sSB,nyrefmsy)))
                 }
             }
             return(tmp)
@@ -478,8 +481,8 @@ est.ref.levels.stochastic <- function(dat, set=NULL, fmax = 10,
         ## b0s <- do.call(rbind, res)
 
         ## sort in list by reference point with matrix (nrep, ntv)
-        b0s <- vector("list", 2) ## b("B0","ESB0")
-        for(i in 1:2){
+        b0s <- vector("list", 3) ## b("B0","ESB0","SSB0")
+        for(i in 1:3){
             b0s[[i]] <- do.call(rbind,
                                   lapply(as.list(1:nrep),
                                          function(x) sapply(1:alltv, function(j) res[[x]][[j]][[i]])))

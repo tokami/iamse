@@ -255,7 +255,7 @@ List simpop(double logFM, List dat, List set, int out) {
         for(int a=0; a<asmax; a++){
           // biomasses
           Bage(a) = NAAS(a) * weighty(a);
-          SSBage(a) = Bage(a) * maty(a) * exp(-pzbm * ZAA(a));
+          SSBage(a) = Bage(a) * maty(a) * exp(-pzbm * ZAA(a)) / 2.0;
           ESBage(a) = Bage(a) * sely(a);
           TSB(y) += Bage(a);
           SSB2(y) += SSBage(a);
@@ -266,7 +266,7 @@ List simpop(double logFM, List dat, List set, int out) {
       // Recruitment
       SSB = 0.0;
       for(int a=0; a<asmax; a++){
-        SSB += NAAS(a) * maty(a) * weighty(a) * exp(-pzbm * MAA(a));
+        SSB += NAAS(a) * maty(a) * weighty(a) * exp(-pzbm * MAA(a)) / 2.0;
       }
       SSB2vec(y) = SSB;
       //    std::cout << "SSB(" << s << "): " << SSB << std::endl;
@@ -286,7 +286,7 @@ List simpop(double logFM, List dat, List set, int out) {
         }
         SPR = 0.0;
         for(int a=0; a<asmax; a++){
-          SPR += NAAStmp(a) * maty(a) * weighty(a) * fecun; // SPR(s) += NnatM(a,s) * maty(a,s) * weighty(a,s) * fecun;
+          SPR += NAAStmp(a) * maty(a) * weighty(a) * fecun / 2.0; // SPR(s) += NnatM(a,s) * maty(a,s) * weighty(a,s) * fecun;
         }
         SPR /= (R0y * eTimeR0(y) * eRepR0);
         SPRvec(y) = SPR;
@@ -305,7 +305,7 @@ List simpop(double logFM, List dat, List set, int out) {
         rec = recBeta * (SSB + sqrt(pow(bp,2) + pow(recGamma,2)/4) -
                          sqrt(pow(SSB-bp,2) + pow(recGamma,2)/4));
       }
-      NAAS(indage0-1) = rec * spawning(s) * eTimeR(y) * eRepR;
+      NAAS(indage0-1) = rec * spawning(s) * eTimeR(y) * eRepR * 2.0;
       recvec(y) = NAAS(indage0-1);
 
       // for(int a=0; a<asmax; a++){
@@ -329,7 +329,7 @@ List simpop(double logFM, List dat, List set, int out) {
         for(int a=0; a<asmax; a++){
           // biomasses
           Bage(a) = NAAS(a) * weighty(a);
-          SSBage(a) = Bage(a) * maty(a) * exp(-pzbm * ZAA(a));
+          SSBage(a) = Bage(a) * maty(a) * exp(-pzbm * ZAA(a)) / 2.0;
           ESBage(a) = Bage(a) * sely(a);
           TSB(y) += Bage(a);
           SSB2(y) += SSBage(a);

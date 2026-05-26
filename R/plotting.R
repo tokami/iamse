@@ -89,6 +89,10 @@ plotiamse.cw <- function(dat, set, resMSE,
     lines(xhist, medhist, lwd=2)
     polygon(x = c(-2,rep(1.2*max(xall),2),-2), y = c(rep(llmsy,2),rep(ulmsy,2)),
             border=NA, col=rgb(t(col2rgb("grey40"))/255,alpha=0.2))
+    if (!is.null(dat$conditioning_ss3_raw$trajectories)) {
+      tr <- dat$conditioning_ss3_raw$trajectories
+      lines(seq_along(tr$years), tr$ss3$catch, lty = 2, lwd = 2, col = "hotpink")
+    }
     if(!is.null(dat$ref$MSY)) abline(h=msy,lty=2)
     abline(h=0,lty=2)
     ## projection
@@ -111,14 +115,153 @@ plotiamse.cw <- function(dat, set, resMSE,
     }
     abline(v=dat$ny, col="grey60",lwd=2)
     abline(v=max(which(dat$FM==0)), col="grey60",lwd=2,lty=2)
-    if(plot.legend) legend("topright", legend=set$hcr,
-                           col=cols, bty="n", lwd=2,lty=1)
+    hcrs <- set$hcr
+    ltys <- rep(1, length(cols))
+    if (!is.null(dat$conditioning_ss3_raw$trajectories)) {
+      hcrs <- c("ss3 assessment", hcrs)
+      cols <- c("hotpink", cols)
+      ltys <- c(2, ltys)
+    }
+    if(plot.legend) legend("topright", legend=hcrs,
+                           col=cols, bty="n", lwd=2,lty=ltys)
     ## title("Catch")
     box()
 }
 
 
-#' Plot biomass time series from an IAMSE MSE
+#' Plot spawning stock biomass time series from an IAMSE MSE
+#'
+#' `plotiamse.ssb()` produces time-series plots of total biomass for each
+#' harvest control rule (HCR) evaluated in an IAMSE management strategy
+#' evaluation. The function aggregates results across replicates and can
+#' display median trajectories, uncertainty envelopes, and optional smoothed
+#' trend lines.
+#'
+#' By default, one line per HCR is drawn, and uncertainty across stochastic
+#' replicates is indicated (for example, by plotting quantile bands; the exact
+#' representation depends on the internal implementation). The function uses
+#' base R graphics.
+#'
+#' @param dat Data object as returned by [check.dat()], containing life-history
+#'   and reference-point information used in the MSE.
+#' @param set Settings list as returned by [check.set()] and modified for the
+#'   MSE run (e.g. containing `nysim`, `nrep`, and `hcr`).
+#' @param resMSE Result object returned by [run.mse()], containing simulated
+#'   time series for each HCR and replicate.
+#' @param trendline Logical; if `TRUE`, draw a smoothed trend or additional
+#'   line highlighting the general trajectory of biomass over time (e.g. using
+#'   a smoother or running mean). Default is `TRUE`.
+#' @param uncert Logical; if `TRUE`, display uncertainty across replicates,
+#'   typically in the form of quantile bands or envelopes around the median.
+#'   Default is `TRUE`.
+#' @param med Logical; if `TRUE`, draw the median biomass trajectory across
+#'   replicates for each HCR. If `FALSE`, only uncertainty or other summaries
+#'   are shown, depending on the internal implementation. Default is `TRUE`.
+#' @param hcrs Optional character vector or indices specifying which HCRs to
+#'   plot. If `NA` (default), all HCRs present in `set$hcr` (and `resMSE`) are
+#'   plotted.
+#' @param ylim Optional numeric vector of length two giving the y-axis limits.
+#'   If `NULL` (default), limits are chosen automatically to encompass the
+#'   plotted biomass values.
+#' @param plot.legend Logical; if `TRUE` (default), add a legend identifying
+#'   the plotted HCRs.
+#' @param ylab Character string specifying the y-axis label. Default is
+#'   `"SSB"`.
+#' @param xlab Character string specifying the x-axis label. Default is an
+#'   empty string `""`. Often set to `"Year"` or similar by the user.
+#'
+#' @return This function is called for its side effect of producing a plot.
+#'   Invisibly returns `NULL`.
+#'
+#' @export
+plotiamse.ssb <- function(dat, set, resMSE,
+                        trendline=TRUE, uncert = TRUE, med = TRUE,
+                      hcrs=NA, ylim = NULL, plot.legend = TRUE,
+                      ylab="SSB", xlab = "") {
+    if(any(!is.na(hcrs))){
+        resMSEnew <- vector("list",length(hcrs))
+        for(i in 1:length(hcrs)){
+            hcri <- hcrs[i]
+            resMSEnew[[i]] <- resMSE[[hcri]]
+        }
+        resMSE <- resMSEnew
+        set$hcr <- hcrs
+    }
+    ## summary (median, 95% CIs)
+    res <- summary(resMSE)
+    ## vars
+    nms <- length(resMSE)
+    xhist <- seq(1,dat$ny,1)
+    xsim <- seq(dat$ny,dat$ny+set$nysim,1)
+    idxsim <- (dat$ny):(dat$ny+set$nysim)
+    idxhist <- 1:dat$ny
+    xall <- 1:(dat$ny+set$nysim)
+
+    if(is.null(ylim)) ylim <- c(0,1.2) * range(unlist(lapply(res,function(x) c(x$SSB))), na.rm=TRUE)
+    cols <- rainbow(nms)
+    ## historic — use spawning SSB (SSB[:,1]) so it is comparable to SS3 SpawnBio overlay
+    i <- 1 ## historic pattern the same between mss
+    llhist <- res[[i]]$SSB[1,idxhist]
+    ulhist <- res[[i]]$SSB[3,idxhist]
+    medhist <- res[[i]]$SSB[2,idxhist]
+    if(!is.null(dat$ref$SSBmsy)) bmsy <- dat$ref$SSBmsy
+    llbmsy <- NA ##tmp[1]
+    ulbmsy <- NA ##tmp[2]
+    ## plot
+    plot(xhist, medhist,
+         xlim = c(0, dat$ny+set$nysim),
+         ylim = ylim,
+         ty='n', lwd=2,
+         ylab=ylab, xlab = xlab)
+    polygon(x = c((dat$ny-(dat$nyC-1)):dat$ny,rev((dat$ny-(dat$nyC-1)):dat$ny)),
+            y = c(rep(-1e8,dat$nyC),rep(1.5*ylim[2],dat$nyC)),
+            border=NA, col="grey95")
+    polygon(x = c(xhist,rev(xhist)), y = c(llhist,rev(ulhist)),
+            border=NA, col=rgb(t(col2rgb("grey30"))/255,alpha=0.2))
+    lines(xhist, medhist, lwd=2)
+    polygon(x = c(-2,rep(1.2*max(xall),2),-2), y = c(rep(llbmsy,2),rep(ulbmsy,2)),
+            border=NA, col=rgb(t(col2rgb("grey40"))/255,alpha=0.2))
+    if (!is.null(dat$conditioning_ss3_raw$trajectories)) {
+      tr <- dat$conditioning_ss3_raw$trajectories
+      lines(seq_along(tr$years), tr$ss3$SSB, lty = 2, lwd = 2, col = "hotpink")
+    }
+    abline(h=0,lty=2)
+    if(!is.null(dat$ref$SSBmsy)) abline(h=bmsy,lty=2)
+    if(!is.null(dat$ref$SSB0)) abline(h=dat$ref$SSB0,lty=2)
+    ## projection
+    if(uncert){
+      for(i in 1:nms){
+            llsim <- res[[i]]$SSB[1,idxsim]
+            ulsim <- res[[i]]$SSB[3,idxsim]
+            polygon(x = c(xsim,rev(xsim)), y = c(llsim,rev(ulsim)),
+                    border=NA, col=rgb(t(col2rgb(cols[i]))/255,alpha=0.2))
+        }
+    }
+    for(i in 1:nms){
+        medsim <- res[[i]]$SSB[2,idxsim]
+        if(med) lines(xsim, medsim, lwd=2, col=cols[i])
+        if(is.numeric(trendline)){
+            for(j in 1:length(trendline))
+                lines(xsim, resMSE[[i]][[trendline[j]]]$SSB[idxsim], col=cols[i])
+        }else if(trendline)
+            lines(xsim, resMSE[[i]][[1]]$SSB[idxsim], col=cols[i])
+    }
+    abline(v=dat$ny, col="grey60",lwd=2)
+    abline(v=max(which(dat$FM==0)), col="grey60",lwd=2,lty=2)
+    hcrs <- set$hcr
+    ltys <- rep(1, length(cols))
+    if (!is.null(dat$conditioning_ss3_raw$trajectories)) {
+      hcrs <- c("ss3 assessment", hcrs)
+      cols <- c("hotpink", cols)
+      ltys <- c(2, ltys)
+    }
+    if(plot.legend) legend("topright", legend=hcrs,
+                           col=cols, bty="n", lwd=2,lty=ltys)
+    ## title("Biomass")
+    box()
+}
+
+#' Plot total biomass time series from an IAMSE MSE
 #'
 #' `plotiamse.b()` produces time-series plots of total biomass for each
 #' harvest control rule (HCR) evaluated in an IAMSE management strategy
@@ -185,9 +328,10 @@ plotiamse.b <- function(dat, set, resMSE,
     idxsim <- (dat$ny):(dat$ny+set$nysim)
     idxhist <- 1:dat$ny
     xall <- 1:(dat$ny+set$nysim)
-    if(is.null(ylim)) ylim <- c(0,1.2) * range(lapply(res,function(x) x$TSBfinal))
+
+    if(is.null(ylim)) ylim <- c(0,1.2) * range(unlist(lapply(res,function(x) c(x$TSBfinal))), na.rm=TRUE)
     cols <- rainbow(nms)
-    ## historic
+    ## historic — use spawning SSB (SSB[:,1]) so it is comparable to SS3 SpawnBio overlay
     i <- 1 ## historic pattern the same between mss
     llhist <- res[[i]]$TSBfinal[1,idxhist]
     ulhist <- res[[i]]$TSBfinal[3,idxhist]
@@ -209,12 +353,17 @@ plotiamse.b <- function(dat, set, resMSE,
     lines(xhist, medhist, lwd=2)
     polygon(x = c(-2,rep(1.2*max(xall),2),-2), y = c(rep(llbmsy,2),rep(ulbmsy,2)),
             border=NA, col=rgb(t(col2rgb("grey40"))/255,alpha=0.2))
+    ## TODO: TSB not yet part of tr$ss3
+    ## if (!is.null(dat$conditioning_ss3_raw$trajectories)) {
+    ##   tr <- dat$conditioning_ss3_raw$trajectories
+    ##   lines(seq_along(tr$years), tr$ss3$TSB, lty = 2, lwd = 2, col = "hotpink")
+    ## }
     abline(h=0,lty=2)
     if(!is.null(dat$ref$Bmsy)) abline(h=bmsy,lty=2)
     if(!is.null(dat$ref$B0)) abline(h=dat$ref$B0,lty=2)
     ## projection
     if(uncert){
-        for(i in 1:nms){
+      for(i in 1:nms){
             llsim <- res[[i]]$TSBfinal[1,idxsim]
             ulsim <- res[[i]]$TSBfinal[3,idxsim]
             polygon(x = c(xsim,rev(xsim)), y = c(llsim,rev(ulsim)),
@@ -232,8 +381,15 @@ plotiamse.b <- function(dat, set, resMSE,
     }
     abline(v=dat$ny, col="grey60",lwd=2)
     abline(v=max(which(dat$FM==0)), col="grey60",lwd=2,lty=2)
-    if(plot.legend) legend("topright", legend=set$hcr,
-                           col=cols, bty="n", lwd=2,lty=1)
+    hcrs <- set$hcr
+    ltys <- rep(1, length(cols))
+    ## if (!is.null(dat$conditioning_ss3_raw$trajectories)) {
+    ##   hcrs <- c("ss3 assessment", hcrs)
+    ##   cols <- c("hotpink", cols)
+    ##   ltys <- c(2, ltys)
+    ## }
+    if(plot.legend) legend("topright", legend=hcrs,
+                           col=cols, bty="n", lwd=2,lty=ltys)
     ## title("Biomass")
     box()
 }
@@ -332,6 +488,10 @@ plotiamse.f <- function(dat, set, resMSE,
     lines(xhist, medhist, lwd=2)
     polygon(x = c(-2,rep(1.2*max(xall),2),-2), y = c(rep(llfmsy,2),rep(ulfmsy,2)),
             border=NA, col=rgb(t(col2rgb("grey40"))/255,alpha=0.2))
+    if (!is.null(dat$conditioning_ss3_raw$trajectories)) {
+      tr <- dat$conditioning_ss3_raw$trajectories
+      lines(seq_along(tr$years), tr$ss3$F, lty = 2, lwd = 2, col = "hotpink")
+    }
     if(!is.null(dat$ref$Fmsy)) abline(h=fmsy,lty=2)
     abline(h=0,lty=2)
     ## projection
@@ -354,8 +514,17 @@ plotiamse.f <- function(dat, set, resMSE,
     }
     abline(v=dat$ny, col="grey60",lwd=2)
     abline(v=max(which(dat$FM==0)), col="grey60",lwd=2,lty=2)
-    if(plot.legend) legend("topright", legend=set$hcr,
-                           col=cols, bty="n", lwd=2,lty=1)
+    hcrs <- set$hcr
+    ltys <- rep(1, length(cols))
+    if (!is.null(dat$conditioning_ss3_raw$trajectories)) {
+      hcrs <- c("ss3 assessment", hcrs)
+      cols <- c("hotpink", cols)
+      ltys <- c(2, ltys)
+    }
+    if(plot.legend) legend("topright", legend=hcrs,
+                           col=cols, bty="n",
+                           lwd=2,
+                           lty=ltys)
     ## title("Fishing mortality")
     box()
 }

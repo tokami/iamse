@@ -98,8 +98,10 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE,
     if(length(beta) < nsurv) beta <- rep(beta, nsurv)
     qE <- dat$qE
     spawning <- dat$spawning
+    strict_ss3 <- isTRUE(set$strict_ss3)
+    catch_eq <- if (is.null(set$catch_eq)) "baranov" else as.character(set$catch_eq)[1]
 
-    ## errors
+  ## errors
     errs <- list()
     errs$time <- get.errs(dat, set, 1:dat$ny)
     errs$rep <- get.errs(dat, set, 1, rep = TRUE)
@@ -153,7 +155,12 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE,
     alphay <- alpha[1] * errs$time$eAlpha[1] * errs$rep$eAlpha
     betay <- beta[1] * errs$time$eBeta[1] * errs$rep$eBeta
 
-    NAASbi <- initdistR(Mbi, Fbi, ns, asmax, indage0, spawning, R0y * mean(errs$time$eR * errs$rep$eR))
+  NAASbi <- initdistR(Mbi, Fbi, ns, asmax, indage0, spawning, R0y * mean(errs$time$eR * errs$rep$eR))
+
+  ## browser()
+  ## cbind(NAASbi, set$init_naa)
+
+  if (is.null(set$init_naa)) {
 
     ## Burn-in period
     if(is.null(set)) burnin <- 5e2 else burnin <- set$burnin
@@ -164,19 +171,20 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE,
             Zbi <- Mbi + Fbi
             for(s in 1:ns){
                 if(spawning[s] > 0){
-                    SSBtmp <- sum(NAASbi * weighty * maty * exp(-pzbm * Zbi))
+                    SSBtmp <- sum(NAASbi * weighty * maty * exp(-pzbm * Zbi))  / 2
                     SSB0 <- get.ssb0(Mbi, maty, weighty, fecun = 1, asmax, ns,
                                      spawning, R0 = R0y * mean(errs$time$eR * errs$rep$eR),
                                      indage0 = indage0,
-                                     season = s, FM = 0)
+                                     season = s, FM = 0) / 2
                     ##                  print(paste0("SSB0: ",round(SSB0), " - SSBt: ",round(SSBtmp)))
-                    recbi <- spawning[s] * recfunc(h = hy, SSBPR0 = SSB0/(R0y * mean(errs$time$eR * errs$rep$eR)),
+                    recbi <- spawning[s] * recfunc(h = hy,
+                                                   SSBPR0 = SSB0/(R0y * mean(errs$time$eR * errs$rep$eR)),
                                                    SSB = SSBtmp,
                                                    R0 = R0y, method = dat$SR,
                                                    bp = dat$bp,
                                                    beta = betay,
                                                    gamma = dat$recGamma,
-                                                   alpha = alphay) * mean(errs$time$eR * errs$rep$eR)
+                                                   alpha = alphay) * mean(errs$time$eR * errs$rep$eR)  * 2
                     recbi[recbi<0] <- 1e-10
                     NAASbi[indage0] <- recbi
                 }
@@ -191,7 +199,27 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE,
     }
     NAAS <- NAASbi
 
-    if(dbg > 0){
+  } else {
+
+    NAAS <- NAASbi
+    if (length(NAAS) == length(set$init_naa)) {
+      NAAS <- set$init_naa
+    } else {
+
+      annual_to_subannual_naa <- function(init_naa, spawn) {
+        spawn <- spawn / sum(spawn)
+        s_naa <- as.vector(t(outer(init_naa, spawn)))
+        names(s_naa) <- seq_along(s_naa) - 1
+        s_naa
+      }
+
+      NAAS <- annual_to_subannual_naa(set$init_naa, c(1,0,0,0))
+
+    }
+
+  }
+
+    if(dbg > 0) {
         Mbi <- M[1,dat$as2s] * msely * mean(errs$time$eM * errs$rep$eM) ## BEFORE: * errs$time$eM[1] * errs$rep$eM
         Fbi <- FM[1,dat$as2s] * sely  * mean(errs$time$eF * errs$rep$eF) ## TODO: F,M different in various seasons?
         ## initdist  only correct if F=0, so okay for get.ssb0
@@ -232,13 +260,14 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE,
 
 
         ## seasons
-        for(s in 1:ns){
+      for (s in 1:ns) {
 
-            if(s == 1 && set$recordLast == 0){
+
+            if (s == 1 && set$recordLast == 0) {
                 ## beginning of year biomasses
                 TSBfinal[y] <- sum(NAAS * weighty)
                 ESBfinal[y] <- sum(NAAS * weighty * sely)
-                SSBfinal[y] <- sum(NAAS * weighty * maty * exp(-pzbm * ZAA))
+                SSBfinal[y] <- sum(NAAS * weighty * maty * exp(-pzbm * ZAA)) / 2
             }
 
             if(plot) plot(as.vector(NAAS %*% dat$plba), ty= 'b',
@@ -272,32 +301,42 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE,
             obsMAA[y,] <- obsMAA[y,] + MAA[seq(s,asmax,ns)]
 
             ## recruitment
-            if(spawning[s] > 0){
+            rec_pending <- NA_real_
+            if (spawning[s] > 0) {
                 ## Survivors from previous season/year
-                SSB[y,s] <- sum(NAAS * weighty * maty * exp(-pzbm * ZAA)) ## pre-recruitment mort
+                SSB[y,s] <- sum(NAAS * weighty * maty * exp(-pzbm * ZAA))  / 2
                 ##                print(SSB[y,s])
                 SSB0 <- get.ssb0(MAA, maty, weighty, fecun=1, asmax,
                                  ns, spawning, indage0 = indage0,
-                                 R0 = R0y * errs$time$eR[y] * errs$rep$eR,
-                                 season = s, FM = 0)
+                                 R0 = R0y, ## * errs$time$eR[y] * errs$rep$eR,
+                                 season = s, FM = 0) / 2
 
-                SSB0vec[y] <- SSB0
-                SPRvec[y] <- SSB0/(R0y * errs$time$eR[y] * errs$rep$eR)
+              SSB0vec[y] <- SSB0
+              SPRvec[y] <- SSB0/(R0y) ##  * errs$time$eR[y] * errs$rep$eR)
 
                 rec[y,s] <-  spawning[s] * recfunc(h = hy,
-                                                   SSBPR0 = SSB0/(R0y * errs$time$eR[y] * errs$rep$eR),
+                                                   SSBPR0 = SSB0/(R0y), ##  * errs$time$eR[y] * errs$rep$eR),
                                                    SSB = SSB[y,s],
                                                    R0 = R0y, method = dat$SR,
                                                    bp = dat$bp,
                                                    beta = betay,
                                                    gamma = dat$recGamma,
-                                                   alpha = alphay) * errs$time$eR[y] * errs$rep$eR
+                                                   alpha = alphay) * errs$time$eR[y] * errs$rep$eR * 2
+
                 rec[rec<0] <- 1e-10
-                NAAS[indage0] <- rec[y,s]
+                if (strict_ss3) {
+                    rec_pending <- rec[y,s]
+                } else {
+                    NAAS[indage0] <- rec[y,s]
+                }
             }
 
             ## catch
-            CAA[[y]][,s] <- baranov(FAA, MAA, NAAS)
+            CAA[[y]][,s] <- if (catch_eq == "pope_halfm") {
+                catch_pope_halfm(FAA, MAA, NAAS)
+            } else {
+                baranov(FAA, MAA, NAAS) ## * 2
+            }
             CW[y,s] <- sum(CAA[[y]][,s] * weightFy)
 
             ## can't take more than what's there
@@ -319,13 +358,13 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE,
             ##     CAA[[y]][,s] <- baranov(FAA, MAA, NAAS)
             ##     CW[y,s] <- sum(weightFy * CAA[[y]][,s])
             ## }
-            ## TSB
+           ## TSB
             TSB[y,s] <- sum(NAAS * weighty)
             TSB1plus[y,s] <- sum(NAAS[-1] * weighty[-1])
             ## ESB
             ESB[y,s] <- sum(NAAS * weighty * sely)
             ## SSB
-            SSB[y,s] <- sum(NAAS * weighty * maty * exp(-pzbm * ZAA))
+            SSB[y,s] <- sum(NAAS * weighty * maty * exp(-pzbm * ZAA)) / 2
 
             ##
             if(is.numeric(nyI) && !set$surveyBeforeRec){
@@ -354,18 +393,28 @@ initpop <- function(dat, set = NULL, out.opt = 1, verbose = TRUE,
 
             ## Exponential decay
             NAAS <- NAAS * exp(-ZAA)
-            if(s == ns && set$recordLast == 1){
+            if (s == ns && set$recordLast == 1) {
                 ## end of year biomasses
                 TSBfinal[y] <- sum(NAAS * weighty)
                 ESBfinal[y] <- sum(NAAS * weighty * sely)
-                SSBfinal[y] <- sum(NAAS * weighty * maty * exp(-pzbm * ZAA))
+                SSBfinal[y] <- sum(NAAS * weighty * maty * exp(-pzbm * ZAA)) / 2
             }
             ## Continuous ageing
             NAAS[asmax] <- NAAS[asmax] + NAAS[asmax-1]
             for(as in (asmax-1):2) NAAS[as] <- NAAS[as-1]
-            NAAS[indage0] <- 0
-        }
-    }
+            if (strict_ss3) {
+                if (is.finite(rec_pending)) {
+                    NAAS[indage0] <- rec_pending
+                } else {
+                    NAAS[indage0] <- 0
+                }
+            } else {
+                NAAS[indage0] <- 0
+            }
+
+        } ## end of season
+
+    } ## end of year
 
     ## account for nyhist (nyC, nyI)
     if(is.numeric(nyI) && all(!is.na(dat$surveyTimes))){
@@ -641,7 +690,9 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE) {
     nysim <- set$nysim
     assessYears <- seq(1, nysim, set$assessmentInterval)
     nyE <- dat$nyE
-    nsE <- dat$effortSeasons
+  nsE <- dat$effortSeasons
+
+  if (is.null(set$catch_eq)) set$catch_eq <- "baranov"
 
     ## survey
     nsurv <- length(dat$surveyTimes)
@@ -665,8 +716,13 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE) {
     if(length(q) < nsurv) q <- rep(q, nsurv)
     beta <- dat$beta
     if(length(beta) < nsurv) beta <- rep(beta, nsurv)
-    qE <- dat$qE
-    tacID <- attributes(get(hcr))$id
+  qE <- dat$qE
+  if (inherits(hcr, "function")) {
+    hcr_fun <- hcr
+  } else {
+    hcr_fun <- get(hcr)
+  }
+    tacID <- attributes(hcr_fun)$id
     tacID2 <- unlist(strsplit(as.character(tacID), "_"))[1]
     M <- dat$M
     spawning <- dat$spawning
@@ -697,12 +753,24 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE) {
     tacSD <- set$tacSD
     if(is.null(tacSD) || !is.numeric(tacSD)) tacSD <- 0
 
-    ## parameters per age
-    weight <- dat$weight
-    weightF <- dat$weightF
-    mat <- dat$mat
-    sel <- dat$sel
-    Msel <- dat$Msel
+  ## parameters per age
+  weight <- dat$weight
+  if (inherits(weight, "matrix") && ncol(weight) > 1) {
+    weight <- weight[,ncol(weight)]
+  }
+  weightF <- dat$weightF
+  if (inherits(weightF, "matrix") && ncol(weightF) > 1) {
+    weightF <- weightF[,ncol(weightF)]
+  }
+  mat <- dat$mat
+  if (inherits(mat, "matrix") && ncol(mat) > 1) {
+    mat <- mat[,ncol(mat)]
+  }
+  sel <- dat$sel
+  if (inherits(sel, "matrix") && ncol(sel) > 1) {
+    sel <- sel[,ncol(sel)]
+  }
+  Msel <- dat$Msel
 
     ## errors
     errs <- list()
@@ -737,8 +805,8 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE) {
     MAA <- M[y,] * as.numeric(t(Msel[[mselInd]])) * errs$time$eM[y] * errs$rep$eM
     hy <- dat$h * errs$time$eH[y]
     maty <- as.numeric(t(mat)) * errs$time$eMat[y] * errs$rep$eMat
-    selInd <- ifelse(selFlag, y, 1)
-    sely <- as.numeric(t(sel[[selInd]])) * errs$time$eSel[y] * errs$rep$eSel
+  selInd <- ifelse(selFlag, y, 1)
+  sely <- as.numeric(t(sel[[selInd]])) * errs$time$eSel[y] * errs$rep$eSel
     weighty <- as.numeric(t(weight)) * errs$time$eW[y] * errs$rep$eW
     weightFy <- as.numeric(t(weightF)) * errs$time$eW[y] * errs$rep$eW
     alphay <- dat$recAlpha * errs$time$eAlpha[y] * errs$rep$eAlpha
@@ -772,7 +840,7 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE) {
             ## beginning of year biomasses
             TSBfinal[y] <- sum(NAAS * weighty)
             ESBfinal[y] <- sum(NAAS * weighty * sely)
-            SSBfinal[y] <- sum(NAAS * weighty * maty * exp(-pzbm * ZAA))
+            SSBfinal[y] <- sum(NAAS * weighty * maty * exp(-pzbm * ZAA)) / 2
         }
 
         ## Indices
@@ -786,16 +854,16 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE) {
             }else{
                 Ztmp <- ZAA
             }
-            SSBtmp <- sum(NAAS * weighty * maty * exp(-pzbm * Ztmp)) ## pre-recruitment mort
+            SSBtmp <- sum(NAAS * weighty * maty * exp(-pzbm * Ztmp)) / 2
             SSB0 <- get.ssb0(MAA, maty, weighty, fecun=1, asmax, ns,
                              spawning, indage0 = indage0,
-                             R0 = R0y * errs$time$eR[y] * errs$rep$eR, season = s)
+                             R0 = R0y * errs$time$eR[y] * errs$rep$eR, season = s)  / 2
             rec[y,s] <- spawning[s] * recfunc(h = hy, SSBPR0 = SSB0/(R0y * errs$time$eR[y] * errs$rep$eR),
                                               SSB = SSBtmp, R0 = R0y,
                                               method = dat$SR, bp = dat$bp,
                                               beta = betay,
                                               gamma = dat$recGamma,
-                                              alpha = alphay) * errs$time$eR[y] * errs$rep$eR
+                                              alpha = alphay) * errs$time$eR[y] * errs$rep$eR  * 2
             rec[rec<0] <- 1e-10
             NAAS[indage0] <- rec[y,s]
         }
@@ -846,7 +914,7 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE) {
                 ffmsy <- sum(utils::tail(FMtmp[1:((y*ns)-ns-(s-1))],ns)) / refs$Fmsy[y + s - 1]
               ## TAC
                 tacs <- est.tac(obs. = obs,
-                                hcr.fun = get(hcr),
+                                hcr.fun = hcr_fun,
                                 tacs. = tacs,
                                 pars. = list("ffmsy" = ffmsy,
                                              "bbmsy" = bbmsy,
@@ -963,7 +1031,11 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE) {
         ## Population dynamics
         FAA <- FM[y,] * sely
         ZAA <- MAA + FAA
-        CAA[,s] <- baranov(FAA, MAA, NAAS)
+        CAA[,s] <- if (set$catch_eq == "pope_halfm") {
+            catch_pope_halfm(FAA, MAA, NAAS)
+        } else {
+            baranov(FAA, MAA, NAAS)  ## * 2
+        }
         CW[y,s] <- sum(CAA[,s] * weightFy)
         ## can't take more than what's there
         Btmp <- sum(NAAS * weighty * sely * exp(-MAA/2))
@@ -998,13 +1070,14 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE) {
         ## ESB
         ESB[y,s] <- sum(NAAS * weighty * sely)
         ## SSB
-        SSB[y,s] <- sum(NAAS * weighty * maty * exp(-pzbm * ZAA))
+      SSB[y,s] <- sum(NAAS * weighty * maty * exp(-pzbm * ZAA)) / 2
 
         ## index observations
-        if(all(!is.na(dat$surveyTimes))){
-            if(s %in% idxS){
+      if(all(!is.na(dat$surveyTimes))){
+
+            if (s %in% idxS) {
                 idxi <- which(idxS == s)
-                for(i in 1:length(idxi)){
+                for (i in 1:length(idxi)) {
                     if(!dat$surveyBeforeAssessment[idxi[i]]){
                         ## survey observation: total catch in weight (spict)
                         surveyTime <- dat$surveyTimes[idxi[i]] - seasonStart[idxS[idxi[i]]]
@@ -1041,7 +1114,7 @@ advancepop <- function(dat, hist, set, hcr, year, verbose = TRUE) {
             ## end of year biomasses
             TSBfinal[y] <- sum(NAAS * weighty)
             ESBfinal[y] <- sum(NAAS * weighty * sely)
-            SSBfinal[y] <- sum(NAAS * weighty * maty * exp(-pzbm * ZAA))
+            SSBfinal[y] <- sum(NAAS * weighty * maty * exp(-pzbm * ZAA)) / 2
         }
         ## Continuous ageing
         NAAS[asmax] <- NAAS[asmax] + NAAS[asmax-1]

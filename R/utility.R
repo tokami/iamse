@@ -276,7 +276,7 @@ get.errs <- function(dat, set, x, hist = NULL, rep = FALSE) {
     eImp <- errs.in$eImp[x]
     eC <- errs.in$eC[x]
     eI <- list()
-    for(i in 1:nsurv){
+    for(i in seq_len(nsurv)){
         eI[[i]] <- errs.in$eI[[i]][x]
     }
     if(is.null(errs.in$eCmvA)){
@@ -303,7 +303,7 @@ get.errs <- function(dat, set, x, hist = NULL, rep = FALSE) {
         eImvA <- NULL
     }else{
         eImvA <- list()
-        for(i in 1:nsurv){
+        for(i in seq_len(nsurv)){
             if(inherits(errs.in$eImvA[[i]], "matrix")){
                 eImvA[[i]] <- try(errs.in$eImvA[[i]][x,], silent = TRUE)
                 if(inherits(eImvA[[i]], "try-error")) eImvA[[i]] <- NA
@@ -316,7 +316,7 @@ get.errs <- function(dat, set, x, hist = NULL, rep = FALSE) {
         eImvL <- NULL
     }else{
         eImvL <- list()
-        for(i in 1:nsurv){
+        for(i in seq_len(nsurv)){
             if(inherits(errs.in$eImvL[[i]], "matrix")){
                 eImvL[[i]] <- try(errs.in$eImvL[[i]][x,], silent = TRUE)
                 if(inherits(eImvL[[i]], "try-error")) eImvL[[i]] <- NA
@@ -365,7 +365,7 @@ get.errs <- function(dat, set, x, hist = NULL, rep = FALSE) {
                                                       hist = tail(hist.errs$eC,1))
     if(is.null(eI) || length(eI) == 0 || all(is.na(eI))){
         eI <- list()
-        for(i in 1:nsurv){
+        for(i in seq_len(nsurv)){
             eI[[i]] <- gen.noise(n, noise$I[1], noise$I[2],
                                  bias.cor = noise$I[3],
                                  hist = tail(hist.errs$eI[[i]],1))
@@ -386,7 +386,7 @@ get.errs <- function(dat, set, x, hist = NULL, rep = FALSE) {
                            hist = tail(hist.errs$eCmvL,1))
     if(is.null(eImvA) || all(is.na(eImvA))){
         eImvA <- list()
-        for(i in 1:nsurv){
+        for(i in seq_len(nsurv)){
             eImvA[[i]] <- gen.noise(n, noise$ImvA[1], noise$ImvA[2],
                                     bias.cor = noise$ImvA[3],
                                     mv = TRUE, dat = dat,
@@ -398,7 +398,7 @@ get.errs <- function(dat, set, x, hist = NULL, rep = FALSE) {
     if(is.null(eImvL) || all(is.na(eImvL)) &&
        !is.null(dat$plba)){
         eImvL <- list()
-        for(i in 1:nsurv){
+        for(i in seq_len(nsurv)){
             eImvL[[i]] <- gen.noise(n, noise$ImvL[1], noise$ImvL[2],
                                     bias.cor = noise$ImvL[3],
                                     mv = TRUE, dat = dat,
@@ -425,17 +425,17 @@ get.errs <- function(dat, set, x, hist = NULL, rep = FALSE) {
                      eImp = c(hist.errs$eImp, eImp),
                      eC = c(hist.errs$eC, eC))
         errs$eI <- list()
-        for(i in 1:nsurv){
+        for(i in seq_len(nsurv)){
             errs$eI[[i]] = c(hist.errs$eI[[i]], eI[[i]])
         }
         errs$eCmvA <- rbind(hist.errs$eCmvA, eCmvA)
         errs$eCmvL <- rbind(hist.errs$eCmvL, eCmvL)
         errs$eImvA <- list()
-        for(i in 1:nsurv){
+        for(i in seq_len(nsurv)){
             errs$eImvA[[i]] = rbind(hist.errs$eImvA[[i]], eImvA[[i]])
         }
         errs$eImvL <- list()
-        for(i in 1:nsurv){
+        for(i in seq_len(nsurv)){
             errs$eImvL[[i]] = rbind(hist.errs$eImvL[[i]], eImvL[[i]])
         }
         errs$eE <- c(hist.errs$eE, eE)
@@ -1133,6 +1133,19 @@ baranov <- function(F, M, N){
 }
 
 
+#' Pope catch equation with half-M convention
+#'
+#' @param F Fishing mortality-at-age for the time step
+#' @param M Natural mortality-at-age for the time step
+#' @param N Numbers-at-age at the start of the time step
+#'
+#' @return Catch-at-age in numbers using half-M timing
+#' @export
+catch_pope_halfm <- function(F, M, N){
+    N * (1 - exp(-F)) * exp(-M * 0.5)
+}
+
+
 #' Predict catch over a TAC period
 #'
 #' `predCatch()` computes the predicted catch over a TAC period, given fishing
@@ -1524,7 +1537,7 @@ get.ssb0 <- function (M, mat, weight, fecun = 1,
     if(is.null(FM)){
         FM <- 0
     }
-    ZAA <-  M + FM
+  ZAA <-  M + FM
 
     NAAS <- initdistR(M, FM=FM, ns, asmax, indage0, spawning, R0)
     ##    print(NAAS)
@@ -1539,7 +1552,17 @@ get.ssb0 <- function (M, mat, weight, fecun = 1,
     }
 
     ## SSB0
-    SBB0 <- sum(NAAS * mat * weight * fecun)
+  SBB0 <- sum(NAAS * mat * weight * fecun)
+
+
+  ## ## testing (TODO: does this work for season > 1?)
+  ## pzbm <- 0
+  ## survi <- rep(NA, asmax)
+  ## survi[1] <- exp(-ZAA[1] * pzbm)
+  ## for (a in 2:asmax) {
+  ##   survi[a] <- survi[a-1] * exp(-(ZAA[a-1] * (1-pzbm) + ZAA[a] * pzbm))
+  ## }
+  ## SSB0 <- sum(survi * R0 * weight * mat)
 
     return(SBB0)
 }
@@ -1564,9 +1587,12 @@ recfunc <- function(h, SSBPR0, SSB,  R0 = 1e6, method = "bevholt", bp = 0,
                     beta = 0, gamma = 0, alpha = 0) {
 
     if(method == "bevholt"){
-        alpha <- SSBPR0 * (1-h)/(4*h)
-        beta <- (5*h-1) / (4*h*R0)
-        rec <- SSB / (alpha + beta * SSB)
+      ##   alpha <- SSBPR0 * (1-h)/(4*h)
+      ##   beta <- (5*h-1) / (4*h*R0)
+      ## rec <- SSB / (alpha + beta * SSB)
+        alpha <- 4.0 * h / ((1.0 - h) * SSBPR0)
+        beta <- (5.0 * h - 1.0) / ((1.0 - h) * SSBPR0 * R0)
+        rec <- alpha * SSB / (1.0 + beta * SSB)
     }else if(method == "ricker"){
         ## beta <- log(5 * h) / (0.8 * R0)
         ## alpha <- exp(beta * R0)/SSBPR0
