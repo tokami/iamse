@@ -10,7 +10,7 @@ est.productivity.stochastic(
   fmax = 10,
   nf = 1000,
   prob = c(0.1, 0.9),
-  ncores = parallel::detectCores() - 1,
+  ncores = 1,
   plot = TRUE
 )
 }
