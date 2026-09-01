@@ -19,10 +19,10 @@
 NULL
 
 initdist <- function(MAA, FAA, R0, spawning, indage0) {
-    .Call('_iamse_initdist', PACKAGE = 'iamse', MAA, FAA, R0, spawning, indage0)
+    .Call(`_iamse_initdist`, MAA, FAA, R0, spawning, indage0)
 }
 
 simpop <- function(logFM, dat, set, out) {
-    .Call('_iamse_simpop', PACKAGE = 'iamse', logFM, dat, set, out)
+    .Call(`_iamse_simpop`, logFM, dat, set, out)
 }
 

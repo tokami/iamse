@@ -16,11 +16,14 @@ initdist.weights(ns, asmax, indage0, spawning)
 \item{spawning}{spawning proportion per season}
 }
 \value{
-Numeric vector of length `asmax`.
+A list with `w` (length `asmax`, zero at the recruitment group and
+  at the plus group, which [initdist.ad()] handles separately), `sp` (the
+  spawning proportions) and `d` (plus-group discount in seasons, per season).
 }
 \description{
 Parameter-independent part of [initdist.ad()]: for every
   age-season group, the sum of the spawning proportions of the seasons in
-  which that group is present at the end of the year.
+  which that group is present at the start of season 1, plus the per-season
+  plus-group discounts `d(s)` described in [initdistR()].
 }
 \keyword{internal}

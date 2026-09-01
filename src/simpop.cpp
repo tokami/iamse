@@ -35,25 +35,24 @@ NumericVector initdist(NumericVector MAA, NumericVector FAA, double R0, NumericV
     }
   }
   // only keep age groups present relative to end of year (last season)
+  int sstar = -1;
   for(int s=0; s<ns; s++){
     int j=ns-s+indage0-1;  // differs to R as s=[0,ns-1], ns-1, and indage0-1
     while(j < asmax){
       NAA2(j,s) = NAA(j,s);
+      // season whose age-season groups land on the plus group
+      if(j == asmax-1) sstar = s;
       j += ns;
     }
   }
-  // keep last age group for every season
+  // plus group: each season's contribution is discounted by the number of
+  // seasons it has already spent in the plus group at the start of season 1,
+  // then accumulated over all past years at the plus group's annual survival
+  // exp(-ns * ZAA(asmax-1)). Must stay identical to initdistR() in R/utility.R.
+  double plusdenom = 1 - exp(-ns * ZAA(asmax-1));
   for(int s=0; s<ns; s++){
-    if(NAA2(asmax-1,s) == 0)
-      NAA2(asmax-1,s) = NAA(asmax-1,s) * exp(-ZAA(asmax-1));
-  }
-  // plusgroup correction
-  double Ztmp = 0.0;
-  for(int a=(asmax-ns); a<asmax; a++){ // +1 (in R) not needed as last = asmax-1
-    Ztmp += ZAA(a);
-  }
-  for(int s=0; s<ns; s++){
-    NAA2(asmax-1,s) = NAA2(asmax-1,s) / (1 - exp(-Ztmp));
+    int d = ((sstar - s) % ns + ns) % ns;
+    NAA2(asmax-1,s) = NAA(asmax-1,s) * exp(-d * ZAA(asmax-1)) / plusdenom;
   }
   // combine seasons
   for(int a=0; a<asmax; a++){
@@ -266,7 +265,7 @@ List simpop(double logFM, List dat, List set, int out) {
       // Recruitment
       SSB = 0.0;
       for(int a=0; a<asmax; a++){
-        SSB += NAAS(a) * maty(a) * weighty(a) * exp(-pzbm * MAA(a));
+        SSB += NAAS(a) * maty(a) * weighty(a) * exp(-pzbm * ZAA(a));
       }
       SSB2vec(y) = SSB;
       //    std::cout << "SSB(" << s << "): " << SSB << std::endl;

@@ -7,20 +7,46 @@
 initdistR(M, FM = NULL, ns, asmax, indage0, spawning, R0 = 1)
 }
 \arguments{
-\item{M}{info}
+\item{M}{natural mortality per age-season group}
 
-\item{FM}{info}
+\item{FM}{fishing mortality per age-season group}
 
-\item{ns}{info}
+\item{ns}{number of seasons}
 
-\item{asmax}{info}
+\item{asmax}{number of age-season groups}
 
-\item{indage0}{info}
+\item{indage0}{index of the recruitment age-season group}
 
-\item{spawning}{info}
+\item{spawning}{spawning proportion per season}
 
-\item{R0}{info}
+\item{R0}{unfished recruitment}
+}
+\value{
+Numeric vector of length `asmax`.
 }
 \description{
-initdistR
+Equilibrium numbers per age-season group of a population
+  receiving a constant recruitment of `R0 * spawning[s]` in every season
+  `s` and experiencing the mortality `M + FM`.
+}
+\details{
+The distribution is returned for the reference point in the year
+  used throughout the operating model: the **start of season 1**,
+  equivalently the state after the ageing at the end of the last season,
+  with the recruitment group emptied (recruits are added by the caller).
+  That is why a cohort recruited in season `s` is found in the age-season
+  groups `seq(indage0 + ns - s + 1, asmax, ns)`.
+
+  The plus group `asmax` needs two corrections that the younger groups do
+  not. Individuals stay in it and lose `exp(-ZAA[asmax])` per season, so
+  each season's contribution is discounted by the number of seasons it has
+  already spent there, `d(s) = (s* - s) mod ns`, where `s*` is the season
+  whose age-season groups land on `asmax`. Summing over all past years then
+  gives a geometric series with the plus group's annual survival,
+  `exp(-ns * ZAA[asmax])` — the operating model applies `ZAA[asmax]`, and
+  only that, to the plus group in every season (see [initpop()]).
+
+  Must stay identical to the C++ `initdist()` in `src/simpop.cpp` and to
+  `initdist.ad()`; `dev/conditioning_checks.R` asserts all three against a
+  long iteration of the operating model's own season loop.
 }

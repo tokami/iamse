@@ -1589,13 +1589,39 @@ recfunc <- function(h, SSBPR0, SSB,  R0 = 1e6, method = "bevholt", bp = 0,
 
 #' initdistR
 #'
-#' @param M info
-#' @param FM info
-#' @param ns info
-#' @param asmax info
-#' @param indage0 info
-#' @param spawning info
-#' @param R0 info
+#' @description Equilibrium numbers per age-season group of a population
+#'   receiving a constant recruitment of `R0 * spawning[s]` in every season
+#'   `s` and experiencing the mortality `M + FM`.
+#'
+#' @details The distribution is returned for the reference point in the year
+#'   used throughout the operating model: the **start of season 1**,
+#'   equivalently the state after the ageing at the end of the last season,
+#'   with the recruitment group emptied (recruits are added by the caller).
+#'   That is why a cohort recruited in season `s` is found in the age-season
+#'   groups `seq(indage0 + ns - s + 1, asmax, ns)`.
+#'
+#'   The plus group `asmax` needs two corrections that the younger groups do
+#'   not. Individuals stay in it and lose `exp(-ZAA[asmax])` per season, so
+#'   each season's contribution is discounted by the number of seasons it has
+#'   already spent there, `d(s) = (s* - s) mod ns`, where `s*` is the season
+#'   whose age-season groups land on `asmax`. Summing over all past years then
+#'   gives a geometric series with the plus group's annual survival,
+#'   `exp(-ns * ZAA[asmax])` — the operating model applies `ZAA[asmax]`, and
+#'   only that, to the plus group in every season (see [initpop()]).
+#'
+#'   Must stay identical to the C++ `initdist()` in `src/simpop.cpp` and to
+#'   `initdist.ad()`; `dev/conditioning_checks.R` asserts all three against a
+#'   long iteration of the operating model's own season loop.
+#'
+#' @param M natural mortality per age-season group
+#' @param FM fishing mortality per age-season group
+#' @param ns number of seasons
+#' @param asmax number of age-season groups
+#' @param indage0 index of the recruitment age-season group
+#' @param spawning spawning proportion per season
+#' @param R0 unfished recruitment
+#'
+#' @return Numeric vector of length `asmax`.
 #'
 #' @export
 initdistR <- function(M, FM=NULL, ns, asmax, indage0, spawning, R0=1){
@@ -1612,20 +1638,20 @@ initdistR <- function(M, FM=NULL, ns, asmax, indage0, spawning, R0=1){
     for(as in (indage0+1):asmax)
         NAA[as,] <- NAA[as-1,] * exp(-ZAA[as-1])
     ## only keep age groups present relative to end of year (last season)
+    sstar <- NA
     for(s in 1:ns){
-        indi <- seq(ns+2-s+indage0-1,asmax,ns)  ## NEW:
-        ## indi <- seq(s+indage0-1,asmax,ns)
+        indi <- seq(ns+2-s+indage0-1,asmax,ns)
         NAA2[indi,s] <- NAA[indi,s]
+        ## season whose age-season groups land on the plus group
+        if(asmax %in% indi) sstar <- s
     }
-    ## keep last age group for every season
-    NAA2[asmax,] <- NAA2[asmax,] + NAA[asmax,] * exp(-ZAA[asmax]) - NAA2[asmax,] + NAA[asmax,] - NAA[asmax,] * exp(-ZAA[asmax])
-    ## better than which:
-    ## indi <- which(NAA2[asmax,]==0)
-    ## NAA2[asmax,indi] <- NAA[asmax,indi] * exp(-ZAA[asmax])
-
-    ## plus group correction
-    NAA2[asmax,] <- NAA2[asmax,] / (1 - exp(-sum(ZAA[(asmax-ns+1):asmax])))
-    ## NAA2[(asmax-ns+1):asmax,] <- NAA2[(asmax-ns+1):asmax,] / (1 - exp(-sum(ZAA[(asmax-ns+1):asmax])))
+    ## plus group: each season's contribution is discounted by the number of
+    ## seasons it has already spent in the plus group at the start of season 1,
+    ## then accumulated over all past years at the plus group's annual
+    ## survival exp(-ns * ZAA[asmax])
+    d <- (sstar - (1:ns)) %% ns
+    NAA2[asmax,] <- NAA[asmax,] * exp(-d * ZAA[asmax]) /
+        (1 - exp(-ns * ZAA[asmax]))
     ## combine seasons
     NAAS <- rowSums(NAA2)
     ## remove recruits

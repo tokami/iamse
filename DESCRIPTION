@@ -1,8 +1,8 @@
 Package: iamse
 Type: Package
 Title: Intra-Annual Management Strategy Evaluation (IAMSE)
-Version: 0.0.9
-Date: 2025-11-19
+Version: 0.1.0
+Date: 2026-09-01
 Authors@R:
     c(person("Tobias", "Mildenberger",
            email = "t.k.mildenberger@gmail.com",

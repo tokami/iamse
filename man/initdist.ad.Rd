@@ -4,14 +4,14 @@
 \alias{initdist.ad}
 \title{AD-safe initial age distribution}
 \usage{
-initdist.ad(M, FM, w, asmax, indage0, ns, R0 = 1)
+initdist.ad(M, FM, idw, asmax, indage0, ns, R0 = 1)
 }
 \arguments{
 \item{M}{natural mortality at age-season (length `asmax`)}
 
 \item{FM}{fishing mortality at age-season (length `asmax`)}
 
-\item{w}{season weights from [initdist.weights()]}
+\item{idw}{precomputed weights from [initdist.weights()]}
 
 \item{asmax}{number of age-season groups}
 

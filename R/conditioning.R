@@ -21,7 +21,7 @@
 #'
 #' @param M natural mortality at age-season (length `asmax`)
 #' @param FM fishing mortality at age-season (length `asmax`)
-#' @param w season weights from [initdist.weights()]
+#' @param idw precomputed weights from [initdist.weights()]
 #' @param asmax number of age-season groups
 #' @param indage0 index of the recruitment age-season group
 #' @param ns number of seasons
@@ -30,7 +30,7 @@
 #' @return Numeric (or `advector`) vector of length `asmax`.
 #'
 #' @keywords internal
-initdist.ad <- function(M, FM, w, asmax, indage0, ns, R0 = 1){
+initdist.ad <- function(M, FM, idw, asmax, indage0, ns, R0 = 1){
     ZAA <- M + FM
     ## mortality below the recruitment age-season group is masked out so that
     ## the cumulative sum starts at indage0
@@ -38,10 +38,14 @@ initdist.ad <- function(M, FM, w, asmax, indage0, ns, R0 = 1){
     Zp <- ZAA * pad
     ## survival from indage0 up to the start of each age-season group
     cum <- exp(-(cumsum(Zp) - Zp))
-    ## plus group correction, applied to the last age-season group only
-    plus <- 1 / (1 - exp(-sum(ZAA[(asmax - ns + 1):asmax])))
+    ## younger age-season groups (idw$w is zero at the plus group)
+    NAAS <- cum * (idw$w * R0)
+    ## plus group: each season's contribution discounted by the seasons it has
+    ## already spent there, accumulated over past years (see initdistR)
+    ZA <- ZAA[asmax]
+    plus <- sum(idw$sp * exp(-idw$d * ZA)) / (1 - exp(-ns * ZA))
     lastm <- as.numeric(seq_len(asmax) == asmax)
-    cum * (w * R0) * (1 + lastm * (plus - 1))
+    NAAS + lastm * (cum[asmax] * R0 * plus)
 }
 
 
@@ -51,27 +55,32 @@ initdist.ad <- function(M, FM, w, asmax, indage0, ns, R0 = 1){
 #'
 #' @description Parameter-independent part of [initdist.ad()]: for every
 #'   age-season group, the sum of the spawning proportions of the seasons in
-#'   which that group is present at the end of the year.
+#'   which that group is present at the start of season 1, plus the per-season
+#'   plus-group discounts `d(s)` described in [initdistR()].
 #'
 #' @param ns number of seasons
 #' @param asmax number of age-season groups
 #' @param indage0 index of the recruitment age-season group
 #' @param spawning spawning proportion per season
 #'
-#' @return Numeric vector of length `asmax`.
+#' @return A list with `w` (length `asmax`, zero at the recruitment group and
+#'   at the plus group, which [initdist.ad()] handles separately), `sp` (the
+#'   spawning proportions) and `d` (plus-group discount in seasons, per season).
 #'
 #' @keywords internal
 initdist.weights <- function(ns, asmax, indage0, spawning){
     w <- rep(0, asmax)
+    sstar <- NA
     for(s in 1:ns){
         indi <- seq(ns + 2 - s + indage0 - 1, asmax, ns)
         w[indi] <- w[indi] + spawning[s]
+        if(asmax %in% indi) sstar <- s
     }
-    ## last age-season group is kept for every season (see initdistR)
-    w[asmax] <- sum(spawning)
+    ## the plus group is handled separately by initdist.ad()
+    w[asmax] <- 0
     ## recruits are removed from the initial distribution (see initdistR)
     w[indage0] <- 0
-    w
+    list(w = w, sp = spawning, d = (sstar - (1:ns)) %% ns)
 }
 
 
